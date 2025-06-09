@@ -184,7 +184,12 @@ uses
   Util.Replacer in '..\common\src\System\Util.Replacer.pas',
   UConfigWriter in 'src\Config\UConfigWriter.pas',
   Commands.ConfigWrite in 'src\Commands\Commands.ConfigWrite.pas',
-  Commands.ConfigRead in 'src\Commands\Commands.ConfigRead.pas';
+  Commands.ConfigRead in 'src\Commands\Commands.ConfigRead.pas',
+  VSoft.CommandLine.Options in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Options.pas',
+  VSoft.CommandLine.Parser in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Parser.pas',
+  VSoft.CommandLine.Utils in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas',
+  VSoft.CommandLine.CommandDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas',
+  VSoft.CommandLine.OptionDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas';
 
 begin
   try

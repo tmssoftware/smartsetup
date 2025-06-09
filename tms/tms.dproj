@@ -403,6 +403,11 @@
         <DCCReference Include="src\Config\UConfigWriter.pas"/>
         <DCCReference Include="src\Commands\Commands.ConfigWrite.pas"/>
         <DCCReference Include="src\Commands\Commands.ConfigRead.pas"/>
+        <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Options.pas"/>
+        <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Parser.pas"/>
+        <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas"/>
+        <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas"/>
+        <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">
