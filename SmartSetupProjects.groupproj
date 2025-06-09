@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{A9B8316C-8467-41C5-8BAA-60F119E5F050}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="tms\tms.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="tmsgui\tmsgui.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="tms">
+        <MSBuild Projects="tms\tms.dproj"/>
+    </Target>
+    <Target Name="tms:Clean">
+        <MSBuild Projects="tms\tms.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tms:Make">
+        <MSBuild Projects="tms\tms.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="tmsgui">
+        <MSBuild Projects="tmsgui\tmsgui.dproj"/>
+    </Target>
+    <Target Name="tmsgui:Clean">
+        <MSBuild Projects="tmsgui\tmsgui.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmsgui:Make">
+        <MSBuild Projects="tmsgui\tmsgui.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="tms;tmsgui"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="tms:Clean;tmsgui:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="tms:Make;tmsgui:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

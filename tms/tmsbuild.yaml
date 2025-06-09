@@ -1,0 +1,42 @@
+# TMS Smart Setup definition file for TMS Smart Setup (!)
+# Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
+minimum required tmsbuild version: 1.0
+  
+application:
+  id: tms.smartsetup # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
+  name: TMS Smart Setup
+  description: A tool to download, build and register components.
+  copyright: tmssoftware
+  url: https://www.tmssoftware.com/
+  docs: https://doc.tmssoftware.com/
+  #version file: VERSION.TXT  # if this line is present, then version.txt must exist, it must have at least one line, 
+                             # and the line must be "something: version". like for example "tms.example: 1.0.3". 
+                             # The text after ":" will be used as version number to display along the name.
+supported frameworks:
+  vcl:
+    ide since: delphi11
+    platforms:
+      - win64intel
+      - linux64
+      - macos64arm
+
+packages: #For exes there can be only one per tmsbuild.yaml.
+  - tms: [vcl,exe]
+paths:
+  extra library paths:  #include only paths not in the files in the dpr
+    # - path1 # relative to the root of the project. do not start with a \. You can also use /, smart setup will fix it according ot the OS.
+    # - path2\a\b
+
+
+
+dependencies: 
+  # write here the application ids for the *direct* dependencies.
+  # if "A" depends on "B" and "B" on "C", you can just write "B" as the "A" dependency. 
+  # You can also write "C" and it will still work, but it is not necessary. Only direct dependencies are needed.
+
+  # - appid: description
+  # 
+ # - tms.example2: TMS Example 2
+ # - tms.example3: TMS Example 3
+
+  

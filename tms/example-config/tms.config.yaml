@@ -1,0 +1,81 @@
+# ========================================
+# TMS Smart Setup configuration file
+# Modify this file if needed
+# ========================================
+
+
+# general options that are not "per product".
+tms smart setup options:
+
+  # 0 means use the optimum for the cores in the machine (default). 1 means single core. 2 two cores and so on.
+  build cores: %build-cores%
+
+  # installs the component in an alternate place so you can have different components installed in the same Delphi.
+  # see https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
+  alternate registry key: %alternate-registry-key%
+
+  # prevents the machine from going to sleep while smart setup is running. Default is true.
+  # note that for this setting to work, "Allow applications to prevent automatic sleep (plugged in)" must be set
+  # to Enabled in the Group Policy Settings. See https://github.com/microsoft/PowerToys/issues/12326#issuecomment-1304934080
+  prevent sleep: %prevent-sleep%
+
+  # smart setup will delete the oldest downloaded versions when they reach this count. If you
+  # for example set this value to 4, smart setup will keep the last 4 versions of each product, and 
+  # versions older than that will be deleted forever. 
+  # A value of 0 means to delete all products after unzipped, including the current versions.
+  # A value of -1 means to keep all versions and never delete any.
+  versions to keep: %versions-to-keep%
+
+  # the default behavior of smart setup is to skip Delphi versions and platforms that are not installed.
+  # this is normally what you want, so you don't have to manually specify in this file which platforms and Delphi versions
+  # to compile. You just leave it to compile all, and smart setup will skip what is not installed.
+  # but when running smart setup from a CI or other automated system, you might want to configure exactly what
+  # platforms and Delphi IDEs you want to build, and have smart setup return an error code instead of just skipping them.
+  # if you set this property true, smart setup will return an error value if it skips any Delphi version or platform.
+  error if skipped: %error-if-skipped%
+    
+  
+  # add to this list the products you don't want to be built/installed
+  excluded products:
+%excluded-products%
+
+  # if you add at least one item in "included products", then only those will be built/installed.
+  # if there are none, all products will be processed.
+  included products:
+%included-products%
+
+  # By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional
+  # root folders here, so tms also looks for tmsbuild.yaml files in those folders.
+  # All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will
+  # be generated under the additional folders. This is useful if you want to use tms to build your own code.
+  # The folders you add here must be in the same drive as the main root folder.
+  additional products folders:
+%additional-products-folders%
+
+  git:
+    # Location where to find git.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.
+    %git-git-location-comment%git location: %git-git-location%
+
+    # Here you can specify extra parameters for the git clone call. If not specified, smart setup will do a plain clone.
+    %git-clone-command-comment%clone command: %git-clone-command%
+
+    # Command for git pull
+    %git-pull-command-comment%pull command: %git-pull-command%
+
+    # Command for a shallow clone that will be used to get a single file.
+    %git-shallow-clone-command-comment%shallow clone command: %git-shallow-clone-command%
+
+  svn:
+    # Location where to find svn.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.
+    %svn-svn-location-comment%svn location: %svn-svn-location%
+
+    # Here you can specify extra parameters for the svn checkout call. If not specified, smart setup will do a plain checkout.
+    %svn-checkout-command-comment%checkout command: %svn-checkout-command%
+
+    # Command for svn update
+    %svn-update-command-comment%update command: %svn-update-command%
+
+    # Command for svn export
+    %svn-export-command-comment%export command: %svn-export-command%
+
+%config-by-product%

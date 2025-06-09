@@ -1,0 +1,14 @@
+#Naming convention used by tms pack and others.
+
+id: tms.tmspack
+delphi ids: #case insensitive. Only list differences.
+  - delphixe: d2011
+  - delphiseattle: DXE9
+  - delphiberlin: DXE10
+  - delphitokyo: DXE11
+  - delphirio: DXE12
+  - delphisydney: DXE13
+  - delphi11: DXE14
+
+options:
+  - packages change name: true

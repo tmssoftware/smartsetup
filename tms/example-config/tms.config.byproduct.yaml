@@ -1,0 +1,94 @@
+%header-comment%
+configuration for %product-id%:
+%{#has-options}%
+  options:
+    # can be info, messages or errors
+    verbosity: %verbosity%
+
+    # if true the components will be compiled but not registered in the IDE.
+    # Also the Windows PATH won't be modified when this setting is true.
+    # You can use "true" or "false" here to skip all or none, and also an array like "[Packages, StartMenu, Help, WindowsPath, WebCore]"
+    # to be more specific about what you want to skip. For example: skip register: [StartMenu, Help] would skip registering the start menu and the help, but not the others. 
+    skip register: %skip-register%
+
+    # if true, smart setup will output the commands it wants to execute, but not execute anything
+    dry run: %dry-run%
+
+%{/has-options}%
+%{#has-delphi-versions}%
+%{#is-all-products}%
+  # specify the IDEs you want to built for and install to.
+  # if this option is omitted, it will try to build for all Delphi versions.
+  # smart setup will anyway avoid installing to a Delphi version if it is not installed in the machine.
+%{/is-all-products}% 
+%{#is-not-all-products}% 
+  # the versions you set for the %product-id% completely override what you set "for all products".
+  # So %product-id% will only be installed for the IDEs below and doesn't inherit other values from "all products".
+%{/is-not-all-products}% 
+  delphi versions:
+%delphi-versions%
+
+%{/has-delphi-versions}%    
+%{#has-platforms}% 
+%{#is-all-products}% 
+  # specify the platforms you want to be built/installed.
+  # if this option is omitted, it will try to build for all platforms supported by the IDE.
+  # smart setup will anyway avoid building to a platform if it's not supported or property installed/configured.
+%{/is-all-products}% 
+%{#is-not-all-products}% 
+ # the versions you set for the %product-id% completely override what you set "for all products".
+ # So %product-id% will only be installed for the platforms below and doesn't inherit other values from "all products".
+%{/is-not-all-products}% 
+  platforms:
+%platforms%
+
+%{/has-platforms}%    
+%{#has-compilation-options}%    
+  compilation options:
+    debug dcus: %debug-dcus%
+
+    # specify compilation directives to be set when building the packages
+%{#is-not-all-products}% 
+    # the defines here are added to the ones already in all products.
+    # you can set a value to false to remove a value that was previously set in all products, for example:
+    # - RTTI: false
+%{/is-not-all-products}% 
+    defines:
+%defines%
+
+%{/has-compilation-options}%    
+%{#has-advanced-options}%    
+  # for internal tmsbuild development. do not change
+  advanced options:
+    # By setting this to true, smart setup will use symlinks instead of hard links. Symlinks require admin rights, unless your PC is in "dev mode".
+    # See https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/ 
+    use symlinks: %use-symlinks%
+    
+    # In order to build the projects, we copy them into a "parallel" temporary folder that is automatically deleted once the build is done.
+    # If you set this to true, the temporary parallel folders won't be deleted and you can examine what they have.
+    keep parallel folders: %keep-parallel-folders%
+    
+    # Smart setup by default won't modify any file in the sources folder.
+    # If you set this to true, it will modify and adapt files in the sources so when you compile them manually they behave similar to when you use Smart setup.
+    modify sources: %modify-sources%
+
+    # When a product fails, by default Smart Setup tries to recompile all the packages in the product again.
+    # This is done for safety, and because building the full product is normally fast enough.
+    # If you enable partial builds, Smart setup will try to compile only those packages that were actually modified and those that depend on it.
+    partial builds: %partial-builds%
+
+    # if enabled, adds the source code paths to Delphi library path
+    # do not enable this option unless you really need it
+    add source code to library path: %add-source-code-to-library-path%
+
+%{/has-advanced-options}%    
+%{#has-compiler-paths}% 
+  # for Lazarus, the path where lazbuild.exe is located  
+  # for Delphi, the path where bin\rsvars.bat is located.
+  # smart setup will find paths to Delphi automatically from registry keys,
+  # so this option is not needed unless you have a build machine you didn't install Delphi to,
+  # or you want to compile lazarus packages.
+  compiler paths:
+%compiler-paths%
+
+%{/has-compiler-paths}%    

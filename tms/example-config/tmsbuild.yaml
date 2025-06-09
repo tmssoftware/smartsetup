@@ -1,0 +1,176 @@
+# TMS Smart Setup definition file for Example
+# Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
+minimum required tmsbuild version: 1.0
+  
+application:
+  id: tms.example # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
+  name: TMS Example for VCL
+  description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
+  copyright: tmssoftware
+  url: https://www.tmssoftware.com/
+  docs: https://doc.tmssoftware.com/
+  version file: version.txt  # if this line is present, then version.txt must exist, it must have at least one line, 
+                             # and the line must be "something: version". like for example "tms.example: 1.0.3". 
+                             # The text after ":" will be used as version number to display along the name.
+
+
+# valid ide values:
+#   - delphi6
+#   - delphi7
+#   - delphi2005
+#   - delphi2006
+#   - delphi2007
+#   - delphi2009
+#   - delphi2010
+#   - delphixe
+#   - delphixe2
+#   - delphixe3
+#   - delphixe4
+#   - delphixe5
+#   - delphixe6
+#   - delphixe7
+#   - delphixe8
+#   - delphiseattle
+#   - delphiberlin
+#   - delphitokyo
+#   - delphirio
+#   - delphisydney
+#   - delphi11
+#   - lazarus
+
+# platforms you can write below:
+#  - win32intel
+#  - win64intel
+#  - macos32intel
+#  - macos64intel    
+#  - macos64arm
+#  - iossimulator
+#  - iosdevice32
+#  - iosdevice64
+#  - android32
+#  - android64
+#  - linux64
+
+supported frameworks:
+  vcl:
+    ide since: delphi7
+    ide until: delphi12
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+    c++ builder support: true
+
+  fmx:
+    ide since: delphixe2
+    ide until: delphi12
+    platforms:
+      - all
+      - linux64: false
+
+  lcl:
+    ide since: lazarus
+    ide until: lazarus
+    platforms:
+      - win32intel
+
+  product2:
+    ide since: delphixe  # the minumum version product2 supports
+    platforms:
+      - win32intel # what product2 supports
+    dependencies:
+      - tms.product2   # a weak dependency. packages using this framework will only be compiled if tms.product2 exists
+      - ~tms.product3 # when a dependency starts with ~, it means "NOT". That is, the framework will be active is tms.product3 is NOT installed.
+
+packages:
+  - Example_Core: [runtime, vcl, fmx]
+  - VCL_Example: [runtime, vcl]            
+  - FMX_Example: [runtime, fmx]
+  - FMX_Example_DESIGN: [design, fmx]
+  - Example_That_Uses_Product2: [runtime, product2]  # this package will only be compiled if/when product2 is installed too.
+
+paths:
+  extra library paths:  #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path
+    
+    # - path1 # relative to the root of the project. do not start with a \. You can also use /, tmsbuild will fix it according ot the OS.
+    # - path2\a\b
+    # - @linux64,win64intel: path3 #only added to the linux64 and win64 library path
+  
+  extra browsing paths:
+  
+  extra debug dcu path:
+
+  web core paths: #paths to register in webcore
+    # - path1
+
+  # the paths below are pattern-matched with the existing library path (case insensitive), and they will be passed to the compiler if they match.
+  # Smart setup by default doesn't pass the library path in the user's machine to the compiler, to avoid errors due to broken
+  # library paths. Use this only when you need some component like fmxlinux which is not a smart-setup dependency and not something that comes built-in in delphi.
+  search paths to preserve:
+    # - *fmxlinux*
+
+
+defines:
+    defines filename: source/example.inc # if not empty, smart setup will create this file and overwrite any existing file. You can include this file from other include file.
+                                         # the folder mus exist. You can use both / or \ as path separator, smart setup will fix it for the os. The folder must exist.
+    available defines:  # this are the defines the user can write in the "defines" section of tmsbuild.config.yaml.  
+      - RTTI  # this option will make your compiled exes much bigger. Only set it to true if requires, and likely in a product-by product basis.
+      - USE_UNICODE
+
+# Add entries to HKCU. You can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%
+# %alternate-registry-key% is what the "alternate registry key" used by delphi, as specified in tms.config.yaml
+# value type can be String or DWORD. If ommited it is String
+registry keys:
+#  - Software\tmssoftware\TMS WEB Core:
+#     value:
+#       name: InstallDir
+#       data: %install-path%
+
+#     value: 
+#       name: WebServerWait
+#       type: Dword
+#       data: 2
+          
+#  - Software\tmssoftware\TMS WEB Core\Components:
+#     value:
+#       name: TMS WEB Core
+#       data: Software\tmssoftware\TMS WEB Core
+
+help:
+  file: Documentation/Example.chm  #this must be a chm file that will be registered so you can press F1 in Delphi and get help. If you don't have a chm file comment this line.
+
+links:
+  - link:
+      type: file  # currently can only be file
+      name: MyTool
+      target: Tools\MyTool.exe
+      description: A tool to do stuff.
+      working folder: 
+
+  - link:
+      type: file
+      name: MyOtherTool
+      target: Tools\MyOtherTool.exe
+      description: Another tool. The same as MyTool but cooler.
+      working folder: 
+
+file links:
+  - link:
+      file to link: example.dll
+      link to folder: #optional. If you don't specify it, it will link to bpl folder.
+      os: [windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
+
+other versions: # if the registry key exists, it means the product is already installed with other setup, and tms smart setup will refuse to run.
+  - reg: HKEY_CURRENT_USER\SOFTWARE\tmssoftware\Example 
+
+dependencies: 
+  # write here the application ids for the *direct* dependencies.
+  # if "A" depends on "B" and "B" on "C", you can just write "B" as the "A" dependency. 
+  # You can also write "C" and it will still work, but it is not necessary. Only direct dependencies are needed.
+
+  # - appid: description
+  # 
+  - tms.example2: TMS Example 2
+  - tms.example3: TMS Example 3
+
+  
