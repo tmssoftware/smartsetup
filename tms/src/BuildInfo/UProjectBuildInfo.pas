@@ -199,7 +199,6 @@ end;
 function TProjectBuildInfo.ContainsIDEAndPlatform(const ide: TIDEName; const Platform: TPlatform): boolean;
 begin
   Result := false;
-  if Skipped.ContainsIDE(ide) then exit(false);
   if Skipped.ContainsPlatform(ide, Platform) then exit(false);
   for var IDEInfo in IDEsBuildInfo do
   begin
