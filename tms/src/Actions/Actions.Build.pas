@@ -48,6 +48,8 @@ begin
   if (Config.BuildCores > 0) then
   begin
     TThreadPool.Default.SetMaxWorkerThreads(Config.BuildCores);
+    //If MaxWorkingThreads < MinWorkerThreads then Max will be ignored.
+    TThreadPool.Default.SetMinWorkerThreads(Config.BuildCores);
   end;
   Logger.Info('Parallel build. Using a maximum of ' + IntToStr(TThreadPool.Default.MaxWorkerThreads) + ' threads.');
 end;
