@@ -45,4 +45,4 @@ We welcome contributions. Fork the repository and submit a pull request, or open
 
 ## License
 
-TMS Smart Setup is licensed under the terms outlined in [`LICENSE.md`](LICENSE.md).
+TMS Smart Setup is licensed under the terms outlined in [`LICENSE`](LICENSE).
