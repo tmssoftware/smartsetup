@@ -394,7 +394,6 @@ end;
 
 procedure TMainForm.lvProductsCompare(Sender: TObject; Item1, Item2: TListItem; Data: Integer; var Compare: Integer);
 var
-  I: Integer;
   Product1, Product2: TGUIProduct;
 begin
   Product1 := ProductFromItem(Item1);
