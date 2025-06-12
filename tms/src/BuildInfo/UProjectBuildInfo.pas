@@ -199,7 +199,10 @@ end;
 function TProjectBuildInfo.ContainsIDEAndPlatform(const ide: TIDEName; const Platform: TPlatform): boolean;
 begin
   Result := false;
-  if Skipped.ContainsPlatform(ide, Platform) then exit(false);
+  //There are 2 possibilities here:
+  // 1. The dep was skipped. Then, Skipped will have a value for all the platforms the dep supports.
+  // 2. The dep was not skipped. Then, IDEsBuildInfo will have the info on what that dep supports.
+  if Skipped.ContainsPlatform(ide, Platform) then exit(true);
   for var IDEInfo in IDEsBuildInfo do
   begin
     if IDEInfo.Name = ide then
@@ -211,7 +214,6 @@ begin
       exit(false);
     end;
   end;
-
 end;
 
 
