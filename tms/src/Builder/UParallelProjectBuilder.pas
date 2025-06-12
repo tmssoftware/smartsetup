@@ -271,13 +271,12 @@ begin
       var UnsupportedDependency: string;
       if DependenciesDontSupport(BuildInfo.Project, BuildInfo.IDE.Name, BuildInfo.Platform.Name, UnsupportedDependency) then
       begin
-        Logger.Info('Skipped installing ' + BuildInfo.Project.ProjectId + ' in ' + IDEId[BuildInfo.IDE.Name]
-          + '.' + PlatformId[BuildInfo.Platform.Name] + ' because ' + UnsupportedDependency + ' is not set to be installed in that configuration.');
-        BuildInfo.Project.Notes.Add(BuildInfo.Project.ProjectId + ' in ' + IDEId[BuildInfo.IDE.Name]
-          + '.' + PlatformId[BuildInfo.Platform.Name] + ' (' + UnsupportedDependency + ' not set to be installed in that configuration)' , BuildInfo.IDE.Name, TNoteType.SkippedProduct);
-        AtomicIncrement(ProcessedPackages, BuildInfo.Platform.PackagesBuildInfo.Count);
-      end
-      else
+        //We moved this from automatically skipping to just warning that is should fail.
+        //To revert to skipping platforms where the dep is not installed, rollback the commit after 5cfb5dd421e9e5e0c01e059712f287a0e4582bac
+        Logger.Error('Installing ' + BuildInfo.Project.ProjectId + ' in ' + IDEId[BuildInfo.IDE.Name]
+          + '.' + PlatformId[BuildInfo.Platform.Name] + ' will likely fail because ' + UnsupportedDependency + ' is not set to be installed in that configuration.');
+      end;
+
       begin
         for var BuildPackage in BuildInfo.Platform.PackagesBuildInfo do
         begin
