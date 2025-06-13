@@ -30,18 +30,19 @@ object CredentialsForm: TCredentialsForm
     ParentFont = False
   end
   object lblNotRequired: TLabel
-    Left = 15
+    Left = 16
     Top = 16
-    Width = 224
+    Width = 219
     Height = 33
+    Anchors = [akLeft, akTop, akRight]
     AutoSize = False
-    Caption = 'Credentials are not required for third-party products.'
+    Caption = 'Credentials are NOT required for third-party products.'
     WordWrap = True
   end
   object edEmail: TLabeledEdit
     Left = 16
     Top = 80
-    Width = 221
+    Width = 219
     Height = 23
     Anchors = [akLeft, akTop, akRight]
     EditLabel.Width = 34
@@ -55,12 +56,12 @@ object CredentialsForm: TCredentialsForm
     ParentFont = False
     TabOrder = 0
     Text = ''
-    ExplicitWidth = 219
+    ExplicitWidth = 217
   end
   object edCode: TLabeledEdit
     Left = 16
     Top = 131
-    Width = 221
+    Width = 219
     Height = 23
     Anchors = [akLeft, akTop, akRight]
     EditLabel.Width = 28
@@ -75,10 +76,10 @@ object CredentialsForm: TCredentialsForm
     PasswordChar = '*'
     TabOrder = 1
     Text = ''
-    ExplicitWidth = 219
+    ExplicitWidth = 217
   end
   object btOk: TButton
-    Left = 81
+    Left = 79
     Top = 195
     Width = 75
     Height = 25
@@ -87,11 +88,11 @@ object CredentialsForm: TCredentialsForm
     Default = True
     TabOrder = 2
     OnClick = btOkClick
-    ExplicitLeft = 79
+    ExplicitLeft = 77
     ExplicitTop = 187
   end
   object btCancel: TButton
-    Left = 162
+    Left = 160
     Top = 195
     Width = 75
     Height = 25
@@ -100,7 +101,7 @@ object CredentialsForm: TCredentialsForm
     Caption = '&Skip'
     ModalResult = 2
     TabOrder = 3
-    ExplicitLeft = 160
+    ExplicitLeft = 158
     ExplicitTop = 187
   end
 end
