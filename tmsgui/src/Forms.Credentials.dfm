@@ -29,7 +29,7 @@ object CredentialsForm: TCredentialsForm
     Font.Style = []
     ParentFont = False
   end
-  object Label1: TLabel
+  object lblNotRequired: TLabel
     Left = 15
     Top = 16
     Width = 224
@@ -41,7 +41,7 @@ object CredentialsForm: TCredentialsForm
   object edEmail: TLabeledEdit
     Left = 16
     Top = 80
-    Width = 223
+    Width = 221
     Height = 23
     Anchors = [akLeft, akTop, akRight]
     EditLabel.Width = 34
@@ -55,11 +55,12 @@ object CredentialsForm: TCredentialsForm
     ParentFont = False
     TabOrder = 0
     Text = ''
+    ExplicitWidth = 219
   end
   object edCode: TLabeledEdit
     Left = 16
     Top = 131
-    Width = 223
+    Width = 221
     Height = 23
     Anchors = [akLeft, akTop, akRight]
     EditLabel.Width = 28
@@ -74,9 +75,10 @@ object CredentialsForm: TCredentialsForm
     PasswordChar = '*'
     TabOrder = 1
     Text = ''
+    ExplicitWidth = 219
   end
   object btOk: TButton
-    Left = 83
+    Left = 81
     Top = 195
     Width = 75
     Height = 25
@@ -85,11 +87,11 @@ object CredentialsForm: TCredentialsForm
     Default = True
     TabOrder = 2
     OnClick = btOkClick
-    ExplicitLeft = 81
-    ExplicitTop = 137
+    ExplicitLeft = 79
+    ExplicitTop = 187
   end
   object btCancel: TButton
-    Left = 164
+    Left = 162
     Top = 195
     Width = 75
     Height = 25
@@ -98,7 +100,7 @@ object CredentialsForm: TCredentialsForm
     Caption = '&Skip'
     ModalResult = 2
     TabOrder = 3
-    ExplicitLeft = 162
-    ExplicitTop = 137
+    ExplicitLeft = 160
+    ExplicitTop = 187
   end
 end
