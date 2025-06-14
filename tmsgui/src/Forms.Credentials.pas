@@ -13,6 +13,7 @@ type
     btOk: TButton;
     btCancel: TButton;
     lbInvalidCredentials: TLabel;
+    lblNotRequired: TLabel;
     procedure btOkClick(Sender: TObject);
   private
     { Private declarations }
