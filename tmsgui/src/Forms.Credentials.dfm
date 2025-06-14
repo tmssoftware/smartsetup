@@ -7,7 +7,7 @@ object CredentialsForm: TCredentialsForm
   ClientWidth = 258
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
+  Font.Color = clBtnText
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
@@ -56,7 +56,6 @@ object CredentialsForm: TCredentialsForm
     ParentFont = False
     TabOrder = 0
     Text = ''
-    ExplicitWidth = 217
   end
   object edCode: TLabeledEdit
     Left = 16
