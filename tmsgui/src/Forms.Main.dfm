@@ -6,7 +6,7 @@ object MainForm: TMainForm
   ClientWidth = 919
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
+  Font.Color = clBtnText
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
@@ -87,10 +87,16 @@ object MainForm: TMainForm
               Caption = 'Status'
               Width = 100
             end>
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
+          Font.Style = []
           HideSelection = False
           MultiSelect = True
           ReadOnly = True
           RowSelect = True
+          ParentFont = False
           PopupMenu = pmProducts
           TabOrder = 1
           ViewStyle = vsReport
@@ -227,7 +233,13 @@ object MainForm: TMainForm
         Height = 62
         Align = alClient
         BorderStyle = bsNone
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'Segoe UI'
+        Font.Style = []
         ItemHeight = 15
+        ParentFont = False
         TabOrder = 1
         OnClick = lbLogItemsClick
       end
