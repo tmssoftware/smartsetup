@@ -282,13 +282,13 @@ object MainForm: TMainForm
     Top = 232
     object acInstall: TAction
       Category = 'Commands'
-      Caption = 'Install'
+      Caption = '&Install'
       OnExecute = acInstallExecute
       OnUpdate = acInstallUpdate
     end
     object acUninstall: TAction
       Category = 'Commands'
-      Caption = 'Uninstall'
+      Caption = '&Uninstall'
       OnExecute = acUninstallExecute
       OnUpdate = acUninstallUpdate
     end
@@ -312,31 +312,31 @@ object MainForm: TMainForm
     end
     object acFullBuild: TAction
       Category = 'Commands'
-      Caption = 'Full build'
+      Caption = '&Full build'
       OnExecute = acFullBuildExecute
       OnUpdate = acFullBuildUpdate
     end
     object acPartialBuild: TAction
       Category = 'Commands'
-      Caption = 'Partial build'
+      Caption = '&Partial build'
       OnExecute = acPartialBuildExecute
       OnUpdate = acPartialBuildUpdate
     end
     object acCredentials: TAction
       Category = 'Commands'
-      Caption = 'Credentials'
+      Caption = '&Credentials'
       OnExecute = acCredentialsExecute
       OnUpdate = acCredentialsUpdate
     end
     object acConfigure: TAction
       Category = 'Commands'
-      Caption = 'Configure'
+      Caption = 'C&onfigure'
       OnExecute = acConfigureExecute
       OnUpdate = acConfigureUpdate
     end
     object acVersionHistory: TAction
       Category = 'Menus'
-      Caption = 'Version history'
+      Caption = '&Version history'
       OnExecute = acVersionHistoryExecute
       OnUpdate = acVersionHistoryUpdate
     end
