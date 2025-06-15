@@ -102,6 +102,7 @@ type
     function PackageExtension: string;
   strict
   private
+    function AddExtension(const Name, Extension: string): string;
     function DpkFileName: string; protected
 (*    // Indicates the directory where the bpl file associated with this package should be found
     // It's also used to update the package (.dproj) files
@@ -289,7 +290,7 @@ function TPackageConfig.ExpandedDcpFileName(const ABuildConfig: string): string;
 begin
   // Get output locations
   Result := TPath.Combine(OrigPackageDirectory, FDcpOutputDir);
-  Result := TPath.Combine(Result, TPath.ChangeExtension(PackageName, '.dcp'));
+  Result := TPath.Combine(Result, AddExtension(PackageName, '.dcp'));
   Result := ExpandDirectoryMacros(Result, ABuildConfig);
   Result := TPath.GetFullPath(Result);
 //  Logger.Info('Full Dcp File Name Result: %s', [Result]);
@@ -299,7 +300,7 @@ function TPackageConfig.ExpandedTempDcpFileName(const ProductId, ParallelFolder,
 begin
   // Get output locations
   Result := TPath.Combine(TempPackageDirectory(ProductId, ParallelFolder, ABuildConfig), FDcpOutputDir);
-  Result := TPath.Combine(Result, TPath.ChangeExtension(PackageName, '.dcp'));
+  Result := TPath.Combine(Result, AddExtension(PackageName, '.dcp'));
   Result := ExpandDirectoryMacros(Result, ABuildConfig);
   Result := TPath.GetFullPath(Result);
 //  Logger.Info('Full Dcp File Name Result: %s', [Result]);
@@ -369,6 +370,11 @@ begin
 //  Logger.Info('Full Dcp File Name Result: %s', [Result]);
 end;
 
+function TPackageConfig.AddExtension(const Name, Extension: string): string;
+begin
+  Result := Name + Extension;
+end;
+
 function TPackageConfig.BinaryPackageFileName(const ABuildConfig: string): string;
 begin
   // Get output locations
@@ -405,7 +411,7 @@ end;
 
 function TPackageConfig.TempPackageFileName(const ProductId, ParallelFolder, BuildConfig: string): string;
 begin
-  Result := TPath.ChangeExtension(PackageName, PackageExtension);
+  Result := AddExtension(PackageName, PackageExtension);
 
   Result := TPath.Combine(TempPackageDirectory(ProductId, ParallelFolder, BuildConfig), Result);
   Result := TPath.GetFullPath(Result);
@@ -422,7 +428,7 @@ end;
 
 function TPackageConfig.OrigPackageFileName: string;
 begin
-  Result := TPath.ChangeExtension(PackageName, PackageExtension);
+  Result := AddExtension(PackageName, PackageExtension);
 
   Result := TPath.Combine(OrigPackageDirectory, Result);
   Result := TPath.GetFullPath(Result);
