@@ -436,12 +436,7 @@ end;
 
 function TPackageConfig.PackageExtension: string;
 begin
-  case FPlatformInfo.IDEInfo.IDEName of
-    delphi7: exit('.dpk');
-  else
-    Result := FPackageExtension;
-  end;
-
+  Result := FPackageExtension;
 end;
 
 function TPackageConfig.PlatformInfo: IDelphiPlatformInfo;

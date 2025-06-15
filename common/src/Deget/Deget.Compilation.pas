@@ -88,6 +88,7 @@ type
     FHppOutputDir: Nullable<string>;
     FObjOutputDir: Nullable<string>;
     FOriginalDpkPath: string;
+    FIsDpr: boolean;
   public
     // IMPORTANT NOTE: The properties below are not being considered for the msbuild compiler
     // They are only being used for dcc32 compiler. This is just because for now we are using
@@ -100,6 +101,7 @@ type
     property HppOutputDir: Nullable<string> read FHppOutputDir write FHppOutputDir;
     property ObjOutputDir: Nullable<string> read FObjOutputDir write FObjOutputDir;
     property OriginalDpkPath: string read FOriginalDpkPath write FOriginalDpkPath;
+    property IsDpr: boolean read FIsDpr write FIsDpr;
   end;
 
   //For Community Edition...
@@ -272,6 +274,7 @@ begin
     if IDEName <= delphi2009 then
     begin
       Dcc32 := TDcc32CompilationSettings.Create;
+      Dcc32.IsDpr := BuildInfo.Project.IsExe;
       Dcc32.SearchPathMode := TSearchPathMode.DelphiLib;
       Dcc32.BplOutputDir := TPath.GetDirectoryName(PackageInfo.BinaryTempPackageFileName(BuildInfo.ProjectId, Config.Folders.ParallelFolder, BuildConfig));
       Dcc32.DcuOutputDir := PackageInfo.ExpandedTempDcuOutputDir(BuildInfo.ProjectId, Config.Folders.ParallelFolder, BuildConfig);
@@ -1090,8 +1093,11 @@ begin
   try
     TDirectory_CreateDirectory(TPath.GetDirectoryName(BatchFile));
     TFile.WriteAllText(BatchFile, Batch);
+    var PkgExt := '.dpk';
+    if Settings.IsDpr then PkgExt := '.dpr';
+
     if SameText(TPath.GetExtension(ProjectFile), '.dproj') then
-      ProjectFile := TPath.ChangeExtension(ProjectFile, '.dpk');
+      ProjectFile := TPath.ChangeExtension(ProjectFile, PkgExt);
 
     if not ExecuteCommand(
       Format('cmd /C call "%s" "%s" %s', [BatchFile, ProjectFile, BuildDcc32Parameters(IDEName, Settings)]),
