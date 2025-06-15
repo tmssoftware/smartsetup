@@ -234,6 +234,8 @@ begin
     var Line := Trim(Lines[Index]);
     try
     if Line = '' then Continue;
+    if Line.StartsWith('{') or Line.StartsWith('//') then Continue;
+
 
     var LastChar: Char := Line[Length(Line)];
     Result := Result + [Copy(Line, 1, Length(Line) - 1)];
