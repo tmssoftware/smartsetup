@@ -12,7 +12,7 @@ TNaming = class
     constructor Create(const aPackagesChangeName: boolean);
     function Id: string; virtual; abstract;
     property PackagesChangeName: boolean read FPackagesChangeName;
-    function GetPackageNaming(const dv: TIDEName; const IsExe: boolean): string; virtual; abstract;
+    function GetPackageNaming(const dv: TIDEName; const IsExe: boolean; const ProjectFolder: string): string; virtual; abstract;
 end;
 
 implementation

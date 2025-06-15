@@ -370,8 +370,6 @@ end;
 constructor TDelphiVersionsSectionConf.Create(const aParent: TSection;
   const aConfig: TConfigDefinition;
   const aProductConfig: TProductConfigDefinition);
-var
-  dv: TIDEName;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
@@ -379,7 +377,7 @@ begin
   ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aProductConfig.ClearIDENames;end;
 
   Actions := TListOfActions.Create;
-  for dv := Low(TIDEName) to High(TIDEName) do
+  for var dv := Low(TIDEName) to High(TIDEName) do
   begin
     Actions.Add(IDEId[dv], Capture(dv));
   end;

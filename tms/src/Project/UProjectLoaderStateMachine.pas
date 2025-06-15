@@ -65,6 +65,14 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TPackageFoldersSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    function Capture(const dv: TIDEName): TAction;
+
+    class function SectionNameStatic: string; override;
+  end;
+
   THelpSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
@@ -246,6 +254,7 @@ begin
   ChildSections.Add(TApplicationSectionDef.SectionNameStatic, TApplicationSectionDef.Create(Self, aProject));
   ChildSections.Add(TSupportedFrameworksSectionDef.SectionNameStatic, TSupportedFrameworksSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackagesSectionDef.SectionNameStatic, TPackagesSectionDef.Create(Self, aProject));
+  ChildSections.Add(TPackageFoldersSectionDef.SectionNameStatic, TPackageFoldersSectionDef.Create(Self, aProject));
   ChildSections.Add(THelpSectionDef.SectionNameStatic, THelpSectionDef.Create(Self, aProject));
   ChildSections.Add(TDependenciesSectionDef.SectionNameStatic, TDependenciesSectionDef.Create(Self, aProject));
   ChildSections.Add(TBuildingSectionDef.SectionNameStatic, TBuildingSectionDef.Create(Self, aProject));
@@ -401,6 +410,33 @@ end;
 class function TPackagesSectionDef.SectionNameStatic: string;
 begin
   Result := 'packages';
+end;
+
+{ TPackageFoldersSectionDef }
+
+function TPackageFoldersSectionDef.Capture(const dv: TIDEName): TAction;
+begin
+  Result := procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.SetPackageFolders(dv, value);
+    end;
+end;
+
+constructor TPackageFoldersSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Actions := TListOfActions.Create;
+  for var dv := Low(TIDEName) to High(TIDEName) do
+  begin
+    Actions.Add(IDEId[dv], Capture(dv));
+  end;
+end;
+
+
+class function TPackageFoldersSectionDef.SectionNameStatic: string;
+begin
+  Result := 'package folders';
 end;
 
 { THelpSectionDef }

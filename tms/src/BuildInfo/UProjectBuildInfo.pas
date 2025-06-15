@@ -369,7 +369,7 @@ end;
 function TProjectBuildInfo.PackagesFolder(const IDEName: TIDEName): string;
 begin
   var Naming := Config.GetNaming(Project.Naming, Project.FullPath);
-  var DelphiFolder := Naming.GetPackageNaming(IdeName, Project.IsExe);
+  var DelphiFolder := Naming.GetPackageNaming(IdeName, Project.IsExe, Project.PackageFolders[IdeName]);
 
   Result := TPath.Combine(BasePackagesFolder, DelphiFolder);
 end;

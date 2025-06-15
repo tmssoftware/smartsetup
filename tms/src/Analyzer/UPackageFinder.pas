@@ -11,8 +11,8 @@ type
     class function GetProjectToBuild(const PackageCache: TPackageCache; const dv: TIDEName; const Project: TProjectDefinition;
       const Package: TPackage; const Naming: TNaming; const ThrowExceptions: boolean; const ForceExt: TArray<string>): string; static;
 
-    class function PackagesFolder(const BasePackagesFolder: string; const dv: TIDEName; const Naming: TNaming; const IsExe: boolean): string;
-    class function PackagesExist(const BasePackagesFolder: string; const dv: TIDEName; const Naming: TNaming; const IsExe: boolean): boolean;
+    class function PackagesFolder(const BasePackagesFolder: string; const dv: TIDEName; const Naming: TNaming; const IsExe: boolean; const ProjectFolder: string): string;
+    class function PackagesExist(const BasePackagesFolder: string; const dv: TIDEName; const Naming: TNaming; const IsExe: boolean; const ProjectFolder: string): boolean;
   end;
 
 implementation
@@ -31,7 +31,7 @@ class function TPackageFinder.GetProjectToBuild(const PackageCache: TPackageCach
   const Package: TPackage; const Naming: TNaming; const ThrowExceptions: boolean; const ForceExt: TArray<string>): string;
 begin
   var Suffix := '';
-  if Naming.PackagesChangeName then Suffix := Naming.GetPackageNaming(dv, Package.PackageType = TPackageType.Exe);
+  if Naming.PackagesChangeName then Suffix := Naming.GetPackageNaming(dv, Package.PackageType = TPackageType.Exe, Project.PackageFolders[dv]);
   var BasePath := TPath.GetDirectoryName(Project.FullPath);
   var exts := ForceExt;
   if exts = nil then
@@ -61,7 +61,7 @@ begin
   end
   else
   begin
-    Result := GetPackage(Naming.GetPackageNaming(dv, Package.PackageType = TPackageType.Exe), packs, BasePath, FullPackName, ThrowExceptions);
+    Result := GetPackage(Naming.GetPackageNaming(dv, Package.PackageType = TPackageType.Exe, Project.PackageFolders[dv]), packs, BasePath, FullPackName, ThrowExceptions);
   end;
 
 
@@ -82,17 +82,17 @@ begin
 end;
 
 class function TPackageFinder.PackagesFolder(const BasePackagesFolder: string;
-  const dv: TIDEName; const Naming: TNaming; const IsExe: boolean): string;
+  const dv: TIDEName; const Naming: TNaming; const IsExe: boolean; const ProjectFolder: string): string;
 begin
- var DelphiFolder := Naming.GetPackageNaming(dv, IsExe);
+ var DelphiFolder := Naming.GetPackageNaming(dv, IsExe, ProjectFolder);
  Result := TPath.Combine(BasePackagesFolder, DelphiFolder);
 end;
 
 
 class function TPackageFinder.PackagesExist(const BasePackagesFolder: string;
-  const dv: TIDEName; const Naming: TNaming; const IsExe: boolean): boolean;
+  const dv: TIDEName; const Naming: TNaming; const IsExe: boolean; const ProjectFolder: string): boolean;
 begin
- Result := TDirectory.Exists(PackagesFolder(BasePackagesFolder, dv, Naming, IsExe));
+ Result := TDirectory.Exists(PackagesFolder(BasePackagesFolder, dv, Naming, IsExe, ProjectFolder));
 end;
 
 

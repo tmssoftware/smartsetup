@@ -12,7 +12,7 @@ type
     constructor Create;
 
     function Id: string; override;
-    function GetPackageNaming(const dv: TIDEName; const IsExe: boolean): string; override;
+    function GetPackageNaming(const dv: TIDEName; const IsExe: boolean; const ProjectFolder: string): string; override;
   end;
 
 
@@ -25,8 +25,10 @@ begin
   inherited Create(true);
 end;
 
-function TTMSPackNaming.GetPackageNaming(const dv: TIDEName; const IsExe: boolean): string;
+function TTMSPackNaming.GetPackageNaming(const dv: TIDEName; const IsExe: boolean; const ProjectFolder: string): string;
 begin
+  if ProjectFolder <> '' then exit(ProjectFolder);
+
   case dv of
     TIDEName.lazarus: exit('LAZARUS');
     TIDEName.delphixe: exit('d2011');

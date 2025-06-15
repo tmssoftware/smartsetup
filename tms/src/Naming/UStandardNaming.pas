@@ -11,7 +11,7 @@ type
     constructor Create;
     function Id: string; override;
 
-    function GetPackageNaming(const dv: TIDEName; const IsExe: boolean): string; override;
+    function GetPackageNaming(const dv: TIDEName; const IsExe: boolean; const ProjectFolder: string): string; override;
   end;
 
 
@@ -24,9 +24,11 @@ begin
   inherited Create(false);
 end;
 
-function TStandardNaming.GetPackageNaming(const dv: TIDEName; const IsExe: boolean): string;
+function TStandardNaming.GetPackageNaming(const dv: TIDEName; const IsExe: boolean; const ProjectFolder: string): string;
 begin
   if IsExe then exit('');
+  if ProjectFolder <> '' then exit(ProjectFolder);
+
   
   Result := IDEId[dv];
   if Result.StartsWith('delphi') then Result := 'd' + Result.Substring(Length('delphi'));
