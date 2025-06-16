@@ -67,7 +67,7 @@ type
     // if you want just to add a new directory to the path (collection of paths) use AddIDEPath
     procedure SetIDEPath(PathType: TDelphiPathType; const Value: string);
     function PlatformMacroValue: string;
-    function BinaryPackageName(const BaseName: string; AddLibSuffix: Boolean; const IsExe: boolean): string;
+    function BinaryPackageName(const BaseName: string; AddLibSuffix: Boolean; const IsExe: boolean; const NonStandardSuffixes: TLibSuffixes): string;
   public
     constructor Create(AIDE: TDelphiIDEInfo; APlatType: TPlatform);
 
@@ -640,14 +640,19 @@ begin
     Result := Result + ['*.hpp'];
 end;
 
-function TDelphiIDEPlatformInfo.BinaryPackageName(const BaseName: string; AddLibSuffix: Boolean; const IsExe: boolean): string;
+function TDelphiIDEPlatformInfo.BinaryPackageName(const BaseName: string; AddLibSuffix: Boolean; const IsExe: boolean; const NonStandardSuffixes: TLibSuffixes): string;
 var
   Suffix: string;
 begin
   if AddLibSuffix then
-    Suffix := PackageSuffixes[IDEName]
+  begin
+    if NonStandardSuffixes[IDEName] = '' then Suffix := PackageSuffixes[IDEName] else Suffix := NonStandardSuffixes[IDEName];
+  end
   else
+  begin
     Suffix := '';
+  end;
+
   case PlatType of
     Win32Intel:
     begin

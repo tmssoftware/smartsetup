@@ -196,8 +196,6 @@ type
     ValueType: TRegistryEntryType;
   end;
 
-  TPackageFolders =  Array[TIDEName] of string;
-
   TProjectDefinition = class
   private
     FFullPath: string;
@@ -222,6 +220,7 @@ type
     FFileLinks: TObjectList<TFileLinkDefinition>;
     FOtherRegistryKeys: TList<string>;
     FPackageFolders: TPackageFolders;
+    FLibSuffixes: TLibSuffixes;
   public
     constructor Create(const aFullPath: string);
     destructor Destroy; override;
@@ -240,6 +239,7 @@ type
 
     property Naming: string read FNaming write FNaming;
     property PackageFolders: TPackageFolders read FPackageFolders;
+    property LibSuffixes: TLibSuffixes read FLibSuffixes;
 
     function SupportsIDE(const dv: TIDEName): boolean;
     function SupportsFramework(const dv: TIDEName; const fr: TFramework): boolean;
@@ -274,6 +274,7 @@ type
 
     procedure AddSearchPathToPreserve(const Pattern: string);
     procedure SetPackageFolders(const dv: TIDEName; const Folder: string);
+    procedure SetLibSuffixes(const dv: TIDEName; const Suffix: string);
 
   end;
 
@@ -419,6 +420,12 @@ procedure TProjectDefinition.SetPackageFolders(const dv: TIDEName;
 begin
   FPackageFolders[dv] := Folder;
 end;
+
+procedure TProjectDefinition.SetLibSuffixes(const dv: TIDEName; const Suffix: string);
+begin
+  FLibSuffixes[dv] := Suffix;
+end;
+
 
 function TProjectDefinition.SupportsCpp: boolean;
 begin

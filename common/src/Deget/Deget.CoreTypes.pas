@@ -116,6 +116,9 @@ type
 {$SCOPEDENUMS ON}
   TBuildConfig = (Debug, Release);
   TPackageType = (Package, Exe);
+  TPackageFolders =  Array[TIDEName] of string;
+  TLibSuffixes = Array[TIDEName] of string;
+
 
 const
   BuildConfigs: array[TBuildConfig] of string = ('Debug', 'Release');

@@ -95,6 +95,7 @@ type
     FOrigPackageDirectory: string;
     FPackageExtension: string;
     FIsExe: boolean;
+    FLibSuffixes: TLibSuffixes;
     // replace $(Platform) and $(Config)
     function ExpandDirectoryMacros(const S, ABuildConfig: string): string;
     function ExpandConfigMacro(const S, ABuildConfig: string): string;
@@ -163,7 +164,7 @@ type
     // Indicates if the package supports the specified platform and delphi version (if it must be compiled for the specified platform)
     function IsSupported(IDEName: TIDEName; Plat: TPlatform): boolean;
   public
-    constructor Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string);
+    constructor Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes);
 
     property PackageName: string read FPackageName;
   end;
@@ -189,7 +190,7 @@ end;
 
 { TPackageConfig }
 
-constructor TPackageConfig.Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string);
+constructor TPackageConfig.Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes);
 begin
   inherited Create;
   FBaseDir := ABaseDir;
@@ -206,6 +207,7 @@ begin
 
   FOrigPackageDirectory := PlatformFolder;
   FIsExe := AIsExe;
+  FLibSuffixes := ALibSuffixes;
   FPackageExtension := APackageExtension;
 end;
 
@@ -381,7 +383,7 @@ begin
   if FIsExe then Result := TPath.Combine(OrigPackageDirectory, ExeOutputDir(ABuildConfig))
     else Result := TPath.Combine(OrigPackageDirectory, FBplOutputDir);
 
-  Result := TPath.Combine(Result, FPlatformInfo.BinaryPackageName(PackageName, True, FIsExe));
+  Result := TPath.Combine(Result, FPlatformInfo.BinaryPackageName(PackageName, True, FIsExe, FLibSuffixes));
   Result := ExpandDirectoryMacros(Result, ABuildConfig);
   Result := TPath.GetFullPath(Result);
 //  Logger.Info('Binary package file location: %s', [Result]);
@@ -392,7 +394,7 @@ begin
   // Get output locations
   if FIsExe then Result := TPath.Combine(TempPackageDirectory(ProductId, ParallelFolder, ABuildConfig), UnexpandedTempExeOutputDir(ABuildConfig))
     else Result := TPath.Combine(TempPackageDirectory(ProductId, ParallelFolder, ABuildConfig), FBplOutputDir);
-  Result := TPath.Combine(Result, FPlatformInfo.BinaryPackageName(PackageName, True, FIsExe));
+  Result := TPath.Combine(Result, FPlatformInfo.BinaryPackageName(PackageName, True, FIsExe, FLibSuffixes));
   Result := ExpandDirectoryMacros(Result, ABuildConfig);
   Result := TPath.GetFullPath(Result);
 //  Logger.Info('Binary package file location: %s', [Result]);

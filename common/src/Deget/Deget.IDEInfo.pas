@@ -49,7 +49,7 @@ type
     // it will automatically add the suffix if AddLibSuffix is true.
     // Example: base name is "aurelius", and function will return aurelius210.bpl for windows in XE7
     // or bplaurelius220.dylib for MacOS in XE8
-    function BinaryPackageName(const BaseName: string; AddLibSuffix: Boolean; const IsExe: boolean): string;
+    function BinaryPackageName(const BaseName: string; AddLibSuffix: Boolean; const IsExe: boolean; const NonStandardSuffixes: TLibSuffixes): string;
 
     // Returns Delphi lib directory. Note: this is NOT the root lib dir, but instead
     // the directory which contains library files (dcp/dcu, etc.), for the specified platform,

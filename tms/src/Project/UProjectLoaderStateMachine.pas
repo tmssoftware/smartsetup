@@ -66,9 +66,20 @@ type
   end;
 
   TPackageFoldersSectionDef = class(TSectionDef)
+  private
+    function Capture(const dv: TIDEName): TAction;
+    function CapturePlus(const dv: TIDEName): TAction;
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+
+    class function SectionNameStatic: string; override;
+  end;
+
+  TLibSuffixesSectionDef = class(TSectionDef)
+  private
     function Capture(const dv: TIDEName): TAction;
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
 
     class function SectionNameStatic: string; override;
   end;
@@ -255,6 +266,7 @@ begin
   ChildSections.Add(TSupportedFrameworksSectionDef.SectionNameStatic, TSupportedFrameworksSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackagesSectionDef.SectionNameStatic, TPackagesSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackageFoldersSectionDef.SectionNameStatic, TPackageFoldersSectionDef.Create(Self, aProject));
+  ChildSections.Add(TLibSuffixesSectionDef.SectionNameStatic, TLibSuffixesSectionDef.Create(Self, aProject));
   ChildSections.Add(THelpSectionDef.SectionNameStatic, THelpSectionDef.Create(Self, aProject));
   ChildSections.Add(TDependenciesSectionDef.SectionNameStatic, TDependenciesSectionDef.Create(Self, aProject));
   ChildSections.Add(TBuildingSectionDef.SectionNameStatic, TBuildingSectionDef.Create(Self, aProject));
@@ -422,7 +434,46 @@ begin
     end;
 end;
 
+function TPackageFoldersSectionDef.CapturePlus(const dv: TIDEName): TAction;
+begin
+  Result := procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      for var dvi := dv to High(TIDEName) do
+      begin
+        Project.SetPackageFolders(dvi, value);
+      end;
+    end;
+end;
+
 constructor TPackageFoldersSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Actions := TListOfActions.Create;
+  for var dv := Low(TIDEName) to High(TIDEName) do
+  begin
+    Actions.Add(IDEId[dv], Capture(dv));
+    Actions.Add(IDEId[dv] + '+', CapturePlus(dv));
+  end;
+end;
+
+
+class function TPackageFoldersSectionDef.SectionNameStatic: string;
+begin
+  Result := 'package folders';
+end;
+
+{ TLibSuffixesSectionDef }
+
+function TLibSuffixesSectionDef.Capture(const dv: TIDEName): TAction;
+begin
+  Result := procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.SetLibSuffixes(dv, value);
+    end;
+end;
+
+constructor TLibSuffixesSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
@@ -434,9 +485,9 @@ begin
 end;
 
 
-class function TPackageFoldersSectionDef.SectionNameStatic: string;
+class function TLibSuffixesSectionDef.SectionNameStatic: string;
 begin
-  Result := 'package folders';
+  Result := 'lib suffixes';
 end;
 
 { THelpSectionDef }
