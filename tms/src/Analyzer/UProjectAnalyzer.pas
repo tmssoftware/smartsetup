@@ -29,7 +29,7 @@ type
     function PackageSupportsCppBuilder(const dv: TIDEName; const dp: TPlatform; const Project: TProjectDefinition; const Package: TPackage): boolean;
     procedure Validate(const Projects: TProjectDefinitionList);
     function GetPackagesFolder(const PackageCache: TPackageCache;
-       const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean): string;
+       const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders): string;
     procedure AnalyzeProjectsToInclude(const Projects: TProjectDefinitionList);
     procedure AddInstalled(const Dict: TDictionary<string, boolean>);
     function FindMissingWeakDependencies(const dv: TIDEName;
@@ -37,6 +37,8 @@ type
       const Package: TPackage): string;
     procedure DependencyInclude(const Map: TDictionary<string, TProjectDefinition>; const Project: TProjectDefinition; const Dependencies: TObjectList<TDependency>; var IncludedCount: integer; const IsWeak: boolean);
     function GetUninstallList: TObjectList<TProjectDefinition>;
+    function BackToFolder(const StartFolder: string;
+      const PackageFolders: TPackageFolders): string;
 
   public
     constructor Create(const aConfig: TConfigDefinition; const aProjectList: TProjectList; const aFileHasher: TFileHasher);
@@ -145,7 +147,19 @@ begin
   Result := false;
 end;
 
-function TProjectAnalyzer.GetPackagesFolder(const PackageCache: TPackageCache; const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean): string;
+function TProjectAnalyzer.BackToFolder(const StartFolder: string; const PackageFolders: TPackageFolders): string;
+begin
+  for var PackageFolder in PackageFolders do
+  begin
+    if PackageFolder = '' then continue;
+    if TPackageFinder.EndsInFolder(StartFolder, PackageFolder, Result) then exit;
+
+  end;
+
+  Result := TPath.GetDirectoryName(StartFolder);
+end;
+
+function TProjectAnalyzer.GetPackagesFolder(const PackageCache: TPackageCache; const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders): string;
 begin
   Result := '';
   var Pkgs := PackageCache.GetFiles(AppFolder, exts);
@@ -162,7 +176,10 @@ begin
         if not IsProjectPackage(TPath.GetFileNameWithoutExtension(P), Packages) then continue;
 
         var PkgFolder := PkgFolderIDE; //for exes.
-        if not IsExe then PkgFolder := TPath.GetDirectoryName(PkgFolderIDE);
+        if not IsExe then
+        begin
+          PkgFolder := BackToFolder(PkgFolderIDE, PackageFolders);
+        end;
         if Result = '' then Result := PkgFolder else if Result <> PkgFolder then raise Exception.Create('Packages in a project can''t be in more than one folder. ' + AppFolder + ' has folders in ' + Result + ' and ' + PkgFolder);
       end;
     end;
@@ -188,7 +205,7 @@ begin
   var PackageCache := TPackageCache.Create;
   try
     BuildInfo.CurrentProject.SourceCodeHash := FileHasher.GenerateSourceCodeHash(PackageCache, Project);
-    BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, TPath.GetDirectoryName(Project.FullPath), Project.FileNameExtension, Project.Packages, Project.IsExe);
+    BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, TPath.GetDirectoryName(Project.FullPath), Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
     var DepsCompiled := DependenciesRebuilt(Config, Project);
 
     AnalyzePackages(PackageCache, Project, DepsCompiled, BuildInfo.CurrentProject.BasePackagesFolder);

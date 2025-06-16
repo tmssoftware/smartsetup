@@ -13,6 +13,7 @@ type
 
     class function PackagesFolder(const BasePackagesFolder: string; const dv: TIDEName; const Naming: TNaming; const IsExe: boolean; const ProjectFolder: string): string;
     class function PackagesExist(const BasePackagesFolder: string; const dv: TIDEName; const Naming: TNaming; const IsExe: boolean; const ProjectFolder: string): boolean;
+    class function EndsInFolder(const aFullFolder, aEndsWithFolder: string; out BaseFolder: string): boolean; static;
   end;
 
 implementation
@@ -67,6 +68,20 @@ begin
 
 end;
 
+class function TPackageFinder.EndsInFolder(const aFullFolder, aEndsWithFolder: string; out BaseFolder: string): boolean;
+begin
+  BaseFolder := aFullFolder;
+  var EndsWithFolder := aEndsWithFolder;
+  while EndsWithFolder <> '' do
+  begin
+    if not SameText(TPath.GetFileName(BaseFolder).Trim, TPath.GetFileName(EndsWithFolder).Trim) then exit(false);
+    EndsWithFolder := TPath.GetDirectoryName(EndsWithFolder);
+    BaseFolder := TPath.GetDirectoryName(BaseFolder);
+  end;
+
+  Result := true;
+end;
+
 class function TPackageFinder.GetPackage(const folderName: string;
   const packs: TArray<string>; const BasePath, PackageName: string; const ThrowExceptions: boolean): string;
 begin
@@ -74,7 +89,8 @@ begin
   begin
     if (pack.Trim = '') then continue;
 
-    if SameText(TPath.GetFileName(TPath.GetDirectoryName(pack)), folderName)
+    var BaseFolder := '';
+    if EndsInFolder(TPath.GetDirectoryName(pack), folderName, BaseFolder)
       then exit(pack);
   end;
 
