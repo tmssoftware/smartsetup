@@ -79,6 +79,8 @@ type
 
     function Defines(const ABuildConfig: string): string;
     function IsPrecompiled: boolean;
+    function LibraryPath(const ProjectId, ParallelFolder, ABuildConfig: string): string;
+
   end;
 
   TPackageConfig = class(TInterfacedObject, IDelphiPackageInfo)
@@ -158,6 +160,8 @@ type
 
     function ExeOutputDir(const ABuildConfig: string): string;
     function Defines(const ABuildConfig: string): string;
+    function LibraryPath(const ProjectId, ParallelFolder, ABuildConfig: string): string;
+
 
 
   public
@@ -230,6 +234,22 @@ begin
       Result := Entry.Defines;
     end, ';');
 end;
+
+function TPackageConfig.LibraryPath(const ProjectId, ParallelFolder, ABuildConfig: string): string;
+begin
+  var MetaData := TDelphiProjectFactory.GetPackageReadData(TempPackageFileName(ProjectId, ParallelFolder, ABuildConfig), PlatformInfo.IDEInfo.IDEName);
+  if MetaData = nil then
+  begin
+    exit('');
+  end;
+
+  Result := MetaData.PropertyGroups.GetValueWithInherited(PlatformInfo.PlatType, ABuildConfig, '',
+    function(Entry: TPropertyGroupEntry): Nullable<string>
+    begin
+      Result := Entry.UnitSearchPath;
+    end, ';');
+end;
+
 
 function TPackageConfig.ExeOutputDir(const ABuildConfig: string): string;
 begin

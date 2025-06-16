@@ -66,8 +66,10 @@ type
   TMsBuildCompilationSettings = class(TCompilationSettings)
   strict private
     FRegistryName: string;
+    FPackageLibraryPath: string;
   public
     property RegistryName: string read FRegistryName write FRegistryName;
+    property PackageLibraryPath: string read FPackageLibraryPath write FPackageLibraryPath;
   end;
 
   TPrecompiledCompilationSettings = class(TCompilationSettings)
@@ -149,7 +151,7 @@ type
     function AddCPPBuilderParameters(const ProjectFileName: string; IDEName: TIDEName;
       Settings: TMsBuildCompilationSettings; LocalSearchPath: string): string;
 {$IFDEF MSWINDOWS}
-    function AdaptCppEntry(const FileName, Entry: string; const SkipEntries: TArray<string>): string;
+    function AdaptPathEntry(const FileName, Entry: string; const SkipEntries: TArray<string>): string;
 {$ENDIF}
     procedure ReadLibPathsFromBCProj(const ProjectFileName: string;
       const IDEName: TIDEName; out CppProjectIncludePath,
@@ -299,6 +301,7 @@ begin
       begin
         MsBuild := TMsBuildCompilationSettings.Create;
         MsBuild.SearchPathMode := TSearchPathMode.DelphiLib;
+        MsBuild.PackageLibraryPath := PackageInfo.LibraryPath(BuildInfo.ProjectId, Config.Folders.ParallelFolder,  BuildConfig);
         Result := MsBuild;
       end;
     end;
@@ -456,7 +459,7 @@ begin
 end;
 
 {$IFDEF MSWINDOWS}
-function TMSBuildCompiler.AdaptCppEntry(const FileName, Entry: string; const SkipEntries: TArray<string>): string;
+function TMSBuildCompiler.AdaptPathEntry(const FileName, Entry: string; const SkipEntries: TArray<string>): string;
   function DoSkipEntry(const e: string): boolean;
   begin
     for var Skip in SkipEntries do
@@ -494,8 +497,8 @@ begin
     var Reader := TCBprojReader.Create(ProjectFileName, IDEName);
     try
       Reader.ReadData(PackData);
-      CppProjectIncludePath := AdaptCppEntry(ProjectFileName, PackData.BaseIncludePath, ['$(IncludePath)']);
-      CppProjectLinkPath := AdaptCppEntry(ProjectFileName, PackData.BaseILINK_LibraryPath, ['$(ILINK_LibraryPath)']);
+      CppProjectIncludePath := AdaptPathEntry(ProjectFileName, PackData.BaseIncludePath, ['$(IncludePath)']);
+      CppProjectLinkPath := AdaptPathEntry(ProjectFileName, PackData.BaseILINK_LibraryPath, ['$(ILINK_LibraryPath)']);
       ClassicCompiler := (IDEName <= TIDEName.delphixe8) or not PackData.Win32ClangCompiler;
     finally
       Reader.Free;
@@ -579,6 +582,8 @@ begin
           LocalSearchPath := LocalSearchPath + ';' + Settings.ExtraSearchPath;
 
         LocalSearchPath := Settings.AddPreservedSearchPaths(LocalSearchPath);
+        if Settings.PackageLibraryPath <> '' then LocalSearchPath := AdaptPathEntry(ProjectFileName, Settings.PackageLibraryPath, ['$(DCC_UnitSearchPath)']) + LocalSearchPath;
+        
       end;
     ProjectSettings:
       if Settings.ExtraSearchPath.HasValue then
