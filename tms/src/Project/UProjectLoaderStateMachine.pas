@@ -187,6 +187,12 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TBuildOnlyLibraryPathSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
   TExtraBrowsingPathSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
@@ -865,6 +871,7 @@ constructor TPathsSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ChildSections.Add(TExtraLibraryPathSectionDef.SectionNameStatic, TExtraLibraryPathSectionDef.Create(Self, aProject));
+  ChildSections.Add(TBuildOnlyLibraryPathSectionDef.SectionNameStatic, TBuildOnlyLibraryPathSectionDef.Create(Self, aProject));
   ChildSections.Add(TExtraBrowsingPathSectionDef.SectionNameStatic, TExtraBrowsingPathSectionDef.Create(Self, aProject));
   ChildSections.Add(TExtraDebugDCUPathSectionDef.SectionNameStatic, TExtraDebugDCUPathSectionDef.Create(Self, aProject));
   ChildSections.Add(TWebCorePathSectionDef.SectionNameStatic, TWebCorePathSectionDef.Create(Self, aProject));
@@ -909,7 +916,7 @@ begin
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
-      Project.ExtraPaths.LibraryPaths.Add(name);
+      Project.ExtraPaths.LibraryPathsBuildAndRegister.Add(name);
     end;
 
 end;
@@ -917,6 +924,27 @@ end;
 class function TExtraLibraryPathSectionDef.SectionNameStatic: string;
 begin
   Result := 'extra library paths';
+end;
+
+{ TBuildOnlyLibraryPathSectionDef }
+
+constructor TBuildOnlyLibraryPathSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Duplicated := TDictionary<string, boolean>.Create;
+  SectionValueTypes := TSectionValueTypes.NoValues;
+
+  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.ExtraPaths.LibraryPathsBuildOnly.Add(name);
+    end;
+
+end;
+
+class function TBuildOnlyLibraryPathSectionDef.SectionNameStatic: string;
+begin
+  Result := 'build-only library paths';
 end;
 
 { TExtraBrowsingPathSectionDef }

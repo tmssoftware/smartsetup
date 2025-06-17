@@ -293,9 +293,13 @@ function TProjectBuildInfo.GetCompilerPaths: TCompilerPathsPerPlatform;
 begin
   Result := TCompilerPathsPerPlatform.Create;
   try
-    for var ex in Project.ExtraPaths.LibraryPaths do
+    for var ex in Project.ExtraPaths.LibraryPathsBuildAndRegister do
     begin
-      Result.LibraryPaths.Add(GetPlatformPaths(Project.RootFolder, ex));
+      Result.LibraryPathsBuildAndRegister.Add(GetPlatformPaths(Project.RootFolder, ex));
+    end;
+    for var ex in Project.ExtraPaths.LibraryPathsBuildOnly do
+    begin
+      Result.LibraryPathsBuildOnly.Add(GetPlatformPaths(Project.RootFolder, ex));
     end;
     for var ex in Project.ExtraPaths.BrowsingPaths do
     begin

@@ -625,7 +625,7 @@ begin
   // Register Library Path
   if BuildInfo.Project.AddSourceCodeToLibraryPath {and not BinaryInstall} then
     AppendIDEPath(ptLibraryPath, [BrowsingPath]);
-  var ExtraLibraryPath := BuildInfo.Project.ExtraPaths.GetLibraryPaths(PlatformInfo.PlatType);
+  var ExtraLibraryPath := BuildInfo.Project.ExtraPaths.GetLibraryPaths(PlatformInfo.PlatType, false);
   if PlatformInfo.PlatType in [Linux64, macOS64Intel] then
     AppendIDEPath(ptLibraryPath, [Consolidation.DcuOutputDir, Consolidation.BplOutputDir, ExtraLibraryPath])
   else

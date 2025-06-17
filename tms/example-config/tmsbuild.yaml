@@ -129,6 +129,10 @@ paths:
   search paths to preserve:
     # - *fmxlinux*
 
+  # this is similar to "extra library paths" above (and all the comments also apply here), but this path will only be added when compiling
+  # with msbuild. "extra library paths" will be added when compiling with msbuild, but also registered in Rad Studio. Entries here won't be registered.
+  # normally you will use this entries to fix buggy packages that you can't modify. It shouldn't be needed in normal cases and correct packages.
+  build-only library paths:
 
 defines:
     defines filename: source/example.inc # if not empty, smart setup will create this file and overwrite any existing file. You can include this file from other include file.

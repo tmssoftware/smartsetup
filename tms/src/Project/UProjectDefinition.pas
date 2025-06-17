@@ -100,12 +100,14 @@ type
 
   TCompilerPaths = class
   private
-    FLibraryPaths: TList<string>;
+    FLibraryPathsBuildAndRegister: TList<string>;
+    FLibraryPathsBuildOnly: TList<string>;
     FBrowsingPaths: TList<string>;
     FDebugDCUPaths: TList<string>;
     FWebCorePaths: TList<string>;
   public
-    property LibraryPaths: TList<string> read FLibraryPaths;
+    property LibraryPathsBuildAndRegister: TList<string> read FLibraryPathsBuildAndRegister;
+    property LibraryPathsBuildOnly: TList<string> read FLibraryPathsBuildOnly;
     property BrowsingPaths: TList<string> read FBrowsingPaths;
     property DebugDCUPaths: TList<string> read FDebugDCUPaths;
     property WebCorePaths: TList<string> read FWebCorePaths;
@@ -116,14 +118,16 @@ type
 
   TCompilerPathsPerPlatform = class
   private
-    FLibraryPaths: TList<TPlatformPaths>;
+    FLibraryPathsBuildAndRegister: TList<TPlatformPaths>;
+    FLibraryPathsBuildOnly: TList<TPlatformPaths>;
     FBrowsingPaths: TList<TPlatformPaths>;
     FDebugDCUPaths: TList<TPlatformPaths>;
     FWebCorePaths: TList<TPlatformPaths>;
 
     function GetPaths(const Platform: TPlatform; const Paths: TList<TPlatformPaths>): string;
   public
-    property LibraryPaths: TList<TPlatformPaths> read FLibraryPaths;
+    property LibraryPathsBuildAndRegister: TList<TPlatformPaths> read FLibraryPathsBuildAndRegister;
+    property LibraryPathsBuildOnly: TList<TPlatformPaths> read FLibraryPathsBuildOnly;
     property BrowsingPaths: TList<TPlatformPaths> read FBrowsingPaths;
     property DebugDCUPaths: TList<TPlatformPaths> read FDebugDCUPaths;
     property WebCorePaths: TList<TPlatformPaths> read FWebCorePaths;
@@ -131,7 +135,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function GetLibraryPaths(const Platform: TPlatform): string;
+    function GetLibraryPaths(const Platform: TPlatform; const IncludeBuildOnly: boolean): string;
     function GetBrowsingPaths(const Platform: TPlatform): string;
     function GetDebugDCUPaths(const Platform: TPlatform): string;
     function GetWebCorePaths(const Platform: TPlatform): string;
@@ -533,7 +537,8 @@ end;
 
 constructor TCompilerPaths.Create;
 begin
-  FLibraryPaths := TList<string>.Create;
+  FLibraryPathsBuildAndRegister := TList<string>.Create;
+  FLibraryPathsBuildOnly := TList<string>.Create;
   FBrowsingPaths := TList<string>.Create;
   FDebugDCUPaths := TList<string>.Create;
   FWebCorePaths := TList<string>.Create;
@@ -541,7 +546,8 @@ end;
 
 destructor TCompilerPaths.Destroy;
 begin
-  FLibraryPaths.Free;
+  FLibraryPathsBuildAndRegister.Free;
+  FLibraryPathsBuildOnly.Free;
   FBrowsingPaths.Free;
   FDebugDCUPaths.Free;
   FWebCorePaths.Free;
@@ -553,7 +559,8 @@ end;
 
 constructor TCompilerPathsPerPlatform.Create;
 begin
-  FLibraryPaths := TList<TPlatformPaths>.Create;
+  FLibraryPathsBuildAndRegister := TList<TPlatformPaths>.Create;
+  FLibraryPathsBuildOnly := TList<TPlatformPaths>.Create;
   FBrowsingPaths := TList<TPlatformPaths>.Create;
   FDebugDCUPaths := TList<TPlatformPaths>.Create;
   FWebCorePaths := TList<TPlatformPaths>.Create;
@@ -561,7 +568,8 @@ end;
 
 destructor TCompilerPathsPerPlatform.Destroy;
 begin
-  FLibraryPaths.Free;
+  FLibraryPathsBuildAndRegister.Free;
+  FLibraryPathsBuildOnly.Free;
   FBrowsingPaths.Free;
   FDebugDCUPaths.Free;
   FWebCorePaths.Free;
@@ -582,9 +590,14 @@ begin
 end;
 
 function TCompilerPathsPerPlatform.GetLibraryPaths(
-  const Platform: TPlatform): string;
+  const Platform: TPlatform; const IncludeBuildOnly: boolean): string;
 begin
-  Result := GetPaths(Platform, FLibraryPaths);
+  Result := GetPaths(Platform, FLibraryPathsBuildAndRegister);
+  if IncludeBuildOnly then
+  begin
+    if Result <> '' then Result := Result + ';';
+    Result := Result + GetPaths(Platform, FLibraryPathsBuildOnly);
+  end;
 end;
 
 function TCompilerPathsPerPlatform.GetWebCorePaths(

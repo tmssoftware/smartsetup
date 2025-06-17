@@ -232,12 +232,16 @@ function GetLibraryPaths(const RootFolder: string; const ExtraPaths: TCompilerPa
 begin
   var Paths := TCompilerPathsPerPlatform.Create;
   try
-    for var ex in ExtraPaths.LibraryPaths do
+    for var ex in ExtraPaths.LibraryPathsBuildAndRegister do
     begin
-      Paths.LibraryPaths.Add(TProjectBuildInfo.GetPlatformPaths(RootFolder, ex));
+      Paths.LibraryPathsBuildAndRegister.Add(TProjectBuildInfo.GetPlatformPaths(RootFolder, ex));
+    end;
+    for var ex in ExtraPaths.LibraryPathsBuildOnly do
+    begin
+      Paths.LibraryPathsBuildOnly.Add(TProjectBuildInfo.GetPlatformPaths(RootFolder, ex));
     end;
 
-    Result := Paths.GetLibraryPaths(Plat);
+    Result := Paths.GetLibraryPaths(Plat, true);
   finally
     Paths.Free;
   end;
@@ -337,7 +341,7 @@ begin
 
   end;
 
-  ExtraPath := AddPaths(ExtraPath, BuildInfo.ExtraPaths.GetLibraryPaths(PlatformInfo.PlatType));
+  ExtraPath := AddPaths(ExtraPath, BuildInfo.ExtraPaths.GetLibraryPaths(PlatformInfo.PlatType, true));
   Project := BuildInfo.Project;
 
   DepPackInfo := TPackageConfig.Create('DummyPackName'
