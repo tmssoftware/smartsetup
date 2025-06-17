@@ -6,6 +6,12 @@ procedure CreateResFile(const FileName: string; const Application: TApplicationD
 
 implementation
 uses Classes, SysUtils, IOUtils, Deget.CommandLine, ULogger, UMultiLogger;
+
+function Escape(const s: string): string;
+begin
+  Result := StringReplace(s, '"', '\"', [TReplaceFlag.rfReplaceAll]);
+end;
+
 procedure CreateResFile(const FileName: string; const Application: TApplicationDefinition; const BRCC32Path: string);
 begin
   var RCFileName := TPath.ChangeExtension(FileName, '.rc');
@@ -31,13 +37,13 @@ begin
     Writer.WriteLine('	BLOCK "040904E4"');
     Writer.WriteLine('	{');
     Writer.WriteLine('		VALUE "CompanyName", "' + '' +'\0"');
-    Writer.WriteLine('		VALUE "FileDescription", "' + Application.Description +'\0"');
+    Writer.WriteLine('		VALUE "FileDescription", "' + Escape(Application.Description) +'\0"');
     Writer.WriteLine('		VALUE "FileVersion", "' + VersionDots + '\0"');
     Writer.WriteLine('		VALUE "InternalName", "\0"');
-    Writer.WriteLine('		VALUE "LegalCopyright", "' + Application.Copyright +'\0"');
+    Writer.WriteLine('		VALUE "LegalCopyright", "' + Escape(Application.Copyright) +'\0"');
     Writer.WriteLine('		VALUE "LegalTrademarks", "\0"');
     Writer.WriteLine('		VALUE "OriginalFilename", "\0"');
-    Writer.WriteLine('		VALUE "ProductName", "' + Application.Name +'\0"');
+    Writer.WriteLine('		VALUE "ProductName", "' + Escape(Application.Name) +'\0"');
     Writer.WriteLine('		VALUE "ProductVersion", "' + VersionDots + '\0"');
     Writer.WriteLine('		VALUE "Comments", "\0"');
     Writer.WriteLine('	}');
