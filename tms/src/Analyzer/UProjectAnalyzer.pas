@@ -419,7 +419,7 @@ begin
         Config.GetNaming(Project.Naming, Project.FullPath), true, nil);
   if (TPath.GetExtension(PackageFileName).ToLowerInvariant = '.cbproj') and not CppBuilderSupport then exit;
 
-  if not TInstallerFactory.GetInstaller(dv).ProjectFileSupportsPlatform(TPath.GetDirectoryName(Project.FullPath), PackageFileName, dp) then exit;
+  if not TInstallerFactory.GetInstaller(dv).ProjectFileSupportsPlatform(Project.IgnoreDprojPlatforms, TPath.GetDirectoryName(Project.FullPath), PackageFileName, dp) then exit;
 
   //See https://github.com/tmssoftware/tms-smartsetup/issues/225#issuecomment-2607769203
   // Basically, we can have "Design", "Runtime" and "Design-runtime" packages

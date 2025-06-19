@@ -71,7 +71,7 @@ type
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); override;
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
-    function ProjectFileSupportsPlatform(const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
+    function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
   end;
 
   TDelphiIDEPaths = array[TDelphiPathType] of string;
@@ -124,7 +124,7 @@ type
     procedure UpdateProjectsSource(const BuildInfo: TFullBuildInfo); override;
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
-    function ProjectFileSupportsPlatform(const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
+    function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); override;
 
 
@@ -954,7 +954,7 @@ begin
   end;
 end;
 
-function TDelphiInstaller.ProjectFileSupportsPlatform(
+function TDelphiInstaller.ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean;
   const RootFolder, PackageFileName: string; const dp: TPlatform): boolean;
 begin
   if SameText(TPath.GetExtension(PackageFileName), BinprojExtension) then
@@ -967,6 +967,8 @@ begin
 
   var PackageMetadata := TDelphiProjectFactory.GetPackageReadData(PackageFileName, IDEName);
   if PackageMetadata = nil then exit(true);
+
+  if IgnoreDprojPlatforms then exit(true);
 
   var AllPlats := PackageMetadata.TargetedPlatforms;
   if (AllPlats = '') then exit(true); //XE doesn't have TargetedPlatforms. We will just assume the platform is supported.
@@ -1234,7 +1236,7 @@ procedure TDelphiInstaller.RemoveTempProjects(const BuildInfo: TFullBuildInfo);
 begin
 end;
 
-function TDelphiInstaller.ProjectFileSupportsPlatform(
+function TDelphiInstaller.ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean;
   const RootFolder, PackageFileName: string; const dp: TPlatform): boolean;
 begin
   Result := true;

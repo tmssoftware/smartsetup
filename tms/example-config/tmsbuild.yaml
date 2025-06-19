@@ -90,24 +90,32 @@ packages:
   - FMX_Example_DESIGN: [design, fmx]
   - Example_That_Uses_Product2: [runtime, product2]  # this package will only be compiled if/when product2 is installed too.
 
-# Use this section only if you are not using the standard smartsetup folders for the packages.
-# Note that if the same folder supports for example Delphi 11 and Delphi 12 (by using Libsuffix $(auto)), you can 
-# write the same folder for 11 and 12.
-# You can also use a + at the end of the IDE Name to specify that this applies to that Delphi version and all newer ones.
-# When using + order is important. In the example above, the line with delphisydney+ affects all versions until delphi12 (sydney and 11).
-# The line delphi12+, being below delphisydney+ affects all delphi versions after 12, overriding the line delpihsydney+.
-# If you don't specify a name for a given version,  the standard packages will be assumed for that version.
-package folders:
-#  delphirio: Rad Studio 10.3 Rio
-#  delphisydney+: Rad Studio Sydney To 11
-#  delphi12+: Rad Studio 12 And Newer
 
-# If the packages in the library use LIBSUFFIX different from the standard (270, 280, etc), you need to specify them here.
-# In most cases, you should just have standard LIBSUFIXes and do nothing here.
-# This setting applies to all packages in the library.
-lib suffixes:
-# delphi11: _D11
-# delphi12: _D12
+# The settings in the this section are only needed if the packages don't follow smartsetup conventions
+package options:
+  # By default, smartsetup double-checks that the dproj it is going to compile supports the platforms you specified above in the "packages" section.
+  # But some packages might have wrong data in the dproj. If you set this to true, smartsetup will ignore whatever the dproj says and only use the info in "packages" 
+  ignore dproj platforms: false
+
+
+  # Use this section only if you are not using the standard smartsetup folders for the packages.
+  # Note that if the same folder supports for example Delphi 11 and Delphi 12 (by using Libsuffix $(auto)), you can 
+  # write the same folder for 11 and 12.
+  # You can also use a + at the end of the IDE Name to specify that this applies to that Delphi version and all newer ones.
+  # When using + order is important. In the example above, the line with delphisydney+ affects all versions until delphi12 (sydney and 11).
+  # The line delphi12+, being below delphisydney+ affects all delphi versions after 12, overriding the line delpihsydney+.
+  # If you don't specify a name for a given version,  the standard packages will be assumed for that version.
+  package folders:
+  #  delphirio: Rad Studio 10.3 Rio
+  #  delphisydney+: Rad Studio Sydney To 11
+  #  delphi12+: Rad Studio 12 And Newer
+
+  # If the packages in the library use LIBSUFFIX different from the standard (270, 280, etc), you need to specify them here.
+  # In most cases, you should just have standard LIBSUFIXes and do nothing here.
+  # This setting applies to all packages in the library.
+  lib suffixes:
+  # delphi11: _D11
+  # delphi12: _D12
 
 paths:
   extra library paths:  #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path

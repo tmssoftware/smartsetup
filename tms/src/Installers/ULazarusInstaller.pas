@@ -31,7 +31,7 @@ type
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
 
-    function ProjectFileSupportsPlatform(const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
+    function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
 
   end;
 implementation
@@ -64,7 +64,7 @@ begin
 end;
 
 
-function TLazarusInstaller.ProjectFileSupportsPlatform(
+function TLazarusInstaller.ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean;
   const RootFolder, PackageFileName: string; const dp: TPlatform): boolean;
 begin
   Result := true;

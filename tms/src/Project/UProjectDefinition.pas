@@ -226,6 +226,7 @@ type
     FPackageFolders: TPackageFolders;
     FLibSuffixes: TLibSuffixes;
     FHasMultiIDEPackages: Nullable<boolean>;
+    FIgnoreDprojPlatforms: boolean;
 
     function GetHasMultiIDEPackages: boolean;
 
@@ -244,6 +245,7 @@ type
     property Dependencies: TObjectList<TDependency> read FDependencies;
     property WeakDependencies: TObjectList<TDependency> read FWeakDependencies;
     property ResolvedState: TResolvedState read FResolvedState write FResolvedState;
+    property IgnoreDprojPlatforms: boolean read FIgnoreDprojPlatforms write FIgnoreDprojPlatforms;
 
     property Naming: string read FNaming write FNaming;
     property PackageFolders: TPackageFolders read FPackageFolders;

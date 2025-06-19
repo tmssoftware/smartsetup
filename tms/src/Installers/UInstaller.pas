@@ -30,7 +30,7 @@ type
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); virtual; abstract;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); virtual; abstract;
 
-    function ProjectFileSupportsPlatform(const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; virtual; abstract;
+    function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; virtual; abstract;
 
   end;
 
