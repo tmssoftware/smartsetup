@@ -2,7 +2,7 @@ unit UStandardNaming;
 {$i ../../tmssetup.inc}
 
 interface
-uses UNaming, Deget.CoreTypes, SysUtils;
+uses UNaming, Deget.CoreTypes, Deget.IDETypes, SysUtils;
 type
   TStandardNaming = class(TNaming)
   public
@@ -28,11 +28,7 @@ function TStandardNaming.GetPackageNaming(const dv: TIDEName; const IsExe: boole
 begin
   if IsExe then exit('');
   if ProjectFolder <> '' then exit(ProjectFolder);
-
-  
-  Result := IDEId[dv];
-  if Result.StartsWith('delphi') then Result := 'd' + Result.Substring(Length('delphi'));
-
+  Result := DelphiSuffixes[dv];
 end;
 
 function TStandardNaming.Id: string;

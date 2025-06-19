@@ -168,7 +168,7 @@ type
     // Indicates if the package supports the specified platform and delphi version (if it must be compiled for the specified platform)
     function IsSupported(IDEName: TIDEName; Plat: TPlatform): boolean;
   public
-    constructor Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes);
+    constructor Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes; const MultiIDEPackage: boolean);
 
     property PackageName: string read FPackageName;
   end;
@@ -194,7 +194,7 @@ end;
 
 { TPackageConfig }
 
-constructor TPackageConfig.Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes);
+constructor TPackageConfig.Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes; const MultiIDEPackage: boolean);
 begin
   inherited Create;
   FBaseDir := ABaseDir;
@@ -202,8 +202,15 @@ begin
   FPlatformInfo := APlatformInfo;
   // default settings for packages
   // this is for now hard coded. We have to revise and test code to see if changing to other values would work
-  FBplOutputDir := '.\$(Platform)\$(Config)';
-  FDcuOutputDir := '.\$(Platform)\$(Config)';
+
+  if MultiIDEPackage then
+  begin
+    FDcuOutputDir := '.\' + DelphiSuffixes[APlatformInfo.IDEInfo.IDEName] +'\$(Platform)\$(Config)';
+  end else
+  begin
+    FDcuOutputDir := '.\$(Platform)\$(Config)';
+  end;
+  FBplOutputDir := FDcuOutputDir;
   FDcpOutputDir := FDcuOutputDir;
   FCppBpiOutputDir := FDcuOutputDir;
   FCppHppOutputDir := FDcuOutputDir;

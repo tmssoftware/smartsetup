@@ -256,7 +256,7 @@ var
 begin
   PlatformInfo := CreateIDEInfo(BuildInfo).GetPlatform(BuildInfo.Platform.Name);
   Package := BuildInfo.Package.Package;
-  PackageInfo := TPackageConfig.Create(Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe,  BuildInfo.Package.PackageExt, BuildInfo.Project.Project.LibSuffixes);
+  PackageInfo := TPackageConfig.Create(Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe,  BuildInfo.Package.PackageExt, BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
   DoCBuilder := BuildInfo.Package.SupportsCppBuilder;
 
   // Build binaries
@@ -460,7 +460,7 @@ begin
   for PackBuildInfo in BuildInfo.Platform.PackagesBuildInfo do
   begin
     Package := PackBuildInfo.Package;
-    PackageInfo := TPackageConfig.Create(Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes);
+    PackageInfo := TPackageConfig.Create(Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
     AppendConsolidation(PackageInfo, Result, BuildInfo.Project.DebugDCUs, PackBuildInfo.SupportsCppBuilder);
   end;
 end;
@@ -519,7 +519,7 @@ begin
   IDEInfo := CreateIDEInfo(BuildInfo);
   PlatformInfo := IDEInfo.GetPlatform(BuildInfo.Platform.Name);
   Package := PackBuildInfo.Package;
-  PackageInfo := TPackageConfig.Create(Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes);
+  PackageInfo := TPackageConfig.Create(Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
 
   BinaryPackageFileName := PackageInfo.BinaryPackageFileName('Release');
 //  if not BuildInfo.Project.DryRun then
@@ -727,7 +727,7 @@ begin
   for var PackBuildInfo in BuildInfo.Platform.PackagesBuildInfo do
   begin
     var PlatformInfo: IDelphiPlatformInfo := CreateIDEInfo(BuildInfo).GetPlatform(BuildInfo.Platform.Name);
-    var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create(PackBuildInfo.Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes);
+    var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create(PackBuildInfo.Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
     var OrigPackage := PackageInfo.OrigPackageFileName;
 
     UpdatePackageSource(OrigPackage, PackageInfo.UnexpandedOutputDir, BuildInfo.IDE.Name);
@@ -833,7 +833,7 @@ begin
     for var PackBuildInfo in BuildInfo.Platform.PackagesBuildInfo do
     begin
       var PlatformInfo: IDelphiPlatformInfo := CreateIDEInfo(BuildInfo).GetPlatform(BuildInfo.Platform.Name);
-      var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create(PackBuildInfo.Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes);
+      var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create(PackBuildInfo.Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
 
       var OrigPackage := PackageInfo.OrigPackageFileName;
       for var BuildConfigIndex := Low(TBuildConfig) to High(TBuildConfig) do
@@ -864,10 +864,13 @@ begin
   for var BuildConfigIndex := Low(TBuildConfig) to High(TBuildConfig) do
   begin
     var BuildConfig := BuildConfigs[BuildConfigIndex];
-    var TempProjFolder := TempProjectDirectory(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
-    var TempOutputFolder := TPath.Combine(TempProjFolder, PlatformInfo.PlatformMacroValue, BuildConfig);
 
-    var FinalOutputFolder := TPath.Combine(BuildInfo.Platform.PackagesFolder, PlatformInfo.PlatformMacroValue, BuildConfig);
+    var TempProjFolder := TempProjectDirectory(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
+    var TempPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', TempProjFolder, PlatformInfo, TempProjFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
+    var TempOutputFolder := TempPackageInfo.ExpandedDcuOutputDir(BuildConfig);
+
+    var OutputPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
+    var FinalOutputFolder := OutputPackageInfo.ExpandedDcuOutputDir(BuildConfig);
     FinalOutputFolder := TPath.GetFullPath(FinalOutputFolder);
     if FolderIsOutside(FinalOutputFolder, Config.GetAllRootFolders) then raise Exception.Create('For security, we can''t generate files in folder "' + FinalOutputFolder + '". The files must be inside a root folder for smartsetup.');
 
@@ -881,7 +884,7 @@ begin
     begin
     for var PackBuildInfo in BuildInfo.Platform.PackagesBuildInfo do //there should be just 1 for exes
       begin
-        var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create(PackBuildInfo.Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes);
+        var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create(PackBuildInfo.Package.Name, BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
 
         var ExeTempOutputFolder := PackageInfo.ExpandedTempExeOutputDir(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig);
         if (ExeTempOutputFolder <> TempOutputFolder) then
@@ -909,7 +912,7 @@ end;
 procedure TDelphiInstaller.RemoveTempProjects(const BuildInfo: TFullBuildInfo);
 begin
   var PlatformInfo: IDelphiPlatformInfo := CreateIDEInfo(BuildInfo).GetPlatform(BuildInfo.Platform.Name);
-  var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create('', BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, '', BuildInfo.Project.Project.LibSuffixes);
+  var PackageInfo: IDelphiPackageInfo := TPackageConfig.Create('', BuildInfo.Project.Project.RootFolder, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, '', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
 
   for var BuildConfigIndex := Low(TBuildConfig) to High(TBuildConfig) do
   begin

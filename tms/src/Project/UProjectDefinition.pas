@@ -2,7 +2,7 @@ unit UProjectDefinition;
 {$i ../../tmssetup.inc}
 
 interface
-uses Generics.Collections, SysUtils, UCoreTypes, Deget.CoreTypes;
+uses Generics.Defaults, Generics.Collections, SysUtils, UCoreTypes, Deget.CoreTypes, Deget.Nullable;
 
 type
   TApplicationDefinition = class
@@ -225,6 +225,10 @@ type
     FOtherRegistryKeys: TList<string>;
     FPackageFolders: TPackageFolders;
     FLibSuffixes: TLibSuffixes;
+    FHasMultiIDEPackages: Nullable<boolean>;
+
+    function GetHasMultiIDEPackages: boolean;
+
   public
     constructor Create(const aFullPath: string);
     destructor Destroy; override;
@@ -253,6 +257,8 @@ type
     function FrameworkHasAllWeakDependencies(const ProjectList: THashSet<string>; const dv: TIDEName;
       const plat: TPlatform; const fr: TFramework): string;
 
+
+
     function RootFolder: string;
     function ListDefines: string;
 
@@ -270,6 +276,8 @@ type
     property Shortcuts: TObjectList<TShortcutDefinition> read FShortcuts;
     property FileLinks: TObjectList<TFileLinkDefinition> read FFileLinks;
     property OtherRegistryKeys: TList<string> read FOtherRegistryKeys;
+
+    property HasMultiIDEPackages: boolean read GetHasMultiIDEPackages;
 
     procedure Validate;
 
@@ -362,6 +370,33 @@ end;
 function TProjectDefinition.GetFrameworkName(const Id: TFramework): string;
 begin
   Result := FRegisteredFrameworkNames[Id];
+end;
+
+function TProjectDefinition.GetHasMultiIDEPackages: boolean;
+begin
+  if FHasMultiIDEPackages.HasValue then exit(FHasMultiIDEPackages.Value);
+
+  var Finder: THashSet<string> := nil;
+  try
+    for var ide in PackageFolders do
+    begin
+      if ide = '' then continue;
+      if Finder = nil then
+      begin
+        Finder := THashSet<string>.Create(TIStringComparer.Ordinal);
+      end;
+      if Finder.Contains(ide.Trim) then
+      begin
+        FHasMultiIDEPackages := true;
+        exit(true);
+      end;
+      Finder.Add(ide.Trim);
+    end;
+  finally
+    Finder.Free;
+  end;
+  FHasMultiIDEPackages := false;
+  Result := false;
 end;
 
 function TProjectDefinition.ListDefines: string;

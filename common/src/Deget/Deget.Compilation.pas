@@ -75,8 +75,10 @@ type
   TPrecompiledCompilationSettings = class(TCompilationSettings)
   private
     FPrecompiledSource: string;
+    FHasMultiIDEPackages: boolean;
   public
     property PrecompiledSource: string read FPrecompiledSource write FPrecompiledSource;
+    property HasMultiIDEPackages: boolean read FHasMultiIDEPackages write FHasMultiIDEPackages;
   end;
 
 
@@ -274,6 +276,7 @@ begin
 
     //Hardcoded for now. We could make this configurable in the yaml, but I am not sure why we would need to.
     Precompiled.PrecompiledSource := TPath.Combine(TPath.GetDirectoryName(BuildInfo.Project.FullPath), 'BinPackages');
+    Precompiled.HasMultiIDEPackages := BuildInfo.Project.HasMultiIDEPackages;
     Result := Precompiled;
   end else
   begin
@@ -328,7 +331,7 @@ begin
 
 
     // There is no need to loop over all packages here. They all have the same package folder, which is what we want to find out.
-    DepPackInfo := TPackageConfig.Create('DummyPackName', Project.RootFolder, PlatformInfo, Dependency.PackagesFolder(PlatformInfo.IDEInfo.IDEName), Project.IsExe, '.dummyext', Project.LibSuffixes);
+    DepPackInfo := TPackageConfig.Create('DummyPackName', Project.RootFolder, PlatformInfo, Dependency.PackagesFolder(PlatformInfo.IDEInfo.IDEName), Project.IsExe, '.dummyext', Project.LibSuffixes, Project.HasMultiIDEPackages);
 
     //Dependencies have already been moved to their final destinations.
     ExtraPath := AddPaths(ExtraPath, TPath.GetDirectoryName(DepPackInfo.ExpandedDcpFileName(DepBuildConfig)));
@@ -345,7 +348,7 @@ begin
   Project := BuildInfo.Project;
 
   DepPackInfo := TPackageConfig.Create('DummyPackName'
-  , Project.RootFolder, PlatformInfo, PackageInfo.OrigPackageDirectory, Project.IsExe, '.dummyext', Project.LibSuffixes);
+  , Project.RootFolder, PlatformInfo, PackageInfo.OrigPackageDirectory, Project.IsExe, '.dummyext', Project.LibSuffixes, Project.HasMultiIDEPackages);
 
   ExtraPath := AddPaths(ExtraPath, TPath.GetDirectoryName(DepPackInfo.ExpandedTempDcpFileName(Project.Application.Id, Config.Folders.ParallelFolder, BuildConfig)));
 
@@ -1367,7 +1370,10 @@ begin
     LocalTargetConfig := Settings.TargetConfig.Value;
 
   var SourceFolder := TPath.Combine(Settings.PrecompiledSource, DelphiSuffixes[Settings.TargetPlatform.IDEInfo.IDEName], Settings.TargetPlatform.PlatformMacroValue , LocalTargetConfig);
-  var DestFolder := TPath.Combine(TPath.GetDirectoryName(ProjectFile), Settings.TargetPlatform.PlatformMacroValue , LocalTargetConfig);
+  var BaseProjectFolder := TPath.GetDirectoryName(ProjectFile);
+  if Settings.HasMultiIDEPackages then BaseProjectFolder := TPath.Combine(BaseProjectFolder, DelphiSuffixes[IDEName]);
+
+  var DestFolder := TPath.Combine(BaseProjectFolder, Settings.TargetPlatform.PlatformMacroValue , LocalTargetConfig);
 
   //This will be called by different packages, and in all of them we just
   //hard-link the full thing. So if a file has been hardlinked already, we assume we have already been called and exit.
