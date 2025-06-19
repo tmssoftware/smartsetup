@@ -297,6 +297,7 @@ begin
     begin
       Value := Value.DeQuotedString('''');
       if Value.ToLower = '*.res' then Continue;
+      if Value.ToLower = '*.dres' then Continue;
 
       // it will fail if it's not a .dcr file
       DcrFiles.Add(Value);

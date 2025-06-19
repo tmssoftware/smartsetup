@@ -1560,6 +1560,9 @@ begin
       if ExtractFileExt(FileName).ToLower = '.pas' then
         Data.PasFiles.Add(FileName, FormName)
       else
+      if ExtractFileExt(FileName).ToLower = '' then //Shouldn't happen. We assume it is a pas file.
+        Data.PasFiles.Add(FileName + '.pas', FormName)
+      else
       if ExtractFileExt(FileName).ToLower = '.dcr' then
         Data.DcrFiles.Add(FileName)
       else
