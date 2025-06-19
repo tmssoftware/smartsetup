@@ -370,7 +370,7 @@ end;
 function TFileHasher.GenerateBinaryHash(const Project: TProjectDefinition; const PackagesFolder: string; PlatformInfo: IDelphiPlatformInfo): string;
 begin
   var Hasher := THashSHA2.Create;
-  var DepPackInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', Project.RootFolder, PlatformInfo,
+  var DepPackInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo,
      PackagesFolder, Project.IsExe, '.dummyext', Project.LibSuffixes, Project.HasMultiIDEPackages);
 
   HashBinaryFolder(Hasher, DepPackInfo.ExpandedDcuOutputDir('Debug'));

@@ -331,7 +331,7 @@ begin
 
 
     // There is no need to loop over all packages here. They all have the same package folder, which is what we want to find out.
-    DepPackInfo := TPackageConfig.Create('DummyPackName', Project.RootFolder, PlatformInfo, Dependency.PackagesFolder(PlatformInfo.IDEInfo.IDEName), Project.IsExe, '.dummyext', Project.LibSuffixes, Project.HasMultiIDEPackages);
+    DepPackInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, Dependency.PackagesFolder(PlatformInfo.IDEInfo.IDEName), Project.IsExe, '.dummyext', Project.LibSuffixes, Project.HasMultiIDEPackages);
 
     //Dependencies have already been moved to their final destinations.
     ExtraPath := AddPaths(ExtraPath, TPath.GetDirectoryName(DepPackInfo.ExpandedDcpFileName(DepBuildConfig)));
@@ -348,7 +348,7 @@ begin
   Project := BuildInfo.Project;
 
   DepPackInfo := TPackageConfig.Create('DummyPackName'
-  , Project.RootFolder, PlatformInfo, PackageInfo.OrigPackageDirectory, Project.IsExe, '.dummyext', Project.LibSuffixes, Project.HasMultiIDEPackages);
+  , PlatformInfo, PackageInfo.OrigPackageDirectory, Project.IsExe, '.dummyext', Project.LibSuffixes, Project.HasMultiIDEPackages);
 
   ExtraPath := AddPaths(ExtraPath, TPath.GetDirectoryName(DepPackInfo.ExpandedTempDcpFileName(Project.Application.Id, Config.Folders.ParallelFolder, BuildConfig)));
 

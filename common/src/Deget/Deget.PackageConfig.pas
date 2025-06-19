@@ -24,10 +24,10 @@ type
 
     // Returns the directory where dcu files are located (or should be generated to), relative to install dir
     //  for the specified platform, delphi version and build config
-    // if basedir is specified, it will be combined with result
+    // if PlatformFolder is specified, it will be combined with result
     // Example of result values:
-    //   "C:\product\packages\dxe\win32\release" (for Basedir = "C:\product"
-    //   "packages\dxe\win32\release" (for BaseDir = "")
+    //   "C:\product\packages\dxe\win32\release" (for PlatformFolder = "C:\product"
+    //   "packages\dxe\win32\release" (for PlatformFolder = "")
     function ExpandedDcuOutputDir(const ABuildConfig: string): string;
     function ExpandedTempDcuOutputDir(const ProductId, ParallelFolder, ABuildConfig: string): string;
 
@@ -39,7 +39,7 @@ type
     // returns the location of package file name (.dproj or .dpk) for the specified delphi version
     // Value is relative to product install dir
     // If base dir is specified, then it will combine base dir to provide full location
-    // Example: for basedir "C:\product" and IDEName=delphixe, return would be "C:\product\packages\dxe\package1.dproj';
+    // Example: for PlatformFolder "C:\product" and IDEName=delphixe, return would be "C:\product\packages\dxe\package1.dproj';
     //   without base dir, return out be "packages\dxe\package1.dproj"
     function OrigPackageFileName: string;
 
@@ -48,8 +48,8 @@ type
 
     // returns the directory where package files should be located, relative to a base directory (install dir)
     // and for the specified delphi version
-    // Example: for basedir "C:\product" and IDEName=delphixe, return would be "C:\product\packages\dxe';
-    // Example: for basedir empty, return would be "packages\dxe".
+    // Example: for PlatformFolder "C:\product" and IDEName=delphixe, return would be "C:\product\packages\dxe';
+    // Example: for PlatformFolder empty, return would be "packages\dxe".
     function OrigPackageDirectory: string;
 
     // For parallel building. We might build into a temporary folder to avoid
@@ -67,8 +67,8 @@ type
     // Returns the full file name of generated .dcp file, based on platform, delphi version and build config
     // if base dir is specified, it will be combined
     // Example of result values:
-    //   "C:\product\packages\dxe\win32\package1.dcp" (basedir = "C:\product")
-    //   "packages\dxe\win32\package1.dcp" (basedir = "")
+    //   "C:\product\packages\dxe\win32\package1.dcp" (PlatformFolder = "C:\product")
+    //   "packages\dxe\win32\package1.dcp" (PlatformFolder = "")
     function ExpandedDcpFileName(const ABuildConfig: string): string;
     function ExpandedTempDcpFileName(const ProductId, ParallelFolder, ABuildConfig: string): string;
 
@@ -86,7 +86,6 @@ type
   TPackageConfig = class(TInterfacedObject, IDelphiPackageInfo)
   strict private
     FPlatformInfo: IDelphiPlatformInfo;
-    FBaseDir: string;
     FPackageName: string;
     FBplOutputDir: string;
     FDcpOutputDir: string;
@@ -168,7 +167,7 @@ type
     // Indicates if the package supports the specified platform and delphi version (if it must be compiled for the specified platform)
     function IsSupported(IDEName: TIDEName; Plat: TPlatform): boolean;
   public
-    constructor Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes; const MultiIDEPackage: boolean);
+    constructor Create(const APackageName: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes; const MultiIDEPackage: boolean);
 
     property PackageName: string read FPackageName;
   end;
@@ -194,10 +193,9 @@ end;
 
 { TPackageConfig }
 
-constructor TPackageConfig.Create(const APackageName, ABaseDir: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes; const MultiIDEPackage: boolean);
+constructor TPackageConfig.Create(const APackageName: string; APlatformInfo: IDelphiPlatformInfo; const PlatformFolder: string; const AIsExe: boolean; const APackageExtension: string; const ALibSuffixes: TLibSuffixes; const MultiIDEPackage: boolean);
 begin
   inherited Create;
-  FBaseDir := ABaseDir;
   FPackageName := APackageName;
   FPlatformInfo := APlatformInfo;
   // default settings for packages
