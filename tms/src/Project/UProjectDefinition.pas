@@ -14,6 +14,7 @@ type
     FUrl: string;
     FCopyright: string;
     FVersion: string;
+    FVCSProtocol: string;
     FCanAddSourceCodeToLibraryPath: boolean;
     function GetName: string;
   public
@@ -25,6 +26,7 @@ type
     property Url: string read FUrl write FUrl;
     property Docs: string read FDocs write FDocs;
     property Version: string read FVersion write FVersion;
+    property VCSProtocol: string read FVCSProtocol write FVCSProtocol;
     property CanAddSourceCodeToLibraryPath: boolean read FCanAddSourceCodeToLibraryPath write FCanAddSourceCodeToLibraryPath;
 
     function NameAndVersion: string;
@@ -667,6 +669,7 @@ begin
   Result.FUrl := FUrl;
   Result.FCopyright := FCopyright;
   Result.FVersion := FVersion;
+  Result.FVCSProtocol := FVCSProtocol;
   Result.FCanAddSourceCodeToLibraryPath := FCanAddSourceCodeToLibraryPath;
 end;
 

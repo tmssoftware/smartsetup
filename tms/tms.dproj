@@ -408,6 +408,7 @@
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas"/>
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas"/>
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas"/>
+        <DCCReference Include="src\VCS\Git.HTTPSDownload.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

@@ -22,6 +22,8 @@ type
   TApplicationSectionDef = class(TSectionDef)
   private
     function ReadVersionFile(const FileName: string; const ErrorInfo: TErrorInfo): string;
+    function GetVCSProtocol(const s: string;
+      const ErrorInfo: TErrorInfo): string;
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
     class function SectionNameStatic: string; override;
@@ -259,7 +261,7 @@ type
 
 
 implementation
-uses Classes, SysUtils, UTmsBuildSystemUtils, IOUtils;
+uses Classes, SysUtils, UTmsBuildSystemUtils, IOUtils, Deget.Version;
 
 { TSectionDef }
 
@@ -272,6 +274,9 @@ end;
 { TMainSectionDef }
 
 constructor TMainSectionDef.Create(const aProject: TProjectDefinition);
+const
+  {$i ../../../Version.inc}
+
 begin
   inherited Create(nil, aProject);
   ChildSections.Add(TApplicationSectionDef.SectionNameStatic, TApplicationSectionDef.Create(Self, aProject));
@@ -292,7 +297,7 @@ begin
   Actions.Add('minimum required tmsbuild version', procedure(value: string; ErrorInfo: TErrorInfo)
     begin
       if (VersionNumberGreaterThanApp(value, ErrorInfo)) then raise Exception.Create('Project "'
-          + aProject.FullPath + '" requires a newer version of tms. Please update tms to the latest version and retry.');
+          + aProject.FullPath + '" requires version ' + value + ' of SmartSetup. The current version is ' + TMSVersion + '. Please update SmartSetup to the latest version and retry.');
     end);
 
 end;
@@ -308,18 +313,7 @@ function TMainSectionDef.VersionNumberGreaterThanApp(const s: string;
 const
   {$i ../../../Version.inc}
 begin
-  var sections := s.Split(['.']);
-  if Length(sections) = 0 then raise Exception.Create('Version number can''t be empty. ' + ErrorInfo.ToString());
-
-  var AppVersion := TMSVersion.Split(['.']);
-  for var i := 0 to Length(sections) - 1 do
-  begin
-    if i >= Length(AppVersion) then exit(false);
-    var isect := GetInt(sections[i], ErrorInfo);
-    if (isect > StrToInt(AppVersion[i])) then exit(true);
-  end;
-
-  Result := false;
+  Result := TVersion(s) > TVersion(TMSVersion);
 end;
 
 { TApplicationSectionDef }
@@ -354,6 +348,15 @@ begin
   Actions.Add('docs', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Docs := value; end);
   Actions.Add('version file', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Version := ReadVersionFile(value, ErrorInfo); end);
   Actions.Add('can add source code to library path', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.CanAddSourceCodeToLibraryPath := GetBool(value, ErrorInfo); end);
+  Actions.Add('vcs protocol', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.VCSProtocol := GetVCSProtocol(value, ErrorInfo); end);
+end;
+
+function TApplicationSectionDef.GetVCSProtocol(const s: string;
+  const ErrorInfo: TErrorInfo): string;
+begin
+  if SameText(s, 'svn') then exit('svn');
+  if (s = '') or SameText(s, 'git') then exit('git');
+  raise Exception.Create('"' + s + '" is not a valid VCS Protocol value. It must be "git" or "svn". ' + ErrorInfo.ToString);
 end;
 
 function TApplicationSectionDef.ReadVersionFile(const FileName: string;

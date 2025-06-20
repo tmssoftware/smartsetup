@@ -14,7 +14,7 @@ unit BBYaml;
 // in text editors. It is enough for our needs, but I wouldn't use as a general YAML parser unless you can control the format.
 
 interface
-uses BBClasses;
+uses Classes, SysUtils, Generics.Collections, BBClasses;
 type
 
 TBBYamlReader = class
@@ -22,12 +22,15 @@ TBBYamlReader = class
     class function CountSpaces(const Line: string): integer;
     class function UnescapeLine(const Line: string): string; static;
   public
+    class procedure ProcessStream(const Reader: TTextReader; const DisplayFileName: string; const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
     class procedure ProcessFile(const FileName: string; const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
 end;
 
+const
+  TrimWhiteSpace: Array[0..3] of char = (#0, #32, #09, #$A0);
+
 
 implementation
-uses Classes, SysUtils, Generics.Collections;
 
 { TNotLockingStreamReader }
 
@@ -185,7 +188,7 @@ end;
 function TBBYamlSectionProcessor.RemoveArray(const name: string): string;
 begin
   if not name.StartsWith('-') then raise Exception.Create('The name "' + name + '" is part of an array and must start with "-". ' + ErrorInfo.ToString);
-  Result := name.Substring(1).Trim;
+  Result := name.Substring(1).Trim(TrimWhitespace);
   if (Result = '') then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
 
 end;
@@ -241,8 +244,8 @@ var
 begin
   idx := Line.IndexOf(':');
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
-  Name := TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim());
-  Value := Line.Substring(idx + 1).Trim();
+  Name := TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace));
+  Value := Line.Substring(idx + 1).Trim(TrimWhitespace);
   if CanBeEmpty then exit;
 
   if MustHaveValue and (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
@@ -260,7 +263,7 @@ begin
   for i := 1 to Line.Length do
   begin
     case Line[i] of
-     ' ': inc(Result);
+     ' ', #$A0: inc(Result);
      #9: inc(Result, 4);
      else exit;
     end;
@@ -273,32 +276,40 @@ class procedure TBBYamlReader.ProcessFile(const FileName: string;
   const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
 var
   Reader: TStreamReader;
+begin
+  Reader := TNotLockingStreamReader.Create(FileName);
+  try
+    ProcessStream(Reader, FileName, MainSection, aStopAt, aIgnoreOtherFiles);
+  finally
+    Reader.Free;
+  end;
+end;
+
+class procedure TBBYamlReader.ProcessStream(const Reader: TTextReader;
+  const DisplayFileName: string;
+  const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
+var
   Line, FullLine: string;
   Section: TSection;
   Level: integer;
   SectionProcessor: TBBYamlSectionProcessor;
 begin
     Section := MainSection;
-    SectionProcessor := TBBYamlSectionProcessor.Create(FileName, aStopAt, aIgnoreOtherFiles);
+    SectionProcessor := TBBYamlSectionProcessor.Create(DisplayFileName, aStopAt, aIgnoreOtherFiles);
     try
-      Reader := TNotLockingStreamReader.Create(FileName);
-      try
-        while not Reader.EndOfStream do
-        begin
-          FullLine := Reader.ReadLine;
-          SectionProcessor.IncrementLineNumber;
-          Line := TBBYamlReader.UnescapeLine(FullLine).Trim();
-          if Line = '' then continue;
+      while not Reader.EndOfStream do
+      begin
+        FullLine := Reader.ReadLine;
+        SectionProcessor.IncrementLineNumber;
+        Line := TBBYamlReader.UnescapeLine(FullLine).Trim(TrimWhitespace);
+        if Line = '' then continue;
 
-          Level := CountSpaces(FullLine);
-          Section := SectionProcessor.Process(Section, Line, Level);
-          if Section = nil then exit;
-          
-        end;
+        Level := CountSpaces(FullLine);
+        Section := SectionProcessor.Process(Section, Line, Level);
+        if Section = nil then exit;
 
-      finally
-        Reader.Free;
       end;
+
     finally
       SectionProcessor.Free;
     end;
@@ -308,7 +319,7 @@ class function TBBYamlReader.UnescapeLine(const Line: string): string;
 var
   idx: integer;
 begin
-  Result := Line.Trim();
+  Result := Line.Trim(TrimWhitespace);
   idx := 0;
   //The only escape allowed is ## for #
   while true do

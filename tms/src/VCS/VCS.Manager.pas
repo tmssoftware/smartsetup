@@ -19,6 +19,7 @@ type
     class function DoGetProduct(const Protocol: TVCSProtocol; const Url: string): TApplicationDefinition; static;
     class function HasErrors(const Status: TArray<TVCSFetchStatus>): boolean; static;
     class function GetInstalledProducts: THashSet<string>; static;
+    class procedure AddPredefinedData(const Product: TRegisteredProduct); static;
   public
     class function Fetch(const AProductIds: TArray<string>; const OnlyInstalled: boolean): THashSet<string>; static;
     class function GetProduct(const Protocol: TVCSProtocol; const Url: string): TApplicationDefinition;
@@ -142,6 +143,21 @@ begin
   end;
 end;
 
+class procedure TVCSManager.AddPredefinedData(const Product: TRegisteredProduct);
+begin
+  if Product.PredefinedData.Tmsbuild_Yaml.Trim <> '' then
+  begin
+    var ProductFolder := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId);
+    var tmsbuild_yaml := TPath.Combine(ProductFolder, TProjectLoader.TMSBuildDefinitionFile);
+    //We give priority to the yaml that is in the product repo.
+    //If the yaml exists in both the repo and the registry, we will use the repo.
+    if not TFile.Exists(tmsbuild_yaml) then
+    begin
+      TFile.WriteAllText(tmsbuild_yaml, Product.PredefinedData.Tmsbuild_Yaml);
+    end;
+  end;
+end;
+
 class function TVCSManager.FetchProduct(const Product: TRegisteredProduct): TVCSFetchStatus;
 begin
   Result := TVCSFetchStatus.Ok;
@@ -150,6 +166,11 @@ begin
     CheckAppTerminated;
     Logger.Info('Updating ' + Product.ProductId + ' from ' + Product.ProtocolString);
     DoFetchProduct(Product);
+    AddPredefinedData(Product);
+    begin
+
+    end;
+
     Logger.Info('Updated ' + Product.ProductId + ' from ' + Product.ProtocolString);
   except
     on ex: Exception do

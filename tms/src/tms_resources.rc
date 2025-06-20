@@ -1,3 +1,2 @@
 StandardConfigFileGlobal RCDATA "..\example-config\tms.config.yaml"
 StandardConfigFileProduct RCDATA "..\example-config\tms.config.byproduct.yaml"
-PredefinedRepositories RCDATA "..\predefined.repos.zip"

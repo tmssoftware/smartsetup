@@ -44,7 +44,7 @@ begin
   var option := cmd.RegisterUnNamedOption<string>('Type of version control used. Can be GIT or SVN', 'repo-type',
     procedure(const Value: string)
     begin
-      Protocol := TRegisteredProduct.GetProtocolFromString(Value);
+      Protocol := TRegisteredProduct.GetProtocolFromString(Value, false);
     end);
   option.Required := True;
   option.AllowMultiple := False;

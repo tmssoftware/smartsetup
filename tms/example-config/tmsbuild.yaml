@@ -1,6 +1,6 @@
 # TMS Smart Setup definition file for Example
 # Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
-minimum required tmsbuild version: 1.0
+minimum required tmsbuild version: 2.0
   
 application:
   id: tms.example # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.

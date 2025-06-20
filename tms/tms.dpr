@@ -189,7 +189,8 @@ uses
   VSoft.CommandLine.Parser in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Parser.pas',
   VSoft.CommandLine.Utils in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas',
   VSoft.CommandLine.CommandDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas',
-  VSoft.CommandLine.OptionDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas';
+  VSoft.CommandLine.OptionDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas',
+  Git.HTTPSDownload in 'src\VCS\Git.HTTPSDownload.pas';
 
 begin
   try

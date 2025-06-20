@@ -14,6 +14,7 @@ type
     class procedure LoadProjects(const Roots: TArray<string>; const Projects: TProjectList; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false);
     class function LoadProjectDefinition(const RootFolder: string; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TProjectDefinition;
     class function HasProjectDefinition(const RootFolder: string): Boolean;
+    class procedure LoadDataIntoProject(const Filename, Data: string; const Project: TProjectDefinition; const aStopAt: string; const aIgnoreOtherFiles: boolean);
   end;
 
 implementation
@@ -24,6 +25,25 @@ uses Classes, SysUtils, UMultiLogger, UTmsBuildSystemUtils, ULogger;
 class function TProjectLoader.HasProjectDefinition(const RootFolder: string): Boolean;
 begin
   Result := TFile.Exists(TPath.Combine(RootFolder, TMSBuildDefinitionFile));
+end;
+
+class procedure TProjectLoader.LoadDataIntoProject(const Filename, Data: string;
+  const Project: TProjectDefinition; const aStopAt: string;
+  const aIgnoreOtherFiles: boolean);
+var
+  MainSection: TMainSectionDef;
+begin
+  MainSection := TMainSectionDef.Create(Project);
+  try
+    var Reader := TStringReader.Create(Data);
+    try
+      TBBYamlReader.ProcessStream(Reader, Filename, MainSection, aStopAt, aIgnoreOtherFiles);
+    finally
+      Reader.Free;
+    end;
+  finally
+    MainSection.Free;
+  end;
 end;
 
 class procedure TProjectLoader.LoadIntoProject(const Filename: string; const Project: TProjectDefinition; const aStopAt: string; const aIgnoreOtherFiles: boolean);
