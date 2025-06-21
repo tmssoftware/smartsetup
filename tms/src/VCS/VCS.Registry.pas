@@ -48,7 +48,7 @@ type
   private
     const RepoExt = '.repo.json';
   private
-    StoreFolder: string;
+    BaseStoreFolder: string;
     FProducts: TObjectDictionary<string, TRegisteredProduct>;
     function AlreadySaved(const Filename: string; const Product: TRegisteredProduct): boolean;
     function GetProductFromFile(const Filename: string): TRegisteredProduct;
@@ -59,8 +59,11 @@ type
     procedure LoadPreregisteredProducts;
     procedure LoadOnePreregisteredProduct(const FileName, Text: string);
     procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig);
+    procedure LoadLocalProductsFromServer(const Server: TServerConfig);
+    function GetLocalStoreFolder(const Server: TServerConfig): string;
+    function LocalServer: TServerConfig;
   public
-    constructor Create(const aStoreFolder: string);
+    constructor Create(const aBaseStoreFolder: string);
     destructor Destroy; override;
 
     procedure Add(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string);
@@ -139,9 +142,9 @@ begin
   Result := FProducts.ContainsKey(ProductId);
 end;
 
-constructor TProductRegistry.Create(const aStoreFolder: string);
+constructor TProductRegistry.Create(const aBaseStoreFolder: string);
 begin
-  StoreFolder := aStoreFolder;
+  BaseStoreFolder := aBaseStoreFolder;
   FProducts := TObjectDictionary<string, TRegisteredProduct>.Create([doOwnsValues], TIStringComparer.Ordinal);
   Load;
 end;
@@ -292,6 +295,27 @@ procedure TProductRegistry.Load;
 begin
   FProducts.Clear;
   LoadPreregisteredProducts;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    LoadLocalProductsFromServer(Config.ServerConfig.GetServer(i));
+  end;
+end;
+
+function TProductRegistry.GetLocalStoreFolder(const Server: TServerConfig): string;
+begin
+  Result := BaseStoreFolder;
+  if not Server.IsReservedName then
+  begin
+    if Server.Url.Trim = '' then Result := TPath.Combine(BaseStoreFolder, Server.Name)
+    else Result := Server.Url;
+  end;
+
+end;
+
+procedure TProductRegistry.LoadLocalProductsFromServer(const Server: TServerConfig);
+begin
+  if not Server.Enabled or (Server.Protocol <> TServerProtocol.Local) then exit;
+  var StoreFolder := GetLocalStoreFolder(Server);
   if not TDirectory.Exists(StoreFolder) then exit;
   var Items := TDirectory.GetFiles(StoreFolder, '*' + RepoExt);
   for var Item in Items do
@@ -315,8 +339,28 @@ begin
 
 end;
 
+function TProductRegistry.LocalServer: TServerConfig;
+begin
+  var ServerCount := 0;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    var Server := Config.ServerConfig.GetServer(i);
+    if Server.Enabled and (Server.Protocol = TServerProtocol.Local) then
+    begin
+      inc(ServerCount);
+      Result := Server;
+    end;
+  end;
+
+  if ServerCount < 1 then raise Exception.Create('Error: There are no local sources where to register the repository. Make sure you have one source defined in tmsbuild.yaml.');
+  if ServerCount > 1 then raise Exception.Create('Error: There are ' + IntToStr(ServerCount) + ' local sources defined in tmsbuild.yaml. To register a repo, you need a single one.');
+
+end;
+
 procedure TProductRegistry.Save;
 begin
+  var StoreFolder := GetLocalStoreFolder(LocalServer);
+
   TDirectory_CreateDirectory(StoreFolder);
 
   var ProductsInFolder := THashSet<string>.Create(TIStringComparer.Ordinal);
