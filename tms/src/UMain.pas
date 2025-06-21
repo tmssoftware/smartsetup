@@ -13,6 +13,10 @@ uses
   Commands.Config,
   Commands.ConfigWrite,
   Commands.ConfigRead,
+  Commands.ServerEnable,
+  Commands.ServerList,
+  Commands.ServerAdd,
+  Commands.ServerRemove,
   Commands.Fetch,
   Commands.Build,
   Commands.SelfUpdate,
@@ -80,6 +84,11 @@ begin
   RegisterConfigCommand;
   RegisterConfigWriteCommand;
   RegisterConfigReadCommand;
+
+  RegisterServerEnableCommand;
+  RegisterServerListCommand;
+  RegisterServerAddCommand;
+  RegisterServerRemoveCommand;
 
   RegisterRepoRegisterCommand;
   RegisterRepoUnregisterCommand;

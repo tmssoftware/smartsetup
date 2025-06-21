@@ -14,6 +14,9 @@ const
   'packages', 'startmenu', 'help', 'windowspath', 'webcore'
   );
 
+  TMSUrl = 'https://api.landgraf.dev/tms';
+  GitHubUrl = 'https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip';
+
 type
 
   TSkipRegistering = record
@@ -95,7 +98,7 @@ type
     Export: string;
   end;
 
-  TServerProtocol = (Local, TmsServer, GitHub);
+  TServerProtocol = (Local, Api, GitHub);
 
   TServerConfig = record
   public
@@ -105,7 +108,10 @@ type
     Enabled: boolean;
 
     constructor Create(const aName: string; const aProtocol: TServerProtocol; const aUrl: string; const aEnabled: boolean);
+    function IsReservedName: boolean;
 
+    function ProtocolString: string;
+    class function ProtocolFromString(const value: string; const ExtraInfo: string = ''): TServerProtocol; static;
   end;
 
   type
@@ -121,6 +127,9 @@ type
     function ServerCount: integer;
     function GetServer(const index: integer): TServerConfig;
     procedure SetInfo(const index: integer; const Action: TVarProc<TServerConfig>);
+
+    //Will return -1 if not found
+    function FindServer(const Name: string): integer;
   end;
 
   TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
@@ -883,6 +892,17 @@ begin
   Servers[Length(Servers) - 1] := ServerConfig;
 end;
 
+function TServerConfigList.FindServer(const Name: string): integer;
+begin
+  for var i := 0 to ServerCount - 1 do
+  begin
+    var Server := GetServer(i);
+    if SameText(Server.Name.Trim, Name.Trim) then exit(i);
+  end;
+
+  Result := -1;
+end;
+
 function TServerConfigList.GetServer(const index: integer): TServerConfig;
 begin
   if Servers = nil then
@@ -893,11 +913,11 @@ begin
       end;
 
       1: begin
-        exit(TServerConfig.Create('tms', TServerProtocol.TmsServer, 'https://api.landgraf.dev/tms', true));
+        exit(TServerConfig.Create('tms', TServerProtocol.Api, '', true));
       end;
 
       2: begin
-        exit(TServerConfig.Create('third-party', TServerProtocol.GitHub, 'https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip', false));
+        exit(TServerConfig.Create('community', TServerProtocol.GitHub, '', false));
       end;
     end;
     raise Exception.Create('Invalid Server index.');
@@ -945,6 +965,50 @@ begin
   Protocol := aProtocol;
   Url := aUrl;
   Enabled := aEnabled;
+
+  if aName = 'local' then
+  begin
+    Url := '';
+    Protocol := TServerProtocol.Local;
+  end
+  else if aName = 'tms' then
+  begin
+    Url := TMSUrl;
+    Protocol := TServerProtocol.Api;
+  end
+  else if aName = 'community' then
+  begin
+    Url := GitHubUrl;
+    Protocol := TServerProtocol.GitHub;
+  end ;
+end;
+
+function TServerConfig.IsReservedName: boolean;
+begin
+  Result := (Name = 'local') or (Name = 'tms') or (Name = 'community');
+end;
+
+class function TServerConfig.ProtocolFromString(
+  const value: string; const ExtraInfo: string = ''): TServerProtocol;
+begin
+ var s1 := AnsiLowerCase(value.Trim);
+ if (s1 = 'local') then exit(TServerProtocol.Local);
+ if (s1 = 'api') then exit(TServerProtocol.Api);
+ if (s1 = 'github') then exit(TServerProtocol.GitHub);
+
+ raise Exception.Create('"' + value + '" is not a valid Server Protocol value. It must be "local", "api" or "github".' + ExtraInfo);
+
+end;
+
+function TServerConfig.ProtocolString: string;
+begin
+  case Protocol of
+    TServerProtocol.Local: exit('local');
+    TServerProtocol.Api: exit('api');
+    TServerProtocol.GitHub: exit('github');
+  end;
+
+  raise Exception.Create('Invalid Protocol in Server.');
 end;
 
 end.

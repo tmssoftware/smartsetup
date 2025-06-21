@@ -662,24 +662,38 @@ begin
   Index := Config.ServerConfig.NewServer(aName);
 
   Actions := TListOfActions.Create;
-  Actions.Add('protocol', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Protocol := GetServerProtocol(Value, ErrorInfo); end); end);
-  Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Url := Value.Trim; end); end);
+  Actions.Add('protocol', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    if not Config.ServerConfig.GetServer(Index).IsReservedName then
+    begin
+      Config.ServerConfig.SetInfo(Index,
+        procedure (var Server: TServerConfig)
+        begin
+          Server.Protocol := GetServerProtocol(Value, ErrorInfo);
+      end);
+    end;
+  end);
+
+  Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    if not Config.ServerConfig.GetServer(Index).IsReservedName then
+    begin
+      Config.ServerConfig.SetInfo(Index,
+        procedure (var Server: TServerConfig)
+        begin
+          Server.Url := Value.Trim;
+        end);
+    end;
+  end);
+
   Actions.Add('enabled', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end); end);
 
 end;
 
 function TServerSectionConf.GetServerProtocol(const s: string;
   const ErrorInfo: TErrorInfo): TServerProtocol;
-var
-  s1: string;
 begin
- s1 := AnsiLowerCase(s);
- if (s1 = 'local') then exit(TServerProtocol.Local);
- if (s1 = 'tmsserver') then exit(TServerProtocol.TmsServer);
- if (s1 = 'github') then exit(TServerProtocol.GitHub);
-
- raise Exception.Create('"' + s + '" is not a valid Server Protocol value. It must be "local", "tmsserver" or "github". ' + ErrorInfo.ToString);
-
+  Result := TServerConfig.ProtocolFromString(s, ErrorInfo.ToString);
 end;
 
 

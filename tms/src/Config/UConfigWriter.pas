@@ -40,7 +40,6 @@ TConfigWriter = class
       const ProductId: string): string;
     function CommentBlock(const s: string): string;
     function GetServers(const Servers: TServerConfigList): string;
-    function GetServerProtocol(const Protocol: TServerProtocol): string;
   public
     constructor Create(const aCmdFormat: boolean);
     function ReplaceVariables(const Cfg: TConfigDefinition; const GlobalTemplate, ProductTemplate: string): string;
@@ -147,27 +146,21 @@ begin
 
 end;
 
-function TConfigWriter.GetServerProtocol(const Protocol: TServerProtocol): string;
-begin
-  case Protocol of
-    TServerProtocol.Local: exit('local');
-    TServerProtocol.TmsServer: exit('tmsserver');
-    TServerProtocol.GitHub: exit('github');
-  end;
-  raise Exception.Create('Unexpected Server protocol');
-end;
-
 function TConfigWriter.GetServers(const Servers: TServerConfigList): string;
 begin
   Result := '';
   for var i := 0 to Servers.ServerCount - 1 do
   begin
     var Server := Servers.GetServer(i);
+    if i > 0 then  Result := Result + NewLine + NewLine;
+    
     Result := Result + '    ' + Server.Name + ':' + NewLine;
-    Result := Result + '      protocol: ' + GetServerProtocol(Server.Protocol) + NewLine;
-    Result := Result + '      url: ' + Server.Url + NewLine;
-    Result := Result + '      enabled: ' + BoolToStrLower(Server.Enabled) + NewLine;
-    Result := Result + NewLine;
+    if not Server.IsReservedName then
+    begin
+      Result := Result + '      protocol: ' + Server.ProtocolString + NewLine;
+      Result := Result + '      url: ' + Server.Url + NewLine;
+    end;
+    Result := Result + '      enabled: ' + BoolToStrLower(Server.Enabled);
   end;
 
 end;

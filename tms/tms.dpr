@@ -190,7 +190,11 @@ uses
   VSoft.CommandLine.Utils in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas',
   VSoft.CommandLine.CommandDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas',
   VSoft.CommandLine.OptionDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas',
-  Git.HTTPSDownload in 'src\VCS\Git.HTTPSDownload.pas';
+  Git.HTTPSDownload in 'src\VCS\Git.HTTPSDownload.pas',
+  Commands.ServerEnable in 'src\Commands\Commands.ServerEnable.pas',
+  Commands.ServerList in 'src\Commands\Commands.ServerList.pas',
+  Commands.ServerAdd in 'src\Commands\Commands.ServerAdd.pas',
+  Commands.ServerRemove in 'src\Commands\Commands.ServerRemove.pas';
 
 begin
   try

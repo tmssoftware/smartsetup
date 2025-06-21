@@ -409,6 +409,10 @@
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas"/>
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas"/>
         <DCCReference Include="src\VCS\Git.HTTPSDownload.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerEnable.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerList.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerAdd.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerRemove.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">
