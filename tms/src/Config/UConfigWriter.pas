@@ -159,20 +159,15 @@ end;
 
 function TConfigWriter.GetServers(const Servers: TServerConfigList): string;
 begin
-  var Text := TList<string>.Create;
-  try
-    for var i := 0 to Servers.ServerCount - 1 do
-    begin
-      var Server := Servers.GetServer(i);
-      Text.Add(Server.Name + ':');
-      Text.Add('  protocol: ' + GetServerProtocol(Server.Protocol));
-      Text.Add('  url: ' + Server.Url);
-      Text.Add('  enabled: ' + BoolToStrLower(Server.Enabled));
-      Text.Add('');
-    end;
-    Result := GetArray(Text.ToArray, 1, '');
-  finally
-    Text.Free;
+  Result := '';
+  for var i := 0 to Servers.ServerCount - 1 do
+  begin
+    var Server := Servers.GetServer(i);
+    Result := Result + '    ' + Server.Name + ':' + NewLine;
+    Result := Result + '      protocol: ' + GetServerProtocol(Server.Protocol) + NewLine;
+    Result := Result + '      url: ' + Server.Url + NewLine;
+    Result := Result + '      enabled: ' + BoolToStrLower(Server.Enabled) + NewLine;
+    Result := Result + NewLine;
   end;
 
 end;

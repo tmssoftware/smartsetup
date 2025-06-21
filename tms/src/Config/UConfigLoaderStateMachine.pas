@@ -611,6 +611,7 @@ begin
   ChildSections.Add(TExcludedComponentsSectionConf.SectionNameStatic, TExcludedComponentsSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TIncludedComponentsSectionConf.SectionNameStatic, TIncludedComponentsSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TAdditionalProductsFoldersSectionConf.SectionNameStatic, TAdditionalProductsFoldersSectionConf.Create(Self, aConfig, ProductConfig));
+  ChildSections.Add(TServersSectionConf.SectionNameStatic, TServersSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TGitSectionConf.SectionNameStatic, TGitSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TSvnSectionConf.SectionNameStatic, TSvnSectionConf.Create(Self, aConfig, ProductConfig));
 
@@ -661,9 +662,9 @@ begin
   Index := Config.ServerConfig.NewServer(aName);
 
   Actions := TListOfActions.Create;
-  Actions.Add('protocol', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (Server: TServerConfig) begin Server.Protocol := GetServerProtocol(Value, ErrorInfo); end); end);
-  Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (Server: TServerConfig) begin Server.Url := Value.Trim; end); end);
-  Actions.Add('enabled', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end); end);
+  Actions.Add('protocol', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Protocol := GetServerProtocol(Value, ErrorInfo); end); end);
+  Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Url := Value.Trim; end); end);
+  Actions.Add('enabled', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end); end);
 
 end;
 

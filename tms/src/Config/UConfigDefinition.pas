@@ -108,6 +108,9 @@ type
 
   end;
 
+  type
+    TVarProc<T> = reference to procedure (var Arg1: T);
+
   TServerConfigList = record
   private
     Servers: TArray<TServerConfig>;
@@ -117,7 +120,7 @@ type
     procedure RemoveServer(const index: integer);
     function ServerCount: integer;
     function GetServer(const index: integer): TServerConfig;
-    procedure SetInfo(const index: integer; const Action: TProc<TServerConfig>);
+    procedure SetInfo(const index: integer; const Action: TVarProc<TServerConfig>);
   end;
 
   TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
@@ -925,7 +928,7 @@ begin
 end;
 
 procedure TServerConfigList.SetInfo(const index: integer;
-  const Action: TProc<TServerConfig>);
+  const Action: TVarProc<TServerConfig>);
 begin
   var Server := Servers[index];
   Action(Server);
