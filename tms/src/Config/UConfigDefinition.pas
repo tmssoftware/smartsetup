@@ -95,6 +95,31 @@ type
     Export: string;
   end;
 
+  TServerProtocol = (Local, TmsServer, GitHub);
+
+  TServerConfig = record
+  public
+    Name: string;
+    Protocol: TServerProtocol;
+    Url: string;
+    Enabled: boolean;
+
+    constructor Create(const aName: string; const aProtocol: TServerProtocol; const aUrl: string; const aEnabled: boolean);
+
+  end;
+
+  TServerConfigList = record
+  private
+    Servers: TArray<TServerConfig>;
+  public
+    function NewServer(const aName: string): integer;
+    procedure AddServer(const ServerConfig: TServerConfig);
+    procedure RemoveServer(const index: integer);
+    function ServerCount: integer;
+    function GetServer(const index: integer): TServerConfig;
+    procedure SetInfo(const index: integer; const Action: TProc<TServerConfig>);
+  end;
+
   TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
   public
     constructor Create;
@@ -115,6 +140,7 @@ type
     FErrorIfSkipped: boolean;
     FAlternateRegistryKey: string;
     FMaxVersionsPerProduct: integer;
+    FServerConfig: TServerConfigList;
     FGitConfig: TGitConfig;
     FSvnConfig: TSvnConfig;
 
@@ -151,6 +177,9 @@ type
     property PreventSleep: boolean read FPreventSleep write FPreventSleep;
     property AlternateRegistryKey: string read FAlternateRegistryKey write FAlternateRegistryKey;
     property MaxVersionsPerProduct: integer read FMaxVersionsPerProduct write FMaxVersionsPerProduct;
+
+    property ServerConfig: TServerConfigList read FServerConfig write FServerConfig;
+
     property GitConfig: TGitConfig read FGitConfig write FGitConfig;
     property SvnConfig: TSvnConfig read FSvnConfig write FSvnConfig;
 
@@ -841,6 +870,78 @@ end;
 class function TSkipRegistering.None: TSkipRegistering;
 begin
   Result := TSkipRegistering.Create([]);
+end;
+
+{ TServerConfigList }
+
+procedure TServerConfigList.AddServer(const ServerConfig: TServerConfig);
+begin
+  SetLength(Servers, Length(Servers) + 1);
+  Servers[Length(Servers) - 1] := ServerConfig;
+end;
+
+function TServerConfigList.GetServer(const index: integer): TServerConfig;
+begin
+  if Servers = nil then
+  begin
+    case index of
+      0: begin
+        exit(TServerConfig.Create('local', TServerProtocol.Local, '', true));
+      end;
+
+      1: begin
+        exit(TServerConfig.Create('tms', TServerProtocol.TmsServer, 'https://api.landgraf.dev/tms', true));
+      end;
+
+      2: begin
+        exit(TServerConfig.Create('third-party', TServerProtocol.GitHub, 'https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip', false));
+      end;
+    end;
+    raise Exception.Create('Invalid Server index.');
+  end;
+
+  Result := Servers[index];
+end;
+
+function TServerConfigList.NewServer(const aName: string): integer;
+begin
+  AddServer(TServerConfig.Create(aName, TServerProtocol.GitHub, '', true));
+  Result := Length(Servers) - 1;
+end;
+
+procedure TServerConfigList.RemoveServer(const index: integer);
+begin
+  for var i := index to Length(Servers) - 2 do
+  begin
+    Servers[i] := Servers[i + 1];
+  end;
+  SetLength(Servers, Length(Servers) - 1);
+end;
+
+function TServerConfigList.ServerCount: integer;
+begin
+  if Servers = nil then exit(3);
+  exit(Length(Servers));
+end;
+
+procedure TServerConfigList.SetInfo(const index: integer;
+  const Action: TProc<TServerConfig>);
+begin
+  var Server := Servers[index];
+  Action(Server);
+  Servers[index] := Server;
+end;
+
+{ TServerConfig }
+
+constructor TServerConfig.Create(const aName: string;
+  const aProtocol: TServerProtocol; const aUrl: string;
+  const aEnabled: boolean);
+begin
+  Name := aName;
+  Protocol := aProtocol;
+  Url := aUrl;
+  Enabled := aEnabled;
 end;
 
 end.

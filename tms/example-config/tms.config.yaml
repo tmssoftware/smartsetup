@@ -52,6 +52,10 @@ tms smart setup options:
   additional products folders:
 %additional-products-folders%
 
+  # Specify which servers SmartSetup will connect to.
+  servers:
+%servers%
+
   git:
     # Location where to find git.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.
     %git-git-location-comment%git location: %git-git-location%

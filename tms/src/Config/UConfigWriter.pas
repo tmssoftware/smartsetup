@@ -39,6 +39,8 @@ TConfigWriter = class
     function GetCompilerPath(const ProductCfg: TProductConfigDefinition;
       const ProductId: string): string;
     function CommentBlock(const s: string): string;
+    function GetServers(const Servers: TServerConfigList): string;
+    function GetServerProtocol(const Protocol: TServerProtocol): string;
   public
     constructor Create(const aCmdFormat: boolean);
     function ReplaceVariables(const Cfg: TConfigDefinition; const GlobalTemplate, ProductTemplate: string): string;
@@ -145,6 +147,36 @@ begin
 
 end;
 
+function TConfigWriter.GetServerProtocol(const Protocol: TServerProtocol): string;
+begin
+  case Protocol of
+    TServerProtocol.Local: exit('local');
+    TServerProtocol.TmsServer: exit('tmsserver');
+    TServerProtocol.GitHub: exit('github');
+  end;
+  raise Exception.Create('Unexpected Server protocol');
+end;
+
+function TConfigWriter.GetServers(const Servers: TServerConfigList): string;
+begin
+  var Text := TList<string>.Create;
+  try
+    for var i := 0 to Servers.ServerCount - 1 do
+    begin
+      var Server := Servers.GetServer(i);
+      Text.Add(Server.Name + ':');
+      Text.Add('  protocol: ' + GetServerProtocol(Server.Protocol));
+      Text.Add('  url: ' + Server.Url);
+      Text.Add('  enabled: ' + BoolToStrLower(Server.Enabled));
+      Text.Add('');
+    end;
+    Result := GetArray(Text.ToArray, 1, '');
+  finally
+    Text.Free;
+  end;
+
+end;
+
 function GetProduct(const Cfg: TConfigDefinition; const AProductId: string): TProductConfigDefinition;
 begin
   var ProductId := aProductId;
@@ -165,6 +197,8 @@ begin
       if varName = 'excluded-products' then exit(GetArray(GetIncludedExcludedComponents(Cfg.GetExcludedComponents), 2));
       if varName = 'included-products' then exit(GetArray(GetIncludedExcludedComponents(Cfg.GetIncludedComponents), 2));
       if varName = 'additional-products-folders' then exit(GetArray(GetAdditionalProductsFolders(Cfg.GetAdditionalProductsFolders), 2));
+
+      if varName = 'servers' then exit(GetServers(Cfg.ServerConfig));
 
       if varName = 'git-git-location' then exit(ExampleString(Cfg.GitConfig.GitCommand, 'c:\git\git.exe'));
       if varName = 'git-git-location-comment' then exit(GetComment(Cfg.GitConfig.GitCommand));

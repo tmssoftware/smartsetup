@@ -59,6 +59,24 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TServersSectionConf = class(TSectionConf)
+  public
+    constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
+  TServerSectionConf = class(TSectionConf)
+  private
+    Name: string;
+    Index: integer;
+    function GetServerProtocol(const s: string;
+      const ErrorInfo: TErrorInfo): TServerProtocol;
+  public
+    constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aName: string; const aProductConfig: TProductConfigDefinition);
+    class function SectionNameStatic: string; override;
+    function SectionName: string; override;
+  end;
+
   TGitSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
@@ -608,6 +626,72 @@ class function TTmsBuildOptionsSectionConf.SectionNameStatic: string;
 begin
   Result := 'tms smart setup options';
 end;
+
+{ TServersSectionConf }
+
+constructor TServersSectionConf.Create(const aParent: TSection;
+  const aConfig: TConfigDefinition;
+  const aProductConfig: TProductConfigDefinition);
+begin
+  inherited Create(aParent, aConfig, aProductConfig);
+  ChildSectionAction :=
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    begin
+      if ChildSections.TryGetValue(Name, Result) then raise Exception.Create('The server "' + Name
+                   + '" is already defined. ' + ErrorInfo.ToString);
+
+      Result := TServerSectionConf.Create(Self, aConfig, Name, aProductConfig);
+      ChildSections.Add(Name, Result);
+    end;
+end;
+
+class function TServersSectionConf.SectionNameStatic: string;
+begin
+  Result := 'servers';
+end;
+
+{ TServerSectionConf }
+
+constructor TServerSectionConf.Create(const aParent: TSection;
+  const aConfig: TConfigDefinition; const aName: string;
+  const aProductConfig: TProductConfigDefinition);
+begin
+  inherited Create(aParent, aConfig, aProductConfig);
+  Name := aName;
+  Index := Config.ServerConfig.NewServer(aName);
+
+  Actions := TListOfActions.Create;
+  Actions.Add('protocol', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (Server: TServerConfig) begin Server.Protocol := GetServerProtocol(Value, ErrorInfo); end); end);
+  Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (Server: TServerConfig) begin Server.Url := Value.Trim; end); end);
+  Actions.Add('enabled', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end); end);
+
+end;
+
+function TServerSectionConf.GetServerProtocol(const s: string;
+  const ErrorInfo: TErrorInfo): TServerProtocol;
+var
+  s1: string;
+begin
+ s1 := AnsiLowerCase(s);
+ if (s1 = 'local') then exit(TServerProtocol.Local);
+ if (s1 = 'tmsserver') then exit(TServerProtocol.TmsServer);
+ if (s1 = 'github') then exit(TServerProtocol.GitHub);
+
+ raise Exception.Create('"' + s + '" is not a valid Server Protocol value. It must be "local", "tmsserver" or "github". ' + ErrorInfo.ToString);
+
+end;
+
+
+function TServerSectionConf.SectionName: string;
+begin
+  Result := Name;
+end;
+
+class function TServerSectionConf.SectionNameStatic: string;
+begin
+  Result := 'Error';
+end;
+
 
 { TGitSectionConf }
 

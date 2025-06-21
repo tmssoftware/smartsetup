@@ -2,7 +2,7 @@ unit VCS.Registry;
 {$I ../../tmssetup.inc}
 
 interface
-uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes, UProjectDefinition;
+uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes, UProjectDefinition, UConfigDefinition;
 type
   //In the future, we might add more stuff to the registry, like an image or path files.
   //That data would go inside this record.
@@ -58,6 +58,7 @@ type
     function GetProductFromProject(const Project: TProjectDefinition; const aLoadingPredefined: boolean; const PredefinedText: string): TRegisteredProduct;
     procedure LoadPreregisteredProducts;
     procedure LoadOnePreregisteredProduct(const FileName, Text: string);
+    procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig);
   public
     constructor Create(const aStoreFolder: string);
     destructor Destroy; override;
@@ -244,12 +245,22 @@ begin
 end;
 
 procedure TProductRegistry.LoadPreregisteredProducts;
+begin
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    LoadPreregisteredProductsFromServer(Config.ServerConfig.GetServer(i));
+  end;
+end;
+
+procedure TProductRegistry.LoadPreregisteredProductsFromServer(const Server: TServerConfig);
 const
   PredefinedZip = 'predefined.repos.zip';
 begin
+  if (Server.Protocol <> TServerProtocol.GitHub) or not Server.Enabled then exit;
+
   try
-    var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, PredefinedZip);
-    GitDownloader.GetRepo('https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip', PredefinedRepositories);
+    var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
+    GitDownloader.GetRepo(Server.Url, PredefinedRepositories);
 
     var Zip := TZipFile.Create;
     try
