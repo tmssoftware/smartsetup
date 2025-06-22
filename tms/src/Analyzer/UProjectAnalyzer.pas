@@ -53,7 +53,7 @@ type
 implementation
 uses UPackageFinder, UProjectBuildInfo, UIDEBuildInfo,
      UPlatformBuildInfo, UPackageBuildInfo, Generics.Collections, UProjectInstaller,
-     UAppTerminated, IOUtils, Deget.IDEInfo, Deget.DelphiInfo;
+     UAppTerminated, IOUtils, Deget.IDEInfo, Deget.DelphiInfo, UTmsBuildSystemUtils;
 
 { TProjectAnalyzer }
 
@@ -205,7 +205,16 @@ begin
   var PackageCache := TPackageCache.Create;
   try
     BuildInfo.CurrentProject.SourceCodeHash := FileHasher.GenerateSourceCodeHash(PackageCache, Project);
-    BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, TPath.GetDirectoryName(Project.FullPath), Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
+    var PackagesFolder :=  TPath.GetDirectoryName(Project.FullPath);
+    if Project.RootPackageFolder <> '' then
+    begin
+      PackagesFolder := TPath.GetFullPath(TPath.Combine(PackagesFolder, Project.RootPackageFolder));
+      if FolderIsOutside(PackagesFolder, [Project.RootFolder])
+        then raise Exception.Create('The base package folder can''t be outside the root folder of the project. Current base package folder is: "' + PackagesFolder + '" and the root folder is "' + Project.RootFolder + '"');
+    end;
+
+
+    BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
     var DepsCompiled := DependenciesRebuilt(Config, Project);
 
     AnalyzePackages(PackageCache, Project, DepsCompiled, BuildInfo.CurrentProject.BasePackagesFolder);

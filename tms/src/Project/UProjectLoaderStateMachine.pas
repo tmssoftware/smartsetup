@@ -451,7 +451,13 @@ begin
     begin
       Project.IgnoreDprojPlatforms := GetBoolEx(value, ErrorInfo);
     end);
+  Actions.Add('root package folder', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.RootPackageFolder := value;
+    end);
+
 end;
+
 
 
 class function TPackageOptionsSectionDef.SectionNameStatic: string;

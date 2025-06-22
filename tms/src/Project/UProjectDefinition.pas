@@ -225,6 +225,7 @@ type
     FShortcuts: TObjectList<TShortcutDefinition>;
     FFileLinks: TObjectList<TFileLinkDefinition>;
     FOtherRegistryKeys: TList<string>;
+    FRootPackageFolder: string;
     FPackageFolders: TPackageFolders;
     FLibSuffixes: TLibSuffixes;
     FHasMultiIDEPackages: Nullable<boolean>;
@@ -250,6 +251,7 @@ type
     property IgnoreDprojPlatforms: boolean read FIgnoreDprojPlatforms write FIgnoreDprojPlatforms;
 
     property Naming: string read FNaming write FNaming;
+    property RootPackageFolder: string read FRootPackageFolder write FRootPackageFolder;
     property PackageFolders: TPackageFolders read FPackageFolders;
     property LibSuffixes: TLibSuffixes read FLibSuffixes;
 
