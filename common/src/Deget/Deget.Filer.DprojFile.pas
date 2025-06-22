@@ -1622,7 +1622,6 @@ begin
   if NodeName = 'DCC_HppOutput' then exit(true);
   if NodeName = 'DCC_ObjOutput' then exit(true);
   if NodeName = 'Icon_MainIcon' then exit(true);
-  if NodeName = 'DCC_UnitSearchPath' then exit(true);
 
   //Cpp
   if NodeName = 'FinalOutputDir' then exit(true);
@@ -1658,7 +1657,7 @@ begin
   if NodeName = 'IncludePath' then exit(true);
   if NodeName = 'ILINK_LibraryPath' then exit(true);
   if NodeName = 'ILINK_TranslatedLibraryPath' then exit(true);
-
+  if NodeName = 'DCC_UnitSearchPath' then exit(true);
   Result := false;
 end;
 
