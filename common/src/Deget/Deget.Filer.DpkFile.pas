@@ -238,14 +238,15 @@ begin
 
 
     var LastChar: Char := Line[Length(Line)];
-    Result := Result + [Copy(Line, 1, Length(Line) - 1)];
+    var Offset := 0;
+    if (LastChar = ',') or (LastChar = ';') then Offset := 1;
 
-    case LastChar of
-      ',': ;
-      ';': Exit;
-    else
-      raise Exception.CreateFmt('Unexpected last char %s in line %d for section %s (%s)', [LastChar, Index, Section, FileName]);
-    end;
+    var Entry := Copy(Line, 1, Length(Line) - Offset).Trim;
+    if Entry = '' then continue;
+    if SameText(Entry, 'requires') or SameText(Entry, 'contains') or SameText(Entry, 'end.') then exit;
+
+    Result := Result + [Entry];
+
     finally
       Inc(Index);
     end;
