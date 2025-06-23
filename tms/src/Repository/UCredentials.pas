@@ -30,21 +30,20 @@ type
     IniExpiration = 'expiration';
   private
     FCredentialsFile: string;
-    FAuthUrl: string;
     FDefaultProfile: string;
     procedure LoadCredentials(Credentials: TCredentials; const Profile: string);
   protected
-    function RetrieveAccessToken(const Profile: string = ''): string;
+    function RetrieveAccessToken(const AuthUrl: string; const Profile: string = ''): string;
   public
-    constructor Create(const ACredentialsFile, AAuthUrl, DefaultProfile: string);
+    constructor Create(const ACredentialsFile, DefaultProfile: string);
     destructor Destroy; override;
 
-    procedure UpdateAccessToken(Credentials: TCredentials);
+    procedure UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 
     procedure SaveCredentials(Credentials: TCredentials; const Profile: string = '');
     function ReadCredentials(const Profile: string = ''): TCredentials;
   public
-    class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions): string;
+    class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl: string): string;
   end;
 
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions): TCredentialsManager;
@@ -56,15 +55,14 @@ uses
 
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions): TCredentialsManager;
 begin
-  Result := TCredentialsManager.Create(CredentialsFile, Options.RepositoryInfo.AuthUrl, Options.TargetRepository);
+  Result := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository);
 end;
 
 { TCredentialsManager }
 
-constructor TCredentialsManager.Create(const ACredentialsFile, AAuthUrl, DefaultProfile: string);
+constructor TCredentialsManager.Create(const ACredentialsFile, DefaultProfile: string);
 begin
   FCredentialsFile := ACredentialsFile;
-  FAuthUrl := AAuthUrl;
   FDefaultProfile := DefaultProfile;
 end;
 
@@ -73,17 +71,17 @@ begin
   inherited;
 end;
 
-class function TCredentialsManager.GetAccessToken(const CredentialsFile: string; Options: TFetchOptions): string;
+class function TCredentialsManager.GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl: string): string;
 begin
-  var Manager := TCredentialsManager.Create(CredentialsFile, Options.RepositoryInfo.AuthUrl, Options.TargetRepository);
+  var Manager := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository);
   try
-    Result := Manager.RetrieveAccessToken;
+    Result := Manager.RetrieveAccessToken(AuthUrl);
   finally
     Manager.Free;
   end;
 end;
 
-function TCredentialsManager.RetrieveAccessToken(const Profile: string): string;
+function TCredentialsManager.RetrieveAccessToken(const AuthUrl: string; const Profile: string): string;
 begin
   var Credentials := ReadCredentials(Profile);
   try
@@ -99,7 +97,7 @@ begin
     else
       Logger.Trace('Retrieving access token using credentials');
 
-    UpdateAccessToken(Credentials);
+    UpdateAccessToken(Credentials, AuthUrl);
 
     // Save access token
     SaveCredentials(Credentials, Profile);
@@ -165,13 +163,13 @@ begin
   end;
 end;
 
-procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials);
+procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 begin
   var OAuth := TOAuth2Authenticator.Create(nil);
   try
     OAuth.ClientID := Credentials.Email;
     OAuth.ClientSecret := Credentials.Code;
-    OAuth.AccessTokenEndpoint := FAuthUrl.TrimRight(['/']) + '/oauth/token';
+    OAuth.AccessTokenEndpoint := AuthUrl.TrimRight(['/']) + '/oauth/token';
     OAuth.AuthorizeWithClientCredentials;
     Credentials.AccessToken := OAuth.AccessToken;
     Credentials.Expiration := OAuth.AccessTokenExpiry;

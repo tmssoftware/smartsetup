@@ -17,7 +17,7 @@ type
     function SelfUninstallFolder: string;
     function DoctorUndoFolder: string;
     function LockedFilesFolder: string;
-    function CredentialsFile: string;
+    function CredentialsFile(const ServerName: string): string;
     function DownloadsFolder: string;
     function OldDownloadsFolder: string;
     function ProductsFolder: string;
@@ -49,7 +49,7 @@ type
     function SelfUninstallFolder: string;
     function DoctorUndoFolder: string;
     function LockedFilesFolder: string;
-    function CredentialsFile: string;
+    function CredentialsFile(const ServerName: string): string;
     function DownloadsFolder: string;
     function OldDownloadsFolder: string;
     function ProductsFolder: string;
@@ -106,9 +106,12 @@ begin
 end;
 
 
-function TBuildFolders.CredentialsFile: string;
+function TBuildFolders.CredentialsFile(const ServerName: string): string;
 begin
-  Result := TPath.Combine(MetaFetchFolder, 'credentials');
+  var Prefix := '';
+  if ServerName <> 'tms' then Prefix := ServerName + '.'; //For v1.0 compat, if the source is tms, keep the credentials file named "credentials", not tms.credentials.
+
+  Result := TPath.Combine(MetaFetchFolder, Prefix + 'credentials');
 end;
 
 function TBuildFolders.DownloadsFolder: string;

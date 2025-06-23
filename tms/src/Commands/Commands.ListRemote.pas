@@ -11,7 +11,7 @@ implementation
 
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
-  UJsonPrinter;
+  UJsonPrinter, UConfigDefinition;
 
 var
   EnableLog: Boolean = False;
@@ -50,22 +50,29 @@ end;
 procedure RunListRemoteCommand;
 begin
   InitFolderBasedCommand(EnableLog);
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile, FetchOptions, true);
-  try
-    var ListedProducts := TList<TRepositoryProduct>.Create;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    var Server := Config.ServerConfig.GetServer(i);
+    if not Server.Enabled then continue;
+    if Server.Protocol <> TServerProtocol.Api then continue; //We should actually add other servers to list-remote
+
+    var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(Server.Name), FetchOptions, Server.Url, true);
     try
-      for var Product in Repo.Products do
-        if (Product.LatestVersion <> nil) and not Product.Internal and not (Product.LicenseStatus in [TLicenseStatus.none]) then
-          ListedProducts.Add(Product);
-      if UseJson then
-        OutputAsJson(ListedProducts)
-      else
-        OutputAsText(ListedProducts);
+      var ListedProducts := TList<TRepositoryProduct>.Create;
+      try
+        for var Product in Repo.Products do
+          if (Product.LatestVersion <> nil) and not Product.Internal and not (Product.LicenseStatus in [TLicenseStatus.none]) then
+            ListedProducts.Add(Product);
+        if UseJson then
+          OutputAsJson(ListedProducts)
+        else
+          OutputAsText(ListedProducts);
+      finally
+        ListedProducts.Free;
+      end;
     finally
-      ListedProducts.Free;
+      Repo.Free;
     end;
-  finally
-    Repo.Free;
   end;
 end;
 

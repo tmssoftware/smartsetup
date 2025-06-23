@@ -29,7 +29,7 @@ type
     function ReplaceRegistryVariables(const BuildInfo: TProjectBuildInfo; const s: string): string;
     procedure RemoveRegistryEntries(const ProjectId: string;
       const UninstallInfo: IUninstallInfo);
-    function GetCredentials(const RegCode: boolean): string;
+    function GetCredentials(const ServerName: string; const RegCode: boolean): string;
     function ReplaceRegistryKeys(const KeyName: string; const IDEBuildInfos: TObjectList<TIDEBuildInfo>): TArray<string>;
   var
     Persist: TPersistence;
@@ -287,11 +287,11 @@ begin
 {$ENDIF}
 end;
 
-function TProjectInstaller.GetCredentials(const RegCode: boolean): string;
+function TProjectInstaller.GetCredentials(const ServerName: string; const RegCode: boolean): string;
 begin
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
 
-  var Manager := CreateCredentialsManager(Folders.CredentialsFile, FetchOptions);
+  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions);
   try
     var Credentials := Manager.ReadCredentials;
     try
@@ -316,8 +316,8 @@ begin
       if varName = 'install-time' then exit(FormatDateTime('hh:nn:ss', Now, TFormatSettings.Invariant));
       if varName = 'version' then exit(BuildInfo.Project.Application.Version);
       if varName = 'alternate-registry-key' then exit(Config.AlternateRegistryKey);
-      if varName = 'reg-code' then exit(GetCredentials(true));
-      if varName = 'reg-email' then exit(GetCredentials(false));
+      if varName = 'reg-code' then exit(GetCredentials('tms', true)); //This is tms produts like webcore  which write the credentials in the registry. It is always the credential from tms source.
+      if varName = 'reg-email' then exit(GetCredentials('tms', false));
 
 
       raise Exception.Create('Unknown variable: ' + varName);

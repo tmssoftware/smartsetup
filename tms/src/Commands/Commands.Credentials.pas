@@ -8,12 +8,11 @@ uses
 procedure RegisterCredentialsCommand;
 
 implementation
-
 uses
 {$IFDEF MSWINDOWS}
   WinApi.Windows,
 {$ENDIF}
-  System.JSON, Commands.CommonOptions, UTmsBuildSystemUtils, UJsonPrinter;
+  System.JSON, UConfigDefinition, Commands.CommonOptions, UTmsBuildSystemUtils, UJsonPrinter;
 
 function ExistingDisplay(const Value: string; ShowOnly: Integer = 0): string;
 begin
@@ -66,18 +65,18 @@ begin
   end;
 end;
 
-procedure ReadCredentialsFromConsole(Credentials: TCredentials);
+procedure ReadCredentialsFromConsole(const ServerName: string; Credentials: TCredentials);
 begin
   var Value: string;
 
   // Handle email
-  Write(Format('Registration e-mail [%s]: ', [ExistingDisplay(Credentials.Email)]));
+  Write(Format(ServerName + ' registration e-mail [%s]: ', [ExistingDisplay(Credentials.Email)]));
   ReadLn(Value);
   if Value <> '' then
     Credentials.Email := Value;
 
   // Handle code
-  Write(Format('Registration code [%s]: ', [ExistingDisplay(Credentials.Code, 2)]));
+  Write(Format(ServerName + ' registration code [%s]: ', [ExistingDisplay(Credentials.Code, 2)]));
 
 {$IFDEF MSWINDOWS}
   Value := ReadPasswordFromConsole;
@@ -94,42 +93,48 @@ begin
 
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
 
-  var Manager := CreateCredentialsManager(Folders.CredentialsFile, FetchOptions);
-  try
-    var Credentials := Manager.ReadCredentials;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    var Server := Config.ServerConfig.GetServer(i);
+    if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
+
+    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions);
     try
-      if Print then
-        PrintCredentials(Credentials)
-      else
-      begin
-        // if any parameter is passed, we don't ask for any input from the console, and just update the passed parameters
-        if (NewEmail <> '') or (NewCode <> '') then
-        begin
-          if NewEmail <> '' then
-            Credentials.Email := NewEmail;
-          if NewCode <> '' then
-            Credentials.Code := NewCode;
-        end
+      var Credentials := Manager.ReadCredentials;
+      try
+        if Print then
+          PrintCredentials(Credentials)
         else
-          ReadCredentialsFromConsole(Credentials);
-
-        // now update credentials
         begin
-          if Check then
-            Manager.UpdateAccessToken(Credentials);
+          // if any parameter is passed, we don't ask for any input from the console, and just update the passed parameters
+          if (NewEmail <> '') or (NewCode <> '') then
+          begin
+            if NewEmail <> '' then
+              Credentials.Email := NewEmail;
+            if NewCode <> '' then
+              Credentials.Code := NewCode;
+          end
+          else
+            ReadCredentialsFromConsole(Server.Name, Credentials);
 
-          // Create meta directory here, not inside SaveCredentials. This makes sure that it only works when
-          // running credentials command. Otherwise, the meta folder should be created all the time.
-          TDirectory_CreateDirectory(TPath.GetDirectoryName(Folders.CredentialsFile));
+          // now update credentials
+          begin
+            if Check then
+              Manager.UpdateAccessToken(Credentials, FetchOptions.RepositoryInfo(Server.Url).AuthUrl);
 
-          Manager.SaveCredentials(Credentials);
+            // Create meta directory here, not inside SaveCredentials. This makes sure that it only works when
+            // running credentials command. Otherwise, the meta folder should be created all the time.
+            TDirectory_CreateDirectory(TPath.GetDirectoryName(Folders.CredentialsFile(Server.Name)));
+
+            Manager.SaveCredentials(Credentials);
+          end;
         end;
+      finally
+        Credentials.Free;
       end;
     finally
-      Credentials.Free;
+      Manager.Free;
     end;
-  finally
-    Manager.Free;
   end;
 end;
 

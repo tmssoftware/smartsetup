@@ -13,7 +13,16 @@ type
     function AuthUrl: string;
   end;
 
-  TLocalRepositoryInfo = class(TInterfacedObject, IRepositoryInfo)
+  TRepositoryInfo = class(TInterfacedObject)
+  private
+    RootUrl: string;
+  protected
+    function GetUrl(const Suffix: string): string;
+  public
+    constructor Create(const aRootUrl: string);
+  end;
+
+  TLocalRepositoryInfo = class(TRepositoryInfo, IRepositoryInfo)
   strict private const
     CApiUrl = 'http://localhost:2001/tms/api';
     CAdminUrl = 'http://localhost:2001/tms/admin';
@@ -24,42 +33,46 @@ type
     function AuthUrl: string;
   end;
 
-  TProductionRepositoryInfo = class(TInterfacedObject, IRepositoryInfo)
+  TProductionRepositoryInfo = class(TRepositoryInfo, IRepositoryInfo)
   strict private const
-    CApiUrl = 'https://api.landgraf.dev/tms/api';
-    CAdminUrl = 'https://api.landgraf.dev/tms/admin';
-    CAuthUrl = 'https://api.landgraf.dev/tms/auth';
+    CApiUrlSuffix = 'api';
+    CAdminUrlSuffix = 'admin';
+    CAuthUrlSuffix = 'auth';
   public
     function ApiUrl: string;
     function AdminUrl: string;
     function AuthUrl: string;
   end;
 
-  TSandboxRepositoryInfo = class(TInterfacedObject, IRepositoryInfo)
+  TSandboxRepositoryInfo = class(TRepositoryInfo, IRepositoryInfo)
   strict private const
-    CApiUrl = 'https://api.landgraf.dev/tms/sandbox/api';
-    CAdminUrl = 'https://api.landgraf.dev/tms/sandbox/admin';
-    CAuthUrl = 'https://api.landgraf.dev/tms/sandbox/auth';
+    CApiUrlSuffix = 'sandbox/api';
+    CAdminUrlSuffix = 'sandbox/admin';
+    CAuthUrlSuffix = 'sandbox/auth';
   public
     function ApiUrl: string;
     function AdminUrl: string;
     function AuthUrl: string;
   end;
 
-function GetRepositoryInfo(const Name: string): IRepositoryInfo;
+function GetRepositoryInfo(const Name, Url: string): IRepositoryInfo;
 
 implementation
 
-var
-  Repos: TDictionary<string, IRepositoryInfo>;
-
-function GetRepositoryInfo(const Name: string): IRepositoryInfo;
+function GetRepositoryInfo(const Name, Url: string): IRepositoryInfo;
 begin
   if Name = '' then
     raise Exception.Create('Repository name not provided');
 
-  if not Repos.TryGetValue(Name, Result) then
-    raise Exception.CreateFmt('Repository "%s" does not exist', [Name]);
+  if Url = '' then
+    raise Exception.Create('Url not provided');
+
+
+  if Name = 'production' then exit(TProductionRepositoryInfo.Create(Url));
+  if Name = 'sandbox' then exit(TSandboxRepositoryInfo.Create(Url));
+  if Name = 'local' then exit(TLocalRepositoryInfo.Create(Url));
+
+  raise Exception.CreateFmt('Repository "%s" does not exist', [Name]);
 end;
 
 { TLocalRepositoryInfo }
@@ -83,42 +96,48 @@ end;
 
 function TProductionRepositoryInfo.AdminUrl: string;
 begin
-  Result := CAdminUrl;
+  Result := GetUrl(CAdminUrlSuffix);
 end;
 
 function TProductionRepositoryInfo.ApiUrl: string;
 begin
-  Result := CApiUrl;
+  Result := GetUrl(CApiUrlSuffix);
 end;
 
 function TProductionRepositoryInfo.AuthUrl: string;
 begin
-  Result := CAuthUrl;
+  Result := GetUrl(CAuthUrlSuffix);
 end;
 
 { TSandboxRepositoryInfo }
 
 function TSandboxRepositoryInfo.AdminUrl: string;
 begin
-  Result := CAdminUrl;
+  Result := GetUrl(CAdminUrlSuffix);
 end;
 
 function TSandboxRepositoryInfo.ApiUrl: string;
 begin
-  Result := CApiUrl;
+  Result := GetUrl(CApiUrlSuffix);
 end;
 
 function TSandboxRepositoryInfo.AuthUrl: string;
 begin
-  Result := CAuthUrl;
+  Result := GetUrl(CAuthUrlSuffix);
 end;
 
-initialization
-  Repos := TDictionary<string, IRepositoryInfo>.Create;
-  Repos.Add('production', TProductionRepositoryInfo.Create);
-  Repos.Add('sandbox', TSandboxRepositoryInfo.Create);
-  Repos.Add('local', TLocalRepositoryInfo.Create);
+{ TRepositoryInfo }
 
-finalization
-  Repos.Free;
+constructor TRepositoryInfo.Create(const aRootUrl: string);
+begin
+    if RootUrl.EndsWith('/')
+      then RootUrl := aRootUrl
+      else RootUrl := aRootUrl + '/';
+end;
+
+function TRepositoryInfo.GetUrl(const Suffix: string): string;
+begin
+  Result := RootUrl + Suffix;
+end;
+
 end.

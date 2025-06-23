@@ -10,24 +10,31 @@ procedure RegisterInfoCommand;
 implementation
 
 uses
-  System.JSON, Commands.CommonOptions, Commands.GlobalConfig, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter;
+  System.JSON, Commands.CommonOptions, Commands.GlobalConfig,
+  UConfigDefinition, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter;
 
 var
   UseJson: Boolean = False;
 
 function HasCredentials: Boolean;
 begin
+  Result := false;
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
-  var Manager := CreateCredentialsManager(Folders.CredentialsFile, FetchOptions);
-  try
-    var Credentials := Manager.ReadCredentials;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    var Server := Config.ServerConfig.GetServer(i);
+    if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
+    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions);
     try
-      Result := (Credentials.Email <> '') and (Credentials.Code <> '');
+      var Credentials := Manager.ReadCredentials;
+      try
+        if (Credentials.Email <> '') and (Credentials.Code <> '') then exit(true);
+      finally
+        Credentials.Free;
+      end;
     finally
-      Credentials.Free;
+      Manager.Free;
     end;
-  finally
-    Manager.Free;
   end;
 end;
 
