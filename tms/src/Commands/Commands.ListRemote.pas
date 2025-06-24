@@ -26,12 +26,17 @@ type
     VendorId: string;
     Server: string;
 
+    Description: string;
+    URL: string;
+
     constructor Create(const aId: string;
         const aName: string;
         const aVersion: string;
         const aLicenseStatus: TLicenseStatus;
         const aVendorId: string;
-        const aServer: string);
+        const aServer: string;
+        const aDescription: string;
+        const aURL: string);
   end;
 
 procedure OutputAsJson(APIProducts: TList<TApiProduct>; const RepoProducts: TList<TRegisteredProduct>);
@@ -52,6 +57,8 @@ begin
       if Product.VendorId <> '' then
          Item.AddPair('vendor_id', Product.VendorId);
       Item.AddPair('server', Product.Server);
+      Item.AddPair('description', Product.Description);
+      Item.AddPair('url', Product.URL);
     end;
 
     for var Product in RepoProducts do
@@ -65,6 +72,8 @@ begin
       Item.AddPair('version', '');
       Item.AddPair('name', Product.Name);
       Item.AddPair('server', Product.Server);
+      Item.AddPair('description', Product.Description);
+      Item.AddPair('url', Product.Url);
     end;
 
     OutputJson(Root);
@@ -94,7 +103,9 @@ begin
               Product.LatestVersion.Version,
               Product.LicenseStatus,
               Product.VendorId,
-              Server.Name);
+              Server.Name,
+              '',
+              '');
 
           ListedProducts.Add(APIProduct);
 
@@ -180,7 +191,7 @@ end;
 { TAPIProduct }
 
 constructor TAPIProduct.Create(const aId, aName, aVersion: string;
-  const aLicenseStatus: TLicenseStatus; const aVendorId, aServer: string);
+  const aLicenseStatus: TLicenseStatus; const aVendorId, aServer, aDescription, aURL: string);
 begin
   Id := aId;
   Name := aName;
@@ -188,6 +199,8 @@ begin
   LicenseStatus := aLicenseStatus;
   VendorId := aVendorId;
   Server := aServer;
+  Description := aDescription;
+  Url := aUrl;
 end;
 
 end.
