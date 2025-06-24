@@ -61,7 +61,7 @@ begin
     if Aborted then
       raise Exception.Create(TPath.GetFileName(FileNameOnDisk) + ' download aborted')
     else
-      Logger.Info('Downloaded ' + TPath.GetFileName(FileNameOnDisk));
+      Logger.Trace('Downloaded ' + TPath.GetFileName(FileNameOnDisk));
 
     DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FileNameOnDisk);
     RenameFile(TempFileName, FileNameOnDisk);

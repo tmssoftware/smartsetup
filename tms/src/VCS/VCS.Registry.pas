@@ -24,6 +24,7 @@ type
     FProductId: string;
     FName: string;
     FDescription: string;
+    FServer: string;
     FIsPredefined: boolean;
     FPredefinedData: TPredefinedData;
     function GetProtocolString: string;
@@ -34,13 +35,14 @@ type
     property ProductId: string read FProductId;
     property Name: string read FName;
     property Description: string read FDescription;
+    property Server: string read FServer write FServer;
     property IsPredefined: boolean read FIsPredefined;
     property PredefinedData: TPredefinedData read FPredefinedData;
 
     class function GetProtocolFromString(const aProtocol: string; const DefaultIsGit: boolean): TVCSProtocol; static;
     class function GetStringFromProtocol(const aProtocol: TVCSProtocol): string; static;
 
-    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aIsPredefined: boolean; const aPredefinedData: TPredefinedData);
+    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string; const aIsPredefined: boolean; const aPredefinedData: TPredefinedData);
     function Equals(ProductB: TObject): boolean; override;
   end;
 
@@ -50,26 +52,26 @@ type
   private
     BaseStoreFolder: string;
     FProducts: TObjectDictionary<string, TRegisteredProduct>;
-    function AlreadySaved(const Filename: string; const Product: TRegisteredProduct): boolean;
-    function GetProductFromFile(const Filename: string): TRegisteredProduct;
+    function AlreadySaved(const Filename: string; const Product: TRegisteredProduct; const Server: string): boolean;
+    function GetProductFromFile(const Filename, Server: string): TRegisteredProduct;
     function GetProductID(const Filename: string): string;
     function GetProductFromJSON(const ProductId, Text: string;
-      const aLoadingPredefined: boolean): TRegisteredProduct;
-    function GetProductFromProject(const Project: TProjectDefinition; const aLoadingPredefined: boolean; const PredefinedText: string): TRegisteredProduct;
+      const Server: string; const aLoadingPredefined: boolean): TRegisteredProduct;
+    function GetProductFromProject(const Project: TProjectDefinition; const Server: string; const aLoadingPredefined: boolean; const PredefinedText: string): TRegisteredProduct;
     procedure LoadPreregisteredProducts;
-    procedure LoadOnePreregisteredProduct(const FileName, Text: string);
+    procedure LoadOnePreregisteredProduct(const FileName, Text, Server: string);
     procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig);
     procedure LoadLocalProductsFromServer(const Server: TServerConfig);
     function GetLocalStoreFolder(const Server: TServerConfig): string;
-    function LocalServer: TServerConfig;
   public
     constructor Create(const aBaseStoreFolder: string);
     destructor Destroy; override;
 
-    procedure Add(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string);
+    procedure Add(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string);
     function Remove(const aProductId: string): boolean;
     function GetProducts(const ProductIdMask: string; const List: TList<TRegisteredProduct>; const InstalledProducts: THashSet<string>): boolean;
     function Contains(const ProductId: string): boolean;
+    class function LocalServer: TServerConfig; static;
 
     procedure Save;
     procedure Load;
@@ -83,13 +85,14 @@ uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJ
 { TRegisteredProduct }
 
 constructor TRegisteredProduct.Create(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aIsPredefined: boolean; const aPredefinedData: TPredefinedData);
+  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aServer: string; const aIsPredefined: boolean; const aPredefinedData: TPredefinedData);
 begin
   FProductId := aProductId;
   FProtocol := aProtocol;
   FUrl := aUrl;
   FName := aName;
   FDescription := aDescription;
+  FServer := aServer;
   FIsPredefined := aIsPredefined;
   FPredefinedData := aPredefinedData;
 end;
@@ -104,6 +107,8 @@ begin
   if b.FName <> FName then exit(false);
   if b.FDescription <> FDescription then exit(false);
   if b.FIsPredefined <> FIsPredefined then exit(false);
+  if b.Server <> FServer then exit(false);
+
   if not b.PredefinedData.Equals(FPredefinedData) then exit(false);
 
 
@@ -156,14 +161,14 @@ begin
 end;
 
 procedure TProductRegistry.Add(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string);
+  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string);
 begin
   var Product: TRegisteredProduct := nil;
   if FProducts.TryGetValue(aProductId, Product) then
   begin
     if not Product.IsPredefined then raise Exception.Create('Product ' + aProductId + ' is already registered. Try unregistering it first.');
   end;
-  FProducts.AddOrSetValue(aProductId, TRegisteredProduct.Create(aProductId, aProtocol, aUrl, aName, aDescription, false, TPredefinedData.Empty));
+  FProducts.AddOrSetValue(aProductId, TRegisteredProduct.Create(aProductId, aProtocol, aUrl, aName, aDescription, aServer, false, TPredefinedData.Empty));
 end;
 
 function TProductRegistry.GetProducts(const ProductIdMask: string; const List: TList<TRegisteredProduct>; const InstalledProducts: THashSet<string>): boolean;
@@ -199,7 +204,7 @@ begin
 
 end;
 
-function TProductRegistry.GetProductFromJSON(const ProductId, Text: string; const aLoadingPredefined: boolean): TRegisteredProduct;
+function TProductRegistry.GetProductFromJSON(const ProductId, Text: string; const Server: string; const aLoadingPredefined: boolean): TRegisteredProduct;
 begin
   var Json := TJSONObject.ParseJSONValue(Text, false, true);
   try
@@ -209,6 +214,7 @@ begin
                 Json.GetValue<string>('url'),
                 Json.GetValue<string>('name'),
                 Json.GetValue<string>('description'),
+                Server,
                 aLoadingPredefined,
                 TPredefinedData.Empty);
 
@@ -217,7 +223,7 @@ begin
   end;
 end;
 
-function TProductRegistry.GetProductFromProject(const Project: TProjectDefinition; const aLoadingPredefined: boolean; const PredefinedText: string): TRegisteredProduct;
+function TProductRegistry.GetProductFromProject(const Project: TProjectDefinition; const Server: string; const aLoadingPredefined: boolean; const PredefinedText: string): TRegisteredProduct;
 begin
   Result := TRegisteredProduct.Create(
                 Project.Application.Id,
@@ -225,22 +231,23 @@ begin
                 Project.Application.Url,
                 Project.Application.Name,
                 Project.Application.Description,
+                Server,
                 aLoadingPredefined,
                 TPredefinedData.Create(PredefinedText) );
 end;
 
-function TProductRegistry.GetProductFromFile(const Filename: string): TRegisteredProduct;
+function TProductRegistry.GetProductFromFile(const Filename, Server: string): TRegisteredProduct;
 begin
   var Text := TFile.ReadAllText(Filename, TEncoding.UTF8);
-  Result := GetProductFromJSON(GetProductId(Filename), Text, false);
+  Result := GetProductFromJSON(GetProductId(Filename), Text, Server, false);
 end;
 
-procedure TProductRegistry.LoadOnePreregisteredProduct(const FileName, Text: string);
+procedure TProductRegistry.LoadOnePreregisteredProduct(const FileName, Text, Server: string);
 begin
   var Project :=TProjectDefinition.Create(FileName);
   try
     TProjectLoader.LoadDataIntoProject(FileName, Text, Project, 'root:supported frameworks', true);
-    FProducts.Add(Project.Application.Id, GetProductFromProject(Project, true, Text));
+    FProducts.Add(Project.Application.Id, GetProductFromProject(Project, Server, true, Text));
   finally
     Project.Free;
   end;
@@ -276,7 +283,7 @@ begin
           var Bytes: TBytes;
           Zip.Read(i, Bytes);
           var Text := TEncoding.UTF8.GetString(Bytes);
-          LoadOnePreregisteredProduct(FileName, Text);
+          LoadOnePreregisteredProduct(FileName, Text, Server.Name);
         end;
       end;
     finally
@@ -320,17 +327,17 @@ begin
   var Items := TDirectory.GetFiles(StoreFolder, '*' + RepoExt);
   for var Item in Items do
   begin
-    var Data := GetProductFromFile(Item);
+    var Data := GetProductFromFile(Item, Server.Name);
     FProducts.AddOrSetValue(Data.ProductId, Data);
   end;
 
 end;
 
-function TProductRegistry.AlreadySaved(const Filename: string; const Product: TRegisteredProduct): boolean;
+function TProductRegistry.AlreadySaved(const Filename: string; const Product: TRegisteredProduct; const Server: string): boolean;
 begin
   if not TFile.Exists(Filename) then exit(false);
 
-  var Data := GetProductFromFile(Filename);
+  var Data := GetProductFromFile(Filename, Server);
   try
     Result := Data.Equals(Product);
   finally
@@ -339,7 +346,7 @@ begin
 
 end;
 
-function TProductRegistry.LocalServer: TServerConfig;
+class function TProductRegistry.LocalServer: TServerConfig;
 begin
   var ServerCount := 0;
   for var i := 0 to Config.ServerConfig.ServerCount - 1 do
@@ -388,7 +395,7 @@ begin
   begin
     if Product.IsPredefined then continue;
     var Filename := TPath.GetFullPath(TPath.Combine(StoreFolder, Product.ProductId + RepoExt));
-    if AlreadySaved(Filename, Product) then continue;
+    if AlreadySaved(Filename, Product, LocalServer.Name) then continue;
 
     var Item := TJSONObject.Create;
     try

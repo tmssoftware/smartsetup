@@ -22,7 +22,7 @@ begin
     //To get the product id, we need tmsbuild.yaml.
     var Product := TVCSManager.GetProduct(Protocol, Url);
     try
-      RegisteredVCSRepos.Add(Product.Id, Protocol, Url, Product.Name, Product.Description);
+      RegisteredVCSRepos.Add(Product.Id, Protocol, Url, Product.Name, Product.Description, TProductRegistry.LocalServer.Name);
       RegisteredVCSRepos.Save;
       Logger.Info('Repository at "' + Url + '" registered with the name "' + Product.Id + '"');
     finally
