@@ -211,10 +211,12 @@ begin
       PackagesFolder := TPath.GetFullPath(TPath.Combine(PackagesFolder, Project.RootPackageFolder));
       if FolderIsOutside(PackagesFolder, [Project.RootFolder])
         then raise Exception.Create('The base package folder can''t be outside the root folder of the project. Current base package folder is: "' + PackagesFolder + '" and the root folder is "' + Project.RootFolder + '"');
+
+      BuildInfo.CurrentProject.BasePackagesFolder := PackagesFolder;
+    end else
+    begin
+      BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
     end;
-
-
-    BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
     var DepsCompiled := DependenciesRebuilt(Config, Project);
 
     AnalyzePackages(PackageCache, Project, DepsCompiled, BuildInfo.CurrentProject.BasePackagesFolder);
