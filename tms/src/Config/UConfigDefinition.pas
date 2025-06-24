@@ -108,7 +108,8 @@ type
     Enabled: boolean;
 
     constructor Create(const aName: string; const aProtocol: TServerProtocol; const aUrl: string; const aEnabled: boolean);
-    function IsReservedName: boolean;
+    function IsReservedName: boolean; overload;
+    class function IsReservedName(const aName: string): boolean; overload; static;
 
     function ProtocolString: string;
     class function ProtocolFromString(const value: string; const ExtraInfo: string = ''): TServerProtocol; static;
@@ -120,6 +121,10 @@ type
   TServerConfigList = record
   private
     Servers: TArray<TServerConfig>;
+    procedure EnsureOneBuiltInServer(const ServerName: string;
+      const ServerPos: integer; const IsEnabled: boolean);
+    procedure InsertServer(const Index: integer;
+      const ServerConfig: TServerConfig);
   public
     function NewServer(const aName: string): integer;
     procedure AddServer(const ServerConfig: TServerConfig);
@@ -130,6 +135,8 @@ type
 
     //Will return -1 if not found
     function FindServer(const Name: string): integer;
+
+    procedure EnsureAllBuiltInServers;
   end;
 
   TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
@@ -892,6 +899,30 @@ begin
   Servers[Length(Servers) - 1] := ServerConfig;
 end;
 
+procedure TServerConfigList.InsertServer(const Index: integer; const ServerConfig: TServerConfig);
+begin
+  SetLength(Servers, Length(Servers) + 1);
+  for var i := High(Servers) - 1 downto Index do
+  begin
+    Servers[i + 1] := Servers[i];
+  end;
+  Servers[Index] := ServerConfig;
+end;
+
+procedure TServerConfigList.EnsureOneBuiltInServer(const ServerName: string; const ServerPos: integer; const IsEnabled: boolean);
+begin
+  var ServerIndex := FindServer(ServerName);
+  if (ServerIndex < 0) or (Servers = nil) then InsertServer(ServerPos, TServerConfig.Create(ServerName, TServerProtocol.Local, '', IsEnabled));
+end;
+
+procedure TServerConfigList.EnsureAllBuiltInServers;
+begin
+  var IsEmpty := Servers = nil;
+  EnsureOneBuiltInServer('local', 0, IsEmpty);
+  EnsureOneBuiltInServer('tms', 1, IsEmpty);
+  EnsureOneBuiltInServer('community', 2, false);
+end;
+
 function TServerConfigList.FindServer(const Name: string): integer;
 begin
   for var i := 0 to ServerCount - 1 do
@@ -950,8 +981,15 @@ end;
 procedure TServerConfigList.SetInfo(const index: integer;
   const Action: TVarProc<TServerConfig>);
 begin
-  var Server := Servers[index];
+  var Server := GetServer(index);
   Action(Server);
+  if Length(Servers) = 0 then //when empty, there are 3 predefined servers.
+  begin
+    AddServer(Server);
+    exit;
+  end;
+
+
   Servers[index] := Server;
 end;
 
@@ -985,7 +1023,12 @@ end;
 
 function TServerConfig.IsReservedName: boolean;
 begin
-  Result := (Name = 'local') or (Name = 'tms') or (Name = 'community');
+  Result := IsReservedName(Name);
+end;
+
+class function TServerConfig.IsReservedName(const aName: string): boolean;
+begin
+  Result := (aName = 'local') or (aName = 'tms') or (aName = 'community');
 end;
 
 class function TServerConfig.ProtocolFromString(
