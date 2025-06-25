@@ -28,6 +28,17 @@ begin
     TDirectory_CreateDirectory(TPath.GetDirectoryName(FileNameOnDisk));
     var AResponse: IHTTPResponse;
     var TempFileName := FileNameOnDisk + '.download';
+    var ETagFileName := FileNameOnDisk + '.etag';
+    var ETag := 'invalid';
+    try
+      if TFile.Exists(ETagFileName) then ETag := TFile.ReadAllText(ETagFileName, TEncoding.UTF8);
+    except on ex: Exception do //invalid etag file?
+      begin
+        Logger.Info('Invalid ETag Cache: ' + ex.Message);
+        ETag := 'invalid';
+      end;
+    end;
+
     var fs := TFileStream.Create(TempFileName, fmCreate);
     try
       Client.ReceiveDataCallback :=
@@ -40,31 +51,52 @@ begin
           end;
         end;
 
+      Client.CustomHeaders['If-None-Match'] := ETag;
+
       var Request := Client.GetRequest('GET', DownloadUrl);
       AResponse := Client.Execute(Request, fs);
     finally
       fs.Free;
     end;
 
-    // Check if file was downloaded ok, if not, delete it (we must do this after fe.Free)
-    if AResponse.StatusCode <> 200 then
-    begin
-      var ErrorMessage: string := '';
-      if AResponse.HeaderValue['Content-Type'].StartsWith('text/', True) and TFile.Exists(FileNameOnDisk) then
-        ErrorMessage := ': ' + TFile.ReadAllText(FileNameOnDisk);
-      DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
+    case AResponse.StatusCode of
+      304:
+        begin //File didn't change in server.
+          Logger.Trace('Skipped downloading ' + TPath.GetFileName(FileNameOnDisk) + ' because it was up to date.');
+          DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
+        end;
 
-      raise Exception.Create(Format('Download for %s failed with status %d%s',
-        [TPath.GetFileName(FileNameOnDisk), AResponse.StatusCode, ErrorMessage]));
+      200:
+        begin
+          if Aborted then
+            raise Exception.Create(TPath.GetFileName(FileNameOnDisk) + ' download aborted')
+          else
+          begin
+            Logger.Trace('Downloaded ' + TPath.GetFileName(FileNameOnDisk));
+          end;
+
+          DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FileNameOnDisk);
+          RenameFile(TempFileName, FileNameOnDisk);
+
+          var NewETag := AResponse.HeaderValue['ETag'];
+          if NewETag = '' then Logger.Error('Server at url "' + DownloadUrl + '" doesn''t support ETags. USE ONLY SERVERS WITH ETAGs to avoid continually downloading the same file.' );
+          TFile.WriteAllText(ETagFileName, NewETag, TEncoding.UTF8);
+        end
+
+
+      else
+        begin
+          // if file was not downloaded ok, delete it (we must do this after fs.Free)
+          var ErrorMessage: string := '';
+          if AResponse.HeaderValue['Content-Type'].StartsWith('text/', True) and TFile.Exists(FileNameOnDisk) then
+            ErrorMessage := ': ' + TFile.ReadAllText(FileNameOnDisk);
+          DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
+
+          raise Exception.Create(Format('Download for %s failed with status %d%s',
+            [TPath.GetFileName(FileNameOnDisk), AResponse.StatusCode, ErrorMessage]));
+
+        end;
     end;
-
-    if Aborted then
-      raise Exception.Create(TPath.GetFileName(FileNameOnDisk) + ' download aborted')
-    else
-      Logger.Trace('Downloaded ' + TPath.GetFileName(FileNameOnDisk));
-
-    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FileNameOnDisk);
-    RenameFile(TempFileName, FileNameOnDisk);
 
   finally
     Client.Free;
