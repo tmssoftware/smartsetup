@@ -194,7 +194,8 @@ uses
   Commands.ServerEnable in 'src\Commands\Commands.ServerEnable.pas',
   Commands.ServerList in 'src\Commands\Commands.ServerList.pas',
   Commands.ServerAdd in 'src\Commands\Commands.ServerAdd.pas',
-  Commands.ServerRemove in 'src\Commands\Commands.ServerRemove.pas';
+  Commands.ServerRemove in 'src\Commands\Commands.ServerRemove.pas',
+  VCS.Engine.ZipFile in 'src\VCS\VCS.Engine.ZipFile.pas';
 
 begin
   try

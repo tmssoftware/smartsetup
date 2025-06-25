@@ -8,7 +8,7 @@ type
   private
     class procedure CheckIsInside(const FileName, Folder: string); static;
   public
-    class procedure Decompress(const FileName, DestFolder: string);
+    class procedure Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean> = nil);
     class function IsValid(const FileName: string): boolean; overload;
     class function IsValid(const Stream: TStream): boolean; overload;
   end;
@@ -24,7 +24,7 @@ begin
  if not FullFileName.StartsWith(FullFolder, false) then raise Exception.Create('File "' + FileName + '" is outside the extract folder "' + FullFolder + '"');
 end;
 
-class procedure TZSTDDecompressor.Decompress(const FileName, DestFolder: string);
+class procedure TZSTDDecompressor.Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean> = nil);
 begin
   var LastUpdate: TDateTime := Now - 1;
   var InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
@@ -62,7 +62,7 @@ begin
                 Logger.Info('Decompressing ' + TPath.GetFileName(DestFileName));
                 LastUpdate := now;
               end;
-              Tar.ReadFile(DestFileName, DirRec.Size, DirRec.TimeStamp);
+              if (Assigned(Skip)) and Skip(DestFileName) then Tar.SkipFile(DirRec.Size) else Tar.ReadFile(DestFileName, DirRec.Size, DirRec.TimeStamp);
             end
             else raise Exception.Create('Internal error reading tar file');
           end;

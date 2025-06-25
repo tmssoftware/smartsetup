@@ -114,6 +114,10 @@ class procedure TVCSManager.DoFetchProduct(const Product: TRegisteredProduct);
 begin
   var Engine := TVCSFactory.Instance.GetEngine(Product.Protocol);
   var ProductFolder := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId);
+
+  if Engine.GetProduct(ProductFolder, Product.Url) then exit; //direct get.
+  
+
   if TDirectory.Exists(ProductFolder) then
   begin
     Engine.Pull(ProductFolder);

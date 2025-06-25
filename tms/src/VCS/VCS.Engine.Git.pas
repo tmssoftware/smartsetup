@@ -26,6 +26,7 @@ type
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
     procedure GetFile(const aFileName, aDestFolder, aURL: string);
+    function GetProduct(const aDestFolder, aURL: string): boolean;
   end;
 
 implementation
@@ -84,6 +85,11 @@ begin
     then raise Exception.Create('Error: The file "' +  aFileName + '" doesn''t exist at the root of "' + aUrl + '". Probably this repository is not enabled for smart setup.');
 
 
+end;
+
+function TGitEngine.GetProduct(const aDestFolder, aURL: string): boolean;
+begin
+  Result := false;
 end;
 
 procedure TGitEngine.Clone(const aCloneFolder, aURL: string);

@@ -24,6 +24,7 @@ type
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
     procedure GetFile(const aFileName, aDestFolder, aURL: string);
+    function GetProduct(const aDestFolder, aURL: string): boolean;
   end;
 
 implementation
@@ -70,6 +71,11 @@ begin
   if not ExecuteCommand(FullCommand, DestFolder, Output)
     then raise Exception.Create('Error trying to get file "' +  aFileName + '" from "' + aUrl + '". Verify that the file exists.');
 
+end;
+
+function TSvnEngine.GetProduct(const aDestFolder, aURL: string): boolean;
+begin
+  Result := false;
 end;
 
 procedure TSvnEngine.Clone(const aCloneFolder, aURL: string);

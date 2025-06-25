@@ -18,7 +18,7 @@ type
 
   TRegisteredProduct = class
   private
-    const ProtocolToStr: Array[TVCSProtocol] of string = ('GIT', 'SVN');
+    const ProtocolToStr: Array[TVCSProtocol] of string = ('GIT', 'SVN', 'ZIPFILE');
   private
     FUrl: string;
     FProtocol: TVCSProtocol;

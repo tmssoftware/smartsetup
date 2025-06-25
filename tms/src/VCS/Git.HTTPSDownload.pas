@@ -7,11 +7,11 @@ type
 
   GitDownloader = class
   private
-    class procedure GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger); static;
+    class procedure GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
 
   public
     //Downloads a full githubrepo to a file.
-    class procedure GetRepo(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger); static;
+    class procedure GetRepo(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false); static;
 
   end;
 
@@ -22,7 +22,7 @@ uses Classes, SysUtils, System.Net.HttpClient, UTmsBuildSystemUtils,
 { GitDownloader }
 
 //Code is from TParallelDownloader.DownloadFile. We could unify it, but for now I prefer to evolve it separately.
-class procedure GitDownloader.GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger);
+class procedure GitDownloader.GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
 begin
   var Client: THTTPClient := THTTPClient.Create;
   try
@@ -33,7 +33,7 @@ begin
     var ETagFileName := FileNameOnDisk + '.etag';
     var ETag := 'invalid';
     try
-      if TFile.Exists(ETagFileName) then ETag := TFile.ReadAllText(ETagFileName, TEncoding.UTF8);
+      if TFile.Exists(ETagFileName) and not ForceDownload then ETag := TFile.ReadAllText(ETagFileName, TEncoding.UTF8);
     except on ex: Exception do //invalid etag file?
       begin
         DownloadLogger(TVerbosity.info, 'Invalid ETag Cache: ' + ex.Message);
@@ -80,9 +80,12 @@ begin
           DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FileNameOnDisk);
           RenameFile(TempFileName, FileNameOnDisk);
 
-          var NewETag := AResponse.HeaderValue['ETag'];
-          if NewETag = '' then DownloadLogger(TVerbosity.Error, 'Server at url "' + DownloadUrl + '" doesn''t support ETags. USE ONLY SERVERS WITH ETAGs to avoid continually downloading the same file.');
-          TFile.WriteAllText(ETagFileName, NewETag, TEncoding.UTF8);
+          if not ForceDownload then
+          begin
+            var NewETag := AResponse.HeaderValue['ETag'];
+            if NewETag = '' then DownloadLogger(TVerbosity.Error, 'Server at url "' + DownloadUrl + '" doesn''t support ETags. USE ONLY SERVERS WITH ETAGs to avoid continually downloading the same file.');
+            TFile.WriteAllText(ETagFileName, NewETag, TEncoding.UTF8);
+          end;
         end
 
 
@@ -107,9 +110,9 @@ begin
 end;
 
 class procedure GitDownloader.GetRepo(const DownloadUrl,
-  FileNameOnDisk: string; DownloadLogger: TDownloadLogger);
+  FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false);
 begin
-  GetFile(DownloadUrl, FileNameOnDisk, DownloadLogger);
+  GetFile(DownloadUrl, FileNameOnDisk, DownloadLogger, ForceDownload);
 end;
 
 end.

@@ -4,7 +4,7 @@ unit VCS.CoreTypes;
 interface
 
 type
-  TVCSProtocol = (Git, Svn);
+  TVCSProtocol = (Git, Svn, ZipFile);
 
 
 implementation
