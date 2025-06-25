@@ -2,7 +2,8 @@ unit VCS.Registry;
 {$I ../../tmssetup.inc}
 
 interface
-uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes, UProjectDefinition, UConfigDefinition;
+uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes,
+  UProjectDefinition, UConfigDefinition;
 type
   //In the future, we might add more stuff to the registry, like an image or path files.
   //That data would go inside this record.
@@ -80,7 +81,7 @@ type
 
 implementation
 uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJsonSerializer,
-     System.Types, Zip, Git.HTTPSDownload, UProjectLoader, UMultiLogger;
+     System.Types, Zip, Git.HTTPSDownload, UProjectLoader, UMultiLogger, VCS.Summary;
 
 { TRegisteredProduct }
 
@@ -270,7 +271,7 @@ begin
 
   try
     var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
-    GitDownloader.GetRepo(Server.Url, PredefinedRepositories);
+    GitDownloader.GetRepo(Server.Url, PredefinedRepositories, AddToVCSFetchLogSummary);
 
     var Zip := TZipFile.Create;
     try

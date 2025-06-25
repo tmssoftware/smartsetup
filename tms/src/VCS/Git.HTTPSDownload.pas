@@ -1,15 +1,17 @@
 unit Git.HTTPSDownload;
 
 interface
-uses Windows;
+uses Windows, ULogger;
 type
+  TDownloadLogger = reference to procedure(const Verbosity: TVerbosity; const msg: string);
+
   GitDownloader = class
   private
-    class procedure GetFile(const DownloadUrl, FileNameOnDisk: string); static;
+    class procedure GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger); static;
 
   public
     //Downloads a full githubrepo to a file.
-    class procedure GetRepo(const DownloadUrl, FileNameOnDisk: string); static;
+    class procedure GetRepo(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger); static;
 
   end;
 
@@ -20,7 +22,7 @@ uses Classes, SysUtils, System.Net.HttpClient, UTmsBuildSystemUtils,
 { GitDownloader }
 
 //Code is from TParallelDownloader.DownloadFile. We could unify it, but for now I prefer to evolve it separately.
-class procedure GitDownloader.GetFile(const DownloadUrl, FileNameOnDisk: string);
+class procedure GitDownloader.GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger);
 begin
   var Client: THTTPClient := THTTPClient.Create;
   try
@@ -34,7 +36,7 @@ begin
       if TFile.Exists(ETagFileName) then ETag := TFile.ReadAllText(ETagFileName, TEncoding.UTF8);
     except on ex: Exception do //invalid etag file?
       begin
-        Logger.Info('Invalid ETag Cache: ' + ex.Message);
+        DownloadLogger(TVerbosity.info, 'Invalid ETag Cache: ' + ex.Message);
         ETag := 'invalid';
       end;
     end;
@@ -62,7 +64,7 @@ begin
     case AResponse.StatusCode of
       304:
         begin //File didn't change in server.
-          Logger.Trace('Skipped downloading ' + TPath.GetFileName(FileNameOnDisk) + ' because it was up to date.');
+          DownloadLogger(TVerbosity.trace, TPath.GetFileName(FileNameOnDisk) + ' is up to date.');
           DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
         end;
 
@@ -72,14 +74,14 @@ begin
             raise Exception.Create(TPath.GetFileName(FileNameOnDisk) + ' download aborted')
           else
           begin
-            Logger.Trace('Downloaded ' + TPath.GetFileName(FileNameOnDisk));
+            DownloadLogger(TVerbosity.trace, TPath.GetFileName(FileNameOnDisk) + ' downloaded.');
           end;
 
           DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FileNameOnDisk);
           RenameFile(TempFileName, FileNameOnDisk);
 
           var NewETag := AResponse.HeaderValue['ETag'];
-          if NewETag = '' then Logger.Error('Server at url "' + DownloadUrl + '" doesn''t support ETags. USE ONLY SERVERS WITH ETAGs to avoid continually downloading the same file.' );
+          if NewETag = '' then DownloadLogger(TVerbosity.Error, 'Server at url "' + DownloadUrl + '" doesn''t support ETags. USE ONLY SERVERS WITH ETAGs to avoid continually downloading the same file.');
           TFile.WriteAllText(ETagFileName, NewETag, TEncoding.UTF8);
         end
 
@@ -105,9 +107,9 @@ begin
 end;
 
 class procedure GitDownloader.GetRepo(const DownloadUrl,
-  FileNameOnDisk: string);
+  FileNameOnDisk: string; DownloadLogger: TDownloadLogger);
 begin
-  GetFile(DownloadUrl, FileNameOnDisk);
+  GetFile(DownloadUrl, FileNameOnDisk, DownloadLogger);
 end;
 
 end.
