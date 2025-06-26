@@ -16,7 +16,7 @@ type
 
 implementation
 uses
-   Git.HTTPSDownload, UMultiLogger, IOUtils,
+   ZipFile.Download, UMultiLogger, IOUtils,
    UGenericDecompressor, UTmsBuildSystemUtils, Commands.GlobalConfig;
 
 { TZipFileEngine }
@@ -49,7 +49,7 @@ begin
   //Sometimes the files might be inside an empty root folder, so we need to skip it.
   var ZipFileName := TPath.Combine(aDestFolder, aFileName + '.download');
   try
-    GitDownloader.GetRepo(aURL, ZipFileName, Logger.Write, true);
+    ZipDownloader.GetRepo(aURL, ZipFileName, Logger.Write, true);
     TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder, TDownloadFormat.Unknown,
       function(FileName: string): boolean
       begin
@@ -78,7 +78,7 @@ begin
   Result := true;
   var ZipFileName := TPath.Combine(aDestFolder, TPath.GetFileName(aDestFolder) + '.download');
   try
-    GitDownloader.GetRepo(aURL, ZipFileName, Logger.Write);
+    ZipDownloader.GetRepo(aURL, ZipFileName, Logger.Write);
     if TFile.Exists(ZipFileName) then  //might not exist if it wasn't modified
     begin
       TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder);

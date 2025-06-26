@@ -81,7 +81,7 @@ type
 
 implementation
 uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJsonSerializer,
-     System.Types, Zip, Git.HTTPSDownload, UProjectLoader, UMultiLogger, VCS.Summary;
+     System.Types, Zip, ZipFile.Download, UProjectLoader, UMultiLogger, VCS.Summary;
 
 { TRegisteredProduct }
 
@@ -271,7 +271,7 @@ begin
 
   try
     var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
-    GitDownloader.GetRepo(Server.Url, PredefinedRepositories, AddToVCSFetchLogSummary);
+    ZipDownloader.GetRepo(Server.Url, PredefinedRepositories, AddToVCSFetchLogSummary);
 
     var Zip := TZipFile.Create;
     try
