@@ -115,7 +115,7 @@ begin
   end;
 end;
 
-procedure AddGitHubProducts(const ListedProducts: TList<TRegisteredProduct>);
+procedure AddZipFileProducts(const ListedProducts: TList<TRegisteredProduct>);
 begin
   RegisteredVCSRepos.GetProducts('*', ListedProducts, nil);
 end;
@@ -139,16 +139,16 @@ begin
 
     end;
 
-    var ListedGitHubProducts := TList<TRegisteredProduct>.Create;
+    var ListedZipFileProducts := TList<TRegisteredProduct>.Create;
     try
-      AddGitHubProducts(ListedGitHubProducts);
+      AddZipFileProducts(ListedZipFileProducts);
 
       if UseJson then
-        OutputAsJson(ListedAPIProducts, ListedGitHubProducts)
+        OutputAsJson(ListedAPIProducts, ListedZipFileProducts)
       else
-        OutputAsText(ListedAPIProducts, ListedGitHubProducts);
+        OutputAsText(ListedAPIProducts, ListedZipFileProducts);
     finally
-      ListedGitHubProducts.Free;
+      ListedZipFileProducts.Free;
     end;
   finally
     ListedAPIProducts.Free;

@@ -45,7 +45,8 @@ begin
   var cmd := TOptionsRegistry.RegisterCommand('server-add', '', 'Adds a new server to download libraries.',
     'This command alters the tms.config.yaml file to add a new server. If the server already exists, it will return an error.',
     'server-add <name> <protocol> <url> [enable]');
-  cmd.Examples.Add('server-add myserver github https://myurl');
+  cmd.Examples.Add('server-add myserver zipfile https://myurl');
+  cmd.Examples.Add('server-add myserver zipfile file://c:\myzip.zip');
 
   var option := cmd.RegisterUnNamedOption<string>('Name of the server to add', 'ServerName',
     procedure(const Value: string)

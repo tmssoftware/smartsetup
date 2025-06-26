@@ -10,7 +10,7 @@ type
     class procedure GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
 
   public
-    //Downloads a full githubrepo to a file.
+    //Downloads a full zipped repo to a file.
     class procedure GetRepo(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false); static;
 
   end;

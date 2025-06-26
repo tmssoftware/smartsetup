@@ -98,7 +98,7 @@ type
     Export: string;
   end;
 
-  TServerProtocol = (Local, Api, GitHub);
+  TServerProtocol = (Local, Api, ZipFile);
 
   TServerConfig = record
   public
@@ -948,7 +948,7 @@ begin
       end;
 
       2: begin
-        exit(TServerConfig.Create('community', TServerProtocol.GitHub, '', false));
+        exit(TServerConfig.Create('community', TServerProtocol.ZipFile, '', false));
       end;
     end;
     raise Exception.Create('Invalid Server index.');
@@ -959,7 +959,7 @@ end;
 
 function TServerConfigList.NewServer(const aName: string): integer;
 begin
-  AddServer(TServerConfig.Create(aName, TServerProtocol.GitHub, '', true));
+  AddServer(TServerConfig.Create(aName, TServerProtocol.ZipFile, '', true));
   Result := Length(Servers) - 1;
 end;
 
@@ -1017,7 +1017,7 @@ begin
   else if aName = 'community' then
   begin
     Url := GitHubUrl;
-    Protocol := TServerProtocol.GitHub;
+    Protocol := TServerProtocol.ZipFile;
   end ;
 end;
 
@@ -1037,9 +1037,9 @@ begin
  var s1 := AnsiLowerCase(value.Trim);
  if (s1 = 'local') then exit(TServerProtocol.Local);
  if (s1 = 'api') then exit(TServerProtocol.Api);
- if (s1 = 'github') then exit(TServerProtocol.GitHub);
+ if (s1 = 'zipfile') then exit(TServerProtocol.ZipFile);
 
- raise Exception.Create('"' + value + '" is not a valid Server Protocol value. It must be "local", "api" or "github".' + ExtraInfo);
+ raise Exception.Create('"' + value + '" is not a valid Server Protocol value. It must be "local", "api" or "zipfile".' + ExtraInfo);
 
 end;
 
@@ -1048,7 +1048,7 @@ begin
   case Protocol of
     TServerProtocol.Local: exit('local');
     TServerProtocol.Api: exit('api');
-    TServerProtocol.GitHub: exit('github');
+    TServerProtocol.ZipFile: exit('zipfile');
   end;
 
   raise Exception.Create('Invalid Protocol in Server.');

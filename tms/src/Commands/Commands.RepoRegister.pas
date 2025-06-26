@@ -58,6 +58,7 @@ begin
   option.AllowMultiple := False;
 
   cmd.Examples.Add('repo-register git https://github.com/landgraf-dev/aws-sdk-delphi.git');
+  cmd.Examples.Add('repo-register zipfile https://github.com/landgraf-dev/aws-sdk-delphi/archive/refs/tags/1.0.0.zip');
 
   AddCommand(cmd.Name, CommandGroups.Config, RunRepoRegisterCommand);
 end;

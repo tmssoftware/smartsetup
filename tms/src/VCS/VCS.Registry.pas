@@ -267,7 +267,7 @@ procedure TProductRegistry.LoadPreregisteredProductsFromServer(const Server: TSe
 const
   PredefinedZip = 'predefined.repos.zip';
 begin
-  if (Server.Protocol <> TServerProtocol.GitHub) or not Server.Enabled then exit;
+  if (Server.Protocol <> TServerProtocol.ZipFile) or not Server.Enabled then exit;
 
   try
     var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
