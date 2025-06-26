@@ -42,6 +42,7 @@ application:
 # platforms you can write below:
 #  - win32intel
 #  - win64intel
+#  - win64xintel
 #  - macos32intel
 #  - macos64intel    
 #  - macos64arm
@@ -120,6 +121,19 @@ package options:
   lib suffixes:
   # delphi11: _D11
   # delphi12: _D12
+
+# Only include this section if the library doesn't provide it's own packages, or those are unusable. In that case, we will create them with the definitions below.
+# Note: This section must come after you have specified the "packages" section above.
+# package definitions:
+#  Example_Core:
+#    framework type: NONE # can be NONE, FMX or VCL
+#    requires: rtl,dbrtl,FireDAC   #write the dcp packages this package requires.
+#    files:
+#      include: source\core\*.pas;source\core\tests\*  # Include the files in those folders. Not recursive.
+#      include subtree: source\data\*                  # Include the files in source\data and all child subfolders.
+#      exclude: *.dcu, source\core\tests\*.tmp
+#      exclude subtree: source\data\*.tmz
+
 
 paths:
   extra library paths:  #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path

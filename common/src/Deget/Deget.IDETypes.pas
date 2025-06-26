@@ -115,6 +115,7 @@ const
     );
 
 function TrySuffixToIDEName(const Suffix: string; var IDEName: TIDEName): Boolean;
+function GetLibSuffix(const IDEName: TIDEName): string;
 
 implementation
 
@@ -130,6 +131,14 @@ begin
       Exit(True);
     end;
   Result := False;
+end;
+
+function GetLibSuffix(const IDEName: TIDEName): string;
+begin
+  if IDEName >= delphi11 then
+    Result := 'auto'
+  else
+    Result := PackageSuffixes[IDEName];
 end;
 
 end.
