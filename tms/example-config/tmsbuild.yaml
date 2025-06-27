@@ -6,6 +6,7 @@ application:
   id: tms.example # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
   name: TMS Example for VCL
   description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
+  company name: TMS Software
   copyright: tmssoftware
   url: https://www.tmssoftware.com/
   docs: https://doc.tmssoftware.com/
@@ -13,46 +14,16 @@ application:
                              # and the line must be "something: version". like for example "tms.example: 1.0.3". 
                              # The text after ":" will be used as version number to display along the name.
 
-
 # valid ide values:
-#   - delphi6
-#   - delphi7
-#   - delphi2005
-#   - delphi2006
-#   - delphi2007
-#   - delphi2009
-#   - delphi2010
-#   - delphixe
-#   - delphixe2
-#   - delphixe3
-#   - delphixe4
-#   - delphixe5
-#   - delphixe6
-#   - delphixe7
-#   - delphixe8
-#   - delphiseattle
-#   - delphiberlin
-#   - delphitokyo
-#   - delphirio
-#   - delphisydney
-#   - delphi11
-#   - delphi12
-#   - lazarus
+#   delphi6/delphi7/delphi2005/delphi2006/delphi2007/delphi2009/delphi2010/delphixe/delphixe2..delphixe8
+#   delphiseattle/delphiberlin/delphitokyo/delphirio/delphisydney/delphi11..delphi12
+#   lazarus
 
 # platforms you can write below:
-#  - win32intel
-#  - win64intel
-#  - win64xintel
-#  - macos32intel
-#  - macos64intel    
-#  - macos64arm
-#  - iossimulator
-#  - iosdevice32
-#  - iosdevice64
-#  - android32
-#  - android64
-#  - linux64
+#  win32intel/win64intel/win64xintel/macos32intel/macos64intel/macos64arm/iossimulator/iosdevice32/iosdevice64/android32/android64/linux64
 
+# Frameworks are just a group of supported IDEs and platforms. You can define as much as you want
+# with any name you desire, and then combine them to specify what platforms and IDEs the packages support.
 supported frameworks:
   vcl:
     ide since: delphi7
@@ -65,7 +36,7 @@ supported frameworks:
 
   fmx:
     ide since: delphixe2
-    ide until: delphi12
+    #can ommit ide until
     platforms:
       - all
       - linux64: false
@@ -122,9 +93,9 @@ package options:
   # delphi11: _D11
   # delphi12: _D12
 
-# Only include this section if the library doesn't provide it's own packages, or those are unusable. In that case, we will create them with the definitions below.
+# Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.
 # Note: This section must come after you have specified the "packages" section above.
-# package definitions:
+package definitions:
 #  Example_Core:
 #    framework type: NONE # can be NONE, FMX or VCL
 #    requires: rtl,dbrtl,FireDAC   #write the dcp packages this package requires.

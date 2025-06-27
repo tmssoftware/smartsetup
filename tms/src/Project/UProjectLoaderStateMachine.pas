@@ -347,6 +347,7 @@ begin
   Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Url := value; end);
   Actions.Add('docs', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Docs := value; end);
   Actions.Add('version file', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Version := ReadVersionFile(value, ErrorInfo); end);
+  Actions.Add('company name', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.CompanyName := value; end);
   Actions.Add('can add source code to library path', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.CanAddSourceCodeToLibraryPath := GetBool(value, ErrorInfo); end);
   Actions.Add('vcs protocol', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.VCSProtocol := GetVCSProtocol(value, ErrorInfo); end);
 end;

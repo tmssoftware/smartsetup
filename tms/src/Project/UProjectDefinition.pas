@@ -26,6 +26,7 @@ type
     property Url: string read FUrl write FUrl;
     property Docs: string read FDocs write FDocs;
     property Version: string read FVersion write FVersion;
+    property CompanyName: string read FCompanyName write FCompanyName;
     property VCSProtocol: string read FVCSProtocol write FVCSProtocol;
     property CanAddSourceCodeToLibraryPath: boolean read FCanAddSourceCodeToLibraryPath write FCanAddSourceCodeToLibraryPath;
 
