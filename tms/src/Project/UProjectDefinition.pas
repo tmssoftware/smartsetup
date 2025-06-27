@@ -14,6 +14,7 @@ type
     FUrl: string;
     FCopyright: string;
     FVersion: string;
+    FCompanyName: string;
     FVCSProtocol: string;
     FCanAddSourceCodeToLibraryPath: boolean;
     function GetName: string;
