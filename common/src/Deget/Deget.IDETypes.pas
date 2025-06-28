@@ -120,7 +120,7 @@ const
     );
 
 function TrySuffixToIDEName(const Suffix: string; var IDEName: TIDEName): Boolean;
-function GetLibSuffix(const IDEName: TIDEName): string;
+function GetLibSuffix(const IDEName: TIDEName; const Quote: boolean): string;
 function GetLibSuffixDProj(const IDEName: TIDEName): string;
 
 implementation
@@ -139,12 +139,15 @@ begin
   Result := False;
 end;
 
-function GetLibSuffix(const IDEName: TIDEName): string;
+function GetLibSuffix(const IDEName: TIDEName; const Quote: boolean): string;
 begin
   if IDEName >= delphi11 then
     Result := 'auto'
   else
+  begin
     Result := PackageSuffixes[IDEName];
+    if Quote then Result := '''' + Result + '''';
+  end;
 end;
 
 function GetLibSuffixDProj(const IDEName: TIDEName): string;

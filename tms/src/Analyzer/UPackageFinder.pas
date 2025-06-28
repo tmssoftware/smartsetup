@@ -6,8 +6,11 @@ uses SysUtils, UProjectDefinition, UNaming, Deget.CoreTypes, UConfigDefinition, 
 
 type
   TPackageFinder = class
+  private
+    class function EndsInMultiIDE(const Naming: TNaming; const StartIDEName: TIDEName; const aFullFolder: string; out BaseFolder, StandardFolderNamePlus: string): boolean; static;
   public
-    class function GetPackage(const folderName: string; const packs: TArray<string>; const BasePath, PackageName: string; const ThrowExceptions: boolean): string;
+    class function GetPackage(const Naming: TNaming; const dv: TIDEName; const IsExe: boolean;
+       const packs: TArray<string>; const BasePath, PackageName: string; const ThrowExceptions: boolean; const Project: TProjectDefinition): string;
     class function GetProjectToBuild(const PackageCache: TPackageCache; const dv: TIDEName; const Project: TProjectDefinition;
       const Package: TPackage; const Naming: TNaming; const ThrowExceptions: boolean; const ForceExt: TArray<string>): string; static;
 
@@ -54,10 +57,8 @@ begin
   end
   else
   begin
-    Result := GetPackage(Naming.GetPackageNaming(dv, Package.PackageType = TPackageType.Exe, Project.PackageFolders[dv]), packs, BasePath, FullPackName, ThrowExceptions);
+    Result := GetPackage(Naming, dv, Package.PackageType = TPackageType.Exe, packs, BasePath, FullPackName, ThrowExceptions, Project);
   end;
-
-
 end;
 
 class function TPackageFinder.EndsInFolder(const aFullFolder, aEndsWithFolder: string; out BaseFolder: string): boolean;
@@ -74,19 +75,40 @@ begin
   Result := true;
 end;
 
-class function TPackageFinder.GetPackage(const folderName: string;
-  const packs: TArray<string>; const BasePath, PackageName: string; const ThrowExceptions: boolean): string;
+class function TPackageFinder.EndsInMultiIDE(const Naming: TNaming; const StartIDEName: TIDEName; const aFullFolder: string; out BaseFolder, StandardFolderNamePlus: string): boolean;
 begin
+  for var dv := StartIDEName downto TIDEName.delphi11 do //Delphi < 11 doesn't support d7+ notation.
+  begin
+    StandardFolderNamePlus := Naming.GetPackageNamingPlus(dv);
+    if EndsInFolder(aFullFolder, StandardFolderNamePlus, BaseFolder) then exit(true);
+  end;
+  Result := false;
+end;
+
+class function TPackageFinder.GetPackage(const Naming: TNaming; const dv: TIDEName; const IsExe: boolean;
+  const packs: TArray<string>; const BasePath, PackageName: string; const ThrowExceptions: boolean; const Project: TProjectDefinition): string;
+begin
+  var StandardFolderName := Naming.GetPackageNaming(dv, IsExe, Project.PackageFolders[dv]);
   for var pack in packs do
   begin
     if (pack.Trim = '') then continue;
 
     var BaseFolder := '';
-    if EndsInFolder(TPath.GetDirectoryName(pack), folderName, BaseFolder)
+    var PackFolder := TPath.GetDirectoryName(pack);
+    if EndsInFolder(PackFolder, StandardFolderName, BaseFolder)
       then exit(pack);
+
+    var StandardFolderNamePlus: string;
+    if not IsExe and (Project.PackageFolders[dv] = '') and EndsInMultiIDE(Naming, dv, PackFolder, BaseFolder, StandardFolderNamePlus) then
+    begin
+      Project.SetPackageFolders(dv, StandardFolderNamePlus);
+      exit(pack);
+    end;
+
+
   end;
 
-  exit(Throw(ThrowExceptions, 'Can''t find the folder "' + folderName + '" with "' + PackageName + '" inside the folder "' + BasePath + '".'));
+  exit(Throw(ThrowExceptions, 'Can''t find the folder "' + StandardFolderName + '" with "' + PackageName + '" inside the folder "' + BasePath + '".'));
 end;
 
 class function TPackageFinder.PackagesFolder(const BasePackagesFolder: string;

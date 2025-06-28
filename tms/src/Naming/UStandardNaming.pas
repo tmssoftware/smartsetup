@@ -12,6 +12,7 @@ type
     function Id: string; override;
 
     function GetPackageNaming(const dv: TIDEName; const IsExe: boolean; const ProjectFolder: string): string; override;
+    function GetPackageNamingPlus(const dv: TIDEName): string; override;
   end;
 
 
@@ -29,6 +30,13 @@ begin
   if IsExe then exit('');
   if ProjectFolder <> '' then exit(ProjectFolder);
   Result := DelphiSuffixes[dv];
+end;
+
+function TStandardNaming.GetPackageNamingPlus(const dv: TIDEName): string;
+begin
+  if dv < TIDEName.delphi11 then exit(DelphiSuffixes[dv]);
+
+  Result := DelphiSuffixes[dv] + '+';
 end;
 
 function TStandardNaming.Id: string;

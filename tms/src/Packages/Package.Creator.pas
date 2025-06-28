@@ -11,7 +11,7 @@ procedure CreatePackages(const Projects: TProjectList);
 
 implementation
 uses SysUtils, Classes, Zip, System.Types, Util.Replacer, Deget.Filer.DprojFile,
-     Deget.Version, Generics.Collections;
+     Deget.Version, Generics.Collections, Commands.GlobalConfig;
 
 //No need to escape non-ascii characters, this will be saved as utf-8
 function XmlEscape(const s: string): string;
@@ -101,14 +101,11 @@ begin
   exit('None');
 end;
 
-function TargetedPlatforms(const IDEName: TIDEName; Platforms: TPlatformSet): string;
+function TargetedPlatforms(Platforms: TPlatformSet): string;
 begin
   //we want to include newer platforms, even if the package supports older delphi versions that don't have it.
   //For example, D11 doesn't have Win64x, but a package for D11+ should include it.
-  Platforms := Platforms * PlatformsInDelphi[High(TIDEName)];
-
   Result := IntToStr(PlatformsToInteger(Platforms));
-
 end;
 
 function HasPlatform(const Platform: TPlatform; const Platforms: TPlatformSet): string;
@@ -202,20 +199,20 @@ begin
   if varName = 'design-only' then if Package.IsDesign and not Package.IsRuntime then exit('true') else exit('false');
   if varName = 'runtime-only' then if Package.IsRuntime and not Package.IsDesign then exit('true') else exit('false');
 
-  if varName = 'lib-suffix-dpk' then exit(GetLibSuffix(IDEName).ToUpperInvariant);
+  if varName = 'lib-suffix-dpk' then begin IsEscaped := true; exit(GetLibSuffix(IDEName, true).ToUpperInvariant); end;
   if varName = 'lib-suffix-dproj' then exit(GetLibSuffixDproj(IDEName));
   if varName = 'requires' then begin IsEscaped := true; exit(GetDpkSection(Package.Requires, function(s: string): string begin Result := DelphiEscape(TPath.GetFileNameWithoutExtension(s)); end)); end;
   if varName = 'unit-search-path' then exit(GetUnitSearchPath(Project));
   
   if varName  = 'product-version' then if IDEName < TIDEName.delphixe2 then exit(DelphiProductVersion[IDEName]) else exit('$(ProductVersion)');
-
+  if varName = 'debug-information-false' then if IDEName <= TIDEName.delphixe4 then exit('false') else exit('0');                                              
   
   var PackagePlatforms := GetPackagePlatforms(Project, Package);
   var PackageFiles := GetFiles(Project, Package.FileMasks);
   if varName = 'contains' then begin IsEscaped := true; exit(GetDpkSection(PackageFiles, function(s: string): string begin Result := GetDpkContain(s); end));end;
   if varName = 'guid' then exit(GuidToString(TGuid.NewGuid));
   if varName = 'framework-type' then exit(Package.DelphiFrameworkType);
-  if varName = 'targeted-platforms' then exit(TargetedPlatforms(IDEName, PackagePlatforms));
+  if varName = 'targeted-platforms' then exit(TargetedPlatforms(PackagePlatforms));
   if varName = 'cpp-output' then exit(GetCppOutput(SupportsCppBuilder(Project, Package)));
   if varName = 'dcc-references' then begin IsEscaped := true; exit(GetDccReferences([Package.Requires, PackageFiles])); end;
 
@@ -279,8 +276,12 @@ begin
   end;
 end;
 
+function TemplateFolder(const IDEName: TIDEName): TIDEName;
+begin
+  Result := TIDEName.delphi11; //currently this is the only folder in the zip.
+end;
 
-procedure ProcessTemplates(const IDEName: TIDEName; const Project: TProjectDefinition; const Package: TPackage; const BaseFileName: string);
+procedure ProcessTemplates(const TargetIDEName: TIDEName; const Project: TProjectDefinition; const Package: TPackage; const BaseFileName: string);
 begin
   var PackageTemplates := TResourceStream.Create(HInstance, 'PackageTemplates', RT_RCDATA);
   try
@@ -288,10 +289,10 @@ begin
     try
       Zip.Open(PackageTemplates, TZipMode.zmRead);
       var Template: TBytes;
-      Zip.Read(DelphiSuffixes[IDEName] + '/Package.dpk', Template);
-      ReplaceData(IDEName, Template, false, Project, Package, BaseFileName + '.dpk');
-      Zip.Read(DelphiSuffixes[IDEName] + '/Package.dproj', Template);
-      ReplaceData(IDEName, Template, true, Project, Package, BaseFileName + '.dproj');
+      Zip.Read(DelphiSuffixes[TemplateFolder(TargetIDEName)] + '/Package.dpk', Template);
+      ReplaceData(TargetIDEName, Template, false, Project, Package, BaseFileName + '.dpk');
+      Zip.Read(DelphiSuffixes[TemplateFolder(TargetIDEName)] + '/Package.dproj', Template);
+      ReplaceData(TargetIDEName, Template, true, Project, Package, BaseFileName + '.dproj');
     finally
       Zip.Free;
     end;
@@ -302,6 +303,17 @@ begin
 
 end;
 
+function IDESupported(const Project: TProjectDefinition): TIDENameSet;
+const
+  // if in the future, say delphi32 needs a different definition, it should be added here.
+  //for now and until some breaking change, the latest needed is delphi11. With it you can compile
+  //any newer version at the time of writing this code.
+  BreakingIDEs: TIDENameSet = [TIDEName.delphixe..TIDEName.delphi11];
+begin
+  Result :=[];
+  for var ide in BreakingIDEs do if Project.SupportsIDE(ide) then Result := Result + [ide];
+end;
+
 procedure CreatePackages(const Projects: TProjectList);
 begin
   for var Project in Projects.All do
@@ -309,8 +321,12 @@ begin
     for var Package in Project.Packages do
     begin
       if not Package.AutoGenerate then continue;
-      const IDEName = TIDEName.delphi11;
-      ProcessTemplates(IDEName, Project, Package, TPath.Combine(Project.RootFolder, 'packages', DelphiSuffixes[IDEName], Package.Name));
+      for var IDEName in IDESupported(Project) do
+      begin
+        var Naming := Config.GetNaming(Project.Naming, Project.FullPath);
+        var FolderName := Naming.GetPackageNamingPlus(IDEName);
+        ProcessTemplates(IDEName, Project, Package, TPath.Combine(Project.RootFolder, 'packages', FolderName, Package.Name));
+      end;
     end;
   end;
 end;
