@@ -29,6 +29,7 @@ uses UInstaller
     ,UDelphi11Installer
     ,ULazarusInstaller
     ,UDelphi12Installer
+    ,UDelphi13Installer
 ;
 
 initialization
@@ -55,6 +56,7 @@ initialization
  TInstallerFactory.RegisterInstaller(TDelphiSydneyInstaller.Create);
  TInstallerFactory.RegisterInstaller(TDelphi11Installer.Create);
  TInstallerFactory.RegisterInstaller(TDelphi12Installer.Create);
+ TInstallerFactory.RegisterInstaller(TDelphi13Installer.Create);
 
 for var dv := Low(TIDEName) to High(TIDEName) do
 begin

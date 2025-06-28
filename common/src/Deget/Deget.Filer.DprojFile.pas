@@ -1569,6 +1569,9 @@ begin
       if ExtractFileExt(FileName).ToLower = '.dcp' then
         Data.DcpFiles.Add(FileName)
       else
+      if ExtractFileExt(FileName).ToLower = '.res' then
+        begin end
+      else
         raise Exception.Create('Unsupported DCC reference file type: ' + FileName);
     end;
 

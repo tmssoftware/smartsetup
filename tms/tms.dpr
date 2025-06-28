@@ -195,7 +195,8 @@ uses
   Commands.ServerAdd in 'src\Commands\Commands.ServerAdd.pas',
   Commands.ServerRemove in 'src\Commands\Commands.ServerRemove.pas',
   VCS.Engine.ZipFile in 'src\VCS\VCS.Engine.ZipFile.pas',
-  Package.Creator in 'src\Packages\Package.Creator.pas';
+  Package.Creator in 'src\Packages\Package.Creator.pas',
+  UDelphi13Installer in 'src\Installers\UDelphi13Installer.pas';
 
 begin
   try
