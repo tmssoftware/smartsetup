@@ -83,6 +83,8 @@ private
 
   function RemoveArray(const name: string): string;
   procedure ParseColon(const Line: string; var Name, Value: string; const MustHaveValue, CanBeEmpty: boolean);
+    function GetString(const s: string): string;
+    function Escape(const s: string): string;
 
 public
   constructor Create(const FileName: string; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -212,6 +214,8 @@ begin
   var LastLevel := -1;
   while Level <= Levels.Peek do
   begin
+    if Result = nil then raise Exception.Create('Invalid Section. ' + ErrorInfo.ToString);
+
     LastLevel := Levels.Pop;
     Result := Result.Parent;
   end;
@@ -238,6 +242,24 @@ begin
   exit(Result.GotoChild(Name, ErrorInfo));
 end;
 
+function TBBYamlSectionProcessor.Escape(const s: string): string;
+begin
+  //Someday we can do a better parser here.
+  Result := s;
+  Result := Result.Replace('\t', #9, [rfReplaceAll]);
+  Result := Result.Replace('\n', #10, [rfReplaceAll]);
+  Result := Result.Replace('\r', #13, [rfReplaceAll]);
+  Result := Result.Replace('\\', '\', [rfReplaceAll]);
+  Result := Result.Replace('\"', '"', [rfReplaceAll]);
+end;
+
+function TBBYamlSectionProcessor.GetString(const s: string): string;
+begin
+  if s.StartsWith('''') and s.EndsWith('''') and (s.Length > 1) then exit(s.Substring(1, s.Length - 2).Replace('''''', '''', [rfReplaceAll]));
+  if s.StartsWith('"') and s.EndsWith('"') and (s.Length > 1) then exit(Escape(s.Substring(1, s.Length - 2)));
+  Result := s;
+end;
+
 procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty: boolean);
 var
   idx: integer;
@@ -245,7 +267,7 @@ begin
   idx := Line.IndexOf(':');
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
   Name := TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace));
-  Value := Line.Substring(idx + 1).Trim(TrimWhitespace);
+  Value := GetString(Line.Substring(idx + 1).Trim(TrimWhitespace));
   if CanBeEmpty then exit;
 
   if MustHaveValue and (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
