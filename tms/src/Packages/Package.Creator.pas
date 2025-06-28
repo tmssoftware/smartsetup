@@ -246,8 +246,6 @@ end;
 
 procedure ReplaceData(const IDEName: TIDEName; const Template: TBytes; const IsXML: boolean; const Project: TProjectDefinition; const Package: TPackage; const OutFileName: string);
 begin
-  if (TFile.Exists(OutFileName)) then exit;
-  
   var Data := TEncoding.UTF8.GetString(Template);
   var ReplacedData := ParseString(Data, function(varName: string): string
     begin
