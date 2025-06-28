@@ -178,6 +178,15 @@ begin
 
 end;
 
+function GetUnitSearchPath(const Project: TProjectDefinition): string;
+begin
+  Result := '';
+  for var Path in Project.ExtraPaths.LibraryPathsBuildOnly do
+  begin
+    Result := Result + TPath.Combine('..', '..', Path) + ';';
+  end;
+end;
+
 function ReplaceVariable(const varName: string; const IDEName: TIDEName; const Project: TProjectDefinition; const Package: TPackage; out IsEscaped: boolean): string;
 begin
   IsEscaped := false;
@@ -196,6 +205,8 @@ begin
   if varName = 'lib-suffix-dpk' then exit(GetLibSuffix(IDEName).ToUpperInvariant);
   if varName = 'lib-suffix-dproj' then exit(GetLibSuffixDproj(IDEName));
   if varName = 'requires' then begin IsEscaped := true; exit(GetDpkSection(Package.Requires, function(s: string): string begin Result := DelphiEscape(TPath.GetFileNameWithoutExtension(s)); end)); end;
+  if varName = 'unit-search-path' then exit(GetUnitSearchPath(Project));
+  
 
   var PackagePlatforms := GetPackagePlatforms(Project, Package);
   var PackageFiles := GetFiles(Project, Package.FileMasks);
