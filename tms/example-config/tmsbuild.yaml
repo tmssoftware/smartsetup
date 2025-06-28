@@ -98,13 +98,18 @@ package options:
 package definitions:
 #  Example_Core:
 #    framework type: NONE # can be NONE, FMX or VCL
-#    requires: rtl,dbrtl,FireDAC   #write the dcp packages this package requires.
+#    description: description for the package
+#    requires: rtl;dbrtl;FireDAC   #write the dcp packages this package requires. don't include the dcp extension.
 #    files:
-#      include: source\core\*.pas;source\core\tests\*  # Include the files in those folders. Not recursive.
-#      include subtree: source\data\*                  # Include the files in source\data and all child subfolders.
-#      exclude: *.dcu, source\core\tests\*.tmp
-#      exclude subtree: source\data\*.tmz
-
+#      folder: source\core;  # Include the files in the folder.
+#      include file mask: *                  # separate masks with ;.
+#      exclude file mask: *.dcu
+#
+#      folder: source\advances;  # Include the files in the folder.
+#      include folder mask: source     # for recursive calls, we will only enter folders named source  
+#      exclude folder mask: .svn       # for recursive calls, we will exclude folders names .svn.
+#      include file mask: *.pas;*.rc                  # separate masks with ;.
+#      recursive: true #search in subfolders also. false by default
 
 paths:
   extra library paths:  #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path

@@ -14,7 +14,7 @@ uses
   UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface, UConfigDefinition,
   UParallelProjectBuilder, UWindowsPath, UEnvironmentPath,
   {$IFDEF MSWINDOWS}
-  Windows, Messages,
+  Windows, Messages, Package.Creator,
   {$ENDIF}
 
   UBuildSummary;
@@ -140,6 +140,8 @@ begin
         TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projs);
 
       Projs.ResolveDependencies;
+
+      CreatePackages(Projs);
       var ProjectAnalyzer := TProjectAnalyzer.Create(Config, Projs, FileHasher);
       try
         Logger.StartSection(TMessageType.Analyze, 'Analyzing');

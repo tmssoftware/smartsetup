@@ -196,8 +196,7 @@ uses
   Commands.ServerAdd in 'src\Commands\Commands.ServerAdd.pas',
   Commands.ServerRemove in 'src\Commands\Commands.ServerRemove.pas',
   VCS.Engine.ZipFile in 'src\VCS\VCS.Engine.ZipFile.pas',
-  Package.Creator in 'src\Packages\Package.Creator.pas',
-  Package.Definition in 'src\Packages\Package.Definition.pas';
+  Package.Creator in 'src\Packages\Package.Creator.pas';
 
 begin
   try

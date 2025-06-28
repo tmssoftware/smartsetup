@@ -146,10 +146,13 @@ var
 begin
   Result := '';
   Sep := '';
-  for var v in ChildSections.Values do
+  if ChildSections <> nil then
   begin
-    Result := Result + sep + '"' + v.SectionName +'"';
-    Sep := ', ';
+    for var v in ChildSections.Values do
+    begin
+      Result := Result + sep + '"' + v.SectionName +'"';
+      Sep := ', ';
+    end;
   end;
 
   if Actions <> nil then

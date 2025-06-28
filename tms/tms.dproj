@@ -415,7 +415,6 @@
         <DCCReference Include="src\Commands\Commands.ServerRemove.pas"/>
         <DCCReference Include="src\VCS\VCS.Engine.ZipFile.pas"/>
         <DCCReference Include="src\Packages\Package.Creator.pas"/>
-        <DCCReference Include="src\Packages\Package.Definition.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

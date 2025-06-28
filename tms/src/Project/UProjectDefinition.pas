@@ -38,6 +38,38 @@ type
 
   end;
 
+  TFileMasks = record
+    BaseFolder: string;
+    IncludeFolders: TArray<string>;
+    ExcludeFolders: TArray<string>;
+    IncludeFiles: TArray<string>;
+    ExcludeFiles: TArray<string>;
+    Recursive: boolean;
+    constructor Create (const aBaseFolder: string);
+    procedure AddIncludeFolders(const Masks: TArray<string>);
+    procedure AddExcludeFolders(const Masks: TArray<string>);
+    procedure AddIncludeFiles(const Masks: TArray<string>);
+    procedure AddExcludeFiles(const Masks: TArray<string>);
+    procedure SetRecursive(const value: boolean);
+  end;
+
+  TFileMasksList = record
+  private
+    FFileMasks: TArray<TFileMasks>;
+
+    function Last: TFileMasks;
+  public
+    procedure AddFolder(const aBaseFolder: string);
+    procedure SetIncludeFolders(const Masks: TArray<string>);
+    procedure SetExcludeFolders(const Masks: TArray<string>);
+    procedure SetIncludeFiles(const Masks: TArray<string>);
+    procedure SetExcludeFiles(const Masks: TArray<string>);
+    procedure SetRecursive(const value: boolean);
+
+    property FileMasks: TArray<TFileMasks> read FFileMasks;
+    function Empty: boolean;
+  end;
+
   TPackage = class
   private
     FName: string;
@@ -45,14 +77,24 @@ type
     FIsRuntime: boolean;
     FIsDesign: boolean;
     FPackageType: TPackageType;
+    FDescription: string;
+    FDelphiFrameworkType: string;
+    FRequires: TArray<string>;
+    FFileMasks: TFileMasksList;
   public
-    Constructor Create(const aName: string);
+    constructor Create(const aName: string);
     property Name: string read FName write FName;
     property IsRuntime: boolean read FIsRuntime write FIsRuntime;
     property IsDesign: boolean read FIsDesign write FIsDesign;
     property PackageType: TPackageType read FPackageType write FPackageType;
 
     property Frameworks: TFrameworkSet read FFrameworks write FFrameworks;
+
+    //For creating packages
+    property Description: string read FDescription write FDescription;
+    property DelphiFrameworkType: string read FDelphiFrameworkType write FDelphiFrameworkType;
+    property Requires: TArray<string> read FRequires write FRequires;
+    property FileMasks: TFileMasksList read FFileMasks write FFileMasks;
   end;
 
   TDependency = class
@@ -770,6 +812,82 @@ constructor TPlatformPaths.Create(const APlatforms: TPlatformSet;
 begin
   Platforms := APlatforms;
   Path := APath;
+end;
+
+
+{ TFileMasks }
+
+procedure TFileMasks.AddExcludeFiles(const Masks: TArray<string>);
+begin
+  ExcludeFiles := ExcludeFiles + Masks;
+end;
+
+procedure TFileMasks.AddExcludeFolders(const Masks: TArray<string>);
+begin
+  ExcludeFolders := ExcludeFolders + Masks;
+end;
+
+procedure TFileMasks.AddIncludeFiles(const Masks: TArray<string>);
+begin
+  IncludeFiles := IncludeFiles + Masks;
+end;
+
+procedure TFileMasks.AddIncludeFolders(const Masks: TArray<string>);
+begin
+  IncludeFolders := IncludeFolders + Masks;
+end;
+
+constructor TFileMasks.Create(const aBaseFolder: string);
+begin
+  BaseFolder := aBaseFolder;
+end;
+
+procedure TFileMasks.SetRecursive(const value: boolean);
+begin
+  Recursive := value;
+end;
+
+{ TFileMasksList }
+
+procedure TFileMasksList.AddFolder(const aBaseFolder: string);
+begin
+  FFileMasks := FFileMasks + [TFileMasks.Create(aBaseFolder)];
+end;
+
+function TFileMasksList.Empty: boolean;
+begin
+  Result := FFileMasks = nil;
+end;
+
+function TFileMasksList.Last: TFileMasks;
+begin
+  if FileMasks = nil then raise Exception.Create('There are no folders defined to add a mask.');
+  Result := FileMasks[Length(FileMasks) - 1];
+end;
+
+procedure TFileMasksList.SetExcludeFiles(const Masks: TArray<string>);
+begin
+  Last.AddExcludeFiles(Masks);
+end;
+
+procedure TFileMasksList.SetExcludeFolders(const Masks: TArray<string>);
+begin
+  Last.AddExcludeFolders(Masks);
+end;
+
+procedure TFileMasksList.SetIncludeFiles(const Masks: TArray<string>);
+begin
+  Last.AddIncludeFiles(Masks);
+end;
+
+procedure TFileMasksList.SetIncludeFolders(const Masks: TArray<string>);
+begin
+  Last.AddIncludeFolders(Masks);
+end;
+
+procedure TFileMasksList.SetRecursive(const value: boolean);
+begin
+  Last.SetRecursive(value);
 end;
 
 end.

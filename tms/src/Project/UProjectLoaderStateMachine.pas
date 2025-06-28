@@ -2,14 +2,13 @@ unit UProjectLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBClasses, UProjectDefinition, Generics.Collections, UCoreTypes, Deget.CoreTypes;
+uses BBClasses, UProjectDefinition, SysUtils, Generics.Collections, UCoreTypes, Deget.CoreTypes;
 type
   TSectionDef = class(TSection)
   protected
     Project: TProjectDefinition;
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
-
   end;
 
   TMainSectionDef = class(TSectionDef)
@@ -183,6 +182,30 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TPackageDefinitionsSectionDef = class(TSectionDef)
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  private
+    function FindPackage(const Name: string;
+      const Packages: TListOfPackages): TPackage;
+  end;
+
+  TPackageDefinitionSectionDef = class(TSectionDef)
+  private
+    FName: string;
+    FPackage: TPackage;
+
+    function ValidateDelphiFrameworkType(const value: string; const ErrorInfo: TErrorInfo): string;
+    function GetRequires(const value: string;
+      const ErrorInfo: TErrorInfo): TArray<string>;
+    function GetMasks(const Masks: string): TArray<string>;
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition; const aPackage: TPackage);
+    class function SectionNameStatic: string; override;
+    function SectionName: string; override;
+
+  end;
+
   TPathsSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
@@ -259,9 +282,16 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TStandardFilesSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition;
+      const AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask: TProc<string>;
+      const SetRecursive: TProc<boolean>);
+    class function SectionNameStatic: string; override;
+  end;
 
 implementation
-uses Classes, SysUtils, UTmsBuildSystemUtils, IOUtils, Deget.Version;
+uses Classes, UTmsBuildSystemUtils, IOUtils, Deget.Version;
 
 { TSectionDef }
 
@@ -283,6 +313,7 @@ begin
   ChildSections.Add(TSupportedFrameworksSectionDef.SectionNameStatic, TSupportedFrameworksSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackagesSectionDef.SectionNameStatic, TPackagesSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackageOptionsSectionDef.SectionNameStatic, TPackageOptionsSectionDef.Create(Self, aProject));
+  ChildSections.Add(TPackageDefinitionsSectionDef.SectionNameStatic, TPackageDefinitionsSectionDef.Create(Self, aProject));
   ChildSections.Add(THelpSectionDef.SectionNameStatic, THelpSectionDef.Create(Self, aProject));
   ChildSections.Add(TDependenciesSectionDef.SectionNameStatic, TDependenciesSectionDef.Create(Self, aProject));
   ChildSections.Add(TBuildingSectionDef.SectionNameStatic, TBuildingSectionDef.Create(Self, aProject));
@@ -1184,6 +1215,123 @@ end;
 class function TOtherVersionsSectionDef.SectionNameStatic: string;
 begin
   Result := 'other versions';
+end;
+
+{ TPackageDefinitionsSectionDef }
+
+constructor TPackageDefinitionsSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  ChildSectionAction :=
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    begin
+      if ChildSections.TryGetValue(Name, Result) then exit;
+      var Package := FindPackage(Name, Project.Packages);
+      if Package = nil then raise Exception.Create('Cannot find the package ' + Name + ' in the section "packages". ' + ErrorInfo.ToString);
+
+      Result := TPackageDefinitionSectionDef.Create(Self, aProject, Package);
+      ChildSections.Add(Name, Result);
+    end;
+end;
+
+function TPackageDefinitionsSectionDef.FindPackage(const Name: string; const Packages: TListOfPackages): TPackage;
+begin
+  for var Package in Packages do if SameText(Package.Name, Name) then exit(Package);
+  Result := nil;
+end;
+
+class function TPackageDefinitionsSectionDef.SectionNameStatic: string;
+begin
+  Result := 'package definitions';
+end;
+
+{ TPackageDefinitionSectionDef }
+constructor TPackageDefinitionSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition; const aPackage: TPackage);
+begin
+  inherited Create(aParent, aProject);
+  FPackage := aPackage;
+  FName := aPackage.Name;
+  Actions := TListOfActions.Create;
+  Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      aPackage.Description := value;
+    end);
+
+  Actions.Add('framework type', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      aPackage.DelphiFrameworkType := ValidateDelphiFrameworkType(value, ErrorInfo);
+    end);
+  Actions.Add('requires', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      aPackage.Requires := GetRequires(value, ErrorInfo);
+    end);
+
+    ChildSections.Add(TStandardFilesSectionDef.SectionNameStatic,
+       TStandardFilesSectionDef.Create(Self, aProject,
+         procedure(Folder: string) begin FPackage.FileMasks.AddFolder(Folder); end,
+         procedure(Masks: string) begin FPackage.FileMasks.SetIncludeFolders(GetMasks(Masks)); end,
+         procedure(Masks: string) begin FPackage.FileMasks.SetExcludeFolders(GetMasks(Masks)); end,
+         procedure(Masks: string) begin FPackage.FileMasks.SetIncludeFiles(GetMasks(Masks)); end,
+         procedure(Masks: string) begin FPackage.FileMasks.SetExcludeFiles(GetMasks(Masks)); end,
+         procedure(value: boolean) begin FPackage.FileMasks.SetRecursive(value); end
+         )
+       );
+end;
+
+function TPackageDefinitionSectionDef.GetMasks(const Masks: string): TArray<string>;
+begin
+  Result := Masks.Split([';']);
+end;
+
+function TPackageDefinitionSectionDef.ValidateDelphiFrameworkType(const value: string; const ErrorInfo: TErrorInfo): string;
+begin
+  if SameText(value, 'none') then exit(value.ToUpper);
+  if SameText(value, 'vcl') then exit(value.ToUpper);
+  if SameText(value, 'fmx') then exit(value.ToUpper);
+
+  raise Exception.Create('"' + value + '" is not a valid value for framework type. Must be NONE, VCL or FMX. ' + ErrorInfo.ToString);
+
+end;
+
+function TPackageDefinitionSectionDef.GetRequires(const value: string; const ErrorInfo: TErrorInfo): TArray<string>;
+begin
+  Result := value.Split([';'], TStringSplitOptions.ExcludeEmpty);
+  for var i := 0 to High(Result) do Result[i] := Result[i].Trim + '.dcp';
+
+end;
+
+function TPackageDefinitionSectionDef.SectionName: string;
+begin
+  Result := FName;
+end;
+
+class function TPackageDefinitionSectionDef.SectionNameStatic: string;
+begin
+  Result := '';
+end;
+
+{ TStandardFilesSectionDef }
+
+constructor TStandardFilesSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition;
+  const AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask: TProc<string>;
+  const SetRecursive: TProc<boolean>);
+begin
+  Actions := TListOfActions.Create;
+
+  Actions.Add('folder', procedure(value: string; ErrorInfo: TErrorInfo) begin AddFolder(value);  end);
+  Actions.Add('include folder mask', procedure(value: string; ErrorInfo: TErrorInfo) begin SetIncludeFolderMask(value); end);
+  Actions.Add('exclude folder mask', procedure(value: string; ErrorInfo: TErrorInfo) begin SetExcludeFolderMask(value); end);
+  Actions.Add('include file mask', procedure(value: string; ErrorInfo: TErrorInfo) begin SetIncludeFileMask(value); end);
+  Actions.Add('exclude file mask', procedure(value: string; ErrorInfo: TErrorInfo) begin SetExcludeFileMask(value); end);
+  Actions.Add('recursive', procedure(value: string; ErrorInfo: TErrorInfo) begin SetRecursive(GetBool(value, ErrorInfo)); end);
+end;
+
+class function TStandardFilesSectionDef.SectionNameStatic: string;
+begin
+  Result := 'files';
 end;
 
 end.
