@@ -866,7 +866,7 @@ begin
     var BuildConfig := BuildConfigs[BuildConfigIndex];
 
     var TempProjFolder := TempProjectDirectory(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
-    var TempPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, TempProjFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
+    var TempPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, TempProjFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, false);
     var TempOutputFolder := TempPackageInfo.ExpandedDcuOutputDir(BuildConfig);
 
     var OutputPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);

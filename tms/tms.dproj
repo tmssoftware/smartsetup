@@ -274,7 +274,6 @@
         <DCCReference Include="src\Commands\Commands.Termination.pas"/>
         <DCCReference Include="src\Builder\UParallelProjectBuilder.pas"/>
         <DCCReference Include="src\Project\UProjectDefinition.pas"/>
-        <DCCReference Include="src\Naming\UTmsPackNaming.pas"/>
         <DCCReference Include="src\Naming\UStandardNaming.pas"/>
         <DCCReference Include="src\Naming\UNaming.pas"/>
         <DCCReference Include="src\Installers\UMsBuildInstaller.pas"/>

@@ -1371,7 +1371,7 @@ begin
 
   var SourceFolder := TPath.Combine(Settings.PrecompiledSource, DelphiSuffixes[Settings.TargetPlatform.IDEInfo.IDEName], Settings.TargetPlatform.PlatformMacroValue , LocalTargetConfig);
   var BaseProjectFolder := TPath.GetDirectoryName(ProjectFile);
-  if Settings.HasMultiIDEPackages then BaseProjectFolder := TPath.Combine(BaseProjectFolder, DelphiSuffixes[IDEName]);
+  if Settings.HasMultiIDEPackages then BaseProjectFolder := TPath.Combine(BaseProjectFolder, DelphiProductVersion[IDEName]);
 
   var DestFolder := TPath.Combine(BaseProjectFolder, Settings.TargetPlatform.PlatformMacroValue , LocalTargetConfig);
 

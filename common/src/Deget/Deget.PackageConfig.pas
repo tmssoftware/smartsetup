@@ -97,10 +97,11 @@ type
     FPackageExtension: string;
     FIsExe: boolean;
     FLibSuffixes: TLibSuffixes;
-    // replace $(Platform) and $(Config)
+    // replace $(Platform), $(Config) and $(ProductVersion)
     function ExpandDirectoryMacros(const S, ABuildConfig: string): string;
     function ExpandConfigMacro(const S, ABuildConfig: string): string;
     function ExpandPlatformMacro(const S: string): string;
+    function ExpandProductVersionMacro(const S: string): string;
     function PackageExtension: string;
   strict
   private
@@ -203,7 +204,7 @@ begin
 
   if MultiIDEPackage then
   begin
-    FDcuOutputDir := '.\' + DelphiSuffixes[APlatformInfo.IDEInfo.IDEName] +'\$(Platform)\$(Config)';
+    FDcuOutputDir := '.\$(ProductVersion)\$(Platform)\$(Config)';
   end else
   begin
     FDcuOutputDir := '.\$(Platform)\$(Config)';
@@ -285,11 +286,17 @@ begin
   Result := S;
   Result := ExpandConfigMacro(Result, ABuildConfig);
   Result := ExpandPlatformMacro(Result);
+  Result := ExpandProductVersionMacro(Result);
 end;
 
 function TPackageConfig.ExpandPlatformMacro(const S: string): string;
 begin
   Result := StringReplace(S, '$(Platform)', FPlatformInfo.PlatformMacroValue, [rfReplaceAll, rfIgnoreCase]);
+end;
+
+function TPackageConfig.ExpandProductVersionMacro(const S: string): string;
+begin
+  Result := StringReplace(S, '$(ProductVersion)', FPlatformInfo.ProductVersionMacroValue, [rfReplaceAll, rfIgnoreCase]);
 end;
 
 function TPackageConfig.ExpandedCppBpiOutputDir(const ABuildConfig: string): string;

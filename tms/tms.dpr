@@ -56,7 +56,6 @@ uses
   Commands.Termination in 'src\Commands\Commands.Termination.pas',
   UParallelProjectBuilder in 'src\Builder\UParallelProjectBuilder.pas',
   UProjectDefinition in 'src\Project\UProjectDefinition.pas',
-  UTmsPackNaming in 'src\Naming\UTmsPackNaming.pas',
   UStandardNaming in 'src\Naming\UStandardNaming.pas',
   UNaming in 'src\Naming\UNaming.pas',
   UMsBuildInstaller in 'src\Installers\UMsBuildInstaller.pas',

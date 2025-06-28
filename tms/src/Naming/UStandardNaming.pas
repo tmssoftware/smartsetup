@@ -21,7 +21,7 @@ implementation
 
 constructor TStandardNaming.Create;
 begin
-  inherited Create(false);
+  inherited Create;
 end;
 
 function TStandardNaming.GetPackageNaming(const dv: TIDEName; const IsExe: boolean; const ProjectFolder: string): string;

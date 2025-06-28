@@ -15,6 +15,11 @@ const
   PackageSuffixes: array[TIDEName] of string =
     ('lazarus', '60', '70', '90', '100', '110', '120', '140', '150', '160', '170', '180', '190',
      '200', '210', '220', '230', '240', '250', '260', '270', '280', '290');
+  //$(ProductVersion) Available since XE2. Value is in CodeGear.Common.Targets, <ProductVersion> define.
+  DelphiProductVersion: array[TIDEName] of string =
+    ({this ones don't exist}'lazarus', '1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '8.0',
+     {XE2}'9.0', '10.0', '11.0', '12.0',
+     '14.0', '15.0', '16.0', '17.0', '18.0', '19.0', '20.0', '21.0', '22.0', '23.0');
   DelphiRegistryRoot: array[TIDEName] of string = (
     'Lazarus',
     'Software\Borland\Delphi\6.0',

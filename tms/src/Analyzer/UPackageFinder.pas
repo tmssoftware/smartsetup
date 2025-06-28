@@ -31,8 +31,6 @@ class function TPackageFinder.GetProjectToBuild(const PackageCache: TPackageCach
   const Project: TProjectDefinition;
   const Package: TPackage; const Naming: TNaming; const ThrowExceptions: boolean; const ForceExt: TArray<string>): string;
 begin
-  var Suffix := '';
-  if Naming.PackagesChangeName then Suffix := Naming.GetPackageNaming(dv, Package.PackageType = TPackageType.Exe, Project.PackageFolders[dv]);
   var BasePath := TPath.GetDirectoryName(Project.FullPath);
   var exts := ForceExt;
   if exts = nil then
@@ -40,9 +38,9 @@ begin
     exts := TInstallerFactory.GetInstaller(dv).PackageExtension(Package.PackageType);
   end;
 
-  var packs := PackageCache.GetFilesForPkg(BasePath, exts, Package.Name + Suffix);
+  var packs := PackageCache.GetFilesForPkg(BasePath, exts, Package.Name);
 
-  var FullPackName := Package.Name + Suffix;
+  var FullPackName := Package.Name;
 
   if Length(packs) = 0 then
   begin
@@ -52,12 +50,6 @@ begin
   if Package.PackageType = TPackageType.Exe then
   begin
     if Length(packs) <> 1 then exit(Throw(ThrowExceptions, 'The project: "' + FullPackName +'" inside the folder "' + BasePath + '" is repeated ' + IntToStr(Length(packs)) + ' times.'));
-    Result := packs[0];
-  end
-  else
-  if Naming.PackagesChangeName then
-  begin
-    if Length(packs) <> 1 then exit(Throw(ThrowExceptions, 'The package: "' + FullPackName +'" inside the folder "' + BasePath + '" is repeated ' + IntToStr(Length(packs)) + ' times.'));
     Result := packs[0];
   end
   else

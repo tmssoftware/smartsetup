@@ -67,6 +67,7 @@ type
     // if you want just to add a new directory to the path (collection of paths) use AddIDEPath
     procedure SetIDEPath(PathType: TDelphiPathType; const Value: string);
     function PlatformMacroValue: string;
+    function ProductVersionMacroValue: string;
     function BinaryPackageName(const BaseName: string; AddLibSuffix: Boolean; const IsExe: boolean; const NonStandardSuffixes: TLibSuffixes): string;
   public
     constructor Create(AIDE: TDelphiIDEInfo; APlatType: TPlatform);
@@ -841,6 +842,11 @@ end;
 function TDelphiIDEPlatformInfo.PlatformMacroValue: string;
 begin
   Result := PlatformId;
+end;
+
+function TDelphiIDEPlatformInfo.ProductVersionMacroValue: string;
+begin
+  Result := DelphiProductVersion[IDEInfo.IDEName];
 end;
 
 function TDelphiIDEPlatformInfo.PlatType: TPlatform;

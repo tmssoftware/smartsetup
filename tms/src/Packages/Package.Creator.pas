@@ -207,7 +207,9 @@ begin
   if varName = 'requires' then begin IsEscaped := true; exit(GetDpkSection(Package.Requires, function(s: string): string begin Result := DelphiEscape(TPath.GetFileNameWithoutExtension(s)); end)); end;
   if varName = 'unit-search-path' then exit(GetUnitSearchPath(Project));
   
+  if varName  = 'product-version' then if IDEName < TIDEName.delphixe2 then exit(DelphiProductVersion[IDEName]) else exit('$(ProductVersion)');
 
+  
   var PackagePlatforms := GetPackagePlatforms(Project, Package);
   var PackageFiles := GetFiles(Project, Package.FileMasks);
   if varName = 'contains' then begin IsEscaped := true; exit(GetDpkSection(PackageFiles, function(s: string): string begin Result := GetDpkContain(s); end));end;
@@ -306,7 +308,7 @@ begin
   begin
     for var Package in Project.Packages do
     begin
-      if Package.FileMasks.Empty then continue;
+      if not Package.AutoGenerate then continue;
       const IDEName = TIDEName.delphi11;
       ProcessTemplates(IDEName, Project, Package, TPath.Combine(Project.RootFolder, 'packages', DelphiSuffixes[IDEName], Package.Name));
     end;
