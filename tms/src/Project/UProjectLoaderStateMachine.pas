@@ -1319,6 +1319,7 @@ constructor TStandardFilesSectionDef.Create(const aParent: TSection;
   const AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask: TProc<string>;
   const SetRecursive: TProc<boolean>);
 begin
+  inherited Create(aParent, aProject);
   Actions := TListOfActions.Create;
 
   Actions.Add('folder', procedure(value: string; ErrorInfo: TErrorInfo) begin AddFolder(value);  end);

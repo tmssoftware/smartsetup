@@ -56,8 +56,10 @@ type
   TFileMasksList = record
   private
     FFileMasks: TArray<TFileMasks>;
+    function GetLast: TFileMasks;
+    procedure SetLast(const Value: TFileMasks);
 
-    function Last: TFileMasks;
+    property Last: TFileMasks read GetLast write SetLast;
   public
     procedure AddFolder(const aBaseFolder: string);
     procedure SetIncludeFolders(const Masks: TArray<string>);
@@ -859,35 +861,51 @@ begin
   Result := FFileMasks = nil;
 end;
 
-function TFileMasksList.Last: TFileMasks;
+function TFileMasksList.GetLast: TFileMasks;
 begin
   if FileMasks = nil then raise Exception.Create('There are no folders defined to add a mask.');
   Result := FileMasks[Length(FileMasks) - 1];
 end;
 
+procedure TFileMasksList.SetLast(const Value: TFileMasks);
+begin
+  FFileMasks[Length(FileMasks) - 1] := Value;
+end;
+
+
 procedure TFileMasksList.SetExcludeFiles(const Masks: TArray<string>);
 begin
-  Last.AddExcludeFiles(Masks);
+  var tmp := Last;
+  tmp.AddExcludeFiles(Masks);
+  Last := tmp;
 end;
 
 procedure TFileMasksList.SetExcludeFolders(const Masks: TArray<string>);
 begin
-  Last.AddExcludeFolders(Masks);
+  var tmp := Last;
+  tmp.AddExcludeFolders(Masks);
+  Last := tmp;
 end;
 
 procedure TFileMasksList.SetIncludeFiles(const Masks: TArray<string>);
 begin
-  Last.AddIncludeFiles(Masks);
+  var tmp := Last;
+  tmp.AddIncludeFiles(Masks);
+  Last := tmp;
 end;
 
 procedure TFileMasksList.SetIncludeFolders(const Masks: TArray<string>);
 begin
-  Last.AddIncludeFolders(Masks);
+  var tmp := Last;
+  tmp.AddIncludeFolders(Masks);
+  Last := tmp;
 end;
 
 procedure TFileMasksList.SetRecursive(const value: boolean);
 begin
-  Last.SetRecursive(value);
+  var tmp := Last;
+  tmp.SetRecursive(value);
+  Last := tmp;
 end;
 
 end.

@@ -102,13 +102,13 @@ package definitions:
 #    requires: rtl;dbrtl;FireDAC   #write the dcp packages this package requires. don't include the dcp extension.
 #    files:
 #      folder: source\core;  # Include the files in the folder.
-#      include file mask: *                  # separate masks with ;.
-#      exclude file mask: *.dcu
+#      include file mask: '*'                  # separate masks with ;.
+#      exclude file mask: '*.dcu'
 #
 #      folder: source\advances;  # Include the files in the folder.
 #      include folder mask: source     # for recursive calls, we will only enter folders named source  
 #      exclude folder mask: .svn       # for recursive calls, we will exclude folders names .svn.
-#      include file mask: *.pas;*.rc                  # separate masks with ;.
+#      include file mask: '*.pas;*.rc'                  # separate masks with ;.
 #      recursive: true #search in subfolders also. false by default
 
 paths:
@@ -135,6 +135,7 @@ paths:
   # with msbuild. "extra library paths" will be added when compiling with msbuild, but also registered in Rad Studio. Entries here won't be registered.
   # normally you will use this entries to fix buggy packages that you can't modify. It shouldn't be needed in normal cases and correct packages.
   build-only library paths:
+  # - source
 
 defines:
     defines filename: source/example.inc # if not empty, smart setup will create this file and overwrite any existing file. You can include this file from other include file.
