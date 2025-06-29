@@ -184,6 +184,15 @@ begin
   end;
 end;
 
+function GuidFromString(const s: string): string;
+begin
+  //We want to create GUIDs that don't change every time we rebuild,
+  //so we will use a type 5 GUID:
+  //https://en.wikipedia.org/wiki/Universally_unique_identifier
+  var DNS_NAMESPACE := StringToGUID('{6ba7b810-9dad-11d1-80b4-00c04fd430c8}');
+  Result := GuidToString(CreateUUIDv5(DNS_NAMESPACE,s));
+end;
+
 function ReplaceVariable(const varName: string; const IDEName: TIDEName; const Project: TProjectDefinition; const Package: TPackage; out IsEscaped: boolean): string;
 begin
   IsEscaped := false;
@@ -210,7 +219,13 @@ begin
   var PackagePlatforms := GetPackagePlatforms(Project, Package);
   var PackageFiles := GetFiles(Project, Package.FileMasks);
   if varName = 'contains' then begin IsEscaped := true; exit(GetDpkSection(PackageFiles, function(s: string): string begin Result := GetDpkContain(s); end));end;
-  if varName = 'guid' then exit(GuidToString(TGuid.NewGuid));
+
+  //If we always return a new guid, the projects will recompile every time we recreate them.
+  //if varName = 'guid' then exit(GuidToString(TGuid.NewGuid));
+
+  if varName = 'guid' then exit(GuidFromString(Project.Application.Id +'|%|' + Package.Name));
+
+
   if varName = 'framework-type' then exit(Package.DelphiFrameworkType);
   if varName = 'targeted-platforms' then exit(TargetedPlatforms(PackagePlatforms));
   if varName = 'cpp-output' then exit(GetCppOutput(SupportsCppBuilder(Project, Package)));

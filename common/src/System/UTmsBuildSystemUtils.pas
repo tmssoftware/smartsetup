@@ -15,7 +15,7 @@ procedure TryToDeleteAllFilesInFolderIgnoringLocked(const Folder: string; const 
 procedure DeleteFolderMovingToLocked(const LockFolder, Folder: string; const Recursive: boolean);
 procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCardExcludeFolders,
     WildCardIncludeFiles, WildCardExcludeFiles: TArray<string>; const  OnFile: TProc<string, string>;
-    const Recursive: boolean);
+    const Recursive: boolean; const ExcludeDefault: boolean = true);
 
 function CombinePath(const RootPath, RelPath: string): string;
 procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean);
@@ -35,6 +35,8 @@ procedure RenameAndCheckFolder(const SourceFolder, DestFolder: string);
 
 function FolderIsOutside(const Folder: string; const RootFolders: TArray<string>): boolean;
 
+function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;
+
 type
   TUTF8NoBOMEncoding = class(TUTF8Encoding)
   public
@@ -42,7 +44,7 @@ type
   end;
 
 implementation
-uses IOUtils, System.Hash, StrUtils, Masks,
+uses IOUtils, System.Hash, StrUtils, Masks, System.Types,
     {$IFDEF MSWINDOWS}
       Winapi.ShellAPI, Winapi.Windows, ActiveX, ComObj, Winapi.ShlObj;
     {$ENDIF MSWINDOWS}
@@ -238,7 +240,7 @@ end;
 
 procedure ScanFilesInternal(const FilePath, RelFilePath: string; const IncludeMaskFolders, ExcludeMaskFolders,
     IncludeMaskFiles, ExcludeMaskFiles: TArray<TMask>; const  OnFile: TProc<string, string>;
-    const Recursive: boolean);
+    const Recursive: boolean; const ExcludeDefault: boolean);
 var
   F: SysUtils.TSearchRec;
 begin
@@ -248,16 +250,22 @@ begin
       repeat
         if (F.Attr and faDirectory <> 0) then
         begin
-          if StartsStr('.', F.Name) then continue;
-          if StartsStr('__', F.Name) then continue;
+          if ExcludeDefault then
+          begin
+            if StartsStr('.', F.Name) then continue;
+            if StartsStr('__', F.Name) then continue;
+          end else
+          begin
+            if (F.Name = '.') or (F.Name = '..') then continue;
+          end;
           if MatchesMask(F.Name, ExcludeMaskFolders) then continue;
           if (IncludeMaskFolders = nil) or MatchesMask(F.Name, IncludeMaskFolders) then
           begin
-            if Recursive then ScanFilesInternal(TPath.Combine(FilePath, F.Name), TPath.Combine(RelFilePath, F.Name), IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive);
+            if Recursive then ScanFilesInternal(TPath.Combine(FilePath, F.Name), TPath.Combine(RelFilePath, F.Name), IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive, ExcludeDefault);
           end;
         end else
         begin
-          if F.Name = '.gitignore' then continue;          
+          if ExcludeDefault and (F.Name = '.gitignore') then continue;
           if MatchesMask(F.Name, ExcludeMaskFiles) then continue;
           if (IncludeMaskFiles = nil) or MatchesMask(F.Name, IncludeMaskFiles) then
           begin
@@ -273,7 +281,7 @@ end;
 
 procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCardExcludeFolders,
     WildCardIncludeFiles, WildCardExcludeFiles: TArray<string>; const  OnFile: TProc<string, string>;
-    const Recursive: boolean);
+    const Recursive: boolean; const ExcludeDefault: boolean = true);
 begin
   // TDirectory.GetFiles(Filepath, FileExt, TSearchOption.soAllDirectories, predicate); won't allow to exclude full folders, only files.
 
@@ -285,7 +293,7 @@ begin
   try
   var ExcludeMaskFiles := CreateMask(WildCardExcludeFiles);
   try
-    ScanFilesInternal(FilePath, '', IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive);
+    ScanFilesInternal(FilePath, '', IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive, ExcludeDefault);
   finally
     FreeMasks(ExcludeMaskFiles);
   end;
@@ -592,6 +600,33 @@ begin
     if (FullFolder.StartsWith(FullRootFolder, IgnoreCase)) then exit(false);
   end;
 end;
+
+function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;
+begin
+  // UTF-8 encode name
+  var NameBytes := TEncoding.UTF8.GetBytes(Name);
+
+  // Concatenate and hash using SHA-1
+  var LSHA1 := THashSHA1.Create;
+  LSHA1.Update(Namespace.ToByteArray(TEndian.Big) + NameBytes);
+  var Hash := LSHA1.HashAsBytes;
+
+  // Truncate to 16 bytes
+  SetLength(Hash, 16);
+
+  // Set version to 5 (UUIDv5)
+  Hash[6] := (Hash[6] and $0F) or $50;
+
+  // Set variant to RFC 4122
+  Hash[8] := (Hash[8] and $3F) or $80;
+
+  // Convert hash to TGUID
+  Result.D1 := Swap(PCardinal(@Hash[0])^);
+  Result.D2 := Swap(PWord(@Hash[4])^);
+  Result.D3 := Swap(PWord(@Hash[6])^);
+  Move(Hash[8], Result.D4[0], 8);
+end;
+
 
 initialization
   CreateDirLock := TObject.Create;
