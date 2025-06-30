@@ -101,15 +101,16 @@ package definitions:
 #    description: description for the package
 #    requires: rtl;dbrtl;FireDAC   #write the dcp packages this package requires. don't include the dcp extension.
 #    files:
-#      folder: source\core;  # Include the files in the folder.
-#      include file mask: '*'                  # separate masks with ;.
-#      exclude file mask: '*.dcu'
-#
-#      folder: source\advances;  # Include the files in the folder.
-#      include folder mask: source     # for recursive calls, we will only enter folders named source  
-#      exclude folder mask: .svn       # for recursive calls, we will exclude folders names .svn.
-#      include file mask: '*.pas;*.rc'                  # separate masks with ;.
-#      recursive: true #search in subfolders also. false by default
+#      - source:
+#          folder: source\core;  # Include the files in the folder.
+#          include file mask: '*'                  # separate masks with ;.
+#          exclude file mask: '*.dcu'
+#      - source:
+#          folder: source\advanced;  # Include the files in the folder.
+#          include folder mask: source     # for recursive calls, we will only enter folders named source  
+#          exclude folder mask: .svn       # for recursive calls, we will exclude folders names .svn.
+#          include file mask: '*.pas;*.rc'                  # separate masks with ;.
+#          recursive: true #search in subfolders also. false by default
 
 paths:
   extra library paths:  #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path

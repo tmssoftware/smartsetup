@@ -217,6 +217,10 @@ begin
     if Result = nil then raise Exception.Create('Invalid Section. ' + ErrorInfo.ToString);
 
     LastLevel := Levels.Pop;
+    if Result.Parent = nil then
+    begin
+      raise Exception.Create('Invalid Section. ' + ErrorInfo.ToString);
+    end;
     Result := Result.Parent;
   end;
 
@@ -234,6 +238,7 @@ begin
     Result := Result.Parent;
   end;
 
+  if Result = nil then raise Exception.Create('Error in YAML reader definition. Section Parent is nil.');
 
   Levels.Push(Level);
 
@@ -345,7 +350,7 @@ begin
   idx := 0;
   //If the line starts with #, it is always a comment. No escaping here, as in url##parameter.
   if line.StartsWith('#') then exit('');
-  
+
   //The only escape allowed is ## for #
   while true do
   begin
