@@ -343,6 +343,9 @@ var
 begin
   Result := Line.Trim(TrimWhitespace);
   idx := 0;
+  //If the line starts with #, it is always a comment. No escaping here, as in url##parameter.
+  if line.StartsWith('#') then exit('');
+  
   //The only escape allowed is ## for #
   while true do
   begin
