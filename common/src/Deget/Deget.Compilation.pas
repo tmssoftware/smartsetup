@@ -1401,7 +1401,8 @@ end;
 class function TPrecompiledCompiler.SupportsPlatform(const RootFolder: string; const IDEName: TIDEName; const Platform: TPlatform): boolean;
 begin
 {$IFDEF MSWINDOWS}
-  var TargetPlatform: IDelphiPlatformInfo := TDelphiIDEPlatformInfo.Create(nil, Platform);
+  var TargetIDE: IDelphiIDEInfo := TDelphiIDEInfo.Create(IDEName);
+  var TargetPlatform: IDelphiPlatformInfo := TargetIDE.GetPlatform(Platform);
 
   var PrecompiledSource := TPath.Combine(RootFolder, 'BinPackages');
   var SourceFolder := TPath.Combine(PrecompiledSource, DelphiSuffixes[IDEName], TargetPlatform.PlatformMacroValue);
