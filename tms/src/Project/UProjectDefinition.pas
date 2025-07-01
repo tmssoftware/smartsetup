@@ -278,6 +278,7 @@ type
     FLibSuffixes: TLibSuffixes;
     FHasMultiIDEPackages: Nullable<boolean>;
     FIgnoreDprojPlatforms: boolean;
+    FAddLibSuffix: boolean;
 
     function GetHasMultiIDEPackages: boolean;
 
@@ -297,6 +298,7 @@ type
     property WeakDependencies: TObjectList<TDependency> read FWeakDependencies;
     property ResolvedState: TResolvedState read FResolvedState write FResolvedState;
     property IgnoreDprojPlatforms: boolean read FIgnoreDprojPlatforms write FIgnoreDprojPlatforms;
+    property AddLibSuffix: boolean read FAddLibSuffix write FAddLibSuffix;
 
     property Naming: string read FNaming write FNaming;
     property RootPackageFolder: string read FRootPackageFolder write FRootPackageFolder;

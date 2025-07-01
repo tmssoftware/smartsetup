@@ -74,6 +74,10 @@ package options:
   # about which ones it has to use. In this case, you can specify the relative path here where SmartSetup will start looking for packages.
   root package folder:
 
+  # Use this *only* when you cannot change the packages. If possible, it is always better to modify the packages
+  # so they have a libsuffix. Otherwise, manual compilation of the packages will fail.
+  # add libsuffix: true
+
   # Use this section only if you are not using the standard smartsetup folders for the packages.
   # Note that if the same folder supports for example Delphi 11 and Delphi 12 (by using Libsuffix $(auto)), you can 
   # write the same folder for 11 and 12.

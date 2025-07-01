@@ -290,6 +290,14 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TStandardFilesSourceSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition;
+      const AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask: TProc<string>;
+      const SetRecursive: TProc<boolean>);
+    class function SectionNameStatic: string; override;
+  end;
+
 implementation
 uses Classes, UTmsBuildSystemUtils, IOUtils, Deget.Version;
 
@@ -486,6 +494,10 @@ begin
   Actions.Add('root package folder', procedure(value: string; ErrorInfo: TErrorInfo)
     begin
       Project.RootPackageFolder := value;
+    end);
+  Actions.Add('add libsuffix', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.AddLibSuffix := GetBoolEx(value, ErrorInfo);
     end);
 
 end;
@@ -1320,7 +1332,28 @@ constructor TStandardFilesSectionDef.Create(const aParent: TSection;
   const SetRecursive: TProc<boolean>);
 begin
   inherited Create(aParent, aProject);
+  SectionValueTypes := TSectionValueTypes.NoValues;
+  ContainsArrays := true;
+
+  ChildSections.Add(TStandardFilesSourceSectionDef.SectionNameStatic, TStandardFilesSourceSectionDef.Create(Self, aProject,
+    AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask, SetRecursive));
+end;
+
+class function TStandardFilesSectionDef.SectionNameStatic: string;
+begin
+  Result := 'files';
+end;
+
+{ TStandardFilesSourceSectionDef }
+
+constructor TStandardFilesSourceSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition;
+  const AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask: TProc<string>;
+  const SetRecursive: TProc<boolean>);
+begin
+  inherited Create(aParent, aProject);
   Actions := TListOfActions.Create;
+
 
   Actions.Add('folder', procedure(value: string; ErrorInfo: TErrorInfo) begin AddFolder(value);  end);
   Actions.Add('include folder mask', procedure(value: string; ErrorInfo: TErrorInfo) begin SetIncludeFolderMask(value); end);
@@ -1330,9 +1363,9 @@ begin
   Actions.Add('recursive', procedure(value: string; ErrorInfo: TErrorInfo) begin SetRecursive(GetBool(value, ErrorInfo)); end);
 end;
 
-class function TStandardFilesSectionDef.SectionNameStatic: string;
+class function TStandardFilesSourceSectionDef.SectionNameStatic: string;
 begin
-  Result := 'files';
+  Result := 'source';
 end;
 
 end.

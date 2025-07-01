@@ -38,7 +38,7 @@ type
     procedure LinkPackageFile(const ProductId, LinkedFileName, BinaryPackageFileName: string; PackUninstall: TJSONObject);
     function AddPathOverride(IDEInfo: IDelphiIDEInfo; const AlternateRegistryKey, Folder: string): boolean;
     procedure CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; IDEName: TIDEName; const IsExe: boolean;
-              const Application: TApplicationDefinition; const Brcc32Path: string);
+              const Application: TApplicationDefinition; const AddLibSuffix: boolean; const Brcc32Path: string);
     procedure UpdatePackageSource(const Orig, OutputDir: string; IDEName: TIDEName);
     procedure RegisterHelp(const ProductName, HelpFile: string; IDEName: TIDEName; const Config: TConfigDefinition; const UninstallInfo: IUninstallInfo);
     function UnRegisterHelp(const UninstallInfo: IUninstallInfo): boolean;
@@ -530,6 +530,11 @@ begin
   begin
     var LinkedFolder := TPath.Combine(BuildInfo.Project.BplFolder, PlatformInfo.PlatformMacroValue);
     var LinkedFileName := TPath.Combine(LinkedFolder, TPath.GetFileName(BinaryPackageFileName));
+    if not TFile.Exists(BinaryPackageFileName) then
+    begin
+      raise Exception.Create('Can''t find the package ' + BinaryPackageFileName + '. It likely has wrong or no LIBSUFFIX.');
+    end;
+
     if not BuildInfo.Project.DryRun then
     begin
       LinkPackageFile(BuildInfo.Project.ProjectId, LinkedFileName, BinaryPackageFileName, PackUninstall);
@@ -849,7 +854,8 @@ begin
         CopyProjects(OrigPackage, TempPackage, PackageInfo.UnexpandedOutputDir,
                      ExeOutputDir,
                      BuildInfo.IDE.Name, BuildInfo.Project.Project.IsExe,
-                     BuildInfo.Project.Project.Application, CreateIDEInfo(BuildInfo).Brcc32File);
+                     BuildInfo.Project.Project.Application, BuildInfo.Project.Project.AddLibSuffix,
+                     CreateIDEInfo(BuildInfo).Brcc32File);
       end;
     end;
   finally
@@ -1029,8 +1035,9 @@ begin
   Result := TPath.GetFileName(FileName);
 end;
 
-procedure TDelphiInstaller.CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; IDEName: TIDEName; const IsExe: boolean;
-    const Application: TApplicationDefinition; const Brcc32Path: string);
+procedure TDelphiInstaller.CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string;
+    IDEName: TIDEName; const IsExe: boolean;
+    const Application: TApplicationDefinition; const AddLibSuffix: boolean; const Brcc32Path: string);
 var
   SourceDir, TargetDir: string;
 
@@ -1189,6 +1196,7 @@ begin
           Writer.UpdateDcrFiles(PackData.DcrFiles);
           Writer.UpdateRequires(PackData.Requires);
           Writer.UpdatePasFiles(PackData.PasFiles);
+          if AddLibSuffix then Writer.UpdateDllSuffix(GetLibSuffix(IDEName, false));
           Writer.Flush;
         finally
           Writer.Free;
