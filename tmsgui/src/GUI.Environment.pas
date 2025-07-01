@@ -309,18 +309,27 @@ function TGUIEnvironment.CanInstallSelected: Boolean;
 begin
   if IsRunning then Exit(False);
 
-  UpdateSelectedProducts;
-  Result := False;
-  for var Product in FSelected do
-  begin
-    if (Product.Status = TProductStatus.NotInstalled)  then
-      Result := True
-    else
-    if (Product.Status = TProductStatus.Installed) and Product.IsOutdated then
-      Result := True
-    else
-      Exit(False);
-  end;
+  // According with the desired logic below, the Install button will only be disabled for
+  // products that are already installed and don't have a new version available to download
+  // Since "installing" a product that is in the latest version is harmless, let's simplify everything
+  // and just leave the Install button always enabled.
+  Result := True;
+
+
+//  UpdateSelectedProducts;
+//  Result := False;
+//  for var Product in FSelected do
+//  begin
+//    if (Product.Status = TProductStatus.NotInstalled)  then
+//      Result := True
+//    else
+//    if (Product.Status = TProductStatus.Installed) and Product.IsOutdated then
+//      Result := True
+//    else
+//    if (Product.Status = TProductStatus.Available) then
+//    else
+//      Exit(False);
+//  end;
 end;
 
 function TGUIEnvironment.CanRequestCredentials: Boolean;
@@ -337,6 +346,8 @@ begin
   Result := False;
   for var Product in FSelected do
     if Product.Status = TProductStatus.Installed then
+      Result := True
+    if Product.Status = TProductStatus.Available then
       Result := True
     else
       Exit(False);
