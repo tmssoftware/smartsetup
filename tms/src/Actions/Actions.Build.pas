@@ -4,7 +4,7 @@ interface
 
 procedure ExecuteBuildAction(FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
 procedure ExecuteBuildAction(ProductIds: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
-procedure RemoveFromWindowsPathIfNoProducts;
+procedure RemoveFromWindowsPathIfNoProducts; overload;
 
 implementation
 
@@ -17,26 +17,43 @@ uses
   Windows, Messages, Package.Creator,
   {$ENDIF}
 
-  UBuildSummary;
+  UBuildSummary, Megafolders.Manager;
 
+procedure UnregisterLibraryPaths(const Root: string);
+begin
+  //Just remove everything that is registered in our path.
+  //This method is called when there is no product left.
+  //getInstaller
+end;
 
-procedure RemoveFromWindowsPathIfNoProducts;
+procedure RegisterMegafolders;
+begin
+  //Unregister all existing megafolders, just in case
+  UnregisterLibraryPaths(Config.Folders.DcuMegafolder);
+end;
+
+procedure RemoveFromWindowsPathIfNoProducts(const ProjectCount: integer); overload;
 begin
 {$IFDEF MSWINDOWS}
-  var Projects := TProjectList.Create;
-  try
-    TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projects, 'root:minimum required tmsbuild version', true);
-    if Projects.All.Count = 0 then
+    if ProjectCount = 0 then
     begin
       var LinkedFolder := Config.Folders.BplFolder;
       var RemovedPaths := RemoveFromWindowsPathWithChildren(LinkedFolder);
       for var Removed in RemovedPaths do Logger.Info('Removed "' + Removed + '" from the Windows Path');
       RemoveFromEnviromnentOverrides;
     end;
+{$ENDIF}
+end;
+
+procedure RemoveFromWindowsPathIfNoProducts; overload;
+begin
+  var Projects := TProjectList.Create;
+  try
+    TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projects, 'root:minimum required tmsbuild version', true);
+    RemoveFromWindowsPathIfNoProducts(Projects.All.Count);
   finally
     Projects.Free;
   end;
-{$ENDIF}
 end;
 
 
@@ -121,8 +138,6 @@ begin
       Logger.Info('No configuration file found');
     Logger.Info('');
 
-    RemoveFromWindowsPathIfNoProducts;
-
     var FileHasher := TFileHasher.Create(Config);
     try
       if Config.PreventSleep then
@@ -132,7 +147,23 @@ begin
 
         PreventSleep;
       end;
-      if FullBuild then FileHasher.CleanHashes; //even in a dry-run. So we can rebuild everything
+
+      if FullBuild then
+      begin
+        var AllIncluded: boolean;
+        FileHasher.CleanHashes(false, AllIncluded); //even in a dry-run. So we can rebuild everything
+        if AllIncluded then TMegafolderManager.RemoveAll(Config.Folders.DcuMegafolder); // do not remove if not building everything.
+      end else
+      begin
+        TMegafolderManager.RemoveUnused(Config.Folders.DcuMegafolder, Config.DcuMegafolders);
+        if TMegafolderManager.ChangedMegafolders(Config.DcuMegafolders, Config.Folders.DcuMegafolder) then
+        begin
+          TMegafolderManager.RemoveAll(Config.Folders.DcuMegafolder);
+          //In this case, we will rebuild everything. See https://github.com/tmssoftware/tms-smartsetup/discussions/193#discussioncomment-13632149
+          var AllIncluded: boolean;
+          FileHasher.CleanHashes(true, AllIncluded);
+        end;
+      end;
 
       // if we are unregistering the products, the easiest way is to "simulate" the deletion of all projects
       // This is done by simply not loading the list of existing projects
@@ -140,6 +171,12 @@ begin
         TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projs);
 
       Projs.ResolveDependencies;
+
+      RemoveFromWindowsPathIfNoProducts(Projs.All.Count);
+      if Projs.All.Count = 0
+        then UnregisterLibraryPaths(Config.Folders.RootFolder)
+        else RegisterMegafolders;
+
 
       CreatePackages(Projs);
       var ProjectAnalyzer := TProjectAnalyzer.Create(Config, Projs, FileHasher);
@@ -157,7 +194,6 @@ begin
           raise;
         end;
         Logger.FinishSection(TMessageType.Analyze, false);
-
 
         // do the build process
         begin

@@ -2,7 +2,7 @@ unit ULazarusInstaller;
 {$i ../../tmssetup.inc}
 
 interface
-uses Deget.CoreTypes, UInstaller, UUninstallInfo, UFullBuildInfo;
+uses Deget.CoreTypes, UInstaller, UUninstallInfo, UFullBuildInfo, Megafolders.Definition;
 
 type
   TLazarusInstaller = class(TInstaller)
@@ -27,8 +27,14 @@ type
 
     procedure UpdateProjectsSource(const BuildInfo: TFullBuildInfo); override;
 
+    procedure UpdateMegafolders(const SourceFolder, ProjectId: string;
+      const IDEName: TIDEName; const Platform: TPlatform;
+      const BuildConfig: TBuildConfig;
+      const UsedDcuMegafolders: TUsedMegafolders); override;
+
+
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); override;
-    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); override;
+    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
 
     function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
@@ -147,6 +153,12 @@ procedure TLazarusInstaller.UnRegisterAtPlatformLevel(
 begin
 end;
 
+procedure TLazarusInstaller.UpdateMegafolders(const SourceFolder,
+  ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform;
+  const BuildConfig: TBuildConfig; const UsedDcuMegafolders: TUsedMegafolders);
+begin
+end;
+
 procedure TLazarusInstaller.UpdateProjectsSource(const BuildInfo: TFullBuildInfo);
 begin
 end;
@@ -156,7 +168,7 @@ begin
 
 end;
 
-procedure TLazarusInstaller.MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo);
+procedure TLazarusInstaller.MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders);
 begin
 end;
 

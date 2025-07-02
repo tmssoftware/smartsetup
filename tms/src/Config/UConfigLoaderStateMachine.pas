@@ -2,7 +2,7 @@ unit UConfigLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBClasses, UConfigDefinition, Generics.Collections, SysUtils, Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
+uses BBClasses, Megafolders.Definition, UConfigDefinition, Generics.Collections, SysUtils, Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
 
 type
   TSectionConf = class(TSection)
@@ -159,6 +159,12 @@ type
   TTmsBuildOptionsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
+  TDcuMegafoldersSectionConf = class(TSectionConf)
+  public
+    constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
   end;
 
@@ -614,6 +620,7 @@ begin
   ChildSections.Add(TServersSectionConf.SectionNameStatic, TServersSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TGitSectionConf.SectionNameStatic, TGitSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TSvnSectionConf.SectionNameStatic, TSvnSectionConf.Create(Self, aConfig, ProductConfig));
+  ChildSections.Add(TDcuMegafoldersSectionConf.SectionNameStatic, TDcuMegafoldersSectionConf.Create(Self, aConfig, ProductConfig));
 
   Actions := TListOfActions.Create;
   Actions.Add('build cores', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.BuildCores := GetInt(value, ErrorInfo) end);
@@ -757,6 +764,24 @@ end;
 function TSvnSectionConf.VarPrefix: string;
 begin
   Result := 'svn-';
+end;
+
+{ TDcuMegafoldersSectionConf }
+
+constructor TDcuMegafoldersSectionConf.Create(const aParent: TSection;
+  const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+begin
+  inherited Create(aParent, aConfig, aProductConfig);
+
+  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+    begin
+      Config.DcuMegafolders.Add(TMegafolder.Create(name, value));
+    end;
+end;
+
+class function TDcuMegafoldersSectionConf.SectionNameStatic: string;
+begin
+  Result := 'dcu megafolders';
 end;
 
 end.

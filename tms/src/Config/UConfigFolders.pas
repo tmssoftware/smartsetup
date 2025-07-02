@@ -26,6 +26,7 @@ type
     function CompileTempFolder: string;
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
+    function DcuMegafolder: string;
   end;
 
   TBuildFolders = class(TInterfacedObject, IBuildFolders)
@@ -58,6 +59,7 @@ type
     function CompileTempFolder: string;
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
+    function DcuMegafolder: string;
   end;
 
 implementation
@@ -187,6 +189,11 @@ end;
 function TBuildFolders.VCSTempFolder: string;
 begin
   Result := TPath.Combine(TempFolder, '.repositories')
+end;
+
+function TBuildFolders.DcuMegafolder: string;
+begin
+  Result := TPath.Combine(MetaFolder, 'lib')
 end;
 
 function TBuildFolders.DoctorUndoFolder: string;

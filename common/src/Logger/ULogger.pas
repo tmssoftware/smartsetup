@@ -23,7 +23,8 @@ type
       VCSRegister,
       Load,
       Analyze,
-      Skipped
+      Skipped,
+      Megafolder
   );
 
   TConnectionPoint = record

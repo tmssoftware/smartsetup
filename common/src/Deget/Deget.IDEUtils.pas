@@ -6,15 +6,21 @@ uses
   SysUtils, StrUtils;
 
 function AddPaths(const CurrentPath: string; PathToAdd: string; AddToBeginning: Boolean = False): string;
-function RemovePaths(const CurrentPath: string; PathToRemove: string): string;
+function RemovePaths(const CurrentPath: string; PathToRemove: string; const IncludeChildren: boolean = false): string;
 function GetPaths(const PathList: string): TArray<string>;
 function SameFolder(const F1, F2: string): Boolean;
+function StartsWithFolder(const SubFolder, Folder: string): Boolean;
 
 implementation
 
 function SameFolder(const F1, F2: string): Boolean;
 begin
   Result := SameText(IncludeTrailingPathDelimiter(F1), IncludeTrailingPathDelimiter(F2));
+end;
+
+function StartsWithFolder(const SubFolder, Folder: string): Boolean;
+begin
+  Result := StartsText(IncludeTrailingPathDelimiter(SubFolder), IncludeTrailingPathDelimiter(Folder));
 end;
 
 function GetPaths(const PathList: string): TArray<string>;
@@ -57,7 +63,7 @@ begin
   end;
 end;
 
-function RemovePaths(const CurrentPath: string; PathToRemove: string): string;
+function RemovePaths(const CurrentPath: string; PathToRemove: string; const IncludeChildren: boolean): string;
 var
   PathItemToRemove, ExistingPathItem: string;
   KeepPath: boolean;
@@ -67,11 +73,15 @@ begin
   begin
     KeepPath := true;
     for PathItemToRemove in GetPaths(PathToRemove) do
-      if SameFolder(ExistingPathItem, PathItemToRemove) then
+    begin
+      if SameFolder(ExistingPathItem, PathItemToRemove)
+      or (IncludeChildren and StartsWithFolder(PathItemToRemove, ExistingPathItem)) then
       begin
         KeepPath := false;
         break;
       end;
+    end;
+
     if KeepPath then
     begin
       if Result <> '' then

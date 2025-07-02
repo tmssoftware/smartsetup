@@ -31,7 +31,7 @@ public
   function Retrieve(const Project: string; const IDE: string = ''; const Platform: string = ''; const Package: string = ''): string; override;
   procedure Remove(const Project: string; const IDE: string = ''; const Platform: string = ''; const Package: string = ''); override;
   procedure RemoveAndBelow(const Project: string; const IDE: string = ''; const Platform: string = ''); override;
-  procedure RemoveAll; override;
+  procedure RemoveAll(const ForceExcluded: boolean; out AllIncluded: boolean); override;
   function List(const Project: string; const IDE: string = ''; const Platform: string = ''): TArray<TStrUninstallInfo>; override;
 
 end;
@@ -92,14 +92,19 @@ begin
   TryDeleteFileAndRemoveParentFolderIfEmpty(Config.Folders.LockedFilesFolder, GetFileName(Project, IDE, Platform, Package));
 end;
 
-procedure TFileSystemPersistence.RemoveAll;
+procedure TFileSystemPersistence.RemoveAll(const ForceExcluded: boolean; out AllIncluded: boolean);
 begin
+  AllIncluded := true;
   if not TDirectory.Exists(RootFolder) then Exit;
 
   var Products := TDirectory.GetDirectories(RootFolder);
   for var Product in Products do
   begin
-    if not Config.IsIncluded(TPath.GetFileName(Product)) then continue;
+    if not ForceExcluded and not Config.IsIncluded(TPath.GetFileName(Product)) then
+    begin
+      AllIncluded := true;
+      continue;
+    end;
     
     var Files := TDirectory.GetFiles(Product, '*' + FileExtension, TSearchOption.soAllDirectories);
     for var f in Files do
@@ -115,7 +120,8 @@ begin
   try
     if Project = '' then
     begin
-      RemoveAll;
+      var AllIncluded: boolean;
+      RemoveAll(false, AllIncluded);
       exit;
     end;
 

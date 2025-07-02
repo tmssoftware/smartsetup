@@ -2,7 +2,8 @@ unit UConfigWriter;
 {$i ../../tmssetup.inc}
 
 interface
-uses Classes, SysUtils, Util.Replacer, UConfigDefinition, Generics.Defaults, Generics.Collections, ULogger, Deget.CoreTypes;
+uses Classes, SysUtils, Util.Replacer, UConfigDefinition, Generics.Defaults,
+     Generics.Collections, ULogger, Deget.CoreTypes, Megafolders.Definition;
 type
 TConfigWriter = class
   private
@@ -40,6 +41,7 @@ TConfigWriter = class
       const ProductId: string): string;
     function CommentBlock(const s: string): string;
     function GetServers(const Servers: TServerConfigList): string;
+    function GetDcuMegafolders(const Values: TMegafolderList): TArray<string>;
   public
     constructor Create(const aCmdFormat: boolean);
     function ReplaceVariables(const Cfg: TConfigDefinition; const GlobalTemplate, ProductTemplate: string): string;
@@ -69,6 +71,12 @@ begin
   if String.IsNullOrWhiteSpace(s) then exit('#');
   exit('');
 
+end;
+
+function Quote(const s: string): string;
+begin
+  if s.IndexOfAny(['*', '%']) < 0 then exit(s);
+  Result := '''' + s.Replace('''', '''''') + '''';
 end;
 
 function TConfigWriter.GetCmdArray(const Items: Array of string): string;
@@ -146,6 +154,28 @@ begin
 
 end;
 
+function TConfigWriter.GetDcuMegafolders(const Values: TMegafolderList): TArray<string>;
+begin
+  Result := nil;
+  SetLength(Result, Values.Count);
+  for var i := 0 to Values.Count - 1 do
+  begin
+    Result[i] := Values[i].Folder + ': ' + Quote(Values[i].Mask);
+  end;
+
+  if Values.Count > 0 then exit;
+
+  Result :=
+  [
+    '#none: ''tms.flexcel.vcl''   # FlexCel VCL has over 5000 units, it is not worth putting it into a megafolder',
+    '#tms: ''tms.*''   # All other products matching tms.* except FlexCel go to the tms folder',
+    '#none: ''biglib.*'' # All "none" entries won''t use megafolders. Use none for big libraries.',
+    '#other: ''*'' #all products that didn''t match our previous rules go into other.'
+  ];
+
+end;
+
+
 function TConfigWriter.GetServers(const Servers: TServerConfigList): string;
 begin
   Result := '';
@@ -188,25 +218,27 @@ begin
 
       if varName = 'servers' then exit(GetServers(Cfg.ServerConfig));
 
-      if varName = 'git-git-location' then exit(ExampleString(Cfg.GitConfig.GitCommand, 'c:\git\git.exe'));
+      if varName = 'git-git-location' then exit(ExampleString(Quote(Cfg.GitConfig.GitCommand), 'c:\git\git.exe'));
       if varName = 'git-git-location-comment' then exit(GetComment(Cfg.GitConfig.GitCommand));
-      if varName = 'git-clone-command' then exit(ExampleString(Cfg.GitConfig.Clone, 'clone'));
+      if varName = 'git-clone-command' then exit(ExampleString(Quote(Cfg.GitConfig.Clone), 'clone'));
       if varName = 'git-clone-command-comment' then exit(GetComment(Cfg.GitConfig.Clone));
-      if varName = 'git-pull-command' then exit(ExampleString(Cfg.GitConfig.Pull, 'pull'));
+      if varName = 'git-pull-command' then exit(ExampleString(Quote(Cfg.GitConfig.Pull), 'pull'));
       if varName = 'git-pull-command-comment' then exit(GetComment(Cfg.GitConfig.Pull));
       //if varName = 'git-checkout-command' then exit(ExampleString(Cfg.GitConfig.Checkout, 'checkout HEAD --'));
       //if varName = 'git-checkout-command-comment' then exit(GetComment(Cfg.GitConfig.Checkout));
-      if varName = 'git-shallow-clone-command' then exit(ExampleString(Cfg.GitConfig.ShallowClone, 'clone --depth 1 --filter=blob:none --sparse'));
+      if varName = 'git-shallow-clone-command' then exit(ExampleString(Quote(Cfg.GitConfig.ShallowClone), 'clone --depth 1 --filter=blob:none --sparse'));
       if varName = 'git-shallow-clone-command-comment' then exit(GetComment(Cfg.GitConfig.ShallowClone));
 
-      if varName = 'svn-svn-location' then exit(ExampleString(Cfg.SvnConfig.SvnCommand, 'C:\fpc\fpcbootstrap\svn\bin\svn.exe'));
+      if varName = 'svn-svn-location' then exit(ExampleString(Quote(Cfg.SvnConfig.SvnCommand), 'C:\fpc\fpcbootstrap\svn\bin\svn.exe'));
       if varName = 'svn-svn-location-comment' then exit(GetComment(Cfg.SvnConfig.SvnCommand));
-      if varName = 'svn-checkout-command' then exit(ExampleString(Cfg.SvnConfig.Checkout, 'checkout'));
+      if varName = 'svn-checkout-command' then exit(ExampleString(Quote(Cfg.SvnConfig.Checkout), 'checkout'));
       if varName = 'svn-checkout-command-comment' then exit(GetComment(Cfg.SvnConfig.Checkout));
-      if varName = 'svn-update-command' then exit(ExampleString(Cfg.SvnConfig.Update, 'update'));
+      if varName = 'svn-update-command' then exit(ExampleString(Quote(Cfg.SvnConfig.Update), 'update'));
       if varName = 'svn-update-command-comment' then exit(GetComment(Cfg.SvnConfig.Update));
-      if varName = 'svn-export-command' then exit(ExampleString(Cfg.SvnConfig.Export, 'export'));
+      if varName = 'svn-export-command' then exit(ExampleString(Quote(Cfg.SvnConfig.Export), 'export'));
       if varName = 'svn-export-command-comment' then exit(GetComment(Cfg.SvnConfig.Export));
+
+      if varName = 'dcu-megafolders' then exit(GetArray(GetDcuMegafolders(Cfg.DcuMegafolders), 2));
 
 
       if varName = 'config-by-product' then exit(ReplaceAllProductVariables(Cfg.Products, ProductTemplate));

@@ -33,7 +33,6 @@ type
 
     function AllOk: boolean;
     function AllOkAndNoSkipped: boolean;
-
   end;
 
 implementation

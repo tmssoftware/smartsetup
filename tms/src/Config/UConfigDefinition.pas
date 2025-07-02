@@ -3,7 +3,8 @@ unit UConfigDefinition;
 
 interface
 uses Generics.Defaults, Generics.Collections, Masks, UMultiLogger, UConfigKeys,
-     UNaming, UNamingList, SysUtils, Deget.CoreTypes, SyncObjs, ULogger, UConfigFolders, UOSFileLinks;
+     UNaming, UNamingList, SysUtils, Deget.CoreTypes, SyncObjs, ULogger,
+     UConfigFolders, UOSFileLinks, Megafolders.Definition;
 
 type
   TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore);
@@ -162,6 +163,7 @@ type
     FServerConfig: TServerConfigList;
     FGitConfig: TGitConfig;
     FSvnConfig: TSvnConfig;
+    FDcuMegafolders: TMegafolderList;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -201,6 +203,8 @@ type
 
     property GitConfig: TGitConfig read FGitConfig write FGitConfig;
     property SvnConfig: TSvnConfig read FSvnConfig write FSvnConfig;
+
+    property DcuMegafolders: TMegafolderList read FDcuMegafolders;
 
     property ErrorIfSkipped: boolean read FErrorIfSkipped write FErrorIfSkipped;
 
@@ -250,10 +254,12 @@ begin
   FPreventSleep := true;
   FMaxVersionsPerProduct := -1;
   FErrorIfSkipped := false;
+  FDcuMegafolders := TMegafolderList.Create;
 end;
 
 destructor TConfigDefinition.Destroy;
 begin
+  FDcuMegafolders.Free;
   Namings.Free;
   IncludedComponents.Free;
   ExcludedComponents.Free;

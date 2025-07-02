@@ -9,7 +9,8 @@ uses
 {$ENDIF}
   UCoreTypes, Deget.CoreTypes, UInstaller, UConfigDefinition, UProjectBuildInfo, UFullBuildInfo,
   UPersistence, UOSShortcuts, UUninstallInfo, UFileHasher, SyncObjs,
-  UProjectDefinition, Generics.Collections, Generics.Defaults, UIDEBuildInfo;
+  UProjectDefinition, Generics.Collections, Generics.Defaults, UIDEBuildInfo,
+  Megafolders.Definition;
 
 type
   TProjectInstaller = class
@@ -51,7 +52,7 @@ type
     procedure Build(const Installer: TInstaller; const BuildInfo: TFullBuildInfo);
 
     procedure CreateTempProjects(const Installer: TInstaller; const BuildInfo: TFullBuildInfo);
-    procedure MoveDataFromTempProjects(const Installer: TInstaller; const BuildInfo: TFullBuildInfo);
+    procedure MoveDataFromTempProjects(const Installer: TInstaller; const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders);
     procedure RemoveTempProjects(const Installer: TInstaller; const BuildInfo: TFullBuildInfo);
 
     function GetAllProjects: TArray<IUninstallInfo>;
@@ -772,10 +773,10 @@ begin
 end;
 
 procedure TProjectInstaller.MoveDataFromTempProjects(const Installer: TInstaller;
-  const BuildInfo: TFullBuildInfo);
+  const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders);
 begin
   try
-    Installer.MoveDataFromTempProjects(BuildInfo);
+    Installer.MoveDataFromTempProjects(BuildInfo, UsedDcuMegafolders);
   except on ex: Exception do
     begin
       Logger.Info('Error moving data from temp projects for project ' + BuildInfo.Project.Project.Application.Name

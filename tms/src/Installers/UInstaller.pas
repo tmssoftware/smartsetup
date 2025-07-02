@@ -3,7 +3,7 @@ unit UInstaller;
 
 interface
 uses SysUtils, Generics.Collections, UFullBuildInfo,
-     Deget.CoreTypes, UUninstallInfo;
+     Deget.CoreTypes, UUninstallInfo, Megafolders.Definition;
 type
   TInstaller = class
   public
@@ -26,8 +26,14 @@ type
 
     procedure UpdateProjectsSource(const BuildInfo: TFullBuildInfo); virtual; abstract;
 
+    procedure UpdateMegafolders(const SourceFolder, ProjectId: string;
+      const IDEName: TIDEName; const Platform: TPlatform;
+      const BuildConfig: TBuildConfig;
+      const UsedDcuMegafolders: TUsedMegafolders); virtual; abstract;
+
+
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); virtual; abstract;
-    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); virtual; abstract;
+    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); virtual; abstract;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); virtual; abstract;
 
     function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; virtual; abstract;

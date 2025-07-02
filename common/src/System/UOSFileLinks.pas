@@ -7,6 +7,7 @@ type
 
 procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType); overload;
 procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType; var NeedsToRestartIDE: boolean); overload;
+procedure DoSymLink(const FileToLink, LinkToCreate: string; const LogSuccess: boolean = true);
 
 implementation
 uses IOUtils,
@@ -81,11 +82,11 @@ end;
 
 end;
 
-procedure DoSymLink(const FileToLink, LinkToCreate: string);
+procedure DoSymLink(const FileToLink, LinkToCreate: string; const LogSuccess: boolean = true);
 begin
   if CreateSymLink(LinkToCreate, FileToLink) then
   begin
-    Logger.Trace(Format('Symlink created from "%s" to "%s"', [LinkToCreate, FileToLink]));
+    if LogSuccess then Logger.Trace(Format('Symlink created from "%s" to "%s"', [LinkToCreate, FileToLink]));
     Exit;
   end;
 
