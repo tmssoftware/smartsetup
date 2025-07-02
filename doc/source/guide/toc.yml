@@ -1,0 +1,10 @@
+- name: Introduction
+  href: ../index.md
+- name: Creating SmartSetup bundles 
+  href: creating-bundles.md
+- name: doctor command
+  href: doctor.md
+- name: Release notes
+  href: release-notes.md
+- name: Copyright
+  href: copyright.md

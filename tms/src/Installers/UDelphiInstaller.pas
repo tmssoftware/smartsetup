@@ -761,6 +761,7 @@ end;
 
 procedure UnregisterAllLibraryPaths(const Root: string);
 begin
+  exit;
   //Remove everything that is registered in our path.
   for var IDEName := Low(TIDEName) to High(TIDEName) do
   begin
@@ -770,7 +771,7 @@ begin
       var PlatformInfo: IDelphiPlatformInfo := IDEInfo.GetPlatform(Platform);
       for var PlatType := Low(TDelphiPathType) to High(TDelphiPathType) do
       begin
-        PlatformInfo.RemoveIDEPath(PlatType, Root, true);
+        PlatformInfo.RemoveIDEPath(PlatType, Root);
       end;
     end;
   end;
@@ -795,7 +796,7 @@ var
     if PathsToRemove = '' then Exit;
 
     if not UninstallInfo.DryRun then
-      PlatformInfo.RemoveIDEPath(PathType, PathsToRemove, false);
+      PlatformInfo.RemoveIDEPath(PathType, PathsToRemove);
     Logger.Trace(Format('Removed from %s in platform "%s.%s": %s', [
       UninstallConsts.IDEPaths[PathType],
       DisplayName,
