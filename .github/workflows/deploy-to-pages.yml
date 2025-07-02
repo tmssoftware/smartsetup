@@ -22,19 +22,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  xmldocer:
+    uses: ./.github/workflows/xmldocer-build-pages.yml
+
   # Build job
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    needs: xmldocer
+    steps: 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Build with xmldocer
-        uses: ./.github/workflows/xmldocer-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
+        uses: actions/configure-pages@v5        
+        
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
