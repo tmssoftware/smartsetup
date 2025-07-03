@@ -144,7 +144,7 @@ paths:
 
 defines:
     defines filename: source/example.inc # if not empty, smart setup will create this file and overwrite any existing file. You can include this file from other include file.
-                                         # the folder mus exist. You can use both / or \ as path separator, smart setup will fix it for the os. The folder must exist.
+                                         # the folder must exist. You can use both / or \ as path separator, smart setup will fix it for the os. The folder must exist.
     available defines:  # this are the defines the user can write in the "defines" section of tmsbuild.config.yaml.  
       - RTTI  # this option will make your compiled exes much bigger. Only set it to true if requires, and likely in a product-by product basis.
       - USE_UNICODE

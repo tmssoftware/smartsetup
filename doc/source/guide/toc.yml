@@ -2,7 +2,13 @@
   href: ../index.md
 - name: Creating SmartSetup bundles 
   href: creating-bundles.md
-- name: doctor command
+- name: Consuming SmartSetup bundles 
+  href: consuming-bundles.md
+- name: Publishing SmartSetup bundles 
+  href: publishing-bundles.md
+- name: Using Dcu Megafolders 
+  href: using-dcu-megafolders.md
+- name: Doctor command
   href: doctor.md
 - name: Release notes
   href: release-notes.md
