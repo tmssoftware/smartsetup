@@ -1,5 +1,6 @@
-# TMS Smart Setup definition file for Example
+# TMS Smart Setup definition file for Example. 
 # Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
 minimum required tmsbuild version: 2.0
   
 application:

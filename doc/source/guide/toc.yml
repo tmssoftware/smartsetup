@@ -1,13 +1,17 @@
 - name: Introduction
   href: ../index.md
+- name: Command line usage
+  href: command-line-usage.md
+- name: GUI tool usage
+  href: gui-tool-usage.md
+- name: Configuration 
+  href: configuration.md
 - name: Creating SmartSetup bundles 
   href: creating-bundles.md
 - name: Consuming SmartSetup bundles 
   href: consuming-bundles.md
 - name: Publishing SmartSetup bundles 
   href: publishing-bundles.md
-- name: Using Dcu Megafolders 
-  href: using-dcu-megafolders.md
 - name: Doctor command
   href: doctor.md
 - name: Release notes

@@ -52,6 +52,7 @@ And the “d11+” folder will be used for all Delphi versions after and includi
  * `packages\d2048+`
 
 With this extra line, all packages \>= D11 but \<d2048 will use the d11+ folder. All packages \>= Delphi 2048 will use the d2048 folder.
+See [this section for more information](#supporting-multiple-delphi-versions-with-the-same-package).
 
 {{/Note}}
 
@@ -247,3 +248,87 @@ This section is used by tms products to know if a product to install is also ins
 ### **dependencies** section
 
 Here you define which product your product depends on. While SmartSetup build in parallel, it guarantees that those products will be fully compiled before yours starts compiling, and their library paths will be passed to compile your product.
+
+## Binary distributions
+
+We designed SmartSetup so it would be used for “source code” distributions, where the sources are compiled on the fly and then registered. This is the best way to install Delphi packages, because the dcus will be compiled in **your** machine, with the exact same version of Delphi that you will use to compile your apps.
+
+But sometimes you might need to distribute binary packages. For example, in trials or components where you don’t want to make the source code available. Binary packages have the following characteristics:
+
+* They can be faster to install. But note that this is not always the case: SmartSetup is very quick to compile, and a binary distribution can be huge. Sometimes the time to download the bigger bundle and uncompress it might be more than the time to compile in place.
+
+* They can be huge. Especially if you have packages for Linux, Android or iOS. So we recommend compressing them as [.tar.zstd](https://facebook.github.io/zstd/) instead of zip, using a high compression ratio. Most tools that can create zip files can also create .tar.zstd files.
+
+* They have to be compiled to the exact Delphi version that the user is using. Even when in theory Delphi  service packs, patches and hotfixes are binary compatible, they have issues plenty of times.
+
+### Creating a binary distribution
+
+SmartSetup always requires a “compiler”. A compiler takes the source files ( .pas, .res, etc) and generates binary files from them (.dcu, .bpl, etc) in a different folder. Everything in SmartSetup relies on a compiler being present. For example, it assumes that it can always delete the output folder when doing a new build, because the compiler will be able to regenerate those files from the sources.
+
+This means that a binary distribution can’t just ship with its dcus and bpls in the output folder. SmartSetup is constantly deleting that folder. So what we have instead is the concept or a “Precompiled Compiler”. A precompiled compiler is just another type of “compiler”, same as msbuild or dcc32, which happens to generate its binaries by linking the same binaries from a different place. Now SmartSetup can freely remove the output folder again, and when you run this precompiled compiler, it will regenerate them. You can even mix binary packages and source packages in the same distribution.
+
+A precompiled compiler needs a project file, the same as the other compilers. MsBuild uses dproj, dcc32 uses dpk, and the precompiled compiler uses .binproj files. Those files are currently empty; they don’t have any valuable information.     
+
+So, to create a binary bundle you need to:
+
+  1. Provide .binproj packages in the same place you would provide .dproj files. If your source package has a `MyPackage1.dproj` and `MyPackage2.dproj` in the folders `packages\d11` `and packages\d12`, then you need to provide two empty files: `MyPackage1.binproj` and `MyPackage2.binproj` in the same folders. 
+
+  2. Provide the “sources” for the compiler. Those sources are the compiled dcus, bpl, etc which you want to have in the output folder, and they are by convention in the `\BinPackages` folder. For example, this is the structure of the TMS Webcore binary distribution:
+
+```
+BinPackages
+  ├───d11
+  │   └───Win32
+  │       └───Release
+  ├───d12
+  │   ├───Win32
+  │   │   └───Release
+  │   └───Win64
+  │       └───Release
+  ├───dberlin
+  │   └───Win32
+  │       └───Release
+  ├───drio
+  │   └───Win32
+  │       └───Release
+  ├───dsydney
+  │   └───Win32
+  │       └───Release
+  └───dtokyo
+      └───Win32
+          └───Release
+```
+Note how there are packages for Win64 and Win32 for Delphi 12, because Delphi 12 comes with a 64bit IDE. When you run a `tms build -full` command in the root folder, the compiler will first remove the output folder, then take the binaries in the BinPackage folder, and link them to the output folder again. If you are compiling for D12 only, and only win32, it will only link the packages in `\BinPackages\d12\Win32\Release` into `\packages\d12\Win32\Release`
+
+{{#Note}}
+The precompiled compiler creates hardlinks between the files in "BinPackages" and the output files, so there is no extra disk space needed. 
+{{/Note}}
+
+That is all that is required. If your bundle has .binproj files with the same name as the .dproj files that would be in a source distribution, and you place the binaries you want in the BinPackage folder, it will work just like any other distribution.
+
+## Compiling applications
+
+While SmartSetup is focused primarly in compiling and distributing packages, it can be used also to compile your own applications. Different from packages, where we only support Delphi, when compiling applications we also support C++ Builder projects.
+
+## Supporting multiple Delphi versions with the same package
+
+## Testing your package
+
+By now, you have structured the packages the way you want them and have created a tmsbuild.yaml file. So, you need to test that it all works. To do it, just open a command line prompt, and type:
+
+```shell
+cd <folder where your bundle is>
+tms build
+```
+
+If you are (very) lucky, it might work at first try. But the most common case is that something will fail. You can then type
+
+```shell
+tms log-view
+```
+
+This will open a browser showing a detailed log of what happened. Errors will be highlighted in red. 
+You can keep the browser open and just refresh it every time you try a new `tms build`
+
+Once everything is looking good, it is time to go to the next step: [Publishing your bundle](xref:SmartSetup.PublishingBundles)
+
