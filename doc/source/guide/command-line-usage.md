@@ -6,7 +6,7 @@ uid: SmartSetup.CommandLineUsage
 
 # Command-line usage
 
-TMS Smart Setup is folder-based. Once you have the folder initialized, you can run the command-line and Smart Setup will create files and subfolder inside it..
+TMS Smart Setup is folder-based. Once you have the folder initialized, you can run the command-line and Smart Setup will create files and subfolder inside it.
 
 The command-line is self-explanatory, just run `tms` to list all available commands, or `tms help <command>` for more detailed information about a specific command.
 
@@ -203,7 +203,7 @@ The syntax to specify the setting to read or write is the same as the one in the
 Examples:
 ```shell
 tms config-read configuration-for-all-products:delphi-versions
-tms config-write tms config-write -p:configuration-for-tms.flexcel.vcl:platforms=[] -p:tms-smart-setup-options:prevent-sleep=false -p:tms-smart-setup-options:git:git-location="" -p:configuration-for-all-products:platforms=[]
+tms config-write -p:configuration-for-tms.flexcel.vcl:platforms=[] -p:tms-smart-setup-options:prevent-sleep=false -p:tms-smart-setup-options:git:git-location="" -p:configuration-for-all-products:platforms=[]
 ```
 
 {{#Important}}

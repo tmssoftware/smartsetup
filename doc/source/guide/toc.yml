@@ -6,10 +6,10 @@
   href: gui-tool-usage.md
 - name: Configuration 
   href: configuration.md
-- name: Creating SmartSetup bundles 
-  href: creating-bundles.md
 - name: Consuming SmartSetup bundles 
   href: consuming-bundles.md
+- name: Creating SmartSetup bundles 
+  href: creating-bundles.md
 - name: Publishing SmartSetup bundles 
   href: publishing-bundles.md
 - name: Doctor command

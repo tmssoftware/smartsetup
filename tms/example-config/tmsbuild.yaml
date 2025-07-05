@@ -188,9 +188,11 @@ registry keys:
 #          name: TMS WEB Core
 #          data: Software\tmssoftware\TMS WEB Core
 
+# Register your help in Rad Studio
 help:
   file: Documentation/Example.chm  #this must be a chm file that will be registered so you can press F1 in Delphi and get help. If you don't have a chm file comment this line.
 
+# Create entries in the start menu.
 links:
   - link:
       type: file  # currently can only be file
@@ -206,12 +208,14 @@ links:
       description: Another tool. The same as MyTool but cooler.
       working folder: 
 
+# Link files inside your bundle
 file links:
   - link:
       file to link: example.dll
       link to folder: #optional. If you don't specify it, it will link to bpl folder.
       os: [windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
 
+# For checking if older products installed with a different method exist.
 other versions: # if the registry key exists, it means the product is already installed with other setup, and tms smart setup will refuse to run.
   - reg: HKEY_CURRENT_USER\SOFTWARE\tmssoftware\Example 
 

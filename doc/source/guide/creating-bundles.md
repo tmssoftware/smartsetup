@@ -26,7 +26,7 @@ There are some few requirements for the packages SmartSetup can work with:
 
 2. All packages must be in the same root folder, inside another folder with the Rad Studio version (`package root\delphi version`). So, for example, you might have your Delphi 12 packages in `\packages\d12` and your Delphi 13 packages in `\packages\d13`. You might also have them in `\my packages\delphi\Rad Studio 12 Athens` and `\my packages\delphi\Rad Studio 13 Florence`. What you can’t have is for example `\packages\delphi\delphi12` and `\packages\lazarus`. You need a single package root, and then all Delphi/Lazarus packages should be inside a single folder.
 
-3. All packages for different Delphi versions must have the same name, and must have a [{$LIBSUFFIX}](https://docwiki.embarcadero.com/RADStudio/en/Compiler_directives_for_libraries_or_shared_objects_%28Delphi%29) directive inside to differentiate the version. You can use any LIBSUFFIX you want, and also  `{$LIBSUFFIX AUTO}` for Delphi 11 and newer.
+3. All packages for different Delphi versions must have the same name, and must have a [{$LIBSUFFIX}](https://docwiki.embarcadero.com/RADStudio/en/Compiler_directives_for_libraries_or_shared_objects_%28Delphi%29) directive inside to . With this directive, you could have the same Package name, and, if you used a D6 libsuffix for Delphi 6, and D7 libsuffix for Delphi 7, you could have a single named package named "MyPackage" for both Delphi 6 and 7. The generated packages would be `MyPackageD6.bpl`and `MypackageD7.bpl` so they could coexist, but it was a single package with the same name for both. This made updating the Delphi versions easier, since now your projects would keep referencing the same package names, and it was not necesary to change your projects when upgrading. Still, while they had the same name, you needed different files for them. The package for Delphi XE would have `{$LIBSUFFIX XE}`inside, and differentiate the version. You can use any LIBSUFFIX you want, and also  `{$LIBSUFFIX AUTO}` for Delphi 11 and newer.
 
 ### Standard SmartSetup naming
 
@@ -235,11 +235,38 @@ Besides the `defines filename`, here you can specify which defines your user mig
 
 ### **registry keys** section
 
+This section allows you too add entries to the registry, should your product need them. Normally it should be empty, as SmartSetup will add all needed entries for registering the packages and library paths automatically. Only HKCU entries are allowed, for security, and also because SmartSetup runs without admin rights.
+
 ### **help** section
+
+If your bundle includes a chm file, you can write its name here and SmartSetup will register the help inside Rad Studio. This way users can press F1 while working in Delphi with your components and get help about them.
 
 ### **links** section
 
+Use this section to create entries in the Start Menu. 
+
 ### **file links** section
+
+Here you can create a hard link between two files inside your bundle. For security reasons, you can't link outside your bundle, or, as a special case, the bpl folder where SmartSetup is building all bpls.
+
+This section is used mostly if you have dlls and want to make them available in the Windows PATH. SmartSetup, if set to register, adds its bpl folder to the PATH. But that path is outside your bundle, and you can't just ship a dll linked to that folder. So you can create a link to your dll here.
+
+For example, those are the links FlexCel dll defines in its `tmsbuild.yaml`:
+
+```yaml
+file links:
+  - link:
+      file to link: Packages\dll\Win32\Release\FlexCelDyn.dll
+      link to folder: #optional. If you don't specify it, it will link to bpl folder.
+      os: [windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
+
+- link:
+      file to link: Packages\dll\Win64\Release\FlexCelDyn64.dll
+      link to folder: #optional. If you don't specify it, it will link to bpl folder.
+      os: [windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
+```
+
+This will link both dlls to the bpl folder, so they will be in the PATH.
 
 ### **other versions** section
 
@@ -247,7 +274,7 @@ This section is used by tms products to know if a product to install is also ins
 
 ### **dependencies** section
 
-Here you define which product your product depends on. While SmartSetup build in parallel, it guarantees that those products will be fully compiled before yours starts compiling, and their library paths will be passed to compile your product.
+Here you define which product your product depends on. While SmartSetup builds in parallel, it guarantees that those products will be fully compiled before yours starts compiling, and their library paths will be passed to compile your product.
 
 ## Binary distributions
 
@@ -308,9 +335,46 @@ That is all that is required. If your bundle has .binproj files with the same na
 
 ## Compiling applications
 
-While SmartSetup is focused primarly in compiling and distributing packages, it can be used also to compile your own applications. Different from packages, where we only support Delphi, when compiling applications we also support C++ Builder projects.
+While SmartSetup is focused primarly in compiling and distributing packages, it can be used also to compile your own applications. Different from packages, where we only support Delphi, when compiling applications **we also support C++ Builder projects**.
+
+Applications are very differently from packages when built with SmartSetup. When compiling a package, SmartSetup does a lot of stuff under the hood, from changing whatever output path the package had to the standard, to copying the bpls to a path which is in the Windows Path, creating release and debug versions, and a huge list of etceteras. On the other hand, when it compiles an application, it just runs msbuild on it. It will keep whatever output path the application had, and in general won't do a lot of extra work. Just the basics to be able to compile.
+
+So what are the advantages of building your applications with SmartSetup instead of directly with MSBuild? While the advantages aren't that big as when compiling packages, there are a few reasons why you might prefer to compile your apps with SmartSetup:
+  * 
 
 ## Supporting multiple Delphi versions with the same package
+
+In the beginning (that's before Delphi 6), it wasn't possible to register packages with the same name in two different delphi versions. If you had "MyPackage.bpl" installed in Delphi 4, you couldn't install another "MyPackage.bpl" in Delphi 5. That's because bpls go into the global Windows Path, and Delphi 5 would find the Delphi4 bpl and crash. So we had to ship packages like "MyPackageD4.bpl" and "MyPackageD5.bpl"
+
+Then, Delphi6 added [{$LIBSUFFIX}](https://docwiki.embarcadero.com/RADStudio/en/Compiler_directives_for_libraries_or_shared_objects_%28Delphi%29). Users looked, and saw it was good. With this directive, you could have the same Package name, and, if you used a `60` libsuffix for Delphi 6, and `70` libsuffix for Delphi 7, you could have a single named package named "MyPackage" for both Delphi 6 and 7. The generated packages would be `MyPackage60.bpl`and `Mypackage70.bpl` so they could coexist, but it was a single package with the same name for both. This made updating the Delphi versions easier, since now your projects would keep referencing the same package names, and it was not necesary to change your projects when upgrading. Still, while they had the same name, you needed different files for them. The packages for Delphi XE would have `{$LIBSUFFIX 150}` inside, and the packages for Delphi XE2 would have `{$LIBSUFFIX 160}` inside.
+
+Now, coming closer in time, Delphi 10.4 introduced a new `{$LIBSUFIX AUTO}`. But it was buggy on release, so we will consider Delphi 11 the first Delphi version with a working `{$LIBSUFIX AUTO}`
+
+So now, finally, you could ship a single package and use it in Delphi 11 and Delphi 12, and even unreleased versions, and, barring breaking changes in the dprojs, have them work. Still, a little problem remained. If you just shipped:
+
+```shell
+packages\D11+\MyPackage.dproj
+```
+instead of
+```shell
+packages\D11\MyPackage.dproj
+packages\D12\MyPackage.dproj
+```
+
+It would not be possible to compile MyPackage for Delphi 11 and Delphi 12 at the same time. When you compiled `packages\D11+\MyPackage.dproj` with Delphi 11, the dcus would go to `packages\D11+\Win32\Release`. IF you now compiled it with Delphi 12, the dcus would go to the exact same folder, overwriting the Delphi 11 dcus and making Delphi 11 to stop working. While with our "classical" approach of a different folder per Delphi version, it would have worked just fine. 
+
+But there is a little not-that-much known property that can come to the rescue. When setting our output folders, we used to set them to `$(Platform)\$(Config)`. If there was a built-in variable to make it output to different folders depending on the Delphi version, the last piece of the puzzle would fall in place, allowing us to finally ship a single package that supports multiple versions. 
+
+Enter `$(ProductVersion)`. This variable will output `22.0`for Delphi 11, and `23.0` for Delphi 12.
+So, if we set the output paths of our packages to `$(ProductVersion)\$(Platform)\$(Config)` instead of `$(Platform)\$(Config)` as we always did, when you compile `packages\D11+\MyPackage.dproj` with Delphi 11, dcus will go to `packages\D11+\22.0\Win32\Release`. When we compile them with Delphi 12, they will go to `packages\D11+\23.0\Win32\Release`. No crash.
+
+SmartSetup will automatically output the dcus to `$(ProductVersion)\$(Platform)\$(Config)` if it detects that a single package is designed to be compiled with more than one Delphi version (either beause it is inside a `D11+` folder with standard naming, or because you defined the package to support `D11+` with custom naming). There is nothing you need to do for it to work that way. Still, if the user compiles your packages manually, they will go to wherever the output path is set. **So we strongly suggest that you set all output paths in your packages to `$(ProductVersion)\$(Platform)\$(Config)`**
+
+{{#Note}}
+At tms, we believe the advantages of shipping a single package instead of thousands of them are just too good to ignore. So, we plan to move our products to support the "D11+" notation as time allows. Having a single package for all Delphi versions after D11 allows us to:
+  * Avoid duplicated information. Now there is a single package that is the "Source of truth" for everything. If you change it, it will change for all Delphi versions.
+  * It will allow us to ship packages that will keep installed in newer Delphi versions that weren't released at the time the package shipped. If you have products with a D11+ folder, you will be able to compile them with Delphi_NewVersion as soon as Delphi_NewVersion is released. You won't need to update the versoin of your package only to compile in a newer Delphi version.
+{{/Note}}
 
 ## Testing your package
 
