@@ -98,6 +98,13 @@ package options:
   # delphi11: _D11
   # delphi12: _D12
 
+  # Use this section if you require a different set of defines to compile from SmartSetup
+  # Avoid using this section whenever possible, the best is to modify the packages to have the correct includes
+  extra defines:
+  #  - add: MYDEFINE
+  #  - remove: OTHERDEFINE  
+
+
 # Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.
 # Note: This section must come after you have specified the "packages" section above.
 package definitions:

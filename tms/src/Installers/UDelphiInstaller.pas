@@ -203,6 +203,34 @@ begin
   end;
 end;
 
+function ExcludeDefine(const Define: string; const PackageExtraDefines: TList<string>): boolean;
+begin
+  Result := false;
+  for var d in PackageExtraDefines do
+  begin
+    if not d.StartsWith('-') then continue;
+    if (SameText(Define.Trim(), d.Substring(1).Trim)) then exit(true);
+  end;
+end;
+
+function ProcessDefines(const DefineString: string; const PackageExtraDefines: TList<string>): string;
+begin
+  if PackageExtraDefines = nil then exit(DefineString); //most common case.
+  var SplitDefines := DefineString.Split([';'], TStringSplitOptions.ExcludeEmpty);
+  Result := '';
+  for var Extra in PackageExtraDefines do
+  begin
+    if Extra.StartsWith('-') then continue;
+    if Result <> '' then Result := Result + ';';
+    Result := Result + Extra;
+  end;
+  for var Def in SplitDefines do
+  begin
+    if ExcludeDefine(Def, PackageExtraDefines) then continue;
+    Result := Result + ';' + Def;
+  end;
+end;
+
 procedure TDelphiInstaller._BuildPackage(const BuildConfig: string; const BuildInfo: TFullBuildInfo;
      UninstallInfo: IUninstallInfo; PackageInfo: IDelphiPackageInfo; const Package: TPackage;
      PlatformInfo: IDelphiPlatformInfo; const DoCBuilder: boolean);
@@ -230,7 +258,7 @@ begin
     try
       Settings.Defines := String.Join(';', BuildInfo.Project.Defines);
       var PkgDefines := PackageInfo.Defines(BuildConfig);
-      if PkgDefines <> '' then Settings.Defines := PkgDefines + ';' + Settings.Defines;
+      if PkgDefines <> '' then Settings.Defines := ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines) + ';' + Settings.Defines;
       
 
       if not BuildInfo.Project.DryRun then

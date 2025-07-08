@@ -279,6 +279,7 @@ type
     FHasMultiIDEPackages: Nullable<boolean>;
     FIgnoreDprojPlatforms: boolean;
     FAddLibSuffix: boolean;
+    FPackageExtraDefines: TList<string>;
 
     function GetHasMultiIDEPackages: boolean;
 
@@ -332,6 +333,8 @@ type
     property Shortcuts: TObjectList<TShortcutDefinition> read FShortcuts;
     property FileLinks: TObjectList<TFileLinkDefinition> read FFileLinks;
     property OtherRegistryKeys: TList<string> read FOtherRegistryKeys;
+
+    property PackageExtraDefines: TList<string> read FPackageExtraDefines;
 
     property HasMultiIDEPackages: boolean read GetHasMultiIDEPackages;
 
@@ -388,6 +391,7 @@ begin
   FShortcuts := TObjectList<TShortcutDefinition>.Create;
   FFileLinks := TObjectList<TFileLinkDefinition>.Create;
   FOtherRegistryKeys := TList<string>.Create;
+  FPackageExtraDefines := TList<string>.Create;
 end;
 
 
@@ -405,6 +409,7 @@ begin
   FShortcuts.Free;
   FFileLinks.Free;
   FOtherRegistryKeys.Free;
+  FPackageExtraDefines.Free;
   inherited;
 end;
 

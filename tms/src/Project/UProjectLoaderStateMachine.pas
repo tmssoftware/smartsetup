@@ -91,6 +91,13 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TPackageExtraDefinesSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+
+    class function SectionNameStatic: string; override;
+  end;
+
   THelpSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
@@ -486,6 +493,7 @@ begin
   inherited Create(aParent, aProject);
   ChildSections.Add(TPackageFoldersSectionDef.SectionNameStatic, TPackageFoldersSectionDef.Create(Self, aProject));
   ChildSections.Add(TLibSuffixesSectionDef.SectionNameStatic, TLibSuffixesSectionDef.Create(Self, aProject));
+  ChildSections.Add(TPackageExtraDefinesSectionDef.SectionNameStatic, TPackageExtraDefinesSectionDef.Create(Self, aProject));
   Actions := TListOfActions.Create;
   Actions.Add('ignore dproj platforms', procedure(value: string; ErrorInfo: TErrorInfo)
     begin
@@ -1366,6 +1374,23 @@ end;
 class function TStandardFilesSourceSectionDef.SectionNameStatic: string;
 begin
   Result := 'source';
+end;
+
+{ TPackageExtraDefinesSectionDef }
+
+constructor TPackageExtraDefinesSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  ContainsArrays := true;
+  Actions := TListOfActions.Create;
+  Actions.Add('add', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.PackageExtraDefines.Add(value);  end);
+  Actions.Add('remove', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.PackageExtraDefines.Add('-'+ value);  end);
+end;
+
+class function TPackageExtraDefinesSectionDef.SectionNameStatic: string;
+begin
+  Result := 'extra defines';
 end;
 
 end.
