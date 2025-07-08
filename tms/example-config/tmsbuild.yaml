@@ -49,7 +49,7 @@ supported frameworks:
       - win32intel
 
   product2:
-    ide since: delphixe  # the minumum version product2 supports
+    ide since: delphixe  # the minimum version product2 supports
     platforms:
       - win32intel # what product2 supports
     dependencies:
@@ -157,24 +157,25 @@ defines:
       - RTTI  # this option will make your compiled exes much bigger. Only set it to true if requires, and likely in a product-by product basis.
       - USE_UNICODE
 
-# Add entries to HKCU. You can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%
+# Add entries to HKCU. For the values, you can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%
 # %alternate-registry-key% is what the "alternate registry key" used by delphi, as specified in tms.config.yaml
-# value type can be String or DWORD. If ommited it is String
+# value type can be String or DWORD. If omitted it is String
+# For the Keys, you can use the variable %bds% to access the registry path for the BDS install.
 registry keys:
 #  - Software\tmssoftware\TMS WEB Core:
-#     value:
-#       name: InstallDir
-#       data: %install-path%
+#      - value:
+#          name: InstallDir
+#          data: %install-path%
 
-#     value: 
-#       name: WebServerWait
-#       type: Dword
-#       data: 2
+#      - value: 
+#          name: WebServerWait
+#          type: Dword
+#          data: 2
           
 #  - Software\tmssoftware\TMS WEB Core\Components:
-#     value:
-#       name: TMS WEB Core
-#       data: Software\tmssoftware\TMS WEB Core
+#      - value:
+#          name: TMS WEB Core
+#          data: Software\tmssoftware\TMS WEB Core
 
 help:
   file: Documentation/Example.chm  #this must be a chm file that will be registered so you can press F1 in Delphi and get help. If you don't have a chm file comment this line.

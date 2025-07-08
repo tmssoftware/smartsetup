@@ -81,10 +81,11 @@ private
   procedure ProcessValue(const Section: TSection; const Line: string; const Level: integer);
   procedure ProcessArray(const Section: TSection; const Line, Name, Value: string);
 
-  function RemoveArray(const name: string): string;
+  function RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
   procedure ParseColon(const Line: string; var Name, Value: string; const MustHaveValue, CanBeEmpty: boolean);
     function GetString(const s: string): string;
     function Escape(const s: string): string;
+    function GetKeyString(const s: string): string;
 
 public
   constructor Create(const FileName: string; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -154,11 +155,11 @@ begin
 
   if (Assigned(Section.ArrayMainAction)) then
   begin
-    ProcessArray(Section, Line, RemoveArray(Name), Value);
-    if (StopAt <> '') and (Section.FullSectionName + ':' + RemoveArray(Name) = StopAt) then Aborted := true;
+    ProcessArray(Section, Line, RemoveArray(Name, false), Value);
+    if (StopAt <> '') and (Section.FullSectionName + ':' + RemoveArray(Name, false) = StopAt) then Aborted := true;
     exit;
   end;
-  if Section.ContainsArrays then Name := RemoveArray(Name);
+  if Section.ContainsArrays then Name := RemoveArray(Name, Section.ArraysCanBeKeys);
 
   if ((Section.Actions <> nil) and Section.Actions.TryGetValue(Name, Action)) then
   begin
@@ -187,10 +188,18 @@ begin
 
 end;
 
-function TBBYamlSectionProcessor.RemoveArray(const name: string): string;
+function TBBYamlSectionProcessor.RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
 begin
-  if not name.StartsWith('-') then raise Exception.Create('The name "' + name + '" is part of an array and must start with "-". ' + ErrorInfo.ToString);
-  Result := name.Substring(1).Trim(TrimWhitespace);
+  Result := name;
+  if not name.StartsWith('-') then
+  begin
+    if not ArraysCanBeKeys then raise Exception.Create('The name "' + name + '" is part of an array and must start with "-". ' + ErrorInfo.ToString);
+  end else
+  begin
+    Result := name.Substring(1);
+  end;
+
+  Result := Result.Trim(TrimWhitespace);
   if (Result = '') then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
 
 end;
@@ -243,7 +252,7 @@ begin
   Levels.Push(Level);
 
   ParseColon(Line, Name, Value, false, false);
-  if Result.ContainsArrays then Name := RemoveArray(Name);
+  if Result.ContainsArrays then Name := RemoveArray(Name, Result.ArraysCanBeKeys);
   exit(Result.GotoChild(Name, ErrorInfo));
 end;
 
@@ -265,13 +274,19 @@ begin
   Result := s;
 end;
 
+function TBBYamlSectionProcessor.GetKeyString(const s: string): string;
+begin
+  if s.StartsWith('-') then exit('- ' + GetString(s.Substring(1).Trim(TrimWhiteSpace)));
+  Result := GetString(s);
+end;
+
 procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty: boolean);
 var
   idx: integer;
 begin
   idx := Line.IndexOf(':');
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
-  Name := TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace));
+  Name := GetKeyString(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)));
   Value := GetString(Line.Substring(idx + 1).Trim(TrimWhitespace));
   if CanBeEmpty then exit;
 

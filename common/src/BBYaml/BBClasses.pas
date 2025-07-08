@@ -53,6 +53,7 @@ public
   Actions: TListOfActions;
   ArrayMainAction: TActionNameValue;
   ContainsArrays: Boolean; //Only needs to be set it if not setting ArrayMainAction.
+  ArraysCanBeKeys: boolean; //For backwards compat. A key can't be repeated in yaml, but we allowed it sometimes. When set to true, we will allow both "- value:" and "value:" values. This property is *only* for wrong existing data. Don't use it for new data.
   ClearArrayValues: TAction;  //allows to clear an array before adding new values.
   Duplicated: TDictionary<string, boolean>; // keep it nil to allow duplicated values.
   ArrayActions: TListOfActions;
