@@ -7,12 +7,12 @@ uses Generics.Defaults, Generics.Collections, Masks, UMultiLogger, UConfigKeys,
      UConfigFolders, UOSFileLinks, Megafolders.Definition;
 
 type
-  TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore);
+  TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
   TSkipRegisteringSet = set of TSkipRegisteringOptions;
 
 const
   TSkipRegisteringName: array[TSkipRegisteringOptions] of string = (
-  'packages', 'startmenu', 'help', 'windowspath', 'webcore'
+  'packages', 'startmenu', 'help', 'windowspath', 'webcore', 'registry', 'filelinks'
   );
 
   TMSUrl = 'https://api.landgraf.dev/tms';
@@ -30,6 +30,8 @@ type
     function Help: boolean;
     function WindowsPath: boolean;
     function WebCore: boolean;
+    function FileLinks: boolean;
+    function Registry: boolean;
 
     class function All: TSkipRegistering; static;
     class function None: TSkipRegistering; static;
@@ -885,6 +887,16 @@ end;
 function TSkipRegistering.WindowsPath: boolean;
 begin
   Result := TSkipRegisteringOptions.WindowsPath in FOptions;
+end;
+
+function TSkipRegistering.Registry: boolean;
+begin
+  Result := TSkipRegisteringOptions.Registry in FOptions;
+end;
+
+function TSkipRegistering.FileLinks: boolean;
+begin
+  Result := TSkipRegisteringOptions.FileLinks in FOptions;
 end;
 
 class function TSkipRegistering.All: TSkipRegistering;

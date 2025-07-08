@@ -32,7 +32,7 @@ type
 
   TOptionsSectionConf = class(TSectionConf)
   private
-    function MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringOptions;
+    function MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
@@ -277,14 +277,16 @@ begin
 
 end;
 
-function TOptionsSectionConf.MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringOptions;
+function TOptionsSectionConf.MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
 begin
    var v := Value.ToLowerInvariant.Trim;
+   if v = 'all' then exit([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
+
    for var SkipOption := Low(TSkipRegisteringOptions) to High(TSkipRegisteringOptions) do
    begin
-     if v = TSkipRegisteringName[SkipOption] then exit(SkipOption);
+     if v = TSkipRegisteringName[SkipOption] then exit([SkipOption]);
    end;
-   raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of [Packages, StartMenu, Help, WindowsPath, WebCore].'+ ErrorInfo.ToString);
+   raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks].'+ ErrorInfo.ToString);
 end;
 
 function TOptionsSectionConf.GetSkipRegistering(const s: string;
@@ -296,13 +298,16 @@ begin
  if (s1 = 'true') then exit([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
  if (s1 = 'false') then exit([]);
  if not s1.StartsWith('[') or not s1.EndsWith(']') then
-   raise Exception.Create('"' + s + '" is not a valid skip registering value. It must be "true", "false" or an array containing any of [Packages, StartMenu, Help, WindowsPath, WebCore]. ' + ErrorInfo.ToString);
+   raise Exception.Create('"' + s + '" is not a valid skip registering value. It must be "true", "false" or an array containing any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]. ' + ErrorInfo.ToString);
 
  Result := [];
  var Values := s1.Substring(1, s1.Length - 2).Split([','], TStringSplitOptions.ExcludeEmpty);
  for var Value in Values do
  begin
-   Result := Result + [MatchSkipRegistering(Value, ErrorInfo)];
+   var TrimValue := Value.Trim;
+   if TrimValue.StartsWith('-')
+     then Result := Result - MatchSkipRegistering(TrimValue.Substring(1), ErrorInfo)
+     else Result := Result + MatchSkipRegistering(TrimValue, ErrorInfo);
  end;
 
 

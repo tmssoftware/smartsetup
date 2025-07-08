@@ -149,7 +149,7 @@ begin
     end;
   end;
 
-  if not BuildInfo.SkipRegistering.Packages then
+  if not BuildInfo.SkipRegistering.FileLinks then
   begin
     var JSONArray := TJSONArray.Create;
     UninstallInfo.Value.AddPair(InstallerConstants.ProjectFileLinksJsonId, JSONArray);
@@ -215,7 +215,7 @@ begin
   try
     DoRegisterFullProject(BuildInfo, UninstallInfo);
     if not BuildInfo.SkipRegistering.WebCore then RegisterWebCore(BuildInfo.ExtraPaths.GetWebCorePaths(TPlatform.win32intel), BuildInfo, UninstallInfo);
-    if not BuildInfo.SkipRegistering.Packages then AddRegistryEntries(BuildInfo, UninstallInfo);
+    if not BuildInfo.SkipRegistering.Registry then AddRegistryEntries(BuildInfo, UninstallInfo);
   except
     try
       DoUnRegisterFullProject(UninstallInfo);

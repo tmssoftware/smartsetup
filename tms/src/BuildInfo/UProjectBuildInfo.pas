@@ -380,9 +380,10 @@ end;
 
 function TProjectBuildInfo.SkipRegistering: TSkipRegistering;
 begin
-  if Project.IsExe then exit(TSkipRegistering.All);
+  var Settings := TSkipRegisteringSet(Byte((Config.SkipRegistering(ProjectId, 0))));
+  if Project.IsExe then Settings := Settings + [TSkipRegisteringOptions.Packages];
 
-  Result := TSkipRegistering.Create(TSkipRegisteringSet(Byte((Config.SkipRegistering(ProjectId, 0)))));
+  Result := TSkipRegistering.Create(Settings);
 end;
 
 { TPlatformsToUninstall }

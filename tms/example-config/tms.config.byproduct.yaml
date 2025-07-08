@@ -7,8 +7,9 @@ configuration for %product-id%:
 
     # if true the components will be compiled but not registered in the IDE.
     # Also the Windows PATH won't be modified when this setting is true.
-    # You can use "true" or "false" here to skip all or none, and also an array like "[Packages, StartMenu, Help, WindowsPath, WebCore]"
+    # You can use "true" or "false" here to skip all or none, and also an array like "[All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]"
     # to be more specific about what you want to skip. For example: skip register: [StartMenu, Help] would skip registering the start menu and the help, but not the others. 
+    # When specifically skipping parts, you might want to use negatives, like [All, -StartMenu, -Help] to skip all but start menu and help.
     skip register: %skip-register%
 
     # if true, smart setup will output the commands it wants to execute, but not execute anything
