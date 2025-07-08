@@ -7,6 +7,7 @@ uses Classes, System.Generics.Collections, UConfigDefinition, UProjectDefinition
      UUninstallInfo, UMultiLogger;
 
 type
+  TIDENameArray = Array[TIDEName] of TIDEName;
 
   TProjectAnalyzer = class
   private
@@ -39,6 +40,7 @@ type
     function GetUninstallList: TObjectList<TProjectDefinition>;
     function BackToFolder(const StartFolder: string;
       const PackageFolders: TPackageFolders): string;
+    function GetIDEs(const Project: TProjectDefinition): TIDENameArray;
 
   public
     constructor Create(const aConfig: TConfigDefinition; const aProjectList: TProjectList; const aFileHasher: TFileHasher);
@@ -293,12 +295,24 @@ begin
   Result := false;
 end;
 
+function TProjectAnalyzer.GetIDEs(const Project: TProjectDefinition): TIDENameArray;
+begin
+  for var dv := Low(TIDEName) to High(TIDEName) do
+  begin
+    var dvr := dv;
+    if Project.IsExe and (Project.ExeOptions.CompileWith = TExeCompileWith.Latest) then dvr := TIDEName(Integer(High(TIDEName)) + Integer(Low(TIDEName)) - Integer(dv));
+    Result[dvr] := dv;
+  end;
+
+end;
+
 procedure TProjectAnalyzer.AnalyzePackages(const PackageCache: TPackageCache; const Project: TProjectDefinition; const DepsCompiled: TPlatsCompiled; const BasePackagesFolder: string);
 var
   ErrorMessage: string;
 begin
   var SupportedIDENames := Config.GetIDENames(Project.Application.Id);
-  for var dv := Low(TIDEName) to High(TIDEName) do
+  var AlreadyProcessed := -1;
+  for var dv in GetIDES(Project) do
   begin
     if not (dv in SupportedIDENames) then continue;
 
@@ -318,6 +332,12 @@ begin
       continue;
     end;
 
+    if (AlreadyProcessed > 0) and Project.IsExe and (Project.ExeOptions.CompileWith <> TExeCompileWith.All) then
+    begin
+      BuildInfo.CurrentProject.Notes.Add('Skipped ' + Project.Application.Id + ' for ' + Installer.DisplayName + '. It was compiled with ' + IDEId[TIDEName(AlreadyProcessed)] + '.', Installer.IDEName, TNoteType.SkippedIDE);
+      continue;
+    end;
+    AlreadyProcessed := Ord(dv);
     var plats := Config.GetPlatforms(dv, Project.Application.Id);
     for var dp in plats do
     begin
@@ -450,7 +470,8 @@ begin
     else if not Package.IsRuntime then exit;
   end;
 
-  if FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '') or (dp in DepsCompiled[dv]) then //we check at project level, not package.
+  if FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '')
+    or (dp in DepsCompiled[dv]) then //we check at project level, not package.
   begin
     BuildInfo.CurrentProject.AddBuildInfo(dv, TPackageBuildInfo.Create(
         Package,

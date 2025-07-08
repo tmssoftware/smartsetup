@@ -124,6 +124,16 @@ package definitions:
 #          include file mask: '*.pas;*.rc'                  # separate masks with ;.
 #          recursive: true #search in subfolders also. false by default
 
+# Only applies to executables.
+exe options:
+  # You might want to build an exe with just one delphi version, not all of them.
+  # The possible values here are "latest" (use the latest delphi version supported and installed in the user's machine), "earliest" and "all" (compile in all delphi versions
+  # supported in the user's machine). The default if omitted is "all"
+  compile with: latest
+
+  # If false, do not generate debug version of the exes even if the user is building with debug dcus. Default is false.
+  debug exes: false
+
 paths:
   extra library paths:  #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path
     

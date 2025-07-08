@@ -82,6 +82,15 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TExeOptionsSectionDef = class(TSectionDef)
+  private
+    function GetExeCompileWith(const value: string;
+      const ErrorInfo: TErrorInfo): TExeCompileWith;
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
   TLibSuffixesSectionDef = class(TSectionDef)
   private
     function Capture(const dv: TIDEName): TAction;
@@ -329,6 +338,7 @@ begin
   ChildSections.Add(TPackagesSectionDef.SectionNameStatic, TPackagesSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackageOptionsSectionDef.SectionNameStatic, TPackageOptionsSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackageDefinitionsSectionDef.SectionNameStatic, TPackageDefinitionsSectionDef.Create(Self, aProject));
+  ChildSections.Add(TExeOptionsSectionDef.SectionNameStatic, TExeOptionsSectionDef.Create(Self, aProject));
   ChildSections.Add(THelpSectionDef.SectionNameStatic, THelpSectionDef.Create(Self, aProject));
   ChildSections.Add(TDependenciesSectionDef.SectionNameStatic, TDependenciesSectionDef.Create(Self, aProject));
   ChildSections.Add(TBuildingSectionDef.SectionNameStatic, TBuildingSectionDef.Create(Self, aProject));
@@ -729,6 +739,8 @@ constructor TRegistryEntrySectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   KeyName := aKeyName;
+  ContainsArrays := true;
+  ArraysCanBeKeys := true;
 
   ChildSections.Add(TRegistryEntryValueSectionDef.SectionNameStatic, TRegistryEntryValueSectionDef.Create(Self, aProject, KeyName));
 end;
@@ -1391,6 +1403,38 @@ end;
 class function TPackageExtraDefinesSectionDef.SectionNameStatic: string;
 begin
   Result := 'extra defines';
+end;
+
+{ TExeOptionsSectionDef }
+
+constructor TExeOptionsSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Actions := TListOfActions.Create;
+  Actions.Add('delphi versions', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.ExeOptions.CompileWith := GetExeCompileWith(value, ErrorInfo);
+    end);
+  Actions.Add('debug exes', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.ExeOptions.ExeDebug := GetBool(value, ErrorInfo);
+    end);
+
+end;
+
+function TExeOptionsSectionDef.GetExeCompileWith(const value: string; const ErrorInfo: TErrorInfo): TExeCompileWith;
+begin
+  if SameText(value, 'latest') then exit(TExeCompileWith.Latest);
+  if SameText(value, 'earliest') then exit(TExeCompileWith.Earliest);
+  if SameText(value, 'all') then exit(TExeCompileWith.All);
+  raise Exception.Create('"' + value + '" is not a valid Delphi version value. It must be "latest", "earliest" or "all". ' + ErrorInfo.ToString);
+
+end;
+
+class function TExeOptionsSectionDef.SectionNameStatic: string;
+begin
+  Result := 'exe options';
 end;
 
 end.

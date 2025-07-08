@@ -145,6 +145,8 @@ begin
 
   FDryRun := aConfig.DryRun(ProjectId);
   FDebugDCUs := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.DebugDcus, true);
+  if aProject.IsExe and not aProject.ExeOptions.ExeDebug then FDebugDCUs := false;
+
   if aProject.Application.CanAddSourceCodeToLibraryPath then
   begin
     FAddSourceCodeToLibraryPath := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.AddSourceCodeToLibraryPath, false);

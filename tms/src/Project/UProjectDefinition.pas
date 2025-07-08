@@ -250,6 +250,16 @@ type
     ValueType: TRegistryEntryType;
   end;
 
+  TExeCompileWith = (All, Latest, Earliest);
+  TExeOptions = class
+  private
+    FCompileWith: TExeCompileWith;
+    FExeDebug: boolean;
+  public
+    property CompileWith: TExeCompileWith read FCompileWith write FCompileWith;
+    property ExeDebug: boolean read FExeDebug write FExeDebug;
+  end;
+
   TProjectDefinition = class
   private
     FFullPath: string;
@@ -280,6 +290,7 @@ type
     FIgnoreDprojPlatforms: boolean;
     FAddLibSuffix: boolean;
     FPackageExtraDefines: TList<string>;
+    FExeOptions: TExeOptions;
 
     function GetHasMultiIDEPackages: boolean;
 
@@ -335,6 +346,8 @@ type
     property OtherRegistryKeys: TList<string> read FOtherRegistryKeys;
 
     property PackageExtraDefines: TList<string> read FPackageExtraDefines;
+
+    property ExeOptions: TExeOptions read FExeOptions;
 
     property HasMultiIDEPackages: boolean read GetHasMultiIDEPackages;
 
@@ -392,6 +405,7 @@ begin
   FFileLinks := TObjectList<TFileLinkDefinition>.Create;
   FOtherRegistryKeys := TList<string>.Create;
   FPackageExtraDefines := TList<string>.Create;
+  FExeOptions := TExeOptions.Create;
 end;
 
 
@@ -410,6 +424,7 @@ begin
   FFileLinks.Free;
   FOtherRegistryKeys.Free;
   FPackageExtraDefines.Free;
+  FExeOptions.Free;
   inherited;
 end;
 
