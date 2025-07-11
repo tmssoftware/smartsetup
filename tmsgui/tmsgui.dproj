@@ -73,11 +73,11 @@
         <SanitizedProjectName>tmsgui</SanitizedProjectName>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup GUI;FileVersion=1.10.0.0;InternalName=TMS Smart Setup GUI;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. gui;ProductName=TMS Smart Setup GUI;ProductVersion=1.10.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup GUI;FileVersion=2.0.0.0;InternalName=TMS Smart Setup GUI;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. gui;ProductName=TMS Smart Setup GUI;ProductVersion=2.0.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
         <VerInfo_Release>0</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_MinorVer>10</VerInfo_MinorVer>
-        <VerInfo_MajorVer>1</VerInfo_MajorVer>
+        <VerInfo_MinorVer>0</VerInfo_MinorVer>
+        <VerInfo_MajorVer>2</VerInfo_MajorVer>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UsePackage>TMSScripter_Memo;vclwinx;DataSnapServer;TMSLogging;fmx;emshosting;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;DBXMSSQLDriver;FireDACCommonODBC;emsclient;FireDACCommonDriver;aurelius;appanalytics;IndyProtocols;vclx;sparkle;sphinx;IndyIPClient;dbxcds;vcledge;bindcompvclwinx;FmxTeeUI;emsedge;bindcompfmx;DBXFirebirdDriver;inetdb;FireDACSqliteDriver;DbxClientDriver;FireDACASADriver;TMSScripter_IDE;Tee;soapmidas;vclactnband;TeeUI;TMSScripter;fmxFireDAC;dbexpress;FireDACInfxDriver;DBXMySQLDriver;VclSmp;inet;DataSnapCommon;vcltouch;fmxase;DBXOdbcDriver;dbrtl;TMSDiagram;FireDACDBXDriver;FireDACOracleDriver;fmxdae;TeeDB;FireDACMSAccDriver;tmsbcl;CustomIPTransport;FireDACMSSQLDriver;DataSnapIndy10ServerTransport;TMSWorkflow;DataSnapConnectors;vcldsnap;DBXInterBaseDriver;TMSQueryStudio;FireDACMongoDBDriver;IndySystem;FireDACTDataDriver;vcldb;vclFireDAC;bindcomp;FireDACCommon;DataSnapServerMidas;FireDACODBCDriver;emsserverresource;IndyCore;RESTBackendComponents;TMSScripter_VCL;bindcompdbx;rtl;FireDACMySQLDriver;FireDACADSDriver;remotedb;RESTComponents;DBXSqliteDriver;vcl;IndyIPServer;dsnapxml;dsnapcon;DataSnapClient;DataSnapProviderClient;adortl;TMSScripter_Legacy;DBXSybaseASEDriver;DBXDb2Driver;vclimg;DataSnapFireDAC;emsclientfiredac;FireDACPgDriver;FireDAC;FireDACDSDriver;inetdbxpress;xmlrtl;tethering;bindcompvcl;dsnap;xdata;CloudService;DBXSybaseASADriver;DBXOracleDriver;FireDACDb2Driver;DBXInformixDriver;dclTMSQueryStudio;fmxobj;bindcompvclsmp;DataSnapNativeClient;FMXTee;DatasnapConnectorsFreePascal;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
