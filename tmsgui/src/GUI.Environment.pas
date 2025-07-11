@@ -347,6 +347,7 @@ begin
   for var Product in FSelected do
     if Product.Status = TProductStatus.Installed then
       Result := True
+    else
     if Product.Status = TProductStatus.Available then
       Result := True
     else
