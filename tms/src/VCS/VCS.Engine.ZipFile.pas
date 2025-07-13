@@ -9,8 +9,8 @@ type
   public
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
-    procedure GetFile(const aFileName, aDestFolder, aURL: string);
-    function GetProduct(const aDestFolder, aURL: string): boolean;
+    procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
+    function GetProduct(const aDestFolder, aURL, aServer: string): boolean;
   end;
 
 
@@ -44,12 +44,12 @@ begin
 
 end;
 
-procedure TZipFileEngine.GetFile(const aFileName, aDestFolder, aURL: string);
+procedure TZipFileEngine.GetFile(const aFileName, aDestFolder, aURL, aServer: string);
 begin
   //Sometimes the files might be inside an empty root folder, so we need to skip it.
   var ZipFileName := TPath.Combine(aDestFolder, aFileName + '.download');
   try
-    ZipDownloader.GetRepo(aURL, ZipFileName, Logger.Write, true);
+    ZipDownloader.GetRepo(aURL, ZipFileName, aServer, Logger.Write, true);
     TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder, TDownloadFormat.Unknown,
       function(FileName: string): boolean
       begin
@@ -73,12 +73,12 @@ begin
 
 end;
 
-function TZipFileEngine.GetProduct(const aDestFolder, aURL: string): boolean;
+function TZipFileEngine.GetProduct(const aDestFolder, aURL, aServer: string): boolean;
 begin
   Result := true;
   var ZipFileName := TPath.Combine(aDestFolder, TPath.GetFileName(aDestFolder) + '.download');
   try
-    ZipDownloader.GetRepo(aURL, ZipFileName, Logger.Write);
+    ZipDownloader.GetRepo(aURL, ZipFileName, aServer, Logger.Write);
     if TFile.Exists(ZipFileName) then  //might not exist if it wasn't modified
     begin
       TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder);

@@ -16,13 +16,13 @@ type
     class function CaptureFetch(TK: integer; Proc: TProc<integer>): TProc; static;
     class function FetchProduct(const Product: TRegisteredProduct): TVCSFetchStatus; static;
     class procedure DoFetchProduct(const Product: TRegisteredProduct); static;
-    class function DoGetProduct(const Protocol: TVCSProtocol; const Url: string): TApplicationDefinition; static;
+    class function DoGetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition; static;
     class function HasErrors(const Status: TArray<TVCSFetchStatus>): boolean; static;
     class function GetInstalledProducts: THashSet<string>; static;
     class procedure AddPredefinedData(const Product: TRegisteredProduct); static;
   public
     class function Fetch(const AProductIds: TArray<string>; const OnlyInstalled: boolean): THashSet<string>; static;
-    class function GetProduct(const Protocol: TVCSProtocol; const Url: string): TApplicationDefinition;
+    class function GetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition;
 
   end;
 
@@ -47,7 +47,7 @@ begin
   end;
 end;
 
-class function TVCSManager.DoGetProduct(const Protocol: TVCSProtocol; const Url: string): TApplicationDefinition;
+class function TVCSManager.DoGetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition;
 begin
   // We originally made this very complex to try to avoid fetching the repo twice.
   // We would download to a tmp folder, and then on install, rename that folder.
@@ -62,7 +62,7 @@ begin
       var Engine := TVCSFactory.Instance.GetEngine(Protocol);
       var TempGUIDProductFolder := TPath.Combine(Config.Folders.VCSTempFolder, GuidToStringN(TGUID.NewGuid));
       try
-        Engine.GetFile(TProjectLoader.TMSBuildDefinitionFile, TempGUIDProductFolder, Url);
+        Engine.GetFile(TProjectLoader.TMSBuildDefinitionFile, TempGUIDProductFolder, Url, Server);
         var def := TProjectLoader.LoadProjectDefinition(TempGUIDProductFolder, 'root:application:description', true);
         try
           Result := def.Application.Clone;
@@ -81,7 +81,7 @@ begin
   end;
 end;
 
-class function TVCSManager.GetProduct(const Protocol: TVCSProtocol; const Url: string): TApplicationDefinition;
+class function TVCSManager.GetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition;
 begin
   Result := nil;
   var HasErrors := false;
@@ -91,7 +91,7 @@ begin
   try
     CheckAppTerminated;
     Logger.Info('Downloading config for ' + Url + ' from ' + ProtocolString);
-    Result := DoGetProduct(Protocol, Url);
+    Result := DoGetProduct(Protocol, Url, Server);
     Logger.Info('Downloaded config for ' + Url + ' from ' + ProtocolString);
   except
     on ex: Exception do
@@ -115,7 +115,7 @@ begin
   var Engine := TVCSFactory.Instance.GetEngine(Product.Protocol);
   var ProductFolder := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId);
 
-  if Engine.GetProduct(ProductFolder, Product.Url) then exit; //direct get.
+  if Engine.GetProduct(ProductFolder, Product.Url, Product.Server) then exit; //direct get.
   
 
   if TDirectory.Exists(ProductFolder) then

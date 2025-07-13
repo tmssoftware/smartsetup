@@ -271,7 +271,7 @@ begin
 
   try
     var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
-    ZipDownloader.GetRepo(Server.Url, PredefinedRepositories, AddToVCSFetchLogSummary);
+    ZipDownloader.GetRepo(Server.Url, PredefinedRepositories, Server.Name, AddToVCSFetchLogSummary);
 
     var Zip := TZipFile.Create;
     try

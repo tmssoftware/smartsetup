@@ -41,8 +41,8 @@ end;
 
 procedure RegisterRepoUnregisterCommand;
 begin
-  var cmd := TOptionsRegistry.RegisterCommand('repo-unregister', '', 'Unregisters GIT or SVN repositories that were previously registered with repo-register.',
-    'Use this command to unregister one or many GIT or SVN repositories that were previously registered with repo-register.',
+  var cmd := TOptionsRegistry.RegisterCommand('repo-unregister', '', 'Unregisters GIT or SVN repositories, or ZipFiles, that were previously registered with repo-register.',
+    'Use this command to unregister one or many GIT or SVN repositories, or ZipFiles, that were previously registered with repo-register.',
     'repo-unregister <product-ids>');
 
   var option := cmd.RegisterUnNamedOption<string>('product-id to unregister', 'product-id',

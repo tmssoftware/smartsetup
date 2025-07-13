@@ -25,8 +25,8 @@ type
 
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
-    procedure GetFile(const aFileName, aDestFolder, aURL: string);
-    function GetProduct(const aDestFolder, aURL: string): boolean;
+    procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
+    function GetProduct(const aDestFolder, aURL, aServer: string): boolean;
   end;
 
 implementation
@@ -70,7 +70,7 @@ begin
   Result := FindExeInPath(Path, GitExe);
 end;
 
-procedure TGitEngine.GetFile(const aFileName, aDestFolder, aURL: string);
+procedure TGitEngine.GetFile(const aFileName, aDestFolder, aURL, aServer: string);
 begin
   // https://stackoverflow.com/questions/2466735/how-to-sparsely-checkout-only-one-single-file-from-a-git-repository
   var Output := '';
@@ -87,7 +87,7 @@ begin
 
 end;
 
-function TGitEngine.GetProduct(const aDestFolder, aURL: string): boolean;
+function TGitEngine.GetProduct(const aDestFolder, aURL, aServer: string): boolean;
 begin
   Result := false;
 end;

@@ -6,8 +6,8 @@ type
   IVCSEngine = interface
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
-    procedure GetFile(const aFileName, aDestFolder, aURL: string);
-    function GetProduct(const aDestFolder, aURL: string): boolean;  //If this is implemented, then clone and push aren't used.
+    procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
+    function GetProduct(const aDestFolder, aURL, aServer: string): boolean;  //If this is implemented, then clone and push aren't used.
   end;
 
 implementation

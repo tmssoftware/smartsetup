@@ -1,29 +1,30 @@
 unit ZipFile.Download;
 
 interface
-uses Windows, ULogger;
+uses Windows, ULogger, System.Net.HttpClient;
 type
   TDownloadLogger = reference to procedure(const Verbosity: TVerbosity; const msg: string);
 
   ZipDownloader = class
   private
-    class procedure GetFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
-    class procedure GetHttpsFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
+    class procedure GetFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
+    class procedure GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
     class procedure GetLocalFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
     class function ReadETag(const ETagFileName: string;
       const ForceDownload: boolean; const DownloadLogger: TDownloadLogger): string; static;
     class procedure WriteETag(const ETagFileName: string;
       const ForceDownload: boolean; const DownloadLogger: TDownloadLogger;
       const NewETag, DownloadUrl: string); static;
+    class procedure AddCustomHeaders(const Request: IHTTPRequest; const Server: string); static;
 
   public
     //Downloads a full zipped repo to a file.
-    class procedure GetRepo(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false); static;
+    class procedure GetRepo(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false); static;
 
   end;
 
 implementation
-uses Classes, SysUtils, System.Net.HttpClient, UTmsBuildSystemUtils,
+uses Classes, SysUtils, UTmsBuildSystemUtils,
      IOUtils, Commands.GlobalConfig, UAppTerminated, UMultiLogger, System.Hash;
 
 const
@@ -53,17 +54,35 @@ begin
   end;
 end;
 
-class procedure ZipDownloader.GetFile(const DownloadUrl, FileNameOnDisk: string;
+class procedure ZipDownloader.AddCustomHeaders(const Request: IHTTPRequest; const Server: string);
+begin
+  var HeadersString := GetEnvironmentVariable('SMARTSETUP_SERVER_' + Server.ToUpper);
+  var Headers := HeadersString.Split([';'], TStringSplitOptions.ExcludeEmpty);
+  for var Header in Headers do
+  begin
+    var Idx := Header.IndexOf(':');
+    if Idx < 1 then
+    begin
+      Logger.Info('Invalid Header: ' + Header + '. Missing ":"');
+      continue;
+    end;
+
+    Request.AddHeader(Header.Substring(0, Idx), Header.Substring(Idx + 1));
+  end;
+
+end;
+
+class procedure ZipDownloader.GetFile(const DownloadUrl, FileNameOnDisk, Server: string;
   DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
 const
   FileProtocol = 'file://';
 begin
   if DownloadUrl.StartsWith(FileProtocol, true) then GetLocalFile(DownloadUrl.Substring(FileProtocol.Length), FileNameOnDisk, DownloadLogger, ForceDownload)
-  else GetHttpsFile(DownloadUrl, FileNameOnDisk, DownloadLogger, ForceDownload);
+  else GetHttpsFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload);
 end;
 
 //Code is from TParallelDownloader.DownloadFile. We could unify it, but for now I prefer to evolve it separately.
-class procedure ZipDownloader.GetHttpsFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
+class procedure ZipDownloader.GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
 begin
   var Client: THTTPClient := THTTPClient.Create;
   try
@@ -87,8 +106,9 @@ begin
         end;
 
       Client.CustomHeaders['If-None-Match'] := ETag;
-
       var Request := Client.GetRequest('GET', DownloadUrl);
+      AddCustomHeaders(Request, Server);
+
       AResponse := Client.Execute(Request, fs);
     finally
       fs.Free;
@@ -120,13 +140,15 @@ begin
       else
         begin
           // if file was not downloaded ok, delete it (we must do this after fs.Free)
-          var ErrorMessage: string := '';
-          if AResponse.HeaderValue['Content-Type'].StartsWith('text/', True) and TFile.Exists(FileNameOnDisk) then
-            ErrorMessage := ': ' + TFile.ReadAllText(FileNameOnDisk);
+          var ErrorMessage := '';
+          var ContextType := AResponse.HeaderValue['Content-Type'];
+          if (ContextType.StartsWith('text/', True) or ContextType.StartsWith('application/json', True))
+            and TFile.Exists(TempFileName)
+            then ErrorMessage := ': ' + TFile.ReadAllText(TempFileName);
           DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
 
-          raise Exception.Create(Format('Download for %s failed with status %d%s',
-            [TPath.GetFileName(FileNameOnDisk), AResponse.StatusCode, ErrorMessage]));
+          raise Exception.Create(Format('Download for %s from %s failed with status %d%s',
+            [TPath.GetFileName(FileNameOnDisk), DownloadUrl, AResponse.StatusCode, ErrorMessage]));
 
         end;
     end;
@@ -161,9 +183,9 @@ begin
 end;
 
 class procedure ZipDownloader.GetRepo(const DownloadUrl,
-  FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false);
+  FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false);
 begin
-  GetFile(DownloadUrl, FileNameOnDisk, DownloadLogger, ForceDownload);
+  GetFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload);
 end;
 
 end.

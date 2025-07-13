@@ -23,8 +23,8 @@ type
 
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
-    procedure GetFile(const aFileName, aDestFolder, aURL: string);
-    function GetProduct(const aDestFolder, aURL: string): boolean;
+    procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
+    function GetProduct(const aDestFolder, aURL, aServer: string): boolean;
   end;
 
 implementation
@@ -61,7 +61,7 @@ begin
   Result := FindExeInPath(Path, SvnExe);
 end;
 
-procedure TSvnEngine.GetFile(const aFileName, aDestFolder, aURL: string);
+procedure TSvnEngine.GetFile(const aFileName, aDestFolder, aURL, aServer: string);
 begin
   var Output := '';
   var DestFolder := TPath.GetFullPath(aDestFolder);
@@ -73,7 +73,7 @@ begin
 
 end;
 
-function TSvnEngine.GetProduct(const aDestFolder, aURL: string): boolean;
+function TSvnEngine.GetProduct(const aDestFolder, aURL, aServer: string): boolean;
 begin
   Result := false;
 end;

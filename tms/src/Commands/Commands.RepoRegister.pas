@@ -20,7 +20,7 @@ begin
   try
     Logger.Info('Registering repository at ' + Url);
     //To get the product id, we need tmsbuild.yaml.
-    var Product := TVCSManager.GetProduct(Protocol, Url);
+    var Product := TVCSManager.GetProduct(Protocol, Url, TProductRegistry.LocalServer.Name);
     try
       RegisteredVCSRepos.Add(Product.Id, Protocol, Url, Product.Name, Product.Description, TProductRegistry.LocalServer.Name);
       RegisteredVCSRepos.Save;
@@ -37,11 +37,11 @@ end;
 
 procedure RegisterRepoRegisterCommand;
 begin
-  var cmd := TOptionsRegistry.RegisterCommand('repo-register', '', 'Registers a GIT or SVN repository to be used with smart setup.',
-    'Use this command to register a GIT or SVN repository that supports smartsetup, so the system knows where to find it.',
-    'repo-register <GIT/SVN> <url>');
+  var cmd := TOptionsRegistry.RegisterCommand('repo-register', '', 'Registers a GIT or SVN repository, or a ZipFile, in the active local server to be used with smart setup.',
+    'Use this command to register a GIT or SVN repository, or a Zip File that supports smartsetup, so the system knows where to find it.',
+    'repo-register <GIT/SVN/ZIPFILE> <url>');
 
-  var option := cmd.RegisterUnNamedOption<string>('Type of version control used. Can be GIT or SVN', 'repo-type',
+  var option := cmd.RegisterUnNamedOption<string>('Type of version control used. Can be GIT, SVN or ZipFile', 'repo-type',
     procedure(const Value: string)
     begin
       Protocol := TRegisteredProduct.GetProtocolFromString(Value, false);
