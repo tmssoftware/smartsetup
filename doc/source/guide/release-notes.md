@@ -4,7 +4,26 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
-## Next version
+## Version 2.0
+- **New**: [Smart Setup registry](https://github.com/tmssoftware/smartsetup-registry). This allows everyone to put new projects in Smart Setup.
+
+- **New**: Servers. You can now define multiple servers where SmartSetup will look for packages. A predefined "community" server comes built-in and it is the registry mentioned above.
+
+- **New**: Support for different naming conventions in the packages. Now you can specify your own naming, like for example have the packages inside a folder "delphi 11" instead of "d11" which was the ony name allowed before.
+
+- **New**: Support for automatically creating packages for projects that don't have them.
+
+- **New**: Support for compiling a single package (with {$LIBSUFFIX AUTO}) into multiple Delphi versions. Now you can have a folder "D11+" and it will be used for Delphi 11 and newer.
+
+- **New**: [Dcu Megafolders](xref:SmartSetup.Configuration#using-dcu-megafolders) allow you to put the result of multiple products into a single folder. This way you can shorten the library path when you are installing tens of products.
+
+- **New**: [Delphi 13 Florence](https://blogs.embarcadero.com/help-us-choose-the-name-of-the-next-rad-studio/) beta support. This is an work in progress, but will allow you to test your components if you [have been invited to the beta](https://blogs.embarcadero.com/update-subscription-customers-invited-to-join-rad-studio-ganymede-beta/)  
+
+- **Improved**: Documentation. We added documentation about how to create your own SmartSetup bundles, and much more. 
+
+- **Improved**: **Breaking Change** Two new options added to `skip register` section of `tms.config.yaml`. You can now skip `registry`(adding registry entries) and `filelinks` (linking files). If you were using a form of skip registering like `skip register: [Packages, Start Menu]` you might need to review it to add the new entries. The new syntax `skip register: [All, -option1, -option2]` helps preventing breaking in the future if we add more options. 
+
+- **Improved**: Exe compilation. Now you can specify that you don't want to compile a "Debug exe", and also to use the latest or earliest Delphi version available to compile the exe, instead of compiling it with all available Delphis.
 
 - **Fixed**: *Install* and *Uninstall* buttons in `tmsgui` are now enabled when the product is in status *available*.
 
