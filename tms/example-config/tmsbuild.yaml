@@ -10,6 +10,7 @@ application:
   company name: TMS Software
   copyright: tmssoftware
   url: https://www.tmssoftware.com/
+  # vcs protocol: git  #might be git, svn or zipfile. If omitted, it will be git.
   docs: https://doc.tmssoftware.com/
   version file: version.txt  # if this line is present, then version.txt must exist, it must have at least one line, 
                              # and the line must be "something: version". like for example "tms.example: 1.0.3". 
