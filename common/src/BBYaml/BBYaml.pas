@@ -27,7 +27,7 @@ TBBYamlReader = class
 end;
 
 const
-  TrimWhiteSpace: Array[0..3] of char = (#0, #32, #09, #$A0);
+  TrimWhiteSpace: Array[0..4] of char = (#0, #32, #09, #$A0, #$FEFF);
 
 
 implementation
