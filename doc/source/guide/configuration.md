@@ -74,7 +74,7 @@ This is an advanced topic. Dcu Megafolders are not enabled by default, and that'
 
 SmartSetup can install tens of products in minutes. This is great, but each of those products adds its own entry to the library path, and the library path can become huge. 
 
-{{#image}}big-delphi-library-path{{/image}}
+{{#image}}big-delphi-library-path.png{{/image}}
 
 Having a huge library path isn't necessary a problem: Delphi will keep working as usual, and SmartSetup will also be able to build your products no matter its length. If you are using msbuild as default, it might run into a "32k" limit, but that can be workarounded by passing [/p:DCC_UseMSBuildExternally=true](https://stackoverflow.com/questions/76416094/command-line-for-dcc-is-too-long-while-using-msbuild-to-compile-delphi-project) as a parameter to compile.
 
