@@ -6,6 +6,7 @@ uses SysUtils, Generics.Collections, UFullBuildInfo,
      Deget.CoreTypes, UUninstallInfo, Megafolders.Definition;
 type
   TInstaller = class
+  private
   public
     function IDEName: TIDEName; virtual; abstract;
     function DisplayName: string; virtual; abstract;
@@ -20,9 +21,11 @@ type
 
     procedure RegisterAtIDELevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); virtual; abstract;
     procedure RegisterAtPlatformLevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); virtual; abstract;
+    procedure RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); virtual; abstract;
 
     procedure UnRegisterAtIDELevel(const UninstallInfo: IUninstallInfo); virtual; abstract;
     procedure UnRegisterAtPlatformLevel(const UninstallInfo: IUninstallInfo); virtual; abstract;
+    procedure UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>); virtual; abstract;
 
     procedure UpdateProjectsSource(const BuildInfo: TFullBuildInfo); virtual; abstract;
 

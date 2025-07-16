@@ -2,7 +2,7 @@ unit ULazarusInstaller;
 {$i ../../tmssetup.inc}
 
 interface
-uses Deget.CoreTypes, UInstaller, UUninstallInfo, UFullBuildInfo, Megafolders.Definition;
+uses Deget.CoreTypes, UInstaller, UUninstallInfo, UFullBuildInfo, Megafolders.Definition, Generics.Collections;
 
 type
   TLazarusInstaller = class(TInstaller)
@@ -21,9 +21,11 @@ type
 
     procedure RegisterAtIDELevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo);override;
     procedure RegisterAtPlatformLevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
+    procedure RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
 
     procedure UnRegisterAtIDELevel(const UninstallInfo: IUninstallInfo);override;
     procedure UnRegisterAtPlatformLevel(const UninstallInfo: IUninstallInfo);override;
+    procedure UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>); override;
 
     procedure UpdateProjectsSource(const BuildInfo: TFullBuildInfo); override;
 
@@ -137,6 +139,11 @@ begin
 
 end;
 
+procedure TLazarusInstaller.RegisterMegafolders(
+  const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo);
+begin
+end;
+
 function TLazarusInstaller.SupportsCppBuilder(
   const platform: TPlatform): boolean;
 begin
@@ -150,6 +157,11 @@ end;
 
 procedure TLazarusInstaller.UnRegisterAtPlatformLevel(
   const UninstallInfo: IUninstallInfo);
+begin
+end;
+
+procedure TLazarusInstaller.UnregisterMegafolders(
+  const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>);
 begin
 end;
 

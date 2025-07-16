@@ -15,6 +15,8 @@ uses
 type
   TProjectInstaller = class
   private
+    class var MegafoldersLock: TObject;
+  private
     procedure DoRegisterFullProject(const BuildInfo: TProjectBuildInfo;
       const UninstallInfo: IUninstallInfo);
     procedure DoUnRegisterFullProject(const UninstallInfo: IUninstallInfo);
@@ -32,12 +34,18 @@ type
       const UninstallInfo: IUninstallInfo);
     function GetCredentials(const ServerName: string; const RegCode: boolean): string;
     function ReplaceRegistryKeys(const KeyName: string; const IDEBuildInfos: TObjectList<TIDEBuildInfo>): TArray<string>;
+
+    procedure RegisterDcuMegafolders(const Installer: TInstaller; const BuildInfo: TFullBuildInfo);
+    procedure UnregisterDcuMegafolders(const DryRun: boolean; const Installer: TInstaller;
+      const ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform);
   var
     Persist: TPersistence;
     Config: TConfigDefinition;
   public
     constructor Create(const aConfig: TConfigDefinition);
     destructor Destroy; override;
+    class constructor Create;
+    class destructor Destroy;
     procedure RegisterFullProject(const BuildInfo: TProjectBuildInfo);
     procedure UnRegisterFullProject(const DryRun: boolean; const ProjectId: string);
 
@@ -86,7 +94,6 @@ type
     ValueName = 'ValueName';
   end;
 
-
 constructor TProjectInstaller.Create(const aConfig: TConfigDefinition);
 begin
   Config := aConfig;
@@ -95,7 +102,7 @@ end;
 
 destructor TProjectInstaller.Destroy;
 begin
-   Persist.Free;
+  Persist.Free;
   inherited;
 end;
 
@@ -461,6 +468,7 @@ begin
 {$ENDIF}
 end;
 
+
 //Sort the keys to delete by decending length, so larger keys are deleted first.
 //if we have to delete: a/b/c and a/b, and we start by deleting a/b, then it won't be
 //deleted because it has a child a/b/c, then we delete a/b/c and a/b is not deleted anymore.
@@ -584,6 +592,118 @@ begin
 
 end;
 
+function GetOtherDcuMegafolders(const MegafolderPersist: TFileSystemPersistence; const ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform): TArray<string>; overload;
+begin
+  Result := nil;
+  var AllProducts := MegafolderPersist.List('');
+  for var Product in AllProducts do
+  begin
+    if Product.Id = ProjectId then continue;
+    var Data := MegafolderPersist.Retrieve(Product.Id, IDEId[IDEName], PlatformId[Platform]);
+    if Data = '' then continue;
+    Result := Result + [Data];
+  end;
+end;
+
+function GetOtherDcuMegafolders(const Megafolder: string; const ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform): TArray<string>; overload;
+begin
+  var MegafolderPersist := TFileSystemPersistence.Create(TPath.Combine(Config.Folders.MegafoldersUninstallFolder, Megafolder), InstallerConstants.UninstallExtension);
+  try
+    Result := GetOtherDcuMegafolders(MegafolderPersist, ProjectId, IDEName, Platform);
+  finally
+    MegafolderPersist.Free;
+  end;
+end;
+
+
+procedure TProjectInstaller.RegisterDcuMegafolders(const Installer: TInstaller; const BuildInfo: TFullBuildInfo);
+begin
+  if Config.DcuMegafolders.Count = 0 then exit; // Most common case.
+
+  TMonitor.Enter(MegafoldersLock);
+  try
+    var Megafolder := Config.DcuMegafolders.Match(BuildInfo.Project.ProjectId);
+    if Megafolder = '' then exit;
+
+    var UninstallInfo: IUninstallInfo := TUninstallInfo.Create('', BuildInfo.Project.DryRun,
+      TEngineLevel.Ide, BuildInfo.Project.ProjectId, BuildInfo.IDE.Name, BuildInfo.Platform.Name, '', '', Config.Folders.LockedFilesFolder);
+    try
+      Installer.RegisterMegafolders(BuildInfo, UninstallInfo);
+    except
+      try
+        var OtherProducts := GetOtherDcuMegafolders(Megafolder, BuildInfo.Project.ProjectId, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
+        Installer.UnRegisterMegafolders(UninstallInfo, OtherProducts);
+      except
+        //lost hope.
+      end;
+      raise;
+    end;
+
+    var MegafolderPersist := TFileSystemPersistence.Create(TPath.Combine(Config.Folders.MegafoldersUninstallFolder, Megafolder), InstallerConstants.UninstallExtension);
+    try
+      if not BuildInfo.Project.DryRun then MegafolderPersist.Store(UninstallInfo.Value.ToString, BuildInfo.Project.ProjectId, IDEId[BuildInfo.IDE.Name], PlatformId[BuildInfo.Platform.Name]);
+    finally
+      MegafolderPersist.Free;
+    end;
+  finally
+    TMonitor.Exit(MegafoldersLock);
+  end;
+end;
+
+function GetProductMegafoldersUninstallInfo(const ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform): TArray<TStrUninstallInfo>;
+begin
+  Result := nil;
+  var RootMegafolderPersist := TFileSystemPersistence.Create(Config.Folders.MegafoldersUninstallFolder, InstallerConstants.UninstallExtension);
+  try
+    Result := RootMegafolderPersist.List('');
+  finally
+    RootMegafolderPersist.Free;
+  end;
+end;
+
+procedure TProjectInstaller.UnregisterDcuMegafolders(const DryRun: boolean; const Installer: TInstaller;
+  const ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform);
+begin
+  TMonitor.Enter(MegafoldersLock);
+  try
+    var MegafoldersUninstallInfo := GetProductMegafoldersUninstallInfo(ProjectId, IDEName, Platform);
+    for var MegafolderUninstallInfo in MegafoldersUninstallInfo do
+    begin
+      var MegafolderBaseFolder := TPath.Combine(Config.Folders.MegafoldersUninstallFolder, MegafolderUninstallInfo.Id);
+      var MegafolderPersist := TFileSystemPersistence.Create(MegafolderBaseFolder, InstallerConstants.UninstallExtension);
+      try
+        try
+          var data := MegafolderPersist.Retrieve(ProjectId, IDEId[IDEName], PlatformId[Platform]);
+          if data <> '' then
+          begin
+            var UninstallInfo: IUninstallInfo := TUninstallInfo.Create(data, DryRun,
+              TEngineLevel.Ide, ProjectId, IDEName, Platform, '', '', Config.Folders.LockedFilesFolder);
+
+            var OtherProducts := GetOtherDcuMegafolders(MegafolderPersist, ProjectId, IDEName, Platform);
+            Installer.UnRegisterMegafolders(UninstallInfo, OtherProducts);
+          end;
+        except on ex: Exception do
+          begin
+            // if something went wrong in uninstall there is not much we can do.
+            // the most likely case is that we will keep forever trying to uninstall and failing.
+            // so we will ignore it and assume it was uninstalled as well as it was possible.
+            Logger.Error('Error uninstalling megafolders: ' + ex.Message);
+          end;
+        end;
+
+        MegafolderPersist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform]);
+        if TDirectory.IsEmpty(MegafolderBaseFolder) then TDirectory.Delete(MegafolderBaseFolder);
+
+      finally
+        MegafolderPersist.Free;
+      end;
+    end;
+  finally
+    TMonitor.Exit(MegafoldersLock);
+  end;
+end;
+
+
 procedure TProjectInstaller.RegisterAtPlatformLevel(const Installer: TInstaller;
   const BuildInfo: TFullBuildInfo);
 begin
@@ -601,6 +721,8 @@ begin
     raise;
   end;
   if not BuildInfo.Project.DryRun then Persist.Store(UninstallInfo.Value.ToString, BuildInfo.Project.ProjectId, IDEId[BuildInfo.IDE.Name], PlatformID[BuildInfo.Platform.Name]);
+
+  RegisterDcuMegafolders(Installer, BuildInfo);
 end;
 
 procedure TProjectInstaller.UnRegisterAtPlatformLevel(const DryRun: boolean; const Installer: TInstaller; const ProjectId: string;
@@ -628,7 +750,7 @@ begin
   end;
 
   if not DryRun then Persist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform]);
-
+  UnregisterDcuMegafolders(DryRun, Installer, ProjectId, IDEName, Platform);
 end;
 
 procedure TProjectInstaller.Build(const Installer: TInstaller;
@@ -756,7 +878,6 @@ begin
   SetLength(Result, k);
 end;
 
-
 procedure TProjectInstaller.CreateTempProjects(const Installer: TInstaller;
   const BuildInfo: TFullBuildInfo);
 begin
@@ -803,5 +924,14 @@ begin
   end;
 end;
 
+class constructor TProjectInstaller.Create;
+begin
+  MegafoldersLock := TObject.Create;
+end;
+
+class destructor TProjectInstaller.Destroy;
+begin
+  MegafoldersLock.Free;
+end;
 
 end.

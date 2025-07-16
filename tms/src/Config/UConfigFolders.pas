@@ -14,6 +14,7 @@ type
     function LogFile :string;
     function HashesFolder: string;
     function UninstallFolder: string;
+    function MegafoldersUninstallFolder: string;
     function SelfUninstallFolder: string;
     function DoctorUndoFolder: string;
     function LockedFilesFolder: string;
@@ -47,6 +48,7 @@ type
     function LogFile :string;
     function HashesFolder: string;
     function UninstallFolder: string;
+    function MegafoldersUninstallFolder: string;
     function SelfUninstallFolder: string;
     function DoctorUndoFolder: string;
     function LockedFilesFolder: string;
@@ -174,6 +176,11 @@ end;
 function TBuildFolders.UninstallFolder: string;
 begin
   Result := TPath.Combine(MetaBuildFolder, 'uninstall');
+end;
+
+function TBuildFolders.MegafoldersUninstallFolder: string;
+begin
+  Result := TPath.Combine(MetaBuildFolder, 'megafolder-uninstall');
 end;
 
 function TBuildFolders.SelfUninstallFolder: string;

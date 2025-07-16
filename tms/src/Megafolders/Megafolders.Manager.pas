@@ -5,11 +5,12 @@ interface
 uses Megafolders.Definition, Generics.Collections, Deget.CoreTypes, Deget.IDETypes;
 type
   TMegafolderManager = class
+  private
+    class procedure Cleanup(const Folder: string); static;
   public
     class function GetFolderName(const Root: string; const IDEName: TIDEName; const Platform: TPlatform; const BuildConfig: TBuildConfig): string;
     class procedure UpdateFolder(const Source, Target: string; out Count: integer); static;
     class procedure UpdateFile(const Source, Target: string; var Count: integer); static;
-    class procedure Cleanup(const Folder: string); static;
     class procedure CleanupAll(const BaseFolder: string; const UsedMegafolders: TUsedMegafolders); static;
     class procedure RemoveAll(const Folder: string); static;
     class procedure RemoveUnused(const BaseFolder: string; const Megafolders: TMegafolderList); static;
@@ -75,11 +76,19 @@ begin
         var RelativePlatformFolder := SysUtils.ExtractRelativePath(IncludeTrailingPathDelimiter(BaseFolder), PlatformFolder);
         if UsedMegafolders.UnsafeContains(RelativePlatformFolder) or UsedMegafolders.UnsafeContains(RelativeNameFolder) then
         begin
-          Logger.Info('Synchronizing ' + RelativePlatformFolder + '...');
-          Cleanup(PlatformFolder);
+          var ConfigFolders := TDirectory.GetDirectories(PlatformFolder, '*', TSearchOption.soTopDirectoryOnly);
+          for var BuildConfigFolder in ConfigFolders do
+          begin
+            Logger.Info('Synchronizing ' + TPath.Combine(RelativePlatformFolder, TPath.GetFileName(BuildConfigFolder)) + '...');
+            Cleanup(BuildConfigFolder);
+            if TDirectory.IsEmpty(BuildConfigFolder) then TDirectory.Delete(BuildConfigFolder);
+          end;
         end;
+        if TDirectory.IsEmpty(PlatformFolder) then TDirectory.Delete(PlatformFolder);
       end;
+      if TDirectory.IsEmpty(DelphiVersionFolder) then TDirectory.Delete(DelphiVersionFolder);
     end;
+    if TDirectory.IsEmpty(NameFolder) then TDirectory.Delete(NameFolder);
   end;
 end;
 

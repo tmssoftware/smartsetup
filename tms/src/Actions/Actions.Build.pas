@@ -22,7 +22,7 @@ uses
 procedure UnregisterLibraryPaths(const Root: string);
 begin
   //Just remove everything that is registered in our path.
-  //This method is called when there is no product left.
+  //This method is called when there are no products left.
   //getInstaller
 end;
 

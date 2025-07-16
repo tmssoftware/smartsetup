@@ -4,7 +4,7 @@ unit UDelphiInstaller;
 interface
 
 uses
-  UPlatformBuildInfo, UPackageBuildInfo, Deget.CoreTypes,
+  UPlatformBuildInfo, UPackageBuildInfo, Deget.CoreTypes,  Generics.Defaults,
   UConfigDefinition, UFullBuildInfo, ULogger, UMultiLogger, UProjectDefinition,
 {$IFDEF MSWINDOWS}
   Windows, SysUtils, TypInfo, JSON, IOUtils, Generics.Collections,
@@ -62,9 +62,11 @@ type
 
     procedure RegisterAtIDELevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
     procedure RegisterAtPlatformLevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
+    procedure RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
 
     procedure UnRegisterAtIDELevel(const UninstallInfo: IUninstallInfo); override;
     procedure UnRegisterAtPlatformLevel(const UninstallInfo: IUninstallInfo); override;
+    procedure UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>); override;
 
     procedure UpdateProjectsSource(const BuildInfo: TFullBuildInfo); override;
 
@@ -142,7 +144,8 @@ uses
   Deget.DelphiInfo, Deget.IDEUtils, Deget.FileUtils, Deget.RCFileFormat,
   Deget.Filer.DprojFile, Deget.Filer.DpkFile, Deget.Filer.DprFile, UIDEUtils,
   Deget.Filer.ProjectFactory, UEnvironmentPath, Megafolders.Manager,
-  UWindowsPath, UTmsBuildSystemUtils, Commands.GlobalConfig, Deget.ResFile, Threading, UOSFileLinks, ULoggerTask;
+  UWindowsPath, UTmsBuildSystemUtils, Commands.GlobalConfig, Deget.ResFile, Threading, UOSFileLinks,
+  ULoggerTask, UProjectInstallerConstants;
 
 { TDelphiInstaller }
 
@@ -532,6 +535,85 @@ begin
   Result := [TPlatform.win32intel, TPlatform.win64intel];
 end;
 
+procedure TDelphiInstaller.RegisterMegafolders(const BuildInfo: TFullBuildInfo;
+  const UninstallInfo: IUninstallInfo);
+begin
+  var Megafolder := Config.DcuMegafolders.Match(BuildInfo.Project.ProjectId);
+  if Megafolder = '' then exit;  
+
+  if BuildInfo.Project.SkipRegistering.Packages or BuildInfo.Project.DryRun then exit;
+  UninstallInfo.Value.WriteStr(UninstallConsts.AlternateRegistryKey, Config.AlternateRegistryKey);
+
+
+  for var BuildConfigIndex := Low(TBuildConfig) to High(TBuildConfig) do
+  begin
+    var RelMegafolderPath := TMegafolderManager.GetFolderName(Megafolder, IDEName, BuildInfo.Platform.Name, BuildConfigIndex);
+    var FullFolderPath := TPath.Combine(Config.Folders.DcuMegafolder, RelMegafolderPath);
+
+    var IDEInfo := CreateIDEInfo(BuildInfo);
+    var PlatformInfo := IDEInfo.GetPlatform(BuildInfo.Platform.Name);
+
+    for var PathType := Low(TDelphiPathType) to High(TDelphiPathType) do
+    begin
+      if PathType in [TDelphiPathType.ptBrowsingPath, TDelphiPathType.ptCppBrowsingPath, TDelphiPathType.ptCppClang32BrowsingPath] then continue;
+
+      if (BuildConfigIndex = TBuildConfig.Debug) and (PathType <> TDelphiPathType.ptDebugDcuPath) then continue;
+      if (BuildConfigIndex = TBuildConfig.Release) and (PathType = TDelphiPathType.ptDebugDcuPath) then continue;
+
+      UninstallInfo.Value.WriteStr(UninstallConsts.IDEPaths[PathType], FullFolderPath);
+      PlatformInfo.AddIDEPath(PathType, FullFolderPath);
+      Logger.Trace(Format('%s added to platform "%s.%s": %s', [
+        UninstallConsts.IDEPaths[PathType],
+        DisplayName,
+        PlatformId[PlatformInfo.PlatType],
+        FullFolderPath
+      ]));
+
+    end;
+
+  end;
+end;
+
+function OtherEntriesContain(const OtherEntries: TArray<string>; const AlternateRegistryKey, PathType, PathValue: string): boolean;
+begin
+  Result := false;
+  for var Entry in OtherEntries do
+  begin
+    var Value := TJSONObject.ParseJSONValue(Entry, false, true) as TJSONObject;
+    try
+      var EntryAlternateRegistryKey := Value.ReadStr(UninstallConsts.AlternateRegistryKey);
+      if not SameText(AlternateRegistryKey, EntryAlternateRegistryKey) then continue;
+      var EntryValue := Value.ReadStr(PathType);
+      if SameText(EntryValue, PathValue) then exit(true);
+    finally
+      Value.Free;
+    end;
+  end;
+end;
+
+procedure TDelphiInstaller.UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>);
+begin
+  var IDEInfo := CreateIDEInfo(UninstallInfo);
+  var PlatformInfo := IDEInfo.GetPlatform(UninstallInfo.Platform);
+  var AlternateRegistryKey := UninstallInfo.Value.ReadStr(UninstallConsts.AlternateRegistryKey);
+  for var PathType := Low(TDelphiPathType) to High(TDelphiPathType) do
+  begin
+    var PathsToRemove := UninstallInfo.Value.ReadStr(UninstallConsts.IDEPaths[PathType], '');
+    if PathsToRemove = '' then continue;
+    if OtherEntriesContain(OtherEntries, AlternateRegistryKey, UninstallConsts.IDEPaths[PathType], PathsToRemove) then continue;
+
+
+    if not UninstallInfo.DryRun then
+      PlatformInfo.RemoveIDEPath(PathType, PathsToRemove);
+    Logger.Trace(Format('Removed from %s in platform "%s.%s": %s', [
+      UninstallConsts.IDEPaths[PathType],
+      DisplayName,
+      PlatformId[PlatformInfo.PlatType],
+      PathsToRemove
+    ]));
+  end;
+end;
+
 procedure TDelphiInstaller.RegisterAtIDELevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo);
 begin
   UninstallInfo.Value.WriteStr(UninstallConsts.AlternateRegistryKey, BuildInfo.Project.AlternateRegistryKey);
@@ -785,30 +867,6 @@ procedure TDelphiInstaller.UnRegisterAtIDELevel(const UninstallInfo: IUninstallI
 begin
   var Updated := UnregisterHelp(UninstallInfo);
   if Updated then CreateIDEInfo(UninstallInfo).ForceIDEUpdate;
-end;
-
-procedure UnregisterAllLibraryPaths(const Root: string);
-begin
-  exit;
-  //Remove everything that is registered in our path.
-  for var IDEName := Low(TIDEName) to High(TIDEName) do
-  begin
-    var IDEInfo: IDelphiIDEInfo := TDelphiIDEInfo.Create(IDEName, Config.AlternateRegistryKey);
-    for var Platform := Low(TPlatform) to High(TPlatform) do
-    begin
-      var PlatformInfo: IDelphiPlatformInfo := IDEInfo.GetPlatform(Platform);
-      for var PlatType := Low(TDelphiPathType) to High(TDelphiPathType) do
-      begin
-        PlatformInfo.RemoveIDEPath(PlatType, Root);
-      end;
-    end;
-  end;
-end;
-
-procedure RegisterMegafolders;
-begin
-  //Unregister all existing megafolders, just in case
-  UnregisterAllLibraryPaths(Config.Folders.DcuMegafolder);
 end;
 
 procedure TDelphiInstaller.UnRegisterAtPlatformLevel(const UninstallInfo: IUninstallInfo);
