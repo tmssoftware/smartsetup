@@ -77,6 +77,7 @@ begin
   FIDE := aIDE;
   FPlatform := aPlatform;
   FPackage := aPackage;
+  FPathToCompiler := aPathToCompiler;
   FLockedFilesFolder := aLockedFilesFolder;
 end;
 
