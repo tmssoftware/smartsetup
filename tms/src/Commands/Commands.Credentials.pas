@@ -87,54 +87,66 @@ begin
     Credentials.Code := Value;
 end;
 
+procedure DoServerCredentials( Folders: IBuildFolders; const ServerName, ServerUrl: string);
+begin
+  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions);
+  try
+    var Credentials := Manager.ReadCredentials;
+    try
+      if Print then
+        PrintCredentials(Credentials)
+      else
+      begin
+        // if any parameter is passed, we don't ask for any input from the console, and just update the passed parameters
+        if (NewEmail <> '') or (NewCode <> '') then
+        begin
+          if NewEmail <> '' then
+            Credentials.Email := NewEmail;
+          if NewCode <> '' then
+            Credentials.Code := NewCode;
+        end
+        else
+          ReadCredentialsFromConsole(ServerName, Credentials);
+
+        // now update credentials
+        begin
+          if Check then
+            Manager.UpdateAccessToken(Credentials, FetchOptions.RepositoryInfo(ServerUrl).AuthUrl);
+
+          // Create meta directory here, not inside SaveCredentials. This makes sure that it only works when
+          // running credentials command. Otherwise, the meta folder should be created all the time.
+          TDirectory_CreateDirectory(TPath.GetDirectoryName(Folders.CredentialsFile(ServerName)));
+
+          Manager.SaveCredentials(Credentials);
+        end;
+      end;
+    finally
+      Credentials.Free;
+    end;
+  finally
+    Manager.Free;
+  end;
+
+end;
+
 procedure RunCredentialsCommand;
 begin
   CheckAppAlreadyRunning;
 
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
 
+  if not IsValidTMSSetupFolder then
+  begin
+    var ServerConfig := TServerConfig.Create('tms', TServerProtocol.Api, '', true);
+    DoServerCredentials(Folders, ServerConfig.Name, ServerConfig.Url);
+    exit;
+  end;
+
   for var i := 0 to Config.ServerConfig.ServerCount - 1 do
   begin
     var Server := Config.ServerConfig.GetServer(i);
     if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
-
-    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions);
-    try
-      var Credentials := Manager.ReadCredentials;
-      try
-        if Print then
-          PrintCredentials(Credentials)
-        else
-        begin
-          // if any parameter is passed, we don't ask for any input from the console, and just update the passed parameters
-          if (NewEmail <> '') or (NewCode <> '') then
-          begin
-            if NewEmail <> '' then
-              Credentials.Email := NewEmail;
-            if NewCode <> '' then
-              Credentials.Code := NewCode;
-          end
-          else
-            ReadCredentialsFromConsole(Server.Name, Credentials);
-
-          // now update credentials
-          begin
-            if Check then
-              Manager.UpdateAccessToken(Credentials, FetchOptions.RepositoryInfo(Server.Url).AuthUrl);
-
-            // Create meta directory here, not inside SaveCredentials. This makes sure that it only works when
-            // running credentials command. Otherwise, the meta folder should be created all the time.
-            TDirectory_CreateDirectory(TPath.GetDirectoryName(Folders.CredentialsFile(Server.Name)));
-
-            Manager.SaveCredentials(Credentials);
-          end;
-        end;
-      finally
-        Credentials.Free;
-      end;
-    finally
-      Manager.Free;
-    end;
+    DoServerCredentials(Folders, Server.Name, Server.Url);
   end;
 end;
 
