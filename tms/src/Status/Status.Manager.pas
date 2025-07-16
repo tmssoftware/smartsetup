@@ -51,7 +51,7 @@ type
   private
     FConfig: TConfigDefinition;
     FProducts: TList<TProductStatus>;
-    procedure LoadFetchedProducts;
+    procedure LoadRemoteProducts;
     procedure LoadBuildableProducts;
     procedure UpdateProductStatus(Product: TProductStatus);
   protected
@@ -117,11 +117,12 @@ begin
   end;
 end;
 
-procedure TStatusManager.LoadFetchedProducts;
+procedure TStatusManager.LoadRemoteProducts;
 begin
   var Items := TObjectList<TFetchInfoFile>.Create;
   try
     GetFetchedProducts(FConfig.Folders.ProductsFolder, Items);
+    GetRepoProducts(FConfig.Folders.ProductsFolder, Items);
     for var Item in Items do
     begin
       var Product := TProductStatus.Create;
@@ -140,7 +141,7 @@ end;
 procedure TStatusManager.Update;
 begin
   FProducts.Clear;
-  LoadFetchedProducts;
+  LoadRemoteProducts;
   LoadBuildableProducts;
 
   for var Product in FProducts do
