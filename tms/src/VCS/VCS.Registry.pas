@@ -248,7 +248,7 @@ begin
   var Project :=TProjectDefinition.Create(FileName);
   try
     TProjectLoader.LoadDataIntoProject(FileName, Text, Project, 'root:supported frameworks', true);
-    FProducts.Add(Project.Application.Id, GetProductFromProject(Project, Server, true, Text));
+    FProducts.AddOrSetValue(Project.Application.Id, GetProductFromProject(Project, Server, true, Text));
   finally
     Project.Free;
   end;
@@ -292,7 +292,7 @@ begin
     end;
   except on ex: Exception do
   begin
-    Logger.Error('Error loading the GIT repositories: "' + ex.Message + '". We can continue, but the preregistered GIT repositories might not be loaded.');
+    Logger.Error('Error loading server ' + Server.Name + ': "' + ex.Message + '". We can continue, but the preregistered GIT repositories might not be loaded.');
     //Do not re-raise. We can still work if this fails.
   end;
   end;
