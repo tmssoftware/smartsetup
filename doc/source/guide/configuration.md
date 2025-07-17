@@ -3,7 +3,7 @@
 uid: SmartSetup.Configuration
 
 ---
-# Introduction
+# Configuration
 
 Configuration in SmartSetup is done by editing a `tms.config.yaml` file. From the command line, you can just call `tms config` to open it in the default editor. From tmsgui, there is a "Configuration" button that you can press. 
 
@@ -57,7 +57,7 @@ The most likely things that you might want to review are:
 {{#Note}}
   We recommend that you skip just all or nothing. (`skip register: true/false`). But if you prefer to skip just certain parts, it might be useful to use the negated form: `skip register: [all, -option1, -option2]`. 
   
-  We might add new `skip register` options in the future, say for example we add `option6`. With the form `skip register: [option1, option2]` you might need to change it to `skip register: [option1, option2, option6]` While the negated form `skip register: [all, -option1, -option2]` it will still skip everything except option1 and option2, so the new option6 will be skipped by default.
+  We might add new `skip register` options in the future, say, for example, we add `option6`. With the form `skip register: [option1, option2]` you might need to change it to `skip register: [option1, option2, option6]` While the negated form `skip register: [all, -option1, -option2]` it will still skip everything except option1 and option2, so the new option6 will be skipped by default.
 {{/Note}}
 
   * **debug dcus**: If you don't change it, SmartSetup will compile the libraries in both debug and release modes. While this will allow you to step into the code in those libraries while debugging, it will also more than double the size used in disk, and increase the build time (since each library has to be compiled twice)
@@ -69,14 +69,14 @@ The most likely things that you might want to review are:
 ## Using Dcu Megafolders
 
 {{#Warning}}
-This is an advanced topic. Dcu Megafolders are not enabled by default, and that's the correct choice most of the times. Only enable them if you are experiencing actual problems due to the length of the Library Path.
+This is an advanced topic. Dcu Megafolders are not enabled by default, and that's the correct choice most of the times. Only enable them if you are experiencing actual problems because of the length of the Library Path.
 {{/Warning}}
 
 SmartSetup can install tens of products in minutes. This is great, but each of those products adds its own entry to the library path, and the library path can become huge. 
 
 {{#image}}big-delphi-library-path.png{{/image}}
 
-Having a huge library path isn't necessary a problem: Delphi will keep working as usual, and SmartSetup will also be able to build your products no matter its length. If you are using msbuild as default, it might run into a "32k" limit, but that can be workarounded by passing [/p:DCC_UseMSBuildExternally=true](https://stackoverflow.com/questions/76416094/command-line-for-dcc-is-too-long-while-using-msbuild-to-compile-delphi-project) as a parameter to compile.
+Having a huge library path isn't necessarily a problem: Delphi will keep working as usual, and SmartSetup will also be able to build your products no matter its length. If you are using msbuild as default, it might run into a "32k" limit, but that can be workarounded by passing [/p:DCC_UseMSBuildExternally=true](https://stackoverflow.com/questions/76416094/command-line-for-dcc-is-too-long-while-using-msbuild-to-compile-delphi-project) as a parameter to compile.
 
 Still, there might be cases where a huge library path might become problematic. For those cases, SmartSetup offers the "Dcu Megafolders" feature, where a lot of dcus from different products are linked in a single folder, and only that folder is added to the Library path.
 
@@ -85,7 +85,7 @@ To enable them, follow the steps:
 1. **Verify that you can create symbolic links without admin rights**. Dcu Megafolders use symlinks, and in a default Windows configuration, symlinks require admin rights. If you haven't already, you need to enable [developer mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) in your Windows machine. See also https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/ 
 2. From the command line, cd to the folder where your SmartSetup installation is located.
 3. If you have an old `tms.config.yaml` file, which doesn't have a `dcu megafolders` section, **type `tms config-write`** to update your `tms.config.yaml` to the latest
-4. **Type `tms config`** to edit the config file. Search for the section "dcu megafolders". (If you can't find it, make sure you did step 2 above) 
+4. **Type `tms config`** to edit the config file. Search for the section "dcu megafolders". (If you can't find it, make sure you did step 3 above) 
 5. Edit the section **"dcu megafolders"** to specify how you want those folders created. You can specify for every product where you want its dcus to go.
 
 {{#Important}}
@@ -96,7 +96,7 @@ Below is the example section that comes with `tms.config.yaml`:
 
 ```yaml
  # To enable megafolders, you need to be in dev-mode in Win10+. 
-  # Megafolders uses sym links, so you need to be able to create them without admin rights.
+  # Megafolders use symlinks, so you need to be able to create them without admin rights.
   dcu megafolders:
     - none: 'tms.flexcel.vcl'   # FlexCel VCL has over 5000 units, it is not worth putting it into a megafolder
     - tms: 'tms.*'   # All other products matching tms.* except FlexCel go to the tms folder
@@ -115,7 +115,7 @@ This list is ordered and must be read from top to bottom.
  * And the last rule just links anything that did not match any of the previous rules to the "other" folder.
 
 {{#Tip}}
- The example above is complex on purpose, so we can show you all what could be done. But in most cases, you can probably get away with just:
+ The example above is complex on purpose, so we can show you all what could be done. But most times, you can probably get away with just:
 
  ```yaml
   dcu megafolders:

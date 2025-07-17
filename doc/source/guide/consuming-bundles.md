@@ -28,7 +28,7 @@ You can add a product to your active local server with the command:
 tms repo-register <protocol> <url>
 ```
 Where **<protocol>** can be **GIT**, **SVN** or **ZIPFILE**
-For example,  to add a product hosted in github, you could write:
+For example,  to add a product hosted in GitHub, you could write:
 ```
  tms repo-register git https://github.com/landgraf-dev/aws-sdk-delphi.git
 ```
@@ -100,13 +100,13 @@ svn:
 ZipFiles are just what the name says, a zip file that contains all of the files. Just point the url to a place where you can download a zip file, and SmartSetup will download it, unzip it, and build it.
 
 Notes:
- * Despite the name, "ZipFiles" be `.zip` or `.tar.zst` files. Zip files are the most widespread format, so we recommend it whenever files aren't too big. [ZStd](http://www.zstd.net) is a newer format that compresses more, and is faster for the same level of compression than zip. And while not as common as .zip, Windows 11 Explorer fully supports `.tar.zst` files, and also most modern file compression utilities will.
+ * Despite the name, "ZipFiles" can be `.zip` or `.tar.zst` files. Zip files are the most widespread format, so we recommend it whenever files aren't too big. [ZStd](http://www.zstd.net) is a newer format that compresses more, and is faster for the same level of compression than zip. And while not as common as .zip, Windows 11 Explorer fully supports `.tar.zst` files, and also most modern file compression utilities will.
  
- * A drawback of using ZipFiles as the backend is that there isn't an obvious way to know if there is a new version of the component without downloading the file again and again every time we do some type of `tms update`. To fix this, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag). So if you want to use the ZipFile protocol to serve files, make sure that the webserver that has them supports ETags. **Github supports ETags by default**, so you can link to any file in the GitHub releases or other parts without issues. For other webservers, you might need to configure them. SmartSetup won't refuse to serve zip files over a server that doesn't support ETags, but it will keep **constantly downloading the zip file** to check for newer versions, and will issue a warning in the logs. 
+ * A drawback of using ZipFiles as the backend is that there isn't an obvious way to know if there is a new version of the component without downloading the file again and again every time we do some type of `tms update`. To fix this, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag). So if you want to use the ZipFile protocol to serve files, make sure that the webserver that has them supports ETags. **GitHub supports ETags by default**, so you can link to any file in the GitHub releases or other parts without issues. For other webservers, you might need to configure them. SmartSetup won't refuse to serve zip files over a server that doesn't support ETags, but it will keep **constantly downloading the zip file** to check for newer versions, and will issue a warning in the logs. 
 
- * ZipFile files might be hosted in a webserver, or just by the file system. To use the filesystem, just set the url to be of the form `file://path-to-zip-file.zip` instead of `https://url-to-zip-file.zip`
+ * ZipFile files might be hosted in a webserver, or just by the file system. To use the filesystem, just set the url to be in the form `file://path-to-zip-file.zip` instead of `https://url-to-zip-file.zip`
 
- * The root folder of a ZipFile might have a `tmsbuild.yaml` file, or the file might be stored inside a folder, as long as the path to the file is all empty folders. This is to support hosts like github that provide you a zip where for example the root will have just one folder `product` and the files (including tmsbuild.yaml) will be all inside it.
+ * The root folder of a ZipFile might have a `tmsbuild.yaml` file, or the file might be stored inside a folder, as long as the path to the file is all empty folders. This is to support hosts like GitHub that provide you a zip where, for example, the root will have just one folder `product` and the files (including tmsbuild.yaml) will be all inside it.
  
 
 
@@ -122,13 +122,13 @@ Currently Api servers are the only ones that support authentication. For that re
 
 ZipFile servers work similarly to [Local Servers](#local-servers), but instead of storing the list of products locally in json files, they are stored inside a zip file too.
 
-The zip file must contain folders, each one with a tmsbuild.yaml file inside providing the description of a particular product. 
+The zip file must contain folders, each one with a tmsbuild.yaml file inside, describing a particular product. 
 
 You can see an example of this server in our "Community" server, which is hosted at https://github.com/tmssoftware/smartsetup-registry
 
 Note that while we host the community server at GitHub for convenience so everyone can collaborate, we don't actually use Git to retrieve the list of products. We use this zip file instead: https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip which contains the contents of the repository inside.
 
-To avoid constantly redownloading the zip file for checking updates, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag), same as we do when downloading a file using the [ZipFile](#zipfile) protocol. GitHub supports ETags by default, so if you host a ZipFile server in GitHub, there is nothing to be done. When hosting it in your own servers, you might have to configure them to support ETags. If they don't, SmartSetup will still work, but print a message telling you to enable ETag support.
+To avoid constantly re downloading the zip file for checking updates, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag), same as we do when downloading a file using the [ZipFile](#zipfile) protocol. GitHub supports ETags by default, so if you host a ZipFile server in GitHub, there is nothing to be done. When hosting it in your own servers, you might have to configure them to support ETags. If they don't, SmartSetup will still work, but print a message telling you to enable ETag support.
 
 Currently, the ZipFile server only uses the following information of the `tmsbuild.yaml` file:
 ```yaml
@@ -194,7 +194,7 @@ All the commands above just modify `tms.config.yaml`, so you might edit it inste
 
 ## Enabling and disabling servers
 
-Besides adding and removing servers, you can enable and disable them. So for example, the community server comes disabled by default. To enable it, you should write:
+Besides adding and removing servers, you can enable and disable them. So, for example, the community server comes disabled by default. To enable it, you should write:
 
 ```shell
 tms server-enable community

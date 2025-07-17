@@ -85,7 +85,7 @@ tms smart setup options:
     %svn-export-command-comment%export command: %svn-export-command%
 
   # To enable megafolders, you need to be in dev-mode in Win10+. 
-  # Megafolders uses sym links, so you need to be able to create them without admin rights.
+  # Megafolders use symlinks, so you need to be able to create them without admin rights.
   dcu megafolders:
 %dcu-megafolders%
 
