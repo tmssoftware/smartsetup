@@ -134,6 +134,12 @@ type
     function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); override;
 
+    procedure RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
+    procedure UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>); override;
+    procedure UpdateMegafolders(const SourceFolder, ProjectId: string;
+      const IDEName: TIDEName; const Platform: TPlatform;
+      const BuildConfig: TBuildConfig;
+      const UsedDcuMegafolders: TUsedMegafolders); override;
 
   end;
 {$ENDIF}
@@ -1421,6 +1427,24 @@ function TDelphiInstaller.SupportsCppBuilder(
 begin
    Result := (Platform = TPlatform.win32intel) and (IDEName >= TIDEName.delphi2006);
 end;
+
+procedure TDelphiInstaller.UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>);
+begin
+end;
+
+procedure TDelphiInstaller.RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo);
+begin
+end;
+
+procedure TDelphiInstaller.UpdateMegafolders(const SourceFolder, ProjectId: string;
+      const IDEName: TIDEName; const Platform: TPlatform;
+      const BuildConfig: TBuildConfig;
+      const UsedDcuMegafolders: TUsedMegafolders);
+begin
+
+end;
+
+
 
 {$endregion}
 

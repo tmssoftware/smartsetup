@@ -14,23 +14,11 @@ uses
   UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface, UConfigDefinition,
   UParallelProjectBuilder, UWindowsPath, UEnvironmentPath,
   {$IFDEF MSWINDOWS}
-  Windows, Messages, Package.Creator,
+  Windows, Messages,
   {$ENDIF}
 
-  UBuildSummary, Megafolders.Manager;
+  Package.Creator, UBuildSummary, Megafolders.Manager;
 
-procedure UnregisterLibraryPaths(const Root: string);
-begin
-  //Just remove everything that is registered in our path.
-  //This method is called when there are no products left.
-  //getInstaller
-end;
-
-procedure RegisterMegafolders;
-begin
-  //Unregister all existing megafolders, just in case
-  UnregisterLibraryPaths(Config.Folders.DcuMegafolder);
-end;
 
 procedure RemoveFromWindowsPathIfNoProducts(const ProjectCount: integer); overload;
 begin
@@ -173,10 +161,6 @@ begin
       Projs.ResolveDependencies;
 
       RemoveFromWindowsPathIfNoProducts(Projs.All.Count);
-      if Projs.All.Count = 0
-        then UnregisterLibraryPaths(Config.Folders.RootFolder)
-        else RegisterMegafolders;
-
 
       CreatePackages(Projs);
       var ProjectAnalyzer := TProjectAnalyzer.Create(Config, Projs, FileHasher);

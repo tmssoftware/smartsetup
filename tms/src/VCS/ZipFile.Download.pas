@@ -1,7 +1,13 @@
 unit ZipFile.Download;
 
 interface
-uses Windows, ULogger, System.Net.HttpClient;
+uses ULogger,
+  {$IFDEF MSWINDOWS}
+    Windows,
+  {$ELSE}
+    Posix.Stdio,
+  {$ENDIF}
+  System.Net.HttpClient;
 type
   TDownloadLogger = reference to procedure(const Verbosity: TVerbosity; const msg: string);
 

@@ -1,9 +1,12 @@
 unit Deget.Filer.DprojFile;
-{$IFDEF MSWINDOWS}
 {$SCOPEDENUMS ON}
 {$R packages.res}
 
 interface
+{$IFNDEF MSWINDOWS}
+uses
+  Classes, Deget.CoreTypes;
+{$ELSE}
 uses
   Generics.Collections, System.SysUtils, System.Classes, System.Types, Xml.XMLIntf, System.Zip,
   WinApi.ActiveX,
@@ -309,9 +312,11 @@ type
     procedure SetAttIfExists(const Path: string; const AttName: string; const AttValue: string);
   end;
 
+  function GetNullableNodeValue(const Node: IXMLNode): Nullable<string>;
+
+{$ENDIF}
   function IntegerToPlatforms(Value: Integer): TPlatformSet;
   function PlatformsToInteger(Platforms: TPlatformSet): Integer;
-  function GetNullableNodeValue(const Node: IXMLNode): Nullable<string>;
 
 implementation
 uses
@@ -338,6 +343,8 @@ begin
   for var PlatType in Platforms do
     Result := Result or PlatformMap[PlatType];
 end;
+
+{$IFDEF MSWINDOWS}
 
 { TPackageWriter }
 
@@ -2011,9 +2018,6 @@ begin
   inherited;
 end;
 
-{$ELSE}
-interface
-implementation
 {$ENDIF}
 
 end.
