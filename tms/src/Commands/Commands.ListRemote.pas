@@ -92,7 +92,7 @@ end;
 
 procedure AddApiProducts(const Server: TServerConfig; const ListedProducts: TList<TAPIProduct>);
 begin
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(Server.Name), FetchOptions, Server.Url, true);
+  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(Server.Name), FetchOptions, Server.Url, Server.Name, true);
   try
       for var Product in Repo.Products do
         if (Product.LatestVersion <> nil) and not Product.Internal and not (Product.LicenseStatus in [TLicenseStatus.none]) then

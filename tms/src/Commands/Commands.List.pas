@@ -29,6 +29,7 @@ begin
 
       Item.AddPair('version', TVersion(Product.Version).Normalized);
       Item.AddPair('name', Product.Name);
+      Item.AddPair('server', Product.Server);
       if Product.Channel <> '' then
         Item.AddPair('channel', Product.Channel);
       if not Product.Fetched then
@@ -84,6 +85,7 @@ begin
 
     if Detailed then
     begin
+      Writeln('server: ' + Product.Server);
       var IDEPrinted := False;
       for var IDEName := Low(TIDEName) to High(TIDEName) do
         for var Plat := Low(TPlatform) to High(TPlatform) do

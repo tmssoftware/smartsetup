@@ -113,7 +113,7 @@ begin
         Continue;
       end;
 
-      var Item := TFetchItem.Create(RepoProduct.Id, RepoProduct.LatestVersion.Version);
+      var Item := TFetchItem.Create(RepoProduct.Id, RepoProduct.LatestVersion.Version, Repo.Server);
       FFetchItems.Add(Item);
       Item.Internal := RepoProduct.Internal;
       Item.FileHash := RepoProduct.LatestVersion.FileHash;
@@ -127,7 +127,7 @@ begin
     var ErrorMessage := Format('Could not find any products matching %s', [ProductIdMask]);
     if FIgnoreMissing then
     begin
-      var Item := TFetchItem.Create(ProductIdMask, '');
+      var Item := TFetchItem.Create(ProductIdMask, '', Repo.Server);
       FFetchItems.Add(Item);
       Item.Status := TFetchStatus.Failed;
       Logger.Error(ErrorMessage);

@@ -31,6 +31,7 @@ type
     FName: string;
     FVersion: TVersion;
     FChannel: string;
+    FServer: string;
     FFetched: Boolean;
     FProject: TProjectDefinition;
     FIDEStatusMap: TDictionary<TIDEName, TIDEStatus>;
@@ -43,6 +44,7 @@ type
     property Name: string read FName write FName;
     property Version: TVersion read FVersion write FVersion;
     property Channel: string read FChannel write FChannel;
+    property Server: string read FServer write FServer;
     property Fetched: Boolean read FFetched write FFetched;
     property Project: TProjectDefinition read FProject write FProject;
   end;
@@ -122,7 +124,6 @@ begin
   var Items := TObjectList<TFetchInfoFile>.Create;
   try
     GetFetchedProducts(FConfig.Folders.ProductsFolder, Items);
-    GetRepoProducts(FConfig.Folders.ProductsFolder, Items);
     for var Item in Items do
     begin
       var Product := TProductStatus.Create;
@@ -131,6 +132,7 @@ begin
       Product.Name := Item.DisplayName;
       Product.Version := Item.Version;
       Product.Channel := Item.Channel;
+      Product.Server := Item.Server;
       Product.Fetched := True;
     end;
   finally
@@ -157,6 +159,8 @@ end;
 
 procedure TStatusManager.UpdateProductStatus(Product: TProductStatus);
 begin
+  if Product.Project = nil then exit;
+
   var Hasher := TFileHasher.Create(FConfig);
   try
     var Installer := TProjectInstaller.Create(FConfig);

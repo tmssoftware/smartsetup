@@ -412,8 +412,9 @@ function TApplicationSectionDef.GetVCSProtocol(const s: string;
   const ErrorInfo: TErrorInfo): string;
 begin
   if SameText(s, 'svn') then exit('svn');
+  if SameText(s, 'zipfile') then exit('zipfile');
   if (s = '') or SameText(s, 'git') then exit('git');
-  raise Exception.Create('"' + s + '" is not a valid VCS Protocol value. It must be "git" or "svn". ' + ErrorInfo.ToString);
+  raise Exception.Create('"' + s + '" is not a valid VCS Protocol value. It must be "git", "svn" or "zipfile. ' + ErrorInfo.ToString);
 end;
 
 function TApplicationSectionDef.ReadVersionFile(const FileName: string;

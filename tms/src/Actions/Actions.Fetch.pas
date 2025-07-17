@@ -43,7 +43,7 @@ end;
 procedure ExecuteFetchAction(AProductIds: TArray<string>; FetchMode: TFetchMode);
 begin
   var ApiServer := FindApiServer;
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, false);
+  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, false);
   try
     var VCSProducts := TVCSManager.Fetch(AProductIds, FetchMode = TFetchMode.OnlyInstalled);
     try

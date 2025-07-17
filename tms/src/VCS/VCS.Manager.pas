@@ -6,7 +6,8 @@ uses Classes, SysUtils, Commands.GlobalConfig, VCS.Registry,
 {$IFDEF MSWINDOWS}
      Windows,
 {$ENDIF}
-     Generics.Collections, Threading, VCS.Summary, VCS.CoreTypes, UProjectDefinition;
+     Generics.Collections, Threading, VCS.Summary, VCS.CoreTypes,
+     UProjectDefinition, Fetching.InfoFile;
 
 type
 
@@ -15,11 +16,12 @@ type
     class procedure DoFetch(const Products: TList<TRegisteredProduct>); static;
     class function CaptureFetch(TK: integer; Proc: TProc<integer>): TProc; static;
     class function FetchProduct(const Product: TRegisteredProduct): TVCSFetchStatus; static;
-    class procedure DoFetchProduct(const Product: TRegisteredProduct); static;
+    class procedure DoFetchProduct(const ProductFolder: string; const Product: TRegisteredProduct); static;
     class function DoGetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition; static;
     class function HasErrors(const Status: TArray<TVCSFetchStatus>): boolean; static;
     class function GetInstalledProducts: THashSet<string>; static;
-    class procedure AddPredefinedData(const Product: TRegisteredProduct); static;
+    class procedure AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct); static;
+    class function FindTmsBuildYaml(const ProductFolder: string): string; static;
   public
     class function Fetch(const AProductIds: TArray<string>; const OnlyInstalled: boolean): THashSet<string>; static;
     class function GetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition;
@@ -110,11 +112,9 @@ end;
 
 
 
-class procedure TVCSManager.DoFetchProduct(const Product: TRegisteredProduct);
+class procedure TVCSManager.DoFetchProduct(const ProductFolder: string; const Product: TRegisteredProduct);
 begin
   var Engine := TVCSFactory.Instance.GetEngine(Product.Protocol);
-  var ProductFolder := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId);
-
   if Engine.GetProduct(ProductFolder, Product.Url, Product.Server) then exit; //direct get.
   
 
@@ -147,18 +147,33 @@ begin
   end;
 end;
 
-class procedure TVCSManager.AddPredefinedData(const Product: TRegisteredProduct);
+class function TVCSManager.FindTmsBuildYaml(const ProductFolder: string): string;
+begin
+  var Folder := ProductFolder;
+  while True do
+  begin
+    var tmsbuild_yaml := TPath.Combine(Folder, TProjectLoader.TMSBuildDefinitionFile);
+    //We give priority to the yaml that is in the product repo.
+    //If the yaml exists in both the repo and the registry, we will use the repo.
+    if TFile.Exists(tmsbuild_yaml) then exit('');
+
+    //If it is a single folder, we assume the product is actually inside that single folder.
+    //To be more strict, we could check for a single folder and no files, but we might have some files in there
+    //(.etag, tmsfetch files).
+    var Children := TDirectory.GetDirectories(Folder);
+    if (Length(Children) <> 1) then exit(tmsbuild_yaml);
+    Folder := TPath.Combine(Folder, Children[0]);
+  end;
+
+end;
+class procedure TVCSManager.AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct);
 begin
   if Product.PredefinedData.Tmsbuild_Yaml.Trim <> '' then
   begin
-    var ProductFolder := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId);
-    var tmsbuild_yaml := TPath.Combine(ProductFolder, TProjectLoader.TMSBuildDefinitionFile);
-    //We give priority to the yaml that is in the product repo.
-    //If the yaml exists in both the repo and the registry, we will use the repo.
-    if not TFile.Exists(tmsbuild_yaml) then
-    begin
-      TFile.WriteAllText(tmsbuild_yaml, Product.PredefinedData.Tmsbuild_Yaml);
-    end;
+    var tmsbuild_yaml := FindTmsBuildYaml(ProductFolder);
+    if tmsbuild_yaml = '' then exit;
+
+    TFile.WriteAllText(tmsbuild_yaml, Product.PredefinedData.Tmsbuild_Yaml);
   end;
 end;
 
@@ -169,8 +184,13 @@ begin
   try
     CheckAppTerminated;
     Logger.Info('Updating ' + Product.ProductId + ' from ' + Product.ProtocolString);
-    DoFetchProduct(Product);
-    AddPredefinedData(Product);
+
+    var ProductFolder := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId, 'src');
+
+    TFetchInfoFile.SaveInFolder(TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId), Product.ProductId, '', Product.Server);
+
+    DoFetchProduct(ProductFolder, Product);
+    AddPredefinedData(ProductFolder, Product);
     begin
 
     end;
