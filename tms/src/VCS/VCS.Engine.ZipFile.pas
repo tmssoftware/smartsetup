@@ -6,6 +6,8 @@ uses SysUtils, Classes, VCS.Engine.Virtual, ULogger;
 
 type
   TZipFileEngine = class(TInterfacedObject, IVCSEngine)
+  private
+    procedure RemoveTopEmptyFolder(const DestFolder: string);
   public
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
@@ -73,6 +75,29 @@ begin
 
 end;
 
+procedure TZipFileEngine.RemoveTopEmptyFolder(const DestFolder: string);
+begin
+  var TopFolders := TDirectory.GetDirectories(DestFolder, '*', TSearchOption.soTopDirectoryOnly);
+  if Length(TopFolders) <> 1 then exit;
+  var TopFiles := TDirectory.GetFiles(DestFolder, '*', TSearchOption.soTopDirectoryOnly);
+  if Length(TopFiles) <> 0 then exit;
+
+  var TopFolder := TPath.Combine(DestFolder, TopFolders[0]);
+  var ChildFolders := TDirectory.GetDirectories(TopFolder, '*', TSearchOption.soTopDirectoryOnly);
+  var ChildFiles := TDirectory.GetFiles(TopFolder, '*', TSearchOption.soTopDirectoryOnly);
+
+  //If some folder has the same name as root, this will fail. As removing the top empty folder is cosmetic, if there is a possible problem, we just don't remove it.
+  for var ChildFolder in ChildFolders do
+    if SameText(TPath.GetFileName(ChildFolder), TPath.GetFileName(TopFolder)) then exit;
+  for var ChildFile in ChildFiles do
+    if SameText(TPath.GetFileName(ChildFile), TPath.GetFileName(TopFolder)) then exit;
+
+  for var ChildFolder in ChildFolders do RenameAndCheckFolder(ChildFolder, TPath.Combine(DestFolder, TPath.GetFileName(ChildFolder)));
+  for var ChildFile in ChildFiles do RenameAndCheck(ChildFile, TPath.Combine(DestFolder, TPath.GetFileName(ChildFile)));
+  SysUtils.RemoveDir(TopFolder);
+
+end;
+
 function TZipFileEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
 begin
   Result := true;
@@ -84,11 +109,17 @@ begin
   if TFile.Exists(DestETagFile) then TFile.Copy(DestETagFile, TmpETagFile);
   try
     ZipDownloader.GetRepo(aURL, ZipFileName, aServer, Logger.Write);
-    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, DestETagFile);
-    RenameAndCheck(TmpETagFile, DestETagFile);
     if TFile.Exists(ZipFileName) then  //might not exist if it wasn't modified
     begin
-      TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder);
+      DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, DestETagFile);
+      try
+        TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder);
+        RemoveTopEmptyFolder(aDestFolder);
+      except
+        DeleteFolderMovingToLocked(Config.Folders.LockedFilesFolder, aDestFolder, true);
+        raise;
+      end;
+      RenameAndCheck(TmpETagFile, DestETagFile);
     end;
   finally
     DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, ZipFileName);
