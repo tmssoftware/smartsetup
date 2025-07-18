@@ -20,7 +20,7 @@ type
   end;
 
 implementation
-uses IOUtils, UInstaller;
+uses IOUtils, UInstaller, UTmsBuildSystemUtils;
 function Throw(const ThrowExceptions: boolean; const msg: string): string;
 begin
   if ThrowExceptions then raise Exception.Create(msg);
@@ -35,6 +35,8 @@ class function TPackageFinder.GetProjectToBuild(const PackageCache: TPackageCach
   const Package: TPackage; const Naming: TNaming; const ThrowExceptions: boolean; const ForceExt: TArray<string>): string;
 begin
   var BasePath := TPath.GetDirectoryName(Project.FullPath);
+  if Project.RootPackageFolder <> '' then BasePath := CombinePath(BasePath, Project.RootPackageFolder);
+
   var exts := ForceExt;
   if exts = nil then
   begin
