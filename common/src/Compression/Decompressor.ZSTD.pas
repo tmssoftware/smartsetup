@@ -5,9 +5,8 @@ interface
 uses Classes, SysUtils;
 type
   TZSTDDecompressor = class
-  private
-    class procedure CheckIsInside(const FileName, Folder: string); static;
   public
+    class procedure CheckIsInside(const FileName, Folder: string); static;
     class procedure Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean> = nil);
     class function IsValid(const FileName: string): boolean; overload;
     class function IsValid(const Stream: TStream): boolean; overload;

@@ -16,6 +16,8 @@ type
   end;
 
 implementation
+uses IOUtils;
+
 class function TBundleDecompressor.GetFileFormat(const FileName: string): TDownloadFormat;
 begin
   if TZipFile.IsValid(FileName) then exit(TDownloadFormat.Zip);
@@ -31,6 +33,8 @@ begin
       for var i := 0 to Zip.FileCount - 1 do
       begin
         if Assigned(Skip) and Skip(Zip.FileNames[i]) then continue;
+        TZSTDDecompressor.CheckIsInside(TPath.Combine(ExtractFolder, Zip.FileNames[i]), ExtractFolder);
+
         Zip.Extract(Zip.FileNames[i], ExtractFolder);
       end;
     finally
