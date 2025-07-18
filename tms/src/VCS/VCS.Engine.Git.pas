@@ -26,7 +26,7 @@ type
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
-    function GetProduct(const aDestFolder, aURL, aServer: string): boolean;
+    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
   end;
 
 implementation
@@ -87,7 +87,7 @@ begin
 
 end;
 
-function TGitEngine.GetProduct(const aDestFolder, aURL, aServer: string): boolean;
+function TGitEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
 begin
   Result := false;
 end;

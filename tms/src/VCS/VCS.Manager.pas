@@ -16,7 +16,7 @@ type
     class procedure DoFetch(const Products: TList<TRegisteredProduct>); static;
     class function CaptureFetch(TK: integer; Proc: TProc<integer>): TProc; static;
     class function FetchProduct(const Product: TRegisteredProduct): TVCSFetchStatus; static;
-    class procedure DoFetchProduct(const ProductFolder: string; const Product: TRegisteredProduct); static;
+    class procedure DoFetchProduct(const ProductFolderRoot, ProductFolder: string; const Product: TRegisteredProduct); static;
     class function DoGetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition; static;
     class function HasErrors(const Status: TArray<TVCSFetchStatus>): boolean; static;
     class function GetInstalledProducts: THashSet<string>; static;
@@ -112,10 +112,10 @@ end;
 
 
 
-class procedure TVCSManager.DoFetchProduct(const ProductFolder: string; const Product: TRegisteredProduct);
+class procedure TVCSManager.DoFetchProduct(const ProductFolderRoot, ProductFolder: string; const Product: TRegisteredProduct);
 begin
   var Engine := TVCSFactory.Instance.GetEngine(Product.Protocol);
-  if Engine.GetProduct(ProductFolder, Product.Url, Product.Server) then exit; //direct get.
+  if Engine.GetProduct(ProductFolderRoot, ProductFolder, Product.Url, Product.Server, Product.ProductId) then exit; //direct get.
   
 
   if TDirectory.Exists(ProductFolder) then
@@ -185,11 +185,15 @@ begin
     CheckAppTerminated;
     Logger.Info('Updating ' + Product.ProductId + ' from ' + Product.ProtocolString);
 
-    var ProductFolder := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId, 'src');
+    var ProductFolderRoot := TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId);
+    var ProductFolder := TPath.Combine(ProductFolderRoot, 'src');
 
-    TFetchInfoFile.SaveInFolder(TPath.Combine(Config.Folders.ProductsFolder, Product.ProductId), Product.ProductId, '', Product.Server);
-
-    DoFetchProduct(ProductFolder, Product);
+    DoFetchProduct(ProductFolderRoot, ProductFolder, Product);
+    //Order here is important. Technically, we would have to first save tmsfetch.info before DoFetchProduct, so we can uninstall.
+    //If something fails in DoFetchProduct, then `tms uninstall` will never get rid of it, since tmsfetch.info is missing.
+    //But, if we do it in that order, and DoFetchProduct fails, you will end up with an empty folder with just tmsfetch.info inside.
+    //So instead, we ensure DoFetchProduct either returns a full thing, or nothing. Then we save tmsfetch.info only if DoFetchFolder succeeded.
+    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.ProductId, '', Product.Server);
     AddPredefinedData(ProductFolder, Product);
     begin
 

@@ -27,6 +27,7 @@ type
     function CompileTempFolder: string;
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
+    function ZipFileTempFolder: string;
     function DcuMegafolder: string;
   end;
 
@@ -61,6 +62,7 @@ type
     function CompileTempFolder: string;
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
+    function ZipFileTempFolder: string;
     function DcuMegafolder: string;
   end;
 
@@ -196,6 +198,11 @@ end;
 function TBuildFolders.VCSTempFolder: string;
 begin
   Result := TPath.Combine(TempFolder, '.repositories')
+end;
+
+function TBuildFolders.ZipFileTempFolder: string;
+begin
+  Result := TPath.Combine(TempFolder, '.zipfiles')
 end;
 
 function TBuildFolders.DcuMegafolder: string;

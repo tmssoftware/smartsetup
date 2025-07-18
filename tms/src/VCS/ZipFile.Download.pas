@@ -95,10 +95,11 @@ begin
     var Aborted := false;
     TDirectory_CreateDirectory(TPath.GetDirectoryName(FileNameOnDisk));
     var AResponse: IHTTPResponse;
-    var TempFileName := FileNameOnDisk + '.download';
+    var TempFileName := TPath.Combine(Config.Folders.ZipFileTempFolder, TPath.GetFileName(FileNameOnDisk) + '.download');
     var ETagFileName := FileNameOnDisk + '.etag';
     var ETag := ReadETag(ETagFileName, ForceDownload, DownloadLogger);
 
+    TDirectory_CreateDirectory(TPath.GetDirectoryName(TempFileName));
     var fs := TFileStream.Create(TempFileName, fmCreate);
     try
       Client.ReceiveDataCallback :=
@@ -145,13 +146,19 @@ begin
 
       else
         begin
-          // if file was not downloaded ok, delete it (we must do this after fs.Free)
           var ErrorMessage := '';
-          var ContextType := AResponse.HeaderValue['Content-Type'];
-          if (ContextType.StartsWith('text/', True) or ContextType.StartsWith('application/json', True))
-            and TFile.Exists(TempFileName)
-            then ErrorMessage := ': ' + TFile.ReadAllText(TempFileName);
-          DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
+          try try
+            // if file was not downloaded ok, delete it (we must do this after fs.Free)
+            var ContextType := AResponse.HeaderValue['Content-Type'];
+            if (ContextType.StartsWith('text/', True) or ContextType.StartsWith('application/json', True))
+              and TFile.Exists(TempFileName)
+              then ErrorMessage := ': ' + TFile.ReadAllText(TempFileName);
+          finally
+            DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
+          end;
+          finally
+            DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, ETagFileName);
+          end;
 
           raise Exception.Create(Format('Download for %s from %s failed with status %d%s',
             [TPath.GetFileName(FileNameOnDisk), DownloadUrl, AResponse.StatusCode, ErrorMessage]));

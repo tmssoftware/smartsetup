@@ -10,7 +10,7 @@ type
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
-    function GetProduct(const aDestFolder, aURL, aServer: string): boolean;
+    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
   end;
 
 
@@ -73,18 +73,25 @@ begin
 
 end;
 
-function TZipFileEngine.GetProduct(const aDestFolder, aURL, aServer: string): boolean;
+function TZipFileEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
 begin
   Result := true;
-  var ZipFileName := TPath.Combine(aDestFolder, TPath.GetFileName(aDestFolder) + '.download');
+  var TempGUIDProductFolder := TPath.Combine(Config.Folders.VCSTempFolder, GuidToStringN(TGUID.NewGuid));
+  TDirectory_CreateDirectory(TempGUIDProductFolder);
+  var ZipFileName := TPath.Combine(TempGUIDProductFolder, aProductId + '.zip');
+  var TmpETagFile := ZipFileName + '.etag';
+  var DestETagFile := TPath.Combine(aDestFolderRoot, TPath.GetFileName(TmpETagFile));
+  if TFile.Exists(DestETagFile) then TFile.Copy(DestETagFile, TmpETagFile);
   try
     ZipDownloader.GetRepo(aURL, ZipFileName, aServer, Logger.Write);
+    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, DestETagFile);
+    RenameAndCheck(TmpETagFile, DestETagFile);
     if TFile.Exists(ZipFileName) then  //might not exist if it wasn't modified
     begin
       TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder);
     end;
   finally
-    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, ZipFileName); //This will keep the Etag file, so it won't be fetched again.
+    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, ZipFileName);
   end;
 end;
 

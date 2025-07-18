@@ -48,6 +48,7 @@ begin
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.ProductsTempFolder);
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.CompileTempFolder);
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.VCSTempFolder, true, true);
+    TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.ZipFileTempFolder);
 
     // self-update
     TryToDeleteAllFilesInFolderIgnoringLocked(TPath.Combine(TPath.GetDirectoryName(paramstr(0)), '.locked'), false, true, '*' + TempExtension);
