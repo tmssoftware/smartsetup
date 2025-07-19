@@ -13,7 +13,12 @@ type
   end;
 
 implementation
-uses ZSTD, TarCommon, TarReader, IOUtils, UTmsBuildSystemUtils, UMultiLogger, DateUtils;
+uses ZSTD, TarCommon, TarReader, IOUtils, UTmsBuildSystemUtils,
+{$IFNDEF NOLOG}
+UMultiLogger,
+{$ENDIF}
+
+DateUtils;
 { TZSTDDecompressor }
 
 class procedure TZSTDDecompressor.CheckIsInside(const FileName, Folder: string);
@@ -29,6 +34,7 @@ begin
   var InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
   try
     var Total := InStream.Size;
+{$IFNDEF NOLOG}
     Logger.SetPercentAction(
       function: integer
       begin
@@ -37,6 +43,7 @@ begin
           Exit(-1);
         Result := (Processed * 100) div Total;
       end);
+{$ENDIF}
     try
       var DecompressStream := TZSTDDecompressStream.Create(InStream);
       try
@@ -58,7 +65,9 @@ begin
             begin
               if MilliSecondsBetween(Now, LastUpdate) > 100 then
               begin
+{$IFNDEF NOLOG}
                 Logger.Info('Decompressing ' + TPath.GetFileName(DestFileName));
+{$ENDIF}
                 LastUpdate := now;
               end;
               if (Assigned(Skip)) and Skip(DestFileName) then Tar.SkipFile(DirRec.Size) else Tar.ReadFile(DestFileName, DirRec.Size, DirRec.TimeStamp);
@@ -72,7 +81,9 @@ begin
         DecompressStream.Free;
       end;
     finally
+{$IFNDEF NOLOG}
       Logger.ResetPercentAction;
+{$ENDIF}
     end;
 
   finally

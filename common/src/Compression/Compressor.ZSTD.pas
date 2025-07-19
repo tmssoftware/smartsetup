@@ -70,7 +70,7 @@ begin
     try
       repeat
         var FileName := TPath.Combine(SourceFolder, F.Name);
-        var NameOnTar := TPath.Combine(RelDestFolder, FileName);
+        var NameOnTar := TPath.Combine(RelDestFolder, F.Name);
         if (F.Attr and faDirectory <> 0) then
         begin
           if (F.Name <> '.') and (F.Name <> '..') then
