@@ -50,7 +50,7 @@ unit ZSTDLib;
 
 {$LINK 'lib\Win64\fse_decompress.o'}
 {$LINK 'lib\Win64\huf_decompress.o'}
-{.$LINK 'lib\Win64\huf_decompress_amd64.o'} //requires setting ZSTD_HAS_NOEXECSTACK in the cmake file
+{.$LINK 'lib\Win64\huf_decompress_amd64.o'} //requires setting ZSTD_HAS_NOEXECSTACK in the cmake file. see https://github.com/facebook/zstd/issues/4280
 {$LINK 'lib\Win64\zstd_ddict.o'}
 {$LINK 'lib\Win64\zstd_decompress.o'}
 {$LINK 'lib\Win64\zstd_decompress_block.o'}
@@ -1092,7 +1092,12 @@ implementation
 {$IFNDEF ZSTD_DLL}
 //External definitions
 const
-  ucrt = 'api-ms-win-crt-stdio-l1-1-0.dll';
+  //We could use System.Win.Crtl here, but it uses Delphi's mem allocator for malloc, and zstd doesn't seem to like it.
+  //It also uses ucrt, which Windows 7 and Server 2012 don't like.
+
+  //UCRT is the more modern option, but it fails in win7/server 2012 without installing ucrt: https://learn.microsoft.com/en-us/cpp/porting/upgrade-your-code-to-the-universal-crt?view=msvc-170
+  //ucrt = 'api-ms-win-crt-stdio-l1-1-0.dll';
+  ucrt = 'msvcrt.dll';  //msvcrt is older, but seems to work and it works everywhere.
   kernelbase = 'kernelbase.dll';
 
   procedure ___chkstk_ms; stdcall; external kernelbase name '__chkstk';
@@ -1106,11 +1111,6 @@ const
   function _errno: PInteger; cdecl; external ucrt;
 
 
-{function calloc(num: Size_t; size: Size_t): Pointer; cdecl;
-begin
-  Result := AllocMem(size * num);
-end;
-}
 
 {$region 'Missing externals. No need to declare the parameters'}
 procedure FSE_readNCount_bmi2;external;
