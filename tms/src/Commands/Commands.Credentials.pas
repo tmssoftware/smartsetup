@@ -3,7 +3,8 @@ unit Commands.Credentials;
 interface
 
 uses
-  System.SysUtils, System.IOUtils, UCommandLine, Commands.Logging, UCredentials, Commands.GlobalConfig, UConfigFolders;
+  System.SysUtils, System.IOUtils, UCommandLine, Commands.Logging,
+  UCredentials, Commands.GlobalConfig, UConfigFolders;
 
 procedure RegisterCredentialsCommand;
 
@@ -13,6 +14,16 @@ uses
   WinApi.Windows,
 {$ENDIF}
   System.JSON, UConfigDefinition, Commands.CommonOptions, UTmsBuildSystemUtils, UJsonPrinter;
+
+var
+  Print: Boolean = False;
+  Check: Boolean = False;
+  UseJson: Boolean = False;
+  NewEmail: string = '';
+  NewCode: string = '';
+  ServerName: string = '';
+
+
 
 function ExistingDisplay(const Value: string; ShowOnly: Integer = 0): string;
 begin
@@ -40,29 +51,14 @@ begin
 end;
 {$ENDIF}
 
-var
-  Print: Boolean = False;
-  Check: Boolean = False;
-  UseJson: Boolean = False;
-  NewEmail: string = '';
-  NewCode: string = '';
-
-procedure PrintCredentials(Credentials: TCredentials);
+procedure AddCredentials(const Data: TJSONObject; const ServerName: string; const Credentials: TCredentials);
 begin
-  var Json := TJSONObject.Create;
-  try
-    if Credentials.Email <> '' then
-      Json.AddPair('email', Credentials.Email);
-    if Credentials.Code <> '' then
-      Json.AddPair('code', Credentials.Code);
-    if UseJson then
-      OutputJson(Json)
-    else
-      for var Pair in Json do
-        WriteLn(Format('%s: %s', [Pair.JsonString.Value, Pair.JsonValue.Value]));
-  finally
-    Json.Free;
-  end;
+  var ServerData := TJSONObject.Create;
+  Data.AddPair(ServerName, ServerData);
+  if Credentials.Email <> '' then
+    ServerData.AddPair('email', Credentials.Email);
+  if Credentials.Code <> '' then
+    ServerData.AddPair('code', Credentials.Code);
 end;
 
 procedure ReadCredentialsFromConsole(const ServerName: string; Credentials: TCredentials);
@@ -87,14 +83,14 @@ begin
     Credentials.Code := Value;
 end;
 
-procedure DoServerCredentials( Folders: IBuildFolders; const ServerName, ServerUrl: string);
+procedure DoServerCredentials(const Data: TJSONObject; Folders: IBuildFolders; const ServerName, ServerUrl: string);
 begin
   var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions);
   try
     var Credentials := Manager.ReadCredentials;
     try
       if Print then
-        PrintCredentials(Credentials)
+        AddCredentials(Data, ServerName, Credentials)
       else
       begin
         // if any parameter is passed, we don't ask for any input from the console, and just update the passed parameters
@@ -129,24 +125,62 @@ begin
 
 end;
 
+procedure PrintCredentials(const Data: TJsonObject);
+begin
+  if UseJson then
+    OutputJson(Data)
+  else
+  begin
+    for var ServerPair in Data do
+    begin
+      for var ServerData in (ServerPair.JsonValue as TJSONObject) do
+      begin
+        WriteLn(Format('%s %s: %s', [ServerPair.JsonString.Value, ServerData.JsonString.Value, ServerData.JsonValue.Value]));
+      end;
+    end;
+    if Data.Count = 0 then
+    begin
+      var msg := 'No api server is enabled.';
+      if ServerName <> '' then msg := 'Server ' + ServerName + ' isn''t defined or is not enabled.';
+
+      Writeln('There are no credentials to set or show. ' + msg);
+    end;
+
+  end;
+
+end;
+
 procedure RunCredentialsCommand;
 begin
   CheckAppAlreadyRunning;
 
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
 
-  if not IsValidTMSSetupFolder then
-  begin
-    var ServerConfig := TServerConfig.Create('tms', TServerProtocol.Api, '', true);
-    DoServerCredentials(Folders, ServerConfig.Name, ServerConfig.Url);
-    exit;
-  end;
+  var IsEmpty := true;
+  var Data := TJSONObject.Create;
+  try
+    if not IsValidTMSSetupFolder then
+    begin
+      var ServerConfig := TServerConfig.Create('tms', TServerProtocol.Api, '', true);
+      DoServerCredentials(Data, Folders, ServerConfig.Name, ServerConfig.Url);
+      IsEmpty := false;
+    end
+    else
+    begin
+      for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+      begin
+        var Server := Config.ServerConfig.GetServer(i);
+        if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
+        if not (ServerName = '') and not SameText(Server.Name, ServerName) then continue;
 
-  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
-  begin
-    var Server := Config.ServerConfig.GetServer(i);
-    if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
-    DoServerCredentials(Folders, Server.Name, Server.Url);
+        DoServerCredentials(Data, Folders, Server.Name, Server.Url);
+        IsEmpty := false;
+      end;
+    end;
+
+    if Print or IsEmpty then PrintCredentials(Data);
+  finally
+    Data.Free;
   end;
 end;
 
@@ -189,6 +223,12 @@ begin
     procedure(const Value: string)
     begin
       NewCode := Value;
+    end);
+
+  option := cmd.RegisterOption<string>('server', '', 'set/get credentials for specific server. If omitted, it will change all servers.',
+    procedure(const Value: string)
+    begin
+      ServerName := Value;
     end);
 
   AddCommand(cmd.Name, CommandGroups.Config, RunCredentialsCommand);
