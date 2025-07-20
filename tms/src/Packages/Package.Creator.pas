@@ -264,6 +264,16 @@ begin
   if varName  = 'verinfo-release' then exit(IntToStr(TVersion(Project.Application.Version).Release));
   if varName  = 'verinfo-build' then exit(IntToStr(TVersion(Project.Application.Version).Build));
 
+  if varName = 'dcc-namespace-base' then
+  begin
+    if SameText(Package.DelphiFrameworkType.Trim, 'vcl')
+      then exit('System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)');
+    exit('System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)');
+  end;
+
+  if varName = 'dcc-namespace-win32' then exit('Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)');
+  if varName = 'dcc-namespace-win64' then exit('Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)');
+  if varName = 'dcc-namespace-win64x' then exit('Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)');
 
   raise Exception.Create('Unknown variable: ' + varName);
 
