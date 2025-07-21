@@ -21,7 +21,7 @@ var
   UseJson: Boolean = False;
   NewEmail: string = '';
   NewCode: string = '';
-  ServerName: string = '';
+  ServerName: string = 'tms';
 
 
 
@@ -53,12 +53,10 @@ end;
 
 procedure AddCredentials(const Data: TJSONObject; const ServerName: string; const Credentials: TCredentials);
 begin
-  var ServerData := TJSONObject.Create;
-  Data.AddPair(ServerName, ServerData);
   if Credentials.Email <> '' then
-    ServerData.AddPair('email', Credentials.Email);
+    Data.AddPair('email', Credentials.Email);
   if Credentials.Code <> '' then
-    ServerData.AddPair('code', Credentials.Code);
+    Data.AddPair('code', Credentials.Code);
 end;
 
 procedure ReadCredentialsFromConsole(const ServerName: string; Credentials: TCredentials);
@@ -131,12 +129,9 @@ begin
     OutputJson(Data)
   else
   begin
-    for var ServerPair in Data do
+    for var ServerData in Data do
     begin
-      for var ServerData in (ServerPair.JsonValue as TJSONObject) do
-      begin
-        WriteLn(Format('%s %s: %s', [ServerPair.JsonString.Value, ServerData.JsonString.Value, ServerData.JsonValue.Value]));
-      end;
+      WriteLn(Format('%s %s: %s', [ServerName, ServerData.JsonString.Value, ServerData.JsonValue.Value]));
     end;
     if Data.Count = 0 then
     begin
@@ -159,23 +154,14 @@ begin
   var IsEmpty := true;
   var Data := TJSONObject.Create;
   try
-    if not IsValidTMSSetupFolder then
+    for var i := 0 to ConfigNoCheck.ServerConfig.ServerCount - 1 do
     begin
-      var ServerConfig := TServerConfig.Create('tms', TServerProtocol.Api, '', true);
-      DoServerCredentials(Data, Folders, ServerConfig.Name, ServerConfig.Url);
-      IsEmpty := false;
-    end
-    else
-    begin
-      for var i := 0 to Config.ServerConfig.ServerCount - 1 do
-      begin
-        var Server := Config.ServerConfig.GetServer(i);
-        if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
-        if not (ServerName = '') and not SameText(Server.Name, ServerName) then continue;
+      var Server := Config.ServerConfig.GetServer(i);
+      if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
+      if not (ServerName = '') and not SameText(Server.Name, ServerName) then continue;
 
-        DoServerCredentials(Data, Folders, Server.Name, Server.Url);
-        IsEmpty := false;
-      end;
+      DoServerCredentials(Data, Folders, Server.Name, Server.Url);
+      IsEmpty := false;
     end;
 
     if Print or IsEmpty then PrintCredentials(Data);

@@ -6,6 +6,7 @@ uses
   System.IOUtils, System.SysUtils, UConfigDefinition, UConfigLoader, UConfigFolders, VCS.Registry;
 
 function Config: TConfigDefinition;
+function ConfigNoCheck: TConfigDefinition;
 procedure SetConfigFileName(const FileName: string);
 procedure AddConfigParameter(const Parameter: string);
 function ConfigFileName: string;
@@ -70,6 +71,16 @@ begin
   if _Config = nil then
   begin
     CheckValidTMSSetupFolder;
+    _Config := TConfigLoader.LoadConfig(ConfigFileName, _CommandLineParameters);
+
+  end;
+  Result :=_Config;
+end;
+
+function ConfigNoCheck: TConfigDefinition;
+begin
+  if _Config = nil then
+  begin
     _Config := TConfigLoader.LoadConfig(ConfigFileName, _CommandLineParameters);
 
   end;

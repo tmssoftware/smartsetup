@@ -20,7 +20,7 @@ function HasCredentials: Boolean;
 begin
   Result := false;
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
-  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  for var i := 0 to ConfigNoCheck.ServerConfig.ServerCount - 1 do
   begin
     var Server := Config.ServerConfig.GetServer(i);
     if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
