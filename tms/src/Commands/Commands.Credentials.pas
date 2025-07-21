@@ -211,7 +211,7 @@ begin
       NewCode := Value;
     end);
 
-  option := cmd.RegisterOption<string>('server', '', 'set/get credentials for specific server. If omitted, it will change all servers.',
+  option := cmd.RegisterOption<string>('server', '', 'set/get credentials for specific server. If omitted, server "tms" is assumed.',
     procedure(const Value: string)
     begin
       ServerName := Value;
