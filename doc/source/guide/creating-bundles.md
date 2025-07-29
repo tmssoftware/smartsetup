@@ -75,7 +75,7 @@ You can get a commented, up-to-date example with all the properties here: https:
 And you can also look at the [SmartSetup registry](https://github.com/tmssoftware/smartsetup-registry/tree/main) to see actual files for actual projects that SmartSetup supports.
 
 {{#Important}}
-While we [don't recommend that you add your own comments to `tms.config.yaml`](xref:SmartSetup.Configuration#introduction), here the opposite is true. `tmsbuild.yaml` is not going to be regenerated, so make sure you comment it properly.
+While we [don't recommend that you add your own comments to `tms.config.yaml`](xref:SmartSetup.Configuration), here the opposite is true. `tmsbuild.yaml` is not going to be regenerated, so make sure you comment it properly.
 {{/Important}}
 
 The sections of the file are discussed below.
