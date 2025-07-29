@@ -37,8 +37,7 @@ type
     procedure RegisterPackage(BuildInfo: TFullBuildInfo; PackBuildInfo: TPackageBuildInfo; PackUninstall: TJSONObject);
     procedure LinkPackageFile(const ProductId, LinkedFileName, BinaryPackageFileName: string; PackUninstall: TJSONObject);
     function AddPathOverride(IDEInfo: IDelphiIDEInfo; const AlternateRegistryKey, Folder: string): boolean;
-    procedure CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; IDEName: TIDEName; const IsExe: boolean;
-              const Application: TApplicationDefinition; const AddLibSuffix: boolean; const Brcc32Path: string);
+    procedure CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; const BuildInfo: TFullBuildInfo);
     procedure UpdatePackageSource(const Orig, OutputDir: string; IDEName: TIDEName);
     procedure RegisterHelp(const ProductName, HelpFile: string; IDEName: TIDEName; const Config: TConfigDefinition; const UninstallInfo: IUninstallInfo);
     function UnRegisterHelp(const UninstallInfo: IUninstallInfo): boolean;
@@ -977,9 +976,7 @@ begin
 
         CopyProjects(OrigPackage, TempPackage, PackageInfo.UnexpandedOutputDir,
                      ExeOutputDir,
-                     BuildInfo.IDE.Name, BuildInfo.Project.Project.IsExe,
-                     BuildInfo.Project.Project.Application, BuildInfo.Project.Project.AddLibSuffix,
-                     CreateIDEInfo(BuildInfo).Brcc32File);
+                     BuildInfo);
       end;
     end;
   finally
@@ -1187,8 +1184,7 @@ begin
 end;
 
 procedure TDelphiInstaller.CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string;
-    IDEName: TIDEName; const IsExe: boolean;
-    const Application: TApplicationDefinition; const AddLibSuffix: boolean; const Brcc32Path: string);
+    const BuildInfo: TFullBuildInfo);
 var
   SourceDir, TargetDir: string;
 
@@ -1226,6 +1222,34 @@ var
     end;
   end;
 
+  procedure AddExtraInfoToDproj(const DProjModifier: TDprojModifier);
+  begin
+    var Defines := String.Join(';', BuildInfo.Project.Defines);
+    var BaseNodeForDefines: IInterface := nil;
+    try
+      DProjModifier.LoopOverAllNodes(function (NodeName, NodeText: string; PropGroupIsBase: boolean): string
+        begin
+          if (NodeName = '/#document/Project/PropertyGroup/DCC_Define/#text') then
+            begin;
+              if PropGroupIsBase then BaseNodeForDefines := nil;
+              if Defines<>'' then exit(Defines + ';' + NodeText);
+            end;
+
+          Result := NodeText;
+        end,
+        procedure (Node: IInterface)
+        begin
+          BaseNodeForDefines := Node;
+        end
+      );
+
+      if (BaseNodeForDefines <> nil) and (Defines <> '') then DProjModifier.AddChildNode(BaseNodeForDefines, 'DCC_Define', Defines);
+
+    finally
+      BaseNodeForDefines := nil; //remove the reference so it can be freed before DProjModifier.
+    end;
+  end;
+
   procedure AddMissingOutputs(const DProjModifier: TDProjModifier; const ISCPP: boolean; const ExistingOutputs: THashSet<string>; const OutputDir, ExeOutputDir: string);
   begin
     for var OutputNode in DProjModifier.AllOutputNodes do
@@ -1240,13 +1264,12 @@ var
     end;
   end;
 
-
 begin
   TargetDir := TPath.GetDirectoryName(Temp);
   SourceDir := TPath.GetDirectoryName(Orig);
   var ExistingOutputs := THashSet<string>.Create;
   try
-    CopyProjectRes(Orig, TargetDir, IDEName, Application, Brcc32Path);
+    CopyProjectRes(Orig, TargetDir, IDEName, BuildInfo.Project.Project.Application, CreateIDEInfo(BuildInfo).Brcc32File);
     // Copy and modify dproj
     if IsXMLProj(Orig) then
     begin
@@ -1273,7 +1296,7 @@ begin
              if NodeIsOutput then
              begin
                if NodeIsBase then ExistingOutputs.Add(NodeName);
-               if IsExe and NodeIsExe then exit(ExeOutputDir) else exit(OutputDir);
+               if BuildInfo.Project.Project.IsExe and NodeIsExe then exit(ExeOutputDir) else exit(OutputDir);
              end;
 
              Result := ConvertPathToTarget(SourceDir, TargetDir, OriginalPath);
@@ -1284,6 +1307,7 @@ begin
            end
            );
 
+          AddExtraInfoToDproj(DProjModifier);
           var ISCPP := TPath.GetExtension(Orig) = '.cbproj';
           AddMissingOutputs(DProjModifier, ISCPP, ExistingOutputs, OutputDir, ExeOutputDir);
           if (IsCPP) then EnsureRootFolderInLinkPath(DProjModifier);
@@ -1309,7 +1333,7 @@ begin
   begin
   end else
   begin
-    if IsExe then
+    if BuildInfo.Project.Project.IsExe then
     begin
       var SourceDpr := TPath.ChangeExtension(Orig, '.dpr');
       var TargetDpr := TPath.ChangeExtension(Temp, '.dpr');
@@ -1347,7 +1371,7 @@ begin
           Writer.UpdateDcrFiles(PackData.DcrFiles);
           Writer.UpdateRequires(PackData.Requires);
           Writer.UpdatePasFiles(PackData.PasFiles);
-          if AddLibSuffix then Writer.UpdateDllSuffix(GetLibSuffix(IDEName, false));
+          if BuildInfo.Project.Project.AddLibSuffix then Writer.UpdateDllSuffix(GetLibSuffix(IDEName, false));
           Writer.Flush;
         finally
           Writer.Free;

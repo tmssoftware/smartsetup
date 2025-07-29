@@ -67,9 +67,11 @@ type
   strict private
     FRegistryName: string;
     FPackageLibraryPath: string;
+    FIgnoreDefines: boolean;
   public
     property RegistryName: string read FRegistryName write FRegistryName;
     property PackageLibraryPath: string read FPackageLibraryPath write FPackageLibraryPath;
+    property IgnoreDefines: boolean read FIgnoreDefines write FIgnoreDefines;
   end;
 
   TPrecompiledCompilationSettings = class(TCompilationSettings)
@@ -309,6 +311,7 @@ begin
         MsBuild := TMsBuildCompilationSettings.Create;
         MsBuild.SearchPathMode := TSearchPathMode.DelphiLib;
         MsBuild.PackageLibraryPath := PackageInfo.LibraryPath(BuildInfo.ProjectId, Config.Folders.ParallelFolder,  BuildConfig);
+        MsBuild.IgnoreDefines := true; //to avoid undefining existing ones. See https://github.com/tmssoftware/tms-smartsetup/issues/261
         Result := MsBuild;
       end;
     end;
@@ -618,7 +621,7 @@ begin
 
 
   // add conditional defines
-  if Settings.Defines.HasValue then
+  if Settings.Defines.HasValue and not Settings.IgnoreDefines then
   begin
     LocalDefines := Settings.Defines;
     if SameText(LocalTargetConfig, 'Release') or SameText(LocalTargetConfig, 'Debug') then
