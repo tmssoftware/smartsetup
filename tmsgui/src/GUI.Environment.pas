@@ -82,6 +82,7 @@ type
   end;
 
   TProductsProc = reference to procedure(Products: TGUIProductList);
+  TServersProc = reference to procedure(Servers: TServerConfigItems);
   TRequestCredentialsEvent = reference to procedure(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
   TGetSelectedProductsProc = reference to procedure(Products: TGUIProductList);
   TCommandOutputProc = reference to procedure(const PartialText: string);
@@ -97,6 +98,7 @@ type
     FOnProductsUpdated: TProductsProc;
     FCurrentRunner: TTmsRunner;
     FInfo: TTmsInfo;
+    FServers: TServerConfigItems;
     FOnRequestCredentials: TRequestCredentialsEvent;
     FOnGetSelectedProducts: TGetSelectedProductsProc;
     FOnLogItemGenerated: TLogItemEvent;
@@ -109,6 +111,7 @@ type
     FOnNewVersionDetected: TProc;
     FNewVersionNotified: Boolean;
     FOnRunnerCreated: TRunnerProc;
+    FOnServersUpdated: TServersProc;
     procedure ConsolidateGUIProductList(GUIProducts: TGUIProductList; Local, Remote: TProductInfoList);
     procedure UpdateSelectedProducts;
     procedure LogMessageReceived(const Level: TLogLevel; const Message: string);
@@ -135,6 +138,7 @@ type
     destructor Destroy; override;
 
     procedure Start;
+    procedure RefreshServers;
 
     function IsRunning: Boolean;
     procedure CancelRun;
@@ -189,6 +193,7 @@ type
 
     property OnProductsUpdated: TProductsProc read FOnProductsUpdated write FOnProductsUpdated;
     property OnRequestCredentials: TRequestCredentialsEvent read FOnRequestCredentials write FOnRequestCredentials;
+    property OnServersUpdated: TServersProc read FOnServersUpdated write FOnServersUpdated;
 
     // Should fill in a list with TGUIProduct objects that represent the current selection.
     // The objects must be the instances previously provided in the OnProductsUpdated
@@ -446,6 +451,7 @@ begin
   FProducts := TGUIProductList.Create;
   FSelected := TGUIProductList.Create(False);
   FLogItems := TObjectList<TGUILogItem>.Create;
+  FServers := TServerConfigItems.Create;
 
   // Init logging
   var GUILogger := TGUILogger.Create;
@@ -478,6 +484,7 @@ begin
   FSelected.Free;
   FLogItems.Free;
   FInfo.Free;
+  FServers.Free;
   Logger.Free;
   inherited;
 end;
@@ -770,6 +777,8 @@ begin
   if not Info.HasCredentials then
     ExecuteRequestCredentials;
 
+  RefreshServers;
+
   RunBackground(procedure
     begin
       if Info.HasCredentials then
@@ -863,6 +872,14 @@ begin
             FOnProductsUpdated(FProducts);
         end)
     end)
+end;
+
+procedure TGUIEnvironment.RefreshServers;
+begin
+  if not Assigned(FOnServersUpdated) then Exit;
+
+  GetServerConfigItems(FServers);
+  FOnServersUpdated(FServers);
 end;
 
 procedure TGUIEnvironment.ExecuteRequestCredentials;

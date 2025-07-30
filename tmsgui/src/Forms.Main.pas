@@ -26,11 +26,11 @@ type
     Panel3: TPanel;
     PageControl1: TPageControl;
     tsProducts: TTabSheet;
-    Panel1: TPanel;
+    LeftPanel: TPanel;
     rbAll: TRadioButton;
     rbInstalled: TRadioButton;
     lvProducts: TListView;
-    Panel2: TPanel;
+    RightPanel: TPanel;
     Button1: TButton;
     btCredentials: TButton;
     Button2: TButton;
@@ -50,6 +50,11 @@ type
     pmProducts: TPopupMenu;
     Openversionhistory1: TMenuItem;
     acSettings: TAction;
+    TopPanel: TPanel;
+    edSearch: TEdit;
+    btConfiguration2: TSpeedButton;
+    cbServer: TComboBox;
+    Label1: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -97,6 +102,7 @@ type
     function Repository: string;
   public
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
+    procedure ServersUpdatedEvent(Servers: TServerConfigItems);
     procedure GetSelectedProductsEvent(Products: TGUIProductList);
     procedure RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
     procedure LogItemGeneratedEvent(const Item: TGUILogItem);
@@ -212,6 +218,7 @@ begin
       Form.OnUpdateServers := procedure
         begin
           GUI.UpdateServerConfigItems(ConfigInfo.Servers);
+          GUI.RefreshServers;
         end;
       Form.Execute(ConfigInfo);
     finally
@@ -305,6 +312,7 @@ begin
   GUI := TGUIEnvironment.Create;
 
   GUI.OnProductsUpdated := ProductsUpdatedEvent;
+  GUI.OnServersUpdated := ServersUpdatedEvent;
   GUI.OnRequestCredentials := RequestCredentialsEvent;
   GUI.OnGetSelectedProducts := GetSelectedProductsEvent;
   GUI.OnLogItemGenerated := LogItemGeneratedEvent;
@@ -515,6 +523,27 @@ end;
 
 procedure TMainForm.RunStartEvent;
 begin
+end;
+
+procedure TMainForm.ServersUpdatedEvent(Servers: TServerConfigItems);
+begin
+  var Selected := '';
+  if cbServer.ItemIndex >= 0 then
+    Selected := cbServer.Items[cbServer.ItemIndex];
+
+  cbServer.Items.BeginUpdate;
+  try
+    cbServer.Items.Clear;
+    cbServer.Items.Add('all');
+    for var Item in Servers do
+      if Item.Enabled then
+        cbServer.Items.Add(Item.Name);
+    cbServer.ItemIndex := cbServer.Items.IndexOf(Selected);
+    if cbServer.ItemIndex = -1 then
+      cbServer.ItemIndex := 0;
+  finally
+    cbServer.Items.EndUpdate;
+  end;
 end;
 
 procedure TMainForm.ShowInfo;

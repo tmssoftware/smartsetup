@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'TMS Smart Setup'
   ClientHeight = 561
-  ClientWidth = 919
+  ClientWidth = 921
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clBtnText
@@ -18,31 +18,37 @@ object MainForm: TMainForm
   object Panel3: TPanel
     Left = 0
     Top = 0
-    Width = 919
+    Width = 921
     Height = 542
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
+    ExplicitWidth = 919
     object PageControl1: TPageControl
       Left = 0
       Top = 0
-      Width = 919
+      Width = 921
       Height = 383
       ActivePage = tsProducts
       Align = alClient
       MultiLine = True
       TabOrder = 0
       TabPosition = tpBottom
+      ExplicitWidth = 919
       object tsProducts: TTabSheet
         Caption = 'Products'
-        object Panel1: TPanel
+        object LeftPanel: TPanel
           Left = 0
-          Top = 0
+          Top = 35
           Width = 105
-          Height = 355
+          Height = 320
           Align = alLeft
+          BevelEdges = [beRight]
+          BevelKind = bkFlat
           BevelOuter = bvNone
-          TabOrder = 0
+          TabOrder = 1
+          ExplicitTop = 34
+          ExplicitHeight = 321
           object rbAll: TRadioButton
             Left = 2
             Top = 4
@@ -62,10 +68,11 @@ object MainForm: TMainForm
         end
         object lvProducts: TListView
           Left = 105
-          Top = 0
-          Width = 701
-          Height = 355
+          Top = 35
+          Width = 703
+          Height = 320
           Align = alClient
+          BorderStyle = bsNone
           Columns = <
             item
               Caption = 'Product Id'
@@ -98,23 +105,31 @@ object MainForm: TMainForm
           RowSelect = True
           ParentFont = False
           PopupMenu = pmProducts
-          TabOrder = 1
+          TabOrder = 2
           ViewStyle = vsReport
           OnColumnClick = lvProductsColumnClick
           OnCompare = lvProductsCompare
           OnCustomDrawItem = lvProductsCustomDrawItem
+          ExplicitTop = 34
+          ExplicitWidth = 701
+          ExplicitHeight = 321
         end
-        object Panel2: TPanel
-          Left = 806
-          Top = 0
+        object RightPanel: TPanel
+          Left = 808
+          Top = 35
           Width = 105
-          Height = 355
+          Height = 320
           Align = alRight
+          BevelEdges = [beLeft]
+          BevelKind = bkFlat
           BevelOuter = bvNone
-          TabOrder = 2
+          TabOrder = 3
+          ExplicitLeft = 806
+          ExplicitTop = 34
+          ExplicitHeight = 321
           DesignSize = (
-            105
-            355)
+            103
+            320)
           object Button1: TButton
             Left = 6
             Top = 66
@@ -127,12 +142,13 @@ object MainForm: TMainForm
           end
           object btCredentials: TButton
             Left = 8
-            Top = 324
+            Top = 289
             Width = 89
             Height = 25
             Action = acCredentials
             Anchors = [akLeft, akBottom]
             TabOrder = 1
+            ExplicitTop = 290
           end
           object Button2: TButton
             Left = 8
@@ -152,12 +168,70 @@ object MainForm: TMainForm
           end
           object Button4: TButton
             Left = 8
-            Top = 292
+            Top = 257
             Width = 89
             Height = 25
             Action = acConfigure
             Anchors = [akLeft, akBottom]
             TabOrder = 4
+            ExplicitTop = 258
+          end
+        end
+        object TopPanel: TPanel
+          Left = 0
+          Top = 0
+          Width = 913
+          Height = 35
+          Align = alTop
+          BevelEdges = [beBottom]
+          BevelKind = bkFlat
+          BevelOuter = bvNone
+          TabOrder = 0
+          ExplicitWidth = 911
+          DesignSize = (
+            913
+            33)
+          object btConfiguration2: TSpeedButton
+            Left = 882
+            Top = 3
+            Width = 23
+            Height = 25
+            Action = acSettings
+            Anchors = [akTop, akRight]
+            Flat = True
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clBtnText
+            Font.Height = -16
+            Font.Name = 'Segoe UI'
+            Font.Style = []
+            ParentFont = False
+            ExplicitLeft = 871
+          end
+          object Label1: TLabel
+            Left = 742
+            Top = 8
+            Width = 35
+            Height = 15
+            Alignment = taRightJustify
+            Anchors = [akTop, akRight]
+            Caption = 'Server:'
+          end
+          object edSearch: TEdit
+            Left = 5
+            Top = 5
+            Width = 236
+            Height = 23
+            TabOrder = 0
+            TextHint = 'Search (Ctrl+E)'
+          end
+          object cbServer: TComboBox
+            Left = 784
+            Top = 5
+            Width = 91
+            Height = 23
+            Style = csDropDownList
+            Anchors = [akTop, akRight]
+            TabOrder = 1
           end
         end
       end
@@ -167,7 +241,7 @@ object MainForm: TMainForm
         object OutputMemo: TMemo
           Left = 0
           Top = 0
-          Width = 911
+          Width = 913
           Height = 355
           Align = alClient
           BorderStyle = bsNone
@@ -180,22 +254,24 @@ object MainForm: TMainForm
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 0
+          ExplicitWidth = 911
         end
       end
     end
     object LogPanel: TPanel
       Left = 0
       Top = 407
-      Width = 919
+      Width = 921
       Height = 135
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       Visible = False
+      ExplicitWidth = 919
       object LogSplitter: TSplitter
         Left = 0
         Top = 62
-        Width = 919
+        Width = 921
         Height = 3
         Cursor = crVSplit
         Align = alBottom
@@ -206,7 +282,7 @@ object MainForm: TMainForm
       object mmLogDetails: TMemo
         Left = 0
         Top = 65
-        Width = 919
+        Width = 921
         Height = 70
         Align = alBottom
         BorderStyle = bsNone
@@ -225,11 +301,12 @@ object MainForm: TMainForm
         TabOrder = 0
         Visible = False
         WordWrap = False
+        ExplicitWidth = 919
       end
       object lbLogItems: TListBox
         Left = 0
         Top = 0
-        Width = 919
+        Width = 921
         Height = 62
         Align = alClient
         BorderStyle = bsNone
@@ -242,18 +319,20 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 1
         OnClick = lbLogItemsClick
+        ExplicitWidth = 919
       end
     end
     object ProgressPanel: TPanel
       Left = 0
       Top = 383
-      Width = 919
+      Width = 921
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 2
+      ExplicitWidth = 919
       object SpeedButton1: TSpeedButton
-        Left = 862
+        Left = 864
         Top = 0
         Width = 57
         Height = 24
@@ -266,18 +345,19 @@ object MainForm: TMainForm
       object ProgressBar: TProgressBar
         Left = 0
         Top = 0
-        Width = 862
+        Width = 864
         Height = 24
         Align = alClient
         Smooth = True
         TabOrder = 0
+        ExplicitWidth = 862
       end
     end
   end
   object StatusBar: TStatusBar
     Left = 0
     Top = 542
-    Width = 919
+    Width = 921
     Height = 19
     Panels = <
       item
@@ -288,10 +368,11 @@ object MainForm: TMainForm
         Bevel = pbNone
         Width = 300
       end>
+    ExplicitWidth = 919
   end
   object ActionList1: TActionList
-    Left = 456
-    Top = 232
+    Left = 240
+    Top = 96
     object acInstall: TAction
       Category = 'Commands'
       Caption = '&Install'
@@ -354,15 +435,15 @@ object MainForm: TMainForm
     end
     object acSettings: TAction
       Category = 'Menus'
-      Caption = 'Settings'
+      Caption = #9881
       ShortCut = 24698
       OnExecute = acSettingsExecute
       OnUpdate = acSettingsUpdate
     end
   end
   object BuildMenu: TPopupMenu
-    Left = 456
-    Top = 312
+    Left = 848
+    Top = 144
     object Rebuild1: TMenuItem
       Action = acFullBuild
     end
@@ -371,8 +452,8 @@ object MainForm: TMainForm
     end
   end
   object pmProducts: TPopupMenu
-    Left = 240
-    Top = 232
+    Left = 344
+    Top = 96
     object Openversionhistory1: TMenuItem
       Action = acVersionHistory
     end
