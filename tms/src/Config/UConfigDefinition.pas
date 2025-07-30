@@ -1017,23 +1017,26 @@ constructor TServerConfig.Create(const aName: string;
   const aProtocol: TServerProtocol; const aUrl: string;
   const aEnabled: boolean);
 begin
-  Name := aName;
+  Name := aName.Trim;
   Protocol := aProtocol;
   Url := aUrl;
   Enabled := aEnabled;
 
-  if aName = 'local' then
+  if SameText(Name, 'local') then
   begin
+    Name := 'local';
     Url := '';
     Protocol := TServerProtocol.Local;
   end
-  else if aName = 'tms' then
+  else if SameText(Name, 'tms') then
   begin
+    name := 'tms';
     Url := TMSUrl;
     Protocol := TServerProtocol.Api;
   end
-  else if aName = 'community' then
+  else if SameText(Name, 'community') then
   begin
+    name := 'community';
     Url := GitHubUrl;
     Protocol := TServerProtocol.ZipFile;
   end ;
@@ -1046,7 +1049,7 @@ end;
 
 class function TServerConfig.IsReservedName(const aName: string): boolean;
 begin
-  Result := (aName = 'local') or (aName = 'tms') or (aName = 'community');
+  Result := SameText(aName, 'local') or SameText(aName, 'tms') or SameText(aName, 'community');
 end;
 
 class function TServerConfig.ProtocolFromString(
