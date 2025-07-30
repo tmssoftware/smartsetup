@@ -6,7 +6,7 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
-  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger;
+  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UConfigInfo;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -172,6 +172,13 @@ type
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
     function ConfigWrite(const ParamName: string; const Values: TArray<string>): Boolean;
 
+    // Functions to manipulate server config options
+    procedure GetServerConfigItems(Items: TServerConfigItems);
+    procedure UpdateServerConfigItems(Items: TServerConfigItems);
+    procedure RemoveServerConfigItem(const Name: string);
+    procedure AddServerConfigItem(Item: TServerConfigItem);
+    procedure EnableServerConfigItem(const Name: string; Enabled: Boolean);
+
     /// <summary>
     ///   Retrieves general information about Smart Setup folder
     /// </summary>
@@ -269,6 +276,15 @@ begin
 end;
 
 { TGUIEnvironment }
+
+procedure TGUIEnvironment.AddServerConfigItem(Item: TServerConfigItem);
+begin
+  RunSync<TTmsServerAddRunner>(
+    procedure(Runner: TTmsServerAddRunner)
+    begin
+      Runner.RunServerAdd(Item);
+    end);
+end;
 
 procedure TGUIEnvironment.BeginRunning;
 begin
@@ -437,6 +453,15 @@ begin
   GUILogger.OnLogMessage := LogMessageReceived;
 end;
 
+procedure TGUIEnvironment.RemoveServerConfigItem(const Name: string);
+begin
+  RunSync<TTmsServerRemoveRunner>(
+    procedure(Runner: TTmsServerRemoveRunner)
+    begin
+      Runner.RunServerRemove(Name);
+    end);
+end;
+
 destructor TGUIEnvironment.Destroy;
 begin
   // Wait a little bit for the runner to finish. We could use TEvent here, but let's make it simple for now
@@ -536,6 +561,16 @@ begin
         end);
     end
   );
+end;
+
+procedure TGUIEnvironment.EnableServerConfigItem(const Name: string;
+  Enabled: Boolean);
+begin
+  RunSync<TTmsServerEnableRunner>(
+    procedure(Runner: TTmsServerEnableRunner)
+    begin
+      Runner.RunServerEnable(Name, Enabled);
+    end);
 end;
 
 procedure TGUIEnvironment.EndRunning;
@@ -765,6 +800,15 @@ begin
   Result := FInfo;
 end;
 
+procedure TGUIEnvironment.GetServerConfigItems(Items: TServerConfigItems);
+begin
+  RunSync<TTmsServerListRunner>(
+    procedure(Runner: TTmsServerListRunner)
+    begin
+      Runner.RunServerList(Items);
+    end);
+end;
+
 function TGUIEnvironment.IsRunning: Boolean;
 begin
   Result := FRunningCount > 0;
@@ -876,6 +920,31 @@ procedure TGUIEnvironment.UpdateSelectedProducts;
 begin
   if Assigned(FOnGetSelectedProducts) then
     FOnGetSelectedProducts(FSelected);
+end;
+
+procedure TGUIEnvironment.UpdateServerConfigItems(Items: TServerConfigItems);
+begin
+  var OldItems := TServerConfigItems.Create;
+  try
+    GetServerConfigItems(OldItems);
+
+    // Delete all but reserved
+    for var OldItem in OldItems do
+      if not OldItem.IsReserved then
+        RemoveServerConfigItem(OldItem.Name);
+
+    // Re-add all but reserved
+    for var Item in Items do
+      if not Item.IsReserved then
+        AddServerConfigItem(Item);
+
+    // Change enable status of reserved items
+    for var Item in Items do
+      if Item.IsReserved then
+        EnableServerConfigItem(Item.Name, Item.Enabled);
+  finally
+    OldItems.Free;
+  end;
 end;
 
 { TGUIProductList }

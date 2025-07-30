@@ -5,7 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
-  GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus;
+  GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus,
+  Forms.Config, UConfigInfo;
 
 type
   TMainForm = class(TForm)
@@ -48,6 +49,7 @@ type
     acVersionHistory: TAction;
     pmProducts: TPopupMenu;
     Openversionhistory1: TMenuItem;
+    acSettings: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -76,6 +78,8 @@ type
     procedure acVersionHistoryExecute(Sender: TObject);
     procedure lvProductsCompare(Sender: TObject; Item1, Item2: TListItem; Data: Integer; var Compare: Integer);
     procedure lvProductsColumnClick(Sender: TObject; Column: TListColumn);
+    procedure acSettingsExecute(Sender: TObject);
+    procedure acSettingsUpdate(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -195,6 +199,32 @@ end;
 procedure TMainForm.acPartialBuildUpdate(Sender: TObject);
 begin
   acPartialBuild.Enabled := GUI.CanBuild;
+end;
+
+procedure TMainForm.acSettingsExecute(Sender: TObject);
+begin
+  var ConfigInfo := TConfigInfo.Create;
+  try
+    GUI.GetServerConfigItems(ConfigInfo.Servers);
+
+    var Form := TConfigForm.Create(Application);
+    try
+      Form.OnUpdateServers := procedure
+        begin
+          GUI.UpdateServerConfigItems(ConfigInfo.Servers);
+        end;
+      Form.Execute(ConfigInfo);
+    finally
+      Form.Free;
+    end;
+  finally
+    ConfigInfo.Free;
+  end;
+end;
+
+procedure TMainForm.acSettingsUpdate(Sender: TObject);
+begin
+  acSettings.Enabled := GUI.CanConfigure;
 end;
 
 procedure TMainForm.acUninstallExecute(Sender: TObject);

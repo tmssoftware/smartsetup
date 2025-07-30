@@ -352,6 +352,13 @@ object MainForm: TMainForm
       OnExecute = acVersionHistoryExecute
       OnUpdate = acVersionHistoryUpdate
     end
+    object acSettings: TAction
+      Category = 'Menus'
+      Caption = 'Settings'
+      ShortCut = 24698
+      OnExecute = acSettingsExecute
+      OnUpdate = acSettingsUpdate
+    end
   end
   object BuildMenu: TPopupMenu
     Left = 456

@@ -15,7 +15,10 @@ uses
   UMemoLogger in '..\common\src\Logger\UMemoLogger.pas',
   Deget.CoreTypes in '..\common\src\Deget\Deget.CoreTypes.pas',
   GUI.Environment in 'src\GUI.Environment.pas',
-  Forms.Credentials in 'src\Forms.Credentials.pas' {CredentialsForm};
+  Forms.Credentials in 'src\Forms.Credentials.pas' {CredentialsForm},
+  Forms.Config.Servers in 'src\Forms.Config.Servers.pas' {ServerConfigForm},
+  UConfigInfo in 'src\UConfigInfo.pas',
+  Forms.Config in 'src\Forms.Config.pas' {ConfigForm};
 
 {$R *.res}
 
@@ -26,5 +29,6 @@ begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainForm, MainForm);
+  Application.CreateForm(TConfigForm, ConfigForm);
   Application.Run;
 end.

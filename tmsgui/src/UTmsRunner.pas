@@ -4,7 +4,8 @@ interface
 
 uses
 //  WinApi.Windows,
-  System.SysUtils, System.Classes, System.IOUtils, System.JSON, Deget.CommandLine, UProductInfo, UMultiLogger, Deget.Version;
+  System.SysUtils, System.Classes, System.IOUtils, System.JSON, Deget.CommandLine, UProductInfo, UMultiLogger, Deget.Version,
+  UConfigInfo;
 
 type
   TProgressInfo = record
@@ -165,6 +166,26 @@ type
   TTmsConfigWriteRunner = class(TTmsRunner)
   public
     procedure RunConfigWrite(const ParamName, ParamValue: string);
+  end;
+
+  TTmsServerListRunner = class(TTmsRunner)
+  public
+    procedure RunServerList(Items: TServerConfigItems);
+  end;
+
+  TTmsServerAddRunner = class(TTmsRunner)
+  public
+    procedure RunServerAdd(Item: TServerConfigItem);
+  end;
+
+  TTmsServerEnableRunner = class(TTmsRunner)
+  public
+    procedure RunServerEnable(const Name: string; Enabled: Boolean);
+  end;
+
+  TTmsServerRemoveRunner = class(TTmsRunner)
+  public
+    procedure RunServerRemove(const Name: string);
   end;
 
   ETmsRunner = class(Exception)
@@ -632,6 +653,61 @@ procedure TTmsConfigWriteRunner.RunConfigWrite(const ParamName, ParamValue: stri
 begin
   var Command := 'config-write';
   Command := Command + ' -p:' + (ParamName + '=' + ParamValue).QuotedString('"');
+  Run(Command);
+end;
+
+{ TTmsServerListRunner }
+
+procedure TTmsServerListRunner.RunServerList(Items: TServerConfigItems);
+begin
+  Run('server-list -json');
+
+  // parse response
+  if not (JsonOutput is TJSONObject) then
+    raise ETmsRunner.Create('Could not parse server list result as JSON object');
+
+  Items.Clear;
+  var Json := TJSONObject(JsonOutput);
+  for var Pair in Json do
+  begin
+    var Item := TServerConfigItem.Create;
+    Items.Add(Item);
+    Item.Name := Pair.JsonString.Value;
+
+    if not (Pair.JsonValue is TJSONObject) then
+      raise ETmsRunner.CreateFmt('Could not parse server "%s" as JSON object from server-list command', [Item.Name]);
+    var JsonItem := TJSONObject(Pair.JsonValue);
+
+    // name property is redundant
+//    Product.Name := JsonItem.GetValue<string>('name');
+    Item.Url := JsonItem.GetValue<string>('url', '');
+    Item.Protocol := JsonItem.GetValue<string>('protocol', '');
+    Item.Enabled := JsonItem.GetValue<Boolean>('enabled', False);
+  end;
+end;
+
+{ TTmsServerAddRunner }
+
+procedure TTmsServerAddRunner.RunServerAdd(Item: TServerConfigItem);
+begin
+  var Command := Format('server-add %s %s %s %s', [Item.Name, Item.Protocol, Item.Url, BoolToStr(Item.Enabled, True)]);
+  Run(Command);
+end;
+
+{ TTmsServerEnableRunner }
+
+procedure TTmsServerEnableRunner.RunServerEnable(const Name: string;
+  Enabled: Boolean);
+begin
+  var Command := Format('server-enable %s %s', [Name, BoolToStr(Enabled, True)]);
+  Run(Command);
+end;
+
+{ TTmsServerRemoveRunner }
+
+procedure TTmsServerRemoveRunner.RunServerRemove(const Name: string);
+begin
+  var Command := Format('server-remove %s', [Name]);
   Run(Command);
 end;
 
