@@ -23,7 +23,6 @@ object MainForm: TMainForm
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
-    ExplicitWidth = 919
     object PageControl1: TPageControl
       Left = 0
       Top = 0
@@ -34,7 +33,6 @@ object MainForm: TMainForm
       MultiLine = True
       TabOrder = 0
       TabPosition = tpBottom
-      ExplicitWidth = 919
       object tsProducts: TTabSheet
         Caption = 'Products'
         object LeftPanel: TPanel
@@ -47,8 +45,6 @@ object MainForm: TMainForm
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 1
-          ExplicitTop = 34
-          ExplicitHeight = 321
           object rbAll: TRadioButton
             Left = 2
             Top = 4
@@ -110,9 +106,6 @@ object MainForm: TMainForm
           OnColumnClick = lvProductsColumnClick
           OnCompare = lvProductsCompare
           OnCustomDrawItem = lvProductsCustomDrawItem
-          ExplicitTop = 34
-          ExplicitWidth = 701
-          ExplicitHeight = 321
         end
         object RightPanel: TPanel
           Left = 808
@@ -124,9 +117,6 @@ object MainForm: TMainForm
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 3
-          ExplicitLeft = 806
-          ExplicitTop = 34
-          ExplicitHeight = 321
           DesignSize = (
             103
             320)
@@ -148,7 +138,6 @@ object MainForm: TMainForm
             Action = acCredentials
             Anchors = [akLeft, akBottom]
             TabOrder = 1
-            ExplicitTop = 290
           end
           object Button2: TButton
             Left = 8
@@ -174,7 +163,6 @@ object MainForm: TMainForm
             Action = acConfigure
             Anchors = [akLeft, akBottom]
             TabOrder = 4
-            ExplicitTop = 258
           end
         end
         object TopPanel: TPanel
@@ -187,7 +175,6 @@ object MainForm: TMainForm
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 0
-          ExplicitWidth = 911
           DesignSize = (
             913
             33)
@@ -223,6 +210,7 @@ object MainForm: TMainForm
             Height = 23
             TabOrder = 0
             TextHint = 'Search (Ctrl+E)'
+            OnChange = edSearchChange
           end
           object cbServer: TComboBox
             Left = 784
@@ -254,7 +242,6 @@ object MainForm: TMainForm
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 0
-          ExplicitWidth = 911
         end
       end
     end
@@ -267,7 +254,6 @@ object MainForm: TMainForm
       BevelOuter = bvNone
       TabOrder = 1
       Visible = False
-      ExplicitWidth = 919
       object LogSplitter: TSplitter
         Left = 0
         Top = 62
@@ -301,7 +287,6 @@ object MainForm: TMainForm
         TabOrder = 0
         Visible = False
         WordWrap = False
-        ExplicitWidth = 919
       end
       object lbLogItems: TListBox
         Left = 0
@@ -319,7 +304,6 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 1
         OnClick = lbLogItemsClick
-        ExplicitWidth = 919
       end
     end
     object ProgressPanel: TPanel
@@ -330,7 +314,6 @@ object MainForm: TMainForm
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 2
-      ExplicitWidth = 919
       object SpeedButton1: TSpeedButton
         Left = 864
         Top = 0
@@ -350,7 +333,6 @@ object MainForm: TMainForm
         Align = alClient
         Smooth = True
         TabOrder = 0
-        ExplicitWidth = 862
       end
     end
   end
@@ -368,7 +350,6 @@ object MainForm: TMainForm
         Bevel = pbNone
         Width = 300
       end>
-    ExplicitWidth = 919
   end
   object ActionList1: TActionList
     Left = 240
@@ -439,6 +420,11 @@ object MainForm: TMainForm
       ShortCut = 24698
       OnExecute = acSettingsExecute
       OnUpdate = acSettingsUpdate
+    end
+    object acSearchFocus: TAction
+      Category = 'Menus'
+      ShortCut = 16453
+      OnExecute = acSearchFocusExecute
     end
   end
   object BuildMenu: TPopupMenu

@@ -55,6 +55,7 @@ type
     btConfiguration2: TSpeedButton;
     cbServer: TComboBox;
     Label1: TLabel;
+    acSearchFocus: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -85,6 +86,8 @@ type
     procedure lvProductsColumnClick(Sender: TObject; Column: TListColumn);
     procedure acSettingsExecute(Sender: TObject);
     procedure acSettingsUpdate(Sender: TObject);
+    procedure edSearchChange(Sender: TObject);
+    procedure acSearchFocusExecute(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -234,6 +237,12 @@ begin
   acSettings.Enabled := GUI.CanConfigure;
 end;
 
+procedure TMainForm.acSearchFocusExecute(Sender: TObject);
+begin
+  if edSearch.CanFocus then
+    edSearch.SetFocus;
+end;
+
 procedure TMainForm.acUninstallExecute(Sender: TObject);
 begin
   GUI.ExecuteUninstall(ProgressEvent);
@@ -288,6 +297,11 @@ begin
     Result := 1
   else
     Result := 0;
+end;
+
+procedure TMainForm.edSearchChange(Sender: TObject);
+begin
+  GUI.UpdateSearchFilter(edSearch.Text);
 end;
 
 function TMainForm.FindProductItem(const ProductId: string): TListItem;

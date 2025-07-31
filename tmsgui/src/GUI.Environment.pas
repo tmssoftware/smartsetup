@@ -93,8 +93,10 @@ type
 
   TGUIEnvironment = class
   private
+    FFetchedProducts: TGUIProductList;
     FProducts: TGUIProductList;
     FSelected: TGUIProductList;
+    FSearchFilter: string;
     FOnProductsUpdated: TProductsProc;
     FCurrentRunner: TTmsRunner;
     FInfo: TTmsInfo;
@@ -126,7 +128,8 @@ type
     procedure DoRunFinish;
     procedure DoNotifyNewVersion;
     procedure DoRunnerCreated(Runner: TTmsRunner);
-    procedure RefreshProducts(Filter: TProductFilter);
+    procedure RefreshFetchedProducts(Filter: TProductFilter);
+    procedure ApplyProductFilters;
     procedure BeginRunning;
     procedure EndRunning;
   protected
@@ -184,6 +187,11 @@ type
     procedure EnableServerConfigItem(const Name: string; Enabled: Boolean);
 
     /// <summary>
+    ///   Updates the search filter used to filter products. Setting this will refresh the product list.
+    /// </summary>
+    procedure UpdateSearchFilter(const Value: string);
+
+    /// <summary>
     ///   Retrieves general information about Smart Setup folder
     /// </summary>
     property Info: TTmsInfo read GetInfo;
@@ -211,6 +219,9 @@ type
   end;
 
 implementation
+
+uses
+  Masks;
 
 { TGUILogger }
 
@@ -309,7 +320,7 @@ begin
 
   UpdateSelectedProducts;
   Result := False;
-  for var Product in Products do
+  for var Product in FSelected do
     if Product.Status in [TProductStatus.Installed, TProductStatus.Available] then
       Exit(True);
 end;
@@ -448,7 +459,8 @@ end;
 constructor TGUIEnvironment.Create;
 begin
   inherited Create;
-  FProducts := TGUIProductList.Create;
+  FFetchedProducts := TGUIProductList.Create;
+  FProducts := TGUIProductList.Create(False);
   FSelected := TGUIProductList.Create(False);
   FLogItems := TObjectList<TGUILogItem>.Create;
   FServers := TServerConfigItems.Create;
@@ -481,6 +493,7 @@ begin
   end;
 
   FProducts.Free;
+  FFetchedProducts.Free;
   FSelected.Free;
   FLogItems.Free;
   FInfo.Free;
@@ -625,7 +638,7 @@ begin
         ProgressCallback(ProgressInfo);
       end;
 
-      RefreshProducts(FProductFilter);
+      RefreshFetchedProducts(FProductFilter);
     end);
 end;
 
@@ -682,7 +695,7 @@ begin
         ProgressCallback(ProgressInfo);
       end;
 
-      RefreshProducts(FProductFilter);
+      RefreshFetchedProducts(FProductFilter);
     end);
 end;
 
@@ -718,7 +731,7 @@ begin
           ProgressCallback(100);
       end;
 
-      RefreshProducts(FProductFilter);
+      RefreshFetchedProducts(FProductFilter);
     end);
 end;
 
@@ -782,9 +795,9 @@ begin
   RunBackground(procedure
     begin
       if Info.HasCredentials then
-        RefreshProducts(TProductFilter.All)
+        RefreshFetchedProducts(TProductFilter.All)
       else
-        RefreshProducts(TProductFilter.Installed);
+        RefreshFetchedProducts(TProductFilter.Installed);
     end);
 end;
 
@@ -838,7 +851,7 @@ begin
   FreeAndNil(FInfo);
 end;
 
-procedure TGUIEnvironment.RefreshProducts(Filter: TProductFilter);
+procedure TGUIEnvironment.RefreshFetchedProducts(Filter: TProductFilter);
 begin
   RunSync<TTmsListRunner>(
     procedure(ListRunner: TTmsListRunner)
@@ -850,7 +863,7 @@ begin
         begin
           if Info.FolderInitialized and Info.HasCredentials then
             RemoteRunner.RunListRemote;
-          ConsolidateGUIProductList(Self.Products, ListRunner.Products, RemoteRunner.Products);
+          ConsolidateGUIProductList(Self.FFetchedProducts, ListRunner.Products, RemoteRunner.Products);
           FProductFilter := Filter;
 
           // Filter products
@@ -863,13 +876,12 @@ begin
                 Result := True;
               end;
             end;
-          for var I := Self.Products.Count - 1 downto 0 do
-            if not Predicate(Self.Products[I]) then
-              Self.Products.Delete(I);
+          for var I := Self.FFetchedProducts.Count - 1 downto 0 do
+            if not Predicate(Self.FFetchedProducts[I]) then
+              Self.FFetchedProducts.Delete(I);
 
           // fire event to refresh producs
-          if Assigned(OnProductsUpdated) then
-            FOnProductsUpdated(FProducts);
+          ApplyProductFilters;
         end)
     end)
 end;
@@ -916,7 +928,7 @@ begin
     procedure
     begin
       try
-        RefreshProducts(Filter);
+        RefreshFetchedProducts(Filter);
       finally
         EndRunning;
       end;
@@ -931,6 +943,40 @@ begin
     Logger.Error('tms.exe is already running');
     Exit;
   end;
+end;
+
+procedure TGUIEnvironment.ApplyProductFilters;
+begin
+  var Filter := FSearchFilter.ToLower;
+  var Mask := TMask.Create(Filter);
+  try
+    var Predicate :=
+      function(Product: TGUIProduct): Boolean
+      begin
+        Result := True;
+        if Filter.Trim <> '' then
+        begin
+          var IdLower := Product.Id.ToLower;
+          var NameLower := Product.Name.ToLower;
+          Result := IdLower.Contains(Filter) or NameLower.Contains(Filter) or Mask.Matches(IdLower);
+        end;
+      end;
+
+    FProducts.Clear;
+    for var Product in FFetchedProducts do
+      if Predicate(Product) then
+        FProducts.Add(Product);
+    if Assigned(FOnProductsUpdated) then
+      FOnProductsUpdated(FProducts);
+  finally
+    Mask.Free;
+  end;
+end;
+
+procedure TGUIEnvironment.UpdateSearchFilter(const Value: string);
+begin
+  FSearchFilter := Value;
+  ApplyProductFilters;
 end;
 
 procedure TGUIEnvironment.UpdateSelectedProducts;
