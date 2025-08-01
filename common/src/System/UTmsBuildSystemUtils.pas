@@ -528,7 +528,7 @@ begin
   Result := false;
 
   {$IFDEF MSWINDOWS}
-  // Name of the mutext must be at most 260. So we use a hash, not the folder as name.
+  // Name of the mutext must be at most 260 characters. So we use a hash, not the folder as name.
   // We also use Folder.ToUpper so c:\test is the same as C:\TEST. We are inside a IFDEF MSWINDOWS. For linux/mac we shouldn't do it.
   var FolderHash := THashSHA2.GetHashString(Folder.ToUpper);
 

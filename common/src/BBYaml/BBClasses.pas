@@ -31,13 +31,15 @@ TSectionValueTypes = (Values, NoValues, Both);
 
 TSection = class
 private
+  FParent: TSection;
+  FCreatedBy: string;
+  FChildSections: TSectionDictionary;
+
   function ListSectionsAndActions: string;
   class function GetActions(const Act: TListOfActions): string;
 
 public
-  ChildSections: TSectionDictionary;
   ChildSectionAction: TChildSectionAction; //if defined, ChildSections is not used.
-  Parent: TSection;
 
   function FullPath: string;
   function GotoChild(const Line: string; const ErrorInfo: TErrorInfo; const KeepValues: boolean = false): TSection;
@@ -47,6 +49,8 @@ public
   function GetBool(const s: string; const ErrorInfo: TErrorInfo): boolean;
   function GetBoolEx(const s: string; const ErrorInfo: TErrorInfo): boolean;
   function GetInt(const s: string; const ErrorInfo: TErrorInfo): integer;
+
+  property CreatedBy: string read FCreatedBy write FCreatedBy;
 
 public
   SectionValueTypes: TSectionValueTypes; //Only needed to set in data sections.
@@ -63,6 +67,10 @@ public
 
   function VarPrefix: string; virtual;
   function ExtraInfo: string; virtual;
+
+  property Parent: TSection read FParent;
+  property ChildSections: TSectionDictionary read FChildSections;
+  function Root: TSection;
 
 public
   constructor Create(const aParent: TSection);
@@ -87,13 +95,15 @@ end;
 
 constructor TSection.Create(const aParent: TSection);
 begin
-  Parent := aParent;
-  ChildSections := TSectionDictionary.Create;
+  FParent := aParent;
+  if aParent <> nil then CreatedBy := aParent.FCreatedBy;
+
+  FChildSections := TSectionDictionary.Create;
 end;
 
 destructor TSection.Destroy;
 begin
-  ChildSections.Free;
+  FChildSections.Free;
   Actions.Free;
   ArrayActions.Free;
   Duplicated.Free;
@@ -187,6 +197,12 @@ begin
 
   end;
   SetLength(Result, iResult);
+end;
+
+function TSection.Root: TSection;
+begin
+  Result := Self;
+  While Result.Parent <> nil do Result := Result.Parent;
 end;
 
 function TSection.SectionName: string;

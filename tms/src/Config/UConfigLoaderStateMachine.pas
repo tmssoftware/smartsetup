@@ -650,8 +650,18 @@ begin
   ChildSectionAction :=
     function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then raise Exception.Create('The server "' + Name
+      if ChildSections.TryGetValue(Name, Result) then
+      begin
+        if (Result.CreatedBy <> Root.CreatedBy) then
+        begin
+          Result.CreatedBy := Root.CreatedBy;
+          exit; //Allow you to define the same server in different files. Not twice in the same file.
+        end;
+
+        raise Exception.Create('The server "' + Name
                    + '" is already defined. ' + ErrorInfo.ToString);
+
+      end;
 
       Result := TServerSectionConf.Create(Self, aConfig, Name, aProductConfig);
       ChildSections.Add(Name, Result);
