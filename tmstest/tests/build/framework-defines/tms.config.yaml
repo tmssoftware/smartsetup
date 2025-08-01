@@ -1,0 +1,27 @@
+
+# general options that are not "per product".
+tms smart setup options:
+
+  error if skipped: true
+    
+  
+configuration for all products:
+  options:
+    skip register: true
+
+
+  # for internal tmsbuild development. do not change
+  advanced options:
+    keep parallel folders: true
+    
+ 
+  compiler paths:
+    #lazarus: C:\fpc\lazarus
+    delphi7: c:\delphibuild\delphi7
+    #delphi12: C:\Program Files (x86)\Embarcadero\Studio\23.0
+
+configuration for test.framework.defines.ok:
+  compilation options:
+    # specify compilation directives to be set when building the packages
+    defines:
+      - MYDEF
