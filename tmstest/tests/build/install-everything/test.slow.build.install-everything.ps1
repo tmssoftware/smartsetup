@@ -4,6 +4,7 @@
 
 . test.setup
 
+  tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
   tms install *    
   tms uninstall * #only if no errors. If there are errors, we leave it there for investigation.
 

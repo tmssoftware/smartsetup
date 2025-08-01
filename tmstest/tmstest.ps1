@@ -31,7 +31,9 @@ if (Test-Path -LiteralPath $testsToRun) {
 $successfulTests = @()
 $failedTests = @()
 $skippedTests = @()
+$index = 0
 foreach ($test in $tests) {
+    $index++
     if ($skipSlow -and $test.Name -like "test.slow.*") {
         Write-Host "Skipping slow test: $($test.Name)" -ForegroundColor Yellow
         $skippedTests += $test.Name
@@ -73,10 +75,11 @@ foreach ($test in $tests) {
        finally {
         Set-Location -
         $percent = ($index / $tests.Length) * 100
-        Write-Progress -Activity "Running tests" -Status "Test $i of $totalItems" -PercentComplete $percent -CurrentOperation "$($test.Name)"
+        Write-Progress -Activity "Running tests" -Status "Test $($index) of $($tests.Length)." -PercentComplete $percent -CurrentOperation "$($test.Name)"
        }
         
     } catch {
+        Write-Host " -> FAILED" -ForegroundColor Red
         if ($tests.Length -eq 1) {Write-Host "Error: $($_.Exception.Message)"}
         $failedTests += $test.Name
         continue
