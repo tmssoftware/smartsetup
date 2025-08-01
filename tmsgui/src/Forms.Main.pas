@@ -88,6 +88,7 @@ type
     procedure acSettingsUpdate(Sender: TObject);
     procedure edSearchChange(Sender: TObject);
     procedure acSearchFocusExecute(Sender: TObject);
+    procedure cbServerChange(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -268,6 +269,14 @@ begin
   acVersionHistory.Enabled := GetVersionHistoryUrl(Product) <> '';
 end;
 
+procedure TMainForm.cbServerChange(Sender: TObject);
+begin
+  var Server := '';
+  if cbServer.ItemIndex > 0 then // ignore "all"
+    Server := cbServer.Items[cbServer.ItemIndex];
+  GUI.SetServer(Server);
+end;
+
 procedure TMainForm.CommandOutputEvent(const Text: string);
 begin
   TThread.Queue(nil, procedure
@@ -301,7 +310,7 @@ end;
 
 procedure TMainForm.edSearchChange(Sender: TObject);
 begin
-  GUI.UpdateSearchFilter(edSearch.Text);
+  GUI.SetSearchFilter(edSearch.Text);
 end;
 
 function TMainForm.FindProductItem(const ProductId: string): TListItem;
@@ -552,9 +561,10 @@ begin
     for var Item in Servers do
       if Item.Enabled then
         cbServer.Items.Add(Item.Name);
-    cbServer.ItemIndex := cbServer.Items.IndexOf(Selected);
-    if cbServer.ItemIndex = -1 then
-      cbServer.ItemIndex := 0;
+    var Index := cbServer.Items.IndexOf(Selected);
+    if Index = -1 then
+      Index := 0;
+    cbServer.ItemIndex := Index;
   finally
     cbServer.Items.EndUpdate;
   end;

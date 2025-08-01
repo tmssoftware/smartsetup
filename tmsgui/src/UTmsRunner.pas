@@ -68,11 +68,13 @@ type
   TTmsListRemoteRunner = class(TTmsRunner)
   strict private
     FProducts: TProductInfoList;
+    FServer: string;
   public
     constructor Create;
     destructor Destroy; override;
     procedure RunListRemote;
     property Products: TProductInfoList read FProducts;
+    property Server: string read FServer write FServer;
   end;
 
   TAbstractTmsBuildRunner = class(TTmsRunner)
@@ -490,7 +492,10 @@ end;
 
 procedure TTmsListRemoteRunner.RunListRemote;
 begin
-  Run(AddRepo('list-remote -json'));
+  var Command := 'list-remote -json';
+  if Server <> '' then
+    Command := Command + ' -server:' + Server;
+  Run(AddRepo(Command));
 
   // parse response
   if not (JsonOutput is TJSONObject) then
@@ -509,6 +514,7 @@ begin
     Product.Name := JsonProduct.GetValue<string>('name');
     Product.Version := JsonProduct.GetValue<string>('version', '');
     Product.VendorId := JsonProduct.GetValue<string>('vendor_id', '');
+    Product.Server := JsonProduct.GetValue<string>('server', '');
 //    Product.LicenseStatus := JsonProduct.GetValue<string>('license-status', '');
   end;
 end;

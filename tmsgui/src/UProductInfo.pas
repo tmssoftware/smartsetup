@@ -33,6 +33,7 @@ type
     FIDEInfoMap: TDictionary<TIDEName, TProductIDEInfo>;
     FVersion: TVersion;
     FVendorId: string;
+    FServer: string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -44,6 +45,7 @@ type
     property Channel: string read FChannel write FChannel;
     property Local: Boolean read FLocal write FLocal;
     property VendorId: string read FVendorId write FVendorId;
+    property Server: string read FServer write FServer;
   end;
 
   TProductInfoList = class(TObjectList<TProductInfo>)

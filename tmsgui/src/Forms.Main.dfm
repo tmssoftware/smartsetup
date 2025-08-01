@@ -220,6 +220,7 @@ object MainForm: TMainForm
             Style = csDropDownList
             Anchors = [akTop, akRight]
             TabOrder = 1
+            OnChange = cbServerChange
           end
         end
       end

@@ -44,6 +44,7 @@ type
     FStatus: TProductStatus;
     FHasFetchInfo: Boolean;
     FVendorId: string;
+    FServer: string;
   public
     function IsOutdated: Boolean;
     function DisplayName: string;
@@ -54,6 +55,7 @@ type
     property Status: TProductStatus read FStatus write FStatus;
     property HasFetchInfo: Boolean read FHasFetchInfo write FHasFetchInfo;
     property VendorId: string read FVendorId write FVendorId;
+    property Server: string read FServer write FServer;
   end;
 
   TGUIProductList = class(TObjectList<TGUIProduct>)
@@ -100,6 +102,7 @@ type
     FOnProductsUpdated: TProductsProc;
     FCurrentRunner: TTmsRunner;
     FInfo: TTmsInfo;
+    FServer: string;
     FServers: TServerConfigItems;
     FOnRequestCredentials: TRequestCredentialsEvent;
     FOnGetSelectedProducts: TGetSelectedProductsProc;
@@ -189,7 +192,12 @@ type
     /// <summary>
     ///   Updates the search filter used to filter products. Setting this will refresh the product list.
     /// </summary>
-    procedure UpdateSearchFilter(const Value: string);
+    procedure SetSearchFilter(const Value: string);
+
+    /// <summary>
+    ///   Specifies a server from which the products will be retrieved. If empty, all servers will be used.
+    /// </summary>
+    procedure SetServer(const Value: string);
 
     /// <summary>
     ///   Retrieves general information about Smart Setup folder
@@ -434,6 +442,7 @@ begin
     else
       GUIProduct.Status := TProductStatus.Available;
     GUIProduct.HasFetchInfo := not Product.Local;
+    GUIProduct.Server := Product.Server;
   end;
 
   for var Product in Remote do
@@ -450,6 +459,10 @@ begin
 
     if GUIProduct.HasFetchInfo then // only update if it's same origin. For now, only one origin is available
       GUIProduct.RemoteVersion := Product.Version;
+
+    // If there is a remote product value in server, override it here
+    if Product.Server <> '' then
+      GUIProduct.Server := Product.Server;
 
     // Update VendorId. For now, only remote products have vendor id, so we are setting here regardless.
     GUIProduct.VendorId := Product.VendorId;
@@ -862,7 +875,10 @@ begin
         procedure(RemoteRunner: TTmsListRemoteRunner)
         begin
           if Info.FolderInitialized and Info.HasCredentials then
+          begin
+            RemoteRunner.Server := FServer;
             RemoteRunner.RunListRemote;
+          end;
           ConsolidateGUIProductList(Self.FFetchedProducts, ListRunner.Products, RemoteRunner.Products);
           FProductFilter := Filter;
 
@@ -870,11 +886,13 @@ begin
           var Predicate :=
             function(Product: TGUIProduct): Boolean
             begin
-              case FProductFilter of
-                TProductFilter.Installed: Result := not Product.LocalVersion.IsNull;
-              else
-                Result := True;
-              end;
+              if (FProductFilter = TProductFilter.Installed) and (Product.Status <> TProductStatus.Installed) then
+                Exit(False);
+
+              if (FServer <> '') and not SameText(FServer, Product.Server) then
+                Exit(False);
+
+              Result := True;
             end;
           for var I := Self.FFetchedProducts.Count - 1 downto 0 do
             if not Predicate(Self.FFetchedProducts[I]) then
@@ -973,10 +991,22 @@ begin
   end;
 end;
 
-procedure TGUIEnvironment.UpdateSearchFilter(const Value: string);
+procedure TGUIEnvironment.SetSearchFilter(const Value: string);
 begin
-  FSearchFilter := Value;
-  ApplyProductFilters;
+  if FSearchFilter <> Value then
+  begin
+    FSearchFilter := Value;
+    ApplyProductFilters;
+  end;
+end;
+
+procedure TGUIEnvironment.SetServer(const Value: string);
+begin
+  if FServer <> Value then
+  begin
+    FServer := Value;
+    RefreshFetchedProducts(FProductFilter);
+  end;
 end;
 
 procedure TGUIEnvironment.UpdateSelectedProducts;
