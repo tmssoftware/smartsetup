@@ -59,13 +59,13 @@ type
     function GetProductFromJSON(const ProductId, Text: string;
       const Server: string; const aLoadingPredefined: boolean): TRegisteredProduct;
     function GetProductFromProject(const Project: TProjectDefinition; const Server: string; const aLoadingPredefined: boolean; const PredefinedText: string): TRegisteredProduct;
-    procedure LoadPreregisteredProducts;
+    procedure LoadPreregisteredProducts(const aServerName: string);
     procedure LoadOnePreregisteredProduct(const FileName, Text, Server: string);
-    procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig);
-    procedure LoadLocalProductsFromServer(const Server: TServerConfig);
+    procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
+    procedure LoadLocalProductsFromServer(const Server: TServerConfig; const aServerName: string);
     function GetLocalStoreFolder(const Server: TServerConfig): string;
   public
-    constructor Create(const aBaseStoreFolder: string);
+    constructor Create(const aBaseStoreFolder, aServerName: string);
     destructor Destroy; override;
 
     procedure Add(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string);
@@ -75,7 +75,7 @@ type
     class function LocalServer: TServerConfig; static;
 
     procedure Save;
-    procedure Load;
+    procedure Load(const aServerName: string);
 
   end;
 
@@ -148,11 +148,11 @@ begin
   Result := FProducts.ContainsKey(ProductId);
 end;
 
-constructor TProductRegistry.Create(const aBaseStoreFolder: string);
+constructor TProductRegistry.Create(const aBaseStoreFolder, aServerName: string);
 begin
   BaseStoreFolder := aBaseStoreFolder;
   FProducts := TObjectDictionary<string, TRegisteredProduct>.Create([doOwnsValues], TIStringComparer.Ordinal);
-  Load;
+  Load(aServerName);
 end;
 
 destructor TProductRegistry.Destroy;
@@ -245,7 +245,7 @@ end;
 
 procedure TProductRegistry.LoadOnePreregisteredProduct(const FileName, Text, Server: string);
 begin
-  var Project :=TProjectDefinition.Create(FileName);
+  var Project := TProjectDefinition.Create(FileName);
   try
     TProjectLoader.LoadDataIntoProject(FileName, Text, Project, 'root:supported frameworks', true);
     FProducts.AddOrSetValue(Project.Application.Id, GetProductFromProject(Project, Server, true, Text));
@@ -255,19 +255,21 @@ begin
 
 end;
 
-procedure TProductRegistry.LoadPreregisteredProducts;
+procedure TProductRegistry.LoadPreregisteredProducts(const aServerName: string);
 begin
   for var i := 0 to Config.ServerConfig.ServerCount - 1 do
   begin
-    LoadPreregisteredProductsFromServer(Config.ServerConfig.GetServer(i));
+
+    LoadPreregisteredProductsFromServer(Config.ServerConfig.GetServer(i), aServerName);
   end;
 end;
 
-procedure TProductRegistry.LoadPreregisteredProductsFromServer(const Server: TServerConfig);
+procedure TProductRegistry.LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
 const
   PredefinedZip = 'predefined.repos.zip';
 begin
   if (Server.Protocol <> TServerProtocol.ZipFile) or not Server.Enabled then exit;
+  if (ServerName <> '') and (not SameText(ServerName, Server.Name)) then exit;
 
   try
     var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
@@ -299,13 +301,13 @@ begin
 end;
 
 
-procedure TProductRegistry.Load;
+procedure TProductRegistry.Load(const aServerName: string);
 begin
   FProducts.Clear;
-  LoadPreregisteredProducts;
+  LoadPreregisteredProducts(aServerName);
   for var i := 0 to Config.ServerConfig.ServerCount - 1 do
   begin
-    LoadLocalProductsFromServer(Config.ServerConfig.GetServer(i));
+    LoadLocalProductsFromServer(Config.ServerConfig.GetServer(i), aServerName);
   end;
 end;
 
@@ -320,9 +322,10 @@ begin
 
 end;
 
-procedure TProductRegistry.LoadLocalProductsFromServer(const Server: TServerConfig);
+procedure TProductRegistry.LoadLocalProductsFromServer(const Server: TServerConfig; const aServerName: string);
 begin
   if not Server.Enabled or (Server.Protocol <> TServerProtocol.Local) then exit;
+  if (aServerName <> '') and (not SameText(aServerName, Server.Name)) then exit;
   var StoreFolder := GetLocalStoreFolder(Server);
   if not TDirectory.Exists(StoreFolder) then exit;
   var Items := TDirectory.GetFiles(StoreFolder, '*' + RepoExt);

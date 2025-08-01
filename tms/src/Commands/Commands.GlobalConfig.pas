@@ -12,7 +12,7 @@ procedure AddConfigParameter(const Parameter: string);
 function ConfigFileName: string;
 function IsValidTMSSetupFolder: Boolean;
 procedure CheckValidTMSSetupFolder;
-function RegisteredVCSRepos: TProductRegistry;
+function RegisteredVCSRepos(const Server: string=''): TProductRegistry;
 
 var
   NeedsToRestartIDE: boolean; // Not sure if here is the best place to put it.
@@ -87,11 +87,11 @@ begin
   Result :=_Config;
 end;
 
-function RegisteredVCSRepos: TProductRegistry;
+function RegisteredVCSRepos(const Server: string): TProductRegistry;
 begin
   if _RegisteredVCSRepos = nil then
   begin
-  _RegisteredVCSRepos := TProductRegistry.Create(Config.Folders.VCSMetaFolder);
+  _RegisteredVCSRepos := TProductRegistry.Create(Config.Folders.VCSMetaFolder, Server);
   end;
   Result := _RegisteredVCSRepos;
 

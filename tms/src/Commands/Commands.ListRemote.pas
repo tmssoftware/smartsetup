@@ -63,8 +63,6 @@ begin
 
     for var Product in RepoProducts do
     begin
-      if (RemoteServer <> '') and (not SameText(RemoteServer, Product.Server)) then continue;
-
       var Item := TJSONObject.Create;
       Root.AddPair(Product.ProductId, Item);
 
@@ -117,7 +115,7 @@ end;
 
 procedure AddZipFileProducts(const ListedProducts: TList<TRegisteredProduct>);
 begin
-  RegisteredVCSRepos.GetProducts('*', ListedProducts, nil);
+  RegisteredVCSRepos(RemoteServer).GetProducts('*', ListedProducts, nil);
 end;
 
 procedure RunListRemoteCommand;
