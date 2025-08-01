@@ -15,17 +15,16 @@ This will open your profile. Add the lines (adapting the paths for the machine)
 set-alias tms E:\tms\smartsetup\tms\bin\Win64\Debug\tms.exe
 
 $tmsTestRootDir = "E:\tms\tms-smartsetup\tmstest"
-set-alias test.setup "$tmsTestRootDir\util\util.setup.ps1"
-set-alias tmstest "$tmsTestRootDir\tmstest.ps1"
-
 $env:TMSTEST_CODE="<reg-code>"
 $env:TMSTEST_EMAIL="<reg-email>"
+
+. $tmsTestRootDir/util/util.profile_startup.ps1
 ```
 
 Once you have this done, **restart the terminal** (or VSCode). Now you should be able to type `$tmsTestRootDir` and see the value.
 
 > [!IMPORTANT]
->If you save the reg/code in the profile, it will be stored there. You might prefer to set the variable in other manually.
+>If you save the reg/code in the profile, it will be stored in plain text wherever the profile is saved. You might prefer to set the variable in other manually.
 
 # Running the tests
 
@@ -119,3 +118,24 @@ The test is just a script that runs commands, and if it returns an ErrorCode of 
 > The Write-Error behavior can be confusing. I would expect it to just write the error, not also terminate the script. But it does both. Use it with care. 
 
 ## Utilities for writing tests
+
+A lot of the stuff we need to do can be done directly in PowerShell. PowerShell commands return objects, not string (as a unix shell), so you can normally read the properties of the output. Some basic stuff:
+
+   * Variables are written like `$variable`
+   * String interpolation is done with `$()`. For example: `Write-Host "Skipped tests: $($skippedTests.Count)"`
+   * You can write to the console with `Write-Host`
+   * You can return an error with exit(-1), or by doing `Write-Error`
+   * You can do control flow with try/catch/finally
+   * You can parse Json returned by a command with `| ConvertFrom-Json` and `| ConvertFrom-Json -AsHashtable`
+   * You can read registry with `Get-ItemProperty -Path "HKCU:\Software\Embarcadero\BDS\$($BaseDelphiVersion)" -Name "RootDir"`
+   * You can call a command with `& "command"` if it is in a string. You can source a command with `. command` (sourced commands run in the same environment as the calling script, so if you change a directory, it will stay changed when the command executes)
+   * And a lot more... google and copilot are great here.
+
+
+But besides this, we have our own utilities to make common stuff simple. `util.profile_startup` defines the following aliases:
+   * **rsvars**: will run the rsvars for the Delphi version used for the tests.
+   * **tmstest**: will call tmstest.ps1. One thing with PowerShell is that it doesn't run commands in the current folder, so adding an alias is the simplest way to know a command will be found.
+
+   Some others might be added in the future to `util.profile_startup`
+
+A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.

@@ -21,3 +21,5 @@ if ($resolvedItemPath -ne $resolvedTestsFolder) {
     Write-Error "The test script must be called from $($resolvedTestsFolder) and was called from $($resolvedItemPath). Try running it from tmstest.ps1"
 }
 
+. $PSScriptRoot/util/util.set_starting_config_yaml.ps1
+
