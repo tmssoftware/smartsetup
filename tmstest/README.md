@@ -2,9 +2,9 @@
 
 1. tmstest runs on PowerShell. If in linux, you need to install PowerShell for linux.
 2. For debugging, we recommend VSCode. Install the powershell extension.
-3. Setup the paths. You will have to do this from the **terminal** and from the **VSCode terminal**, since they load different user profiles.
+3. Setup the paths and aliases. You will have to do this from the **terminal** and from the **VSCode terminal**, since they load different user profiles.
 
-Go to the terminal you want to use (VSCode terminal or normal terminal) and type:
+For step 3, go to the terminal you want to use (VSCode terminal or normal terminal) and type:
 
 ```shell
 code $PROFILE
@@ -22,10 +22,10 @@ $env:TMSTEST_CODE="<reg-code>"
 $env:TMSTEST_EMAIL="<reg-email>"
 ```
 
-Once you have this done, **restart the terminal** (or VSCode). Now you should be able to type `$tmsTestRootDir` and have see the value.
+Once you have this done, **restart the terminal** (or VSCode). Now you should be able to type `$tmsTestRootDir` and see the value.
 
-> ![Important]
-> If you save the reg/code in the profile, it will be stored there. You might prefer to set the variable in other manually.
+> [!IMPORTANT]
+>If you save the reg/code in the profile, it will be stored there. You might prefer to set the variable in other manually.
 
 # Running the tests
 
@@ -48,7 +48,7 @@ tmstest build
 this will run all tests that have `build` inside their name. We search for `test.*{parameter}*.tms` so in this case, this will run all tests matching `test.*build*.ps1`.
 
 > [!NOTE]
-> Don't run the tests directly, by executing them in the command line. They will refuse to run, because they need to be run outside the `tests` folder. Otherwise they would create their temporary files in the wrong place. To run them manually, call `tmstest name-of-the-test` instead. `tmstest will basically copy the folder to tmp-run, and run it there.
+> Don't run the tests directly, by executing them in the command line. They will refuse to run, because they need to be run outside the `tests` folder. Otherwise they would create their temporary files in the wrong place. To run them manually, call `tmstest name-of-the-test` instead. `tmstest` will basically copy the folder to tmp-run, and run it there.
 
 ### Slipping slow tests
 ```
@@ -83,11 +83,11 @@ So it will always launch tmstest.ps1, passing the active file as a parameter.
 You can then run this normally: F5 starts the run, F10 steps over, F11 steps inside, etc.
 
 > [!IMPORTANT]
-> There are many "Run" commands in VS. F5 will work. Also pressing the triangle in "SmartSetup Tests" in the "Run and Debug panel at the right will work. But there is a small triangle at the top left that won't call tmstest.ps1 and run the test directly. That will likely fail if isn't at the right place. If it fails, just use F5 instead to run it.
+> There are many "Run" commands in VS. F5 will work. Also pressing the triangle in "SmartSetup Tests" in the "Run and Debug" panel at the right will work. But there is a small triangle at the top left that won't call tmstest.ps1 and run the test directly. That will likely fail if isn't at the right place. If it fails, just use F5 instead to run it.
 
 # Creating the tests
 
-The test is just a script that does commands, and if it returns an ErrorCode of 0, it is successful. If not, it failed. You can write to the screen during the test, but it won't show in the main `tmstest.ps1` app, unless you are running a single test. Anyway, the output will always be available in **output.log** in the `tmp-run\<test_name>` folder.
+The test is just a script that runs commands, and if it returns an ErrorCode of 0, it is successful. If not, it failed. You can write to the screen during the test, but it won't show in the main `tmstest.ps1` app, unless you are running a single test. Anyway, the output will always be available in **output.log** in the `tmp-run\<test_name>` folder.
 
 ## Guidelines for creating tests
 
@@ -105,9 +105,9 @@ The test is just a script that does commands, and if it returns an ErrorCode of 
 
   * Do not specify delphi versions or platforms in the tmsbuild.yaml in the tests. We will manage this from a centralized location. 
 
-  * When building products, either `skip register` or install to some `alternate registry key`. IF installing to an alternate registry key, make sure to uninstall everything after installing.
+  * When building products, either `skip register` or install to some `alternate registry key`. If installing to an alternate registry key, make sure to uninstall everything after installing.
 
-  * If the test references a bug report, it should have a comment linking to it.
+  * If the test was because of a bug report, it should have a comment linking to it.
 
   * **The script must always start by calling `. test.setup` on the first line**. This will setup the environment, like for example making PowerShell stop on errors. **The `.` at the start of the line is important**, it means that the script will be sourced, instead of running on its own environment.
   
