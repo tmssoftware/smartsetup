@@ -5,12 +5,16 @@ param(
     [Alias("skip-slow")]    
     [switch]$skipSlow = $false 
 )
-
 . $PSScriptRoot/util/util.errors.ps1
+
+if (-not $tmsTestRootDir) {
+    Write-Error "The variable `tmsTestRootDir` is not set. You need to setup the environment, see $($PSScriptRoot)/README.md."
+}
 
 if (! $env:TMSTEST_CODE -or ! $env:TMSTEST_EMAIL) {
     Write-Error "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
 }
+. $PSScriptRoot/util/util.set_tmstest_util.ps1
 
 $testsToRun = $testsToRunParam
 
@@ -29,13 +33,14 @@ else {
 }
 
 
+
 $successfulTests = @()
 $failedTests = @()
 $skippedTests = @()
 $index = 0
 
 $IsSingleTest = $tests.Count -eq 1
-
+tmsutil clean-locked  | Out-Null
 foreach ($test in $tests) {
     $index++
     if ($skipSlow -and $test.Name -like "test.slow.*") {
@@ -49,7 +54,8 @@ foreach ($test in $tests) {
         $testDir = "$tmsTestRootDir\tmp-run\$($test.Directory.Name)"
         # Delete the test directory if it exists
         if (Test-Path -Path $testDir) {
-            Remove-Item -Path $testDir -Recurse -Force
+            #Remove-Item -Path $testDir -Recurse -Force
+            tmsutil delete-folder -folder:"$testDir" | Out-Null
         }
 
         # Copy the folder to the test directory

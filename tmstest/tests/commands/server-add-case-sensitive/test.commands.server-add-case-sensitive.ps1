@@ -6,7 +6,7 @@
 tms config --print #add a config file so we can run tms
 try {
   tms server-add TMS zipfile file://asdfasdfda   
-  Write-Host "It shouldn't let you add a TMS server."
+  Write-Output "It shouldn't let you add a TMS server."
   exit -1
 }
 catch {

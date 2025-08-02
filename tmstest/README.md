@@ -121,6 +121,7 @@ The test is just a script that runs commands, and if it returns an ErrorCode of 
 
 ## Utilities for writing tests
 
+### Powershell
 A lot of the stuff we need to do can be done directly in PowerShell. PowerShell commands return objects, not string (as a unix shell), so you can normally read the properties of the output. Some basic stuff:
 
    * Variables are written like `$variable`
@@ -135,10 +136,15 @@ A lot of the stuff we need to do can be done directly in PowerShell. PowerShell 
    * And a lot more... google and copilot are great here.
 
 
-But besides this, we have our own utilities to make common stuff simple. `util.profile_startup` defines the following aliases:
+But besides this, we have our own utilities to make common stuff simple. `util.profile_startup.ps1` defines the following aliases:
    * **rsvars**: will run the rsvars for the Delphi version used for the tests.
    * **tmstest**: will call tmstest.ps1. One thing with PowerShell is that it doesn't run commands in the current folder, so adding an alias is the simplest way to know a command will be found.
 
-   Some others might be added in the future to `util.profile_startup`
+   Some others might be added in the future to `util.profile_startup.ps1`
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
+
+### Delphi
+A command `tmstest_util` is provided that can be called from the scripts, to add specific delphi-only functionality we want to test, or stuff that is done simpler/faster in delphi. Currenty tmstest_util has the commands:
+  *  **delete-folder**: Deletes a folder, or moves the files to the locked folder if not possible.
+  *  **clean-locked**: Deletes the locked folder.
