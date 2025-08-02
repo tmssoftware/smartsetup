@@ -59,14 +59,18 @@ tms smart setup options:
   # When creating your own server, you also need to specify "protocol" (can be local, api, github)
   # And the "url" where the server is.
   servers:
-    local:
+    Potato:
       enabled: true
-
-    community:
-      enabled: false
-
-    tms:
+      protocol: local
+      url: C:\tms\potato
+    Tomato:
       enabled: true
+      protocol: local
+      url: C:\tms\tomato
+    Potato:
+      enabled: true
+      protocol: local
+      url: C:\tms\potato
 
   git:
     # Location where to find git.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.

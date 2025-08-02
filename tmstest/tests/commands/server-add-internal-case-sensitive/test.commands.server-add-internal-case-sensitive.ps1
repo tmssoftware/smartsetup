@@ -3,7 +3,7 @@
 . test.setup
 
 tms config --print #add a config file so we can run tms
-
+$env:TMS_STARTING_CONFIGURATION=""   #if not, it will find the  tms server in the base config
 tms server-remove TMS
 tms server-add TMS zipfile file://asdfasdfda 
 $Servers = tms server-list -json | ConvertFrom-Json

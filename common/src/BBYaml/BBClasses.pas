@@ -96,7 +96,7 @@ end;
 constructor TSection.Create(const aParent: TSection);
 begin
   FParent := aParent;
-  if aParent <> nil then CreatedBy := aParent.FCreatedBy;
+  if aParent <> nil then CreatedBy := Root.FCreatedBy;
 
   FChildSections := TSectionDictionary.Create;
 end;

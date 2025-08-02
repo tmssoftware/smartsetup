@@ -113,6 +113,8 @@ The test is just a script that runs commands, and if it returns an ErrorCode of 
   * To **terminate** the script with an error, you can either call:
       * `Write-Error`: Will write the error in red, but **also stop the script with an error code**. You can specify a specific error code as parameter of `Write-Error` if you want
       * **exit(-1)** will exit with an error code of -1. 
+   
+   * Do not use **`Write-Host`** in tests, as it can't be redirected. Use **`Write-Output`** instead.
 
 > [!NOTE]
 > The Write-Error behavior can be confusing. I would expect it to just write the error, not also terminate the script. But it does both. Use it with care. 
@@ -122,8 +124,9 @@ The test is just a script that runs commands, and if it returns an ErrorCode of 
 A lot of the stuff we need to do can be done directly in PowerShell. PowerShell commands return objects, not string (as a unix shell), so you can normally read the properties of the output. Some basic stuff:
 
    * Variables are written like `$variable`
-   * String interpolation is done with `$()`. For example: `Write-Host "Skipped tests: $($skippedTests.Count)"`
-   * You can write to the console with `Write-Host`
+   * String interpolation is done with `$()`. For example: `Write-Output "Skipped tests: $($skippedTests.Count)"`
+   * You can write to the console with `Write-Output` and others. Each one writes to a different output stream (1 to 6)
+   * **Beware of `Write-Host`**. This is designed to write to the console directly, not to the output stream. (Even if it can be redirected, it might be redirected in the wrong order) See https://learn.microsoft.com/en-us/powershell/scripting/learn/deep-dives/output-missing-from-transcript.
    * You can return an error with exit(-1), or by doing `Write-Error`
    * You can do control flow with try/catch/finally
    * You can parse Json returned by a command with `| ConvertFrom-Json` and `| ConvertFrom-Json -AsHashtable`
