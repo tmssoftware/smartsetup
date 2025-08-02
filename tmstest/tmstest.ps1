@@ -18,9 +18,10 @@ if (! $env:TMSTEST_CODE -or ! $env:TMSTEST_EMAIL) {
 
 $testsToRun = $testsToRunParam
 
-# If the parameter is ourselves, run everything. This can happen because of our launch.json of vscode.
+# If the parameter is ourselves, Stop. This is likely because we are debugging from vscode.
 if ($testsToRun -eq $PSCommandPath) {
-    $testsToRun = ""
+    # $testsToRun = ""
+    Write-Error "To run the tests, select the one you want to run, and press F5. If you want to run all tests, run tmstest from the console."
 }
 
 if (Test-Path -LiteralPath $testsToRun) {
@@ -29,10 +30,13 @@ if (Test-Path -LiteralPath $testsToRun) {
 }
 else {
     # By default, the parameter testsToRun is a pattern to match test files.
-    $tests = Get-ChildItem -Path $PSScriptRoot/tests -Recurse -Include test.*$testsToRun*.ps1
+    $tests = [array](Get-ChildItem -Path $PSScriptRoot/tests -Recurse -Include test.*$testsToRun*.ps1)
 }
 
-
+if ($null -eq $tests -or $tests.Count -eq 0) {
+    Write-Error "No tests found matching the pattern '$testsToRun'."
+    Exit 1
+}   
 
 $successfulTests = @()
 $failedTests = @()
@@ -55,11 +59,11 @@ foreach ($test in $tests) {
         # Delete the test directory if it exists
         if (Test-Path -Path $testDir) {
             #Remove-Item -Path $testDir -Recurse -Force
-            tmsutil delete-folder -folder:"$testDir" | Out-Null
+            tmsutil delete-folder -keep-root-folder -folder:"$testDir" | Out-Null
         }
 
         # Copy the folder to the test directory
-        Copy-Item -Path $test.Directory.FullName -Destination $testDir -Recurse -Force -Exclude "test.*.ps1"
+        Copy-Item -Path $test.Directory.FullName -Destination "$tmsTestRootDir\tmp-run\" -Recurse -Force -Exclude "test.*.ps1"
 
         Set-Location $testDir
         try {

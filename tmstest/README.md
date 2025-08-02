@@ -26,6 +26,15 @@ Once you have this done, **restart the terminal** (or VSCode). Now you should be
 > [!IMPORTANT]
 >If you save the reg/code in the profile, it will be stored in plain text wherever the profile is saved. You might prefer to set the variable in other manually.
 
+# Defining which delphi versions and platforms to test
+Testing every delphi version and platform might be prohibitive. So normally we will test the latest one, unless some test tests a specific version in particular.
+
+To define what to test:
+  * The delphi versions and platforms are defined in `tms.starting.config.yaml`. What we write here will affect all tests.
+  * The delphi version used for `rsvars.bat` in tests that call msbuild directly are in `util.set_starting_config_yaml.ps1`
+
+If the test has some specific need to test a particular delphi version, it can override the settings in `tms.starting.config.yaml` with their own, and not use the `TMS_RSVARS` variable or the command `msbuild` itself to test msbuild. 
+
 # Running the tests
 
 ## Running from the console.
@@ -137,14 +146,21 @@ A lot of the stuff we need to do can be done directly in PowerShell. PowerShell 
 
 
 But besides this, we have our own utilities to make common stuff simple. `util.profile_startup.ps1` defines the following aliases:
-   * **rsvars**: will run the rsvars for the Delphi version used for the tests.
    * **tmstest**: will call tmstest.ps1. One thing with PowerShell is that it doesn't run commands in the current folder, so adding an alias is the simplest way to know a command will be found.
+   * **msbuild**: will build the projects in the current folder using msbuild.
 
    Some others might be added in the future to `util.profile_startup.ps1`
+
+The following environment variables are set:
+   * **TMS_RSVARS**: This is the location for rsvars.bat for the delphi version we are testing. That version is set in `util.set_starting_config_yaml.ps1`
+
+> [!NOTE]
+> We can't run rsvars from powershell. It runs, but the call is `cmd.exe rsvars.bat` which means that when the call ends, the variables rsvars set are forgotten. We already provide a command that runs msbuild.exe (`msbuild`) But if you need more control, to run msbuild directly, you need to create a .bat, and call it from the test script. Inside the bat you can write `"%TMS_RSVARS%"` to execute rsvars.
+
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 
 ### Delphi
-A command `tmstest_util` is provided that can be called from the scripts, to add specific delphi-only functionality we want to test, or stuff that is done simpler/faster in delphi. Currenty tmstest_util has the commands:
+A command `tmstest_util` is provided that can be called from the scripts, to add specific delphi-only functionality we want to test, or stuff that is done simpler/faster in delphi. Currently tmstest_util has the commands:
   *  **delete-folder**: Deletes a folder, or moves the files to the locked folder if not possible.
   *  **clean-locked**: Deletes the locked folder.

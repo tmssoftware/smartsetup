@@ -12,7 +12,7 @@ const
 
 procedure TryDeleteFileAndRemoveParentFolderIfEmpty(const LockFolder, FileName: string);
 procedure TryToDeleteAllFilesInFolderIgnoringLocked(const Folder: string; const Recursive: boolean = false; const RemoveFolders: boolean = false; const Pattern: string = '*');
-procedure DeleteFolderMovingToLocked(const LockFolder, Folder: string; const Recursive: boolean);
+procedure DeleteFolderMovingToLocked(const LockFolder, Folder: string; const Recursive: boolean; const KeepRootFolder: boolean = false);
 procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCardExcludeFolders,
     WildCardIncludeFiles, WildCardExcludeFiles: TArray<string>; const  OnFile: TProc<string, string>;
     const Recursive: boolean; const ExcludeDefault: boolean = true);
@@ -73,7 +73,7 @@ begin
   end;
 end;
 
-procedure DeleteFolderMovingToLocked(const LockFolder, Folder: string; const Recursive: boolean);
+procedure DeleteFolderMovingToLockedInternal(const LockFolder, Folder: string; const Recursive: boolean; const RootFolder: string);
 begin
 var
   F: SysUtils.TSearchRec;
@@ -99,9 +99,19 @@ begin
     end;
   end;
   end;
-  SysUtils.RemoveDir(Folder);
-  if TDirectory.Exists(Folder) then raise Exception.Create('Cannot delete folder "' + Folder + '". ' + SysErrorMessage(GetLastError));
+  if Folder <> RootFolder then
+  begin
+    SysUtils.RemoveDir(Folder);
+    if TDirectory.Exists(Folder) then raise Exception.Create('Cannot delete folder "' + Folder + '". ' + SysErrorMessage(GetLastError));
+  end;
 end;
+
+procedure DeleteFolderMovingToLocked(const LockFolder, Folder: string; const Recursive: boolean; const KeepRootFolder: boolean);
+begin
+  if KeepRootFolder then DeleteFolderMovingToLockedInternal(LockFolder, Folder, Recursive, Folder)
+  else DeleteFolderMovingToLockedInternal(LockFolder, Folder, Recursive, '')
+end;
+
 
 procedure TryToDeleteAllFilesInFolderIgnoringLocked(const Folder: string; const Recursive: boolean = false; const RemoveFolders: boolean = false; const Pattern: string = '*');
 var

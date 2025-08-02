@@ -9,6 +9,7 @@ implementation
 uses VSoft.CommandLine.Options, UTmsBuildSystemUtils, IOUtils, UCommandLine;
 
 var TargetFolder: string;
+var KeepRootFolder: boolean;
 
 procedure DeleteFolderCommand;
 begin
@@ -21,7 +22,7 @@ begin
   if not StartsText(TmpRunFolder, TargetFolder) then raise Exception.Create('Folder to delete: "' + TargetFolder + '" is outside the root folder: "' + TmpRunFolder + '"');
 
   WriteLn('Removing folder: "', TargetFolder, '" and moving locked files to "', LockedFolder, '"');
-  DeleteFolderMovingToLocked(LockedFolder, TargetFolder, true);
+  DeleteFolderMovingToLocked(LockedFolder, TargetFolder, true, KeepRootFolder);
 end;
 
 
@@ -39,6 +40,14 @@ begin
     end);
   option.Required := True;
   option.AllowMultiple := False;
+
+  option := cmd.RegisterOption<boolean>(
+    'keep-root-folder', '', 'If true, the root folder itself won''t be deleted. This is useful if you have a locked file in there.',
+    procedure(const Value: boolean)
+    begin
+      KeepRootFolder := Value;
+    end);
+    option.HasValue := false;
 
   AddCommand(cmd.Name, 'FileSystem', DeleteFolderCommand);
 end;
