@@ -284,8 +284,9 @@ begin
   var Folders := TDirectory.GetDirectories(Config.Folders.ProductsFolder, '*', TSearchOption.soTopDirectoryOnly);
   for var Folder in Folders do
   begin
-    if not TProjectLoader.HasProjectDefinition(Folder) then continue;
-    var def := TProjectLoader.LoadProjectDefinition(Folder, 'root:application:id');
+    var YamlFolder := TProjectLoader.GetProjectDefinition(Folder);
+    if YamlFolder = '' then continue;
+    var def := TProjectLoader.LoadProjectDefinition(YamlFolder, 'root:application:id');
     try
       if not Result.Contains(def.Application.Id) then Result.Add(def.Application.Id);
     finally

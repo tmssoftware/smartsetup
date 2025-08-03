@@ -167,10 +167,11 @@ begin
   Result := [];
   if ProductPath = '' then
     Exit;
-  if not TProjectLoader.HasProjectDefinition(ProductPath) then
+  var YamlProductPath := TProjectLoader.GetProjectDefinition(ProductPath);
+  if YamlProductPath = '' then
     Exit;
 
-  var def := TProjectLoader.LoadProjectDefinition(ProductPath);
+  var def := TProjectLoader.LoadProjectDefinition(YamlProductPath);
   try
     for var Dependency in def.Dependencies do
       Result := Result + [Dependency.Id];

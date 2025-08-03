@@ -320,10 +320,10 @@ function TFetchManager.GetProductDependencies(const ProductId: string): TArray<s
 begin
   Result := [];
   var Folder := CombinePath(FFolders.ProductsFolder, ProductId);
-  if not TProjectLoader.HasProjectDefinition(Folder) then
-    Exit;
+  var YamlFolder := TProjectLoader.GetProjectDefinition(Folder);
+  if YamlFolder = '' then Exit;
 
-  var def := TProjectLoader.LoadProjectDefinition(Folder);
+  var def := TProjectLoader.LoadProjectDefinition(YamlFolder);
   try
     for var Dependency in def.Dependencies do
     begin
