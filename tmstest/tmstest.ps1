@@ -45,6 +45,9 @@ $index = 0
 
 $IsSingleTest = $tests.Count -eq 1
 tmsutil clean-locked  | Out-Null
+$stopWatch = New-Object -TypeName 'System.Diagnostics.Stopwatch'
+$stopWatch.Start()
+
 foreach ($test in $tests) {
     $index++
     if ($skipSlow -and $test.Name -like "test.slow.*") {
@@ -101,8 +104,11 @@ foreach ($test in $tests) {
     }
 }
 
+$stopWatch.Stop()
+$elapsedTime = $stopWatch.Elapsed
 Write-Progress -Activity "Running tests" -Status "Completed!" -PercentComplete 100 -Completed
 
+Write-Host "Tests completed in $($elapsedTime.TotalSeconds.ToString("F2")) seconds." -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Successful tests: $($successfulTests.Count)" -ForegroundColor Green
 Write-Host "Failed tests: $($failedTests.Count)" -ForegroundColor $(if ($failedTests.Count -eq 0) {'Green'} else {'Red'})
