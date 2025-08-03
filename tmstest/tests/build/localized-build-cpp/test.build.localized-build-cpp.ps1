@@ -21,7 +21,6 @@ msbuild "set LANGDIR=DE"
 $Result = & Win32\Debug\localized.exe
 if ($Result -ne "Hello") {
     Write-Error "Test failed: Result was '$Result' and should have been 'hello'."
-    Exit 1
 }
 
 

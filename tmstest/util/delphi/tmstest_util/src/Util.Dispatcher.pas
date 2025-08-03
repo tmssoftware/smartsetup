@@ -6,12 +6,14 @@ procedure Dispatch;
 implementation
 uses UCommandLine,
   FileSystem.DeleteFolder,
-  FileSystem.CleanLockedFolder;
+  FileSystem.CleanLockedFolder,
+  Convert.SummaryToJson;
 
 procedure Dispatch;
 begin
   RegisterDeleteFolderCommand;
   RegisterCleanLockedFolderCommand;
+  RegisterConvertSummaryToJsonCommand;
   ParseCommandLine;
 
 end;

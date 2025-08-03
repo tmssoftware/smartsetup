@@ -120,13 +120,33 @@ The test is just a script that runs commands, and if it returns an ErrorCode of 
   * **The script must always start by calling `. test.setup` on the first line**. This will setup the environment, like for example making PowerShell stop on errors. **The `.` at the start of the line is important**, it means that the script will be sourced, instead of running on its own environment.
   
   * To **terminate** the script with an error, you can either call:
-      * `Write-Error`: Will write the error in red, but **also stop the script with an error code**. You can specify a specific error code as parameter of `Write-Error` if you want
-      * **exit(-1)** will exit with an error code of -1. 
+      * **`Write-Error`**: Will write the error in red, but **also stop the script with an error code**. You can specify a specific error code as parameter of `Write-Error` if you want
+      * **throw "error message"** will exit with an exception.
+      * **exit 1** will exit with error code 1. 
+
+> [!IMPORTANT]
+> The simplest way to terminate is with `Write-Error`, but there is a problem if inside a code that tests for fail to be the correct output:
+> ```shell
+>  try {
+>    command
+>    throw / Write-Error "command should have failed"
+>  }
+>  catch{}
+>```
+> As it can be seen, this exception (also from `Write-Error`) will be caught in the empty catch block and do noting. For those cases, you can use a "Error" variable, or use `Exit`:
+> ```shell
+>  try {
+>    command
+>    Write-Output "command should have failed"
+>    exit 1
+>  }
+>  catch{}
+>```
    
    * Do not use **`Write-Host`** in tests, as it can't be redirected. Use **`Write-Output`** instead.
 
 > [!NOTE]
-> The Write-Error behavior can be confusing. I would expect it to just write the error, not also terminate the script. But it does both. Use it with care. 
+> The Write-Error behavior can be confusing. I would expect it to just write the error, not also terminate the script. But it does both. This is because we are terminating in non-terminating errors. 
 
 ## Utilities for writing tests
 
@@ -137,7 +157,7 @@ A lot of the stuff we need to do can be done directly in PowerShell. PowerShell 
    * String interpolation is done with `$()`. For example: `Write-Output "Skipped tests: $($skippedTests.Count)"`
    * You can write to the console with `Write-Output` and others. Each one writes to a different output stream (1 to 6)
    * **Beware of `Write-Host`**. This is designed to write to the console directly, not to the output stream. (Even if it can be redirected, it might be redirected in the wrong order) See https://learn.microsoft.com/en-us/powershell/scripting/learn/deep-dives/output-missing-from-transcript.
-   * You can return an error with exit(-1), or by doing `Write-Error`
+   * You can return an error with `Write-Error` or `"throw error message"`
    * You can do control flow with try/catch/finally
    * You can parse Json returned by a command with `| ConvertFrom-Json` and `| ConvertFrom-Json -AsHashtable`
    * You can read registry with `Get-ItemProperty -Path "HKCU:\Software\Embarcadero\BDS\$($BaseDelphiVersion)" -Name "RootDir"`
@@ -157,6 +177,8 @@ The following environment variables are set:
 > [!NOTE]
 > We can't run rsvars from powershell. It runs, but the call is `cmd.exe rsvars.bat` which means that when the call ends, the variables rsvars set are forgotten. We already provide a command that runs msbuild.exe (`msbuild`) But if you need more control, to run msbuild directly, you need to create a .bat, and call it from the test script. Inside the bat you can write `"%TMS_RSVARS%"` to execute rsvars.
 
+The following functions are defined:
+  * **Invoke-WithExitCodeIgnored**: Allows you to run a command that will fail and not crash.
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

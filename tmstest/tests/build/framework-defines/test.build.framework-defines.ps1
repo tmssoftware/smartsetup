@@ -3,4 +3,15 @@
 
 . test.setup
 
-tms build -full
+$results = Invoke-WithExitCodeIgnored{tms build -full} | tmsutil summary-to-json | ConvertFrom-Json -AsHashtable 
+
+if ($results.Count -ne 3) {
+    Write-Error "There should be 3 results, but there are $($results.Count)."
+}
+
+foreach ($result in $results.keys) {
+    if ($result.Contains($results[$result]) -eq $false) {
+        Write-Error "The line '$result' doesn't contain '$($results[$result])'."
+    }
+}   
+

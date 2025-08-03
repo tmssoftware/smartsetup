@@ -25,6 +25,7 @@ exit(-1);
 }
 catch {
 }
+exit 0
 
 
 

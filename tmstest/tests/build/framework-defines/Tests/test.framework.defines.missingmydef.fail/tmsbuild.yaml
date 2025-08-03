@@ -2,7 +2,7 @@ minimum required tmsbuild version: 1.0
 
 application:
   id: test.framework.defines.missingmydef.fail
-  name: "Framework defines: Missing MyDef"
+  name: "Framework defines: Missing MyDef FAILED."
 
 supported frameworks:
   rtl:

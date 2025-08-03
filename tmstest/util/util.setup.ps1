@@ -23,3 +23,4 @@ if ($resolvedItemPath -ne $resolvedTestsFolder) {
 
 . $PSScriptRoot/util.set_starting_config_yaml.ps1
 
+Import-Module -Name $PSScriptRoot/util.modules.psm1 -Force

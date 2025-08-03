@@ -70,6 +70,12 @@
         <Cfg_1>true</Cfg_1>
         <Base>true</Base>
     </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win64)'!=''">
+        <Cfg_1_Win64>true</Cfg_1_Win64>
+        <CfgParent>Cfg_1</CfgParent>
+        <Cfg_1>true</Cfg_1>
+        <Base>true</Base>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_2)'!=''">
         <Cfg_2>true</Cfg_2>
         <CfgParent>Base</CfgParent>
@@ -203,6 +209,10 @@
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
         <Debugger_RunParams> delete-folder -folder:&apos;E:\tms\smartsetup\tmstest\tmp-run\&apos;</Debugger_RunParams>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
+        <Debugger_RunParams>summary-to-json</Debugger_RunParams>
+        <Debugger_CWD>E:\tms\smartsetup\tmstest\tmp-run\framework-defines</Debugger_CWD>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
@@ -223,6 +233,8 @@
         <DCCReference Include="..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Options.pas"/>
         <DCCReference Include="..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Parser.pas"/>
         <DCCReference Include="..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas"/>
+        <DCCReference Include="src\Convert.SummaryToJson.pas"/>
+        <DCCReference Include="..\..\..\..\common\src\UJsonPrinter.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

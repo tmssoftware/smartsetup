@@ -11,5 +11,6 @@ try {
 }
 catch {
 }
+exit 0
 
 

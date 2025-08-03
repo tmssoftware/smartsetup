@@ -16,7 +16,9 @@ uses
   VSoft.CommandLine.OptionDef in '..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas',
   VSoft.CommandLine.Options in '..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Options.pas',
   VSoft.CommandLine.Parser in '..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Parser.pas',
-  VSoft.CommandLine.Utils in '..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas';
+  VSoft.CommandLine.Utils in '..\..\..\..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas',
+  Convert.SummaryToJson in 'src\Convert.SummaryToJson.pas',
+  UJsonPrinter in '..\..\..\..\common\src\UJsonPrinter.pas';
 
 begin
   try

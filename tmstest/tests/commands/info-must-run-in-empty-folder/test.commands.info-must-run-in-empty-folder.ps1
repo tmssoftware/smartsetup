@@ -6,11 +6,9 @@ tms info
 $info = tms info -json | ConvertFrom-Json
 
 if ($info."folder initialized") {
-    Write-Output "Test failed: Folder should not be initialized."
-    exit 1
+    Write-Error "Test failed: Folder should not be initialized."
 }
 
 if ($info."has credentials") {
-    Write-Output "Test failed: Folder should not have credentials."
-    exit 1
+    Write-Error "Test failed: Folder should not have credentials."
 }

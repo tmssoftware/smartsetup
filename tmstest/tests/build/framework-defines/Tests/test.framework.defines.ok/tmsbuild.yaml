@@ -2,7 +2,7 @@ minimum required tmsbuild version: 1.0
 
 application:
   id: test.framework.defines.ok
-  name: Framework defines
+  name: Framework defines OK.
 
 supported frameworks:
   rtl:

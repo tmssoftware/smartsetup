@@ -74,6 +74,9 @@ foreach ($test in $tests) {
             Start-Transcript -Path "$testDir\output.log" -UseMinimalHeader | Out-Null
             try {
                 & $test.FullName *>&1 | Out-File -FilePath "$testDir\output2.log" -Encoding utf8
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Error "Test script '$($test.Name)' failed with exit code $LASTEXITCODE."
+                }
             }
             finally {
                 Stop-Transcript | Out-Null
@@ -85,6 +88,7 @@ foreach ($test in $tests) {
         catch {
             Write-Host " -> FAILED" -ForegroundColor Red
             #Only show the exception if we are running a single test. If not, the output can be too verbose.
+            Write-Output $_.Exception.Message >> "$testDir\output2.log"
             if ($IsSingleTest) { Write-Host "Error executing test script: $($_.Exception.Message)" }
             $failedTests += $test.Name
             continue
