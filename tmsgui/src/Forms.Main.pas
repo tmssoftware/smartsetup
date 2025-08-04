@@ -375,7 +375,7 @@ begin
       // Initialize the folders only if one of servers were chosen
       if TMS or Community then
       begin
-        GUI.ExecuteConfigure;
+        GUI.ExecuteConfigure(True);
         GUI.EnableServerConfigItem('tms', TMS);
         GUI.EnableServerConfigItem('community', Community);
       end;
