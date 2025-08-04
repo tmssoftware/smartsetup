@@ -85,7 +85,8 @@ type
 
   TProductsProc = reference to procedure(Products: TGUIProductList);
   TServersProc = reference to procedure(Servers: TServerConfigItems);
-  TRequestCredentialsEvent = reference to procedure(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
+  TRequestCredentialsEvent = reference to procedure(var Email, Code: string; var Confirm: Boolean;
+    LastWasInvalid: Boolean; var DisableServer: Boolean);
   TGetSelectedProductsProc = reference to procedure(Products: TGUIProductList);
   TCommandOutputProc = reference to procedure(const PartialText: string);
   TProgressProc = reference to procedure(const Percent: Integer);
@@ -162,7 +163,7 @@ type
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
     procedure ExecuteRequestCredentials;
 
-    procedure ExecuteConfigure;
+    procedure ExecuteConfigure(Silent: Boolean = False);
 
     // Change the current applied filter. Will fire the OnProductsUpdated after the product list is modified.
     procedure ChangeProductFilter(Filter: TProductFilter);
@@ -203,6 +204,8 @@ type
     ///   Retrieves general information about Smart Setup folder
     /// </summary>
     property Info: TTmsInfo read GetInfo;
+
+    property Servers: TServerConfigItems read FServers;
 
     property Products: TGUIProductList read FProducts;
     property LogItems: TObjectList<TGUILogItem> read FLogItems;
@@ -655,12 +658,12 @@ begin
     end);
 end;
 
-procedure TGUIEnvironment.ExecuteConfigure;
+procedure TGUIEnvironment.ExecuteConfigure(Silent: Boolean = False);
 begin
   RunSync<TTmsConfigureRunner>(
     procedure(Runner: TTmsConfigureRunner)
     begin
-      Runner.RunConfigure;
+      Runner.RunConfigure(Silent);
       RefreshInfo;
     end);
 end;
@@ -800,14 +803,14 @@ end;
 
 procedure TGUIEnvironment.Start;
 begin
-  if not Info.HasCredentials then
-    ExecuteRequestCredentials;
-
   RefreshServers;
+
+  if FServers.IsEnabled('tms') and not Info.HasCredentials then
+    ExecuteRequestCredentials;
 
   RunBackground(procedure
     begin
-      if Info.HasCredentials then
+      if FServers.RemotesEnabled then
         RefreshFetchedProducts(TProductFilter.All)
       else
         RefreshFetchedProducts(TProductFilter.Installed);
@@ -874,7 +877,7 @@ begin
       RunSync<TTmsListRemoteRunner>(
         procedure(RemoteRunner: TTmsListRemoteRunner)
         begin
-          if Info.FolderInitialized and Info.HasCredentials then
+          if Info.FolderInitialized then
           begin
             RemoteRunner.Server := FServer;
             RemoteRunner.RunListRemote;
@@ -928,11 +931,18 @@ begin
       var Confirm: Boolean;
       repeat
         Confirm := False;
-        FOnRequestCredentials(Email, Code, Confirm, not LastValid);
+        var Disable := False;
+        FOnRequestCredentials(Email, Code, Confirm, not LastValid, Disable);
         if Confirm then
         begin
           LastValid := Runner.RunUpdateCredentials(Email, Code);
           RefreshInfo;
+        end
+        else
+        if Disable then
+        begin
+          EnableServerConfigItem('tms', False);
+          RefreshServers;
         end;
       until not Confirm or LastValid;
     end);

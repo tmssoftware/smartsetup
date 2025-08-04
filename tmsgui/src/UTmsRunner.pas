@@ -150,7 +150,7 @@ type
 
   TTmsConfigureRunner = class(TTmsRunner)
   public
-    procedure RunConfigure;
+    procedure RunConfigure(Silent: Boolean);
   end;
 
   TTmsSelfUpdateRunner = class(TTmsRunner)
@@ -637,9 +637,12 @@ end;
 
 { TTmsConfigureRunner }
 
-procedure TTmsConfigureRunner.RunConfigure;
+procedure TTmsConfigureRunner.RunConfigure(Silent: Boolean);
 begin
-  Run('config');
+  var Command := 'config';
+  if Silent then
+    Command := Command + ' -print';
+  Run(Command);
 end;
 
 { TTmsConfigReadRunner }

@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus,
-  Forms.Config, UConfigInfo;
+  Forms.Config, UConfigInfo, Forms.Start;
 
 type
   TMainForm = class(TForm)
@@ -32,7 +32,6 @@ type
     lvProducts: TListView;
     RightPanel: TPanel;
     Button1: TButton;
-    btCredentials: TButton;
     Button2: TButton;
     Button3: TButton;
     Button4: TButton;
@@ -56,6 +55,7 @@ type
     cbServer: TComboBox;
     Label1: TLabel;
     acSearchFocus: TAction;
+    btCredentials: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -105,10 +105,12 @@ type
     procedure UpdateSortArrows;
     function Repository: string;
   public
+    procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
     procedure ServersUpdatedEvent(Servers: TServerConfigItems);
     procedure GetSelectedProductsEvent(Products: TGUIProductList);
-    procedure RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
+    procedure RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean;
+      LastWasInvalid: Boolean; var DisableServer: Boolean);
     procedure LogItemGeneratedEvent(const Item: TGUILogItem);
     procedure CommandOutputEvent(const Text: string);
     procedure ProgressEvent(const Percent: Integer);
@@ -365,7 +367,25 @@ end;
 
 procedure TMainForm.FormShow(Sender: TObject);
 begin
-  GUI.Start;
+  if not GUI.Info.FolderInitialized then
+  begin
+    var TMS, Community: Boolean;
+    if TStartForm.Execute(TMS, Community) then
+    begin
+      // Initialize the folders only if one of servers were chosen
+      if TMS or Community then
+      begin
+        GUI.ExecuteConfigure;
+        GUI.EnableServerConfigItem('tms', TMS);
+        GUI.EnableServerConfigItem('community', Community);
+      end;
+    end;
+  end;
+
+  if GUI.Info.FolderInitialized then
+    GUI.Start
+  else
+    Application.Terminate;
 end;
 
 procedure TMainForm.GetSelectedProductsEvent(Products: TGUIProductList);
@@ -413,6 +433,12 @@ begin
     Exit(Format('https://www.tmssoftware.com/site/%s.asp?s=history', [Product.VendorId]));
 
   Result := '';
+end;
+
+procedure TMainForm.InitiateAction;
+begin
+  inherited;
+  acCredentials.Visible := GUI.Servers.IsEnabled('tms');
 end;
 
 procedure TMainForm.lbLogItemsClick(Sender: TObject);
@@ -499,21 +525,18 @@ end;
 
 procedure TMainForm.NewVersionDetectedEvent;
 begin
-  if GUI.Info.HasCredentials then
+  if (ParamCount = 0) or (ParamStr(1) <> '-no-self-update') then
   begin
-    if (ParamCount = 0) or (ParamStr(1) <> '-no-self-update') then
-    begin
-      TThread.Queue(nil, procedure
-        begin
-          ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
-          GUI.ExecuteSelfUpdate(ProgressEvent,
-            procedure
-            begin
-              Relaunch := True;
-              TThread.Synchronize(nil, Application.MainForm.Close); //must be called from the main thread.
-            end);
-        end);
-    end;
+    TThread.Queue(nil, procedure
+      begin
+        ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
+        GUI.ExecuteSelfUpdate(ProgressEvent,
+          procedure
+          begin
+            Relaunch := True;
+            TThread.Synchronize(nil, Application.MainForm.Close); //must be called from the main thread.
+          end);
+      end);
   end;
 end;
 
@@ -529,9 +552,12 @@ begin
     end;
 end;
 
-procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
+procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean;
+  LastWasInvalid: Boolean; var DisableServer: Boolean);
 begin
-  Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid);
+  Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid, DisableServer);
+  if DisableServer and not Confirm then
+    ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
 end;
 
 procedure TMainForm.RunFinishEvent;

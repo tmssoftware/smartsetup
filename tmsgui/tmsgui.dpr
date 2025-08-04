@@ -18,7 +18,8 @@ uses
   Forms.Credentials in 'src\Forms.Credentials.pas' {CredentialsForm},
   Forms.Config.Servers in 'src\Forms.Config.Servers.pas' {ServerConfigForm},
   UConfigInfo in 'src\UConfigInfo.pas',
-  Forms.Config in 'src\Forms.Config.pas' {ConfigForm};
+  Forms.Config in 'src\Forms.Config.pas' {ConfigForm},
+  Forms.Start in 'src\Forms.Start.pas' {StartForm};
 
 {$R *.res}
 
@@ -29,6 +30,5 @@ begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainForm, MainForm);
-  Application.CreateForm(TConfigForm, ConfigForm);
   Application.Run;
 end.

@@ -14,11 +14,13 @@ type
     btCancel: TButton;
     lbInvalidCredentials: TLabel;
     lblNotRequired: TLabel;
+    cbNoAccount: TCheckBox;
     procedure btOkClick(Sender: TObject);
+    procedure cbNoAccountClick(Sender: TObject);
   private
     { Private declarations }
   public
-    class function GetCredentials(var Email, Code: string; LastWasInvalid: Boolean): Boolean;
+    class function GetCredentials(var Email, Code: string; LastWasInvalid: Boolean; var DisableServer: Boolean): Boolean;
   end;
 
 implementation
@@ -32,7 +34,17 @@ begin
   ModalResult := mrOk;
 end;
 
-class function TCredentialsForm.GetCredentials(var Email, Code: string; LastWasInvalid: Boolean): Boolean;
+procedure TCredentialsForm.cbNoAccountClick(Sender: TObject);
+begin
+  btOk.Enabled := not cbNoAccount.Checked;
+  if cbNoAccount.Checked then
+    btCancel.Caption := '&Disable'
+  else
+    btCancel.Caption := '&Cancel';
+end;
+
+class function TCredentialsForm.GetCredentials(var Email, Code: string; LastWasInvalid: Boolean;
+  var DisableServer: Boolean): Boolean;
 begin
   var Form := TCredentialsForm.Create(Application);
   try
@@ -40,6 +52,7 @@ begin
     Form.edCode.Text := Code;
     Form.lbInvalidCredentials.Visible := LastWasInvalid;
     Result := Form.ShowModal = mrOk;
+    DisableServer := Form.cbNoAccount.Checked;
     if Result then
     begin
       Email := Form.edEmail.Text;

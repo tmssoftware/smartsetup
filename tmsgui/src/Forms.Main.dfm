@@ -121,7 +121,7 @@ object MainForm: TMainForm
             103
             320)
           object Button1: TButton
-            Left = 6
+            Left = 8
             Top = 66
             Width = 89
             Height = 25
@@ -130,22 +130,13 @@ object MainForm: TMainForm
             Style = bsSplitButton
             TabOrder = 0
           end
-          object btCredentials: TButton
-            Left = 8
-            Top = 289
-            Width = 89
-            Height = 25
-            Action = acCredentials
-            Anchors = [akLeft, akBottom]
-            TabOrder = 1
-          end
           object Button2: TButton
             Left = 8
             Top = 3
             Width = 89
             Height = 25
             Action = acInstall
-            TabOrder = 2
+            TabOrder = 1
           end
           object Button3: TButton
             Left = 8
@@ -153,14 +144,23 @@ object MainForm: TMainForm
             Width = 89
             Height = 25
             Action = acUninstall
-            TabOrder = 3
+            TabOrder = 2
           end
           object Button4: TButton
             Left = 8
-            Top = 257
+            Top = 288
             Width = 89
             Height = 25
             Action = acConfigure
+            Anchors = [akLeft, akBottom]
+            TabOrder = 3
+          end
+          object btCredentials: TButton
+            Left = 8
+            Top = 256
+            Width = 89
+            Height = 25
+            Action = acCredentials
             Anchors = [akLeft, akBottom]
             TabOrder = 4
           end

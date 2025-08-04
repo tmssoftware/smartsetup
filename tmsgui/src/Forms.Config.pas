@@ -34,9 +34,6 @@ type
     property OnUpdateServers: TProc read FOnUpdateServers write FOnUpdateServers;
   end;
 
-var
-  ConfigForm: TConfigForm;
-
 implementation
 
 {$R *.dfm}

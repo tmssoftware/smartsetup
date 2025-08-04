@@ -17,6 +17,8 @@ type
   TServerConfigItems = class(TObjectList<TServerConfigItem>)
   public
     function Find(const Name: string): TServerConfigItem;
+    function IsEnabled(const Name: string): Boolean;
+    function RemotesEnabled: Boolean;
   end;
 
   TConfigInfo = class
@@ -51,6 +53,20 @@ begin
     if SameText(Item.Name, Name) then
       Exit(Item);
   Result := nil;
+end;
+
+function TServerConfigItems.IsEnabled(const Name: string): Boolean;
+begin
+  var Server := Find(Name);
+  Result := Assigned(Server) and Server.Enabled;
+end;
+
+function TServerConfigItems.RemotesEnabled: Boolean;
+begin
+  for var Item in Self do
+    if (Item.Protocol <> 'local') and Item.Enabled then
+      Exit(True);
+  Result := False;
 end;
 
 { TServerConfigItem }

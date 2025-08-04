@@ -35,7 +35,6 @@ object ConfigForm: TConfigForm
     RowSelect = True
     TabOrder = 0
     OnChange = tvMenuChange
-    ExplicitHeight = 209
   end
   object btApply: TButton
     Left = 547
@@ -46,8 +45,6 @@ object ConfigForm: TConfigForm
     Caption = '&Apply'
     TabOrder = 5
     OnClick = btApplyClick
-    ExplicitLeft = 514
-    ExplicitTop = 221
   end
   object btCancel: TButton
     Left = 466
@@ -59,8 +56,6 @@ object ConfigForm: TConfigForm
     Caption = '&Cancel'
     ModalResult = 2
     TabOrder = 4
-    ExplicitLeft = 433
-    ExplicitTop = 221
   end
   object btOk: TButton
     Left = 385
@@ -72,8 +67,6 @@ object ConfigForm: TConfigForm
     Default = True
     TabOrder = 3
     OnClick = btOkClick
-    ExplicitLeft = 352
-    ExplicitTop = 221
   end
   object pnDetails: TPanel
     Left = 127
