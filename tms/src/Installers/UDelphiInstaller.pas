@@ -1232,7 +1232,9 @@ var
           if (NodeName = '/#document/Project/PropertyGroup/DCC_Define/#text') then
             begin;
               if PropGroupIsBase then BaseNodeForDefines := nil;
-              if Defines<>'' then exit(Defines + ';' + NodeText);
+              var PkgDefines := ProcessDefines(NodeText, BuildInfo.Project.Project.PackageExtraDefines);
+              if Defines<>'' then exit(Defines + ';' + PkgDefines);
+              exit(PkgDefines);
             end;
 
           Result := NodeText;
