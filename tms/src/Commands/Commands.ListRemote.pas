@@ -131,8 +131,8 @@ begin
 
       if (RemoteServer <> '') and (not SameText(RemoteServer, Server.Name)) then continue;
 
-      case Server.Protocol of
-        TServerProtocol.Api: AddApiProducts(Server, ListedAPIProducts);
+      case Server.ServerType of
+        TServerType.Api: AddApiProducts(Server, ListedAPIProducts);
       end;
 
     end;

@@ -12,7 +12,7 @@ uses UCommandLine, Commands.CommonOptions,
 
 var
   ServerName: string;
-  ServerProtocol: TServerProtocol;
+  ServerType: TServerType;
   ServerUrl: string;
   ServerEnabled: boolean = true;
 
@@ -26,7 +26,7 @@ begin
        try
          Config.EnsureAllProducts;
          if Config.ServerConfig.FindServer(ServerName) >= 0 then raise Exception.Create('Server "' + ServerName + '" is already added in tms.config.yaml.');
-         Config.ServerConfig.AddServer(TServerConfig.Create(ServerName, ServerProtocol, ServerUrl, ServerEnabled));
+         Config.ServerConfig.AddServer(TServerConfig.Create(ServerName, ServerType, ServerUrl, ServerEnabled));
          ConfigWriter.Save(Config, StandardConfigFileGlobal, StandardConfigFileProduct, ConfigFileName);
        finally
          ConfigWriter.Free;
@@ -44,7 +44,7 @@ procedure RegisterServerAddCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('server-add', '', 'Adds a new server to download libraries.',
     'This command alters the tms.config.yaml file to add a new server. If the server already exists, it will return an error.',
-    'server-add <name> <protocol> <url> [enable]');
+    'server-add <name> <type> <url> [enable]');
   cmd.Examples.Add('server-add myserver zipfile https://myurl');
   cmd.Examples.Add('server-add myserver zipfile file://c:\myzip.zip');
 
@@ -55,10 +55,10 @@ begin
     end);
   option.Required := True;
 
-  option := cmd.RegisterUnNamedOption<string>('Protocol for the server', 'Protocol',
+  option := cmd.RegisterUnNamedOption<string>('Type of server', 'Type',
     procedure(const Value: string)
     begin
-      ServerProtocol := TServerConfig.ProtocolFromString(Value);
+      ServerType := TServerConfig.ServerTypeFromString(Value);
     end);
   option.Required := True;
 

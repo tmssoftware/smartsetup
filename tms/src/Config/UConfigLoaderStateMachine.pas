@@ -69,8 +69,8 @@ type
   private
     Name: string;
     Index: integer;
-    function GetServerProtocol(const s: string;
-      const ErrorInfo: TErrorInfo): TServerProtocol;
+    function GetServerType(const s: string;
+      const ErrorInfo: TErrorInfo): TServerType;
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aName: string; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
@@ -684,14 +684,14 @@ begin
   Index := Config.ServerConfig.NewServer(aName);
 
   Actions := TListOfActions.Create;
-  Actions.Add('protocol', procedure(value: string; ErrorInfo: TErrorInfo)
+  Actions.Add('type', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;
     if not Config.ServerConfig.GetServer(Index).IsReservedName then
     begin
       Config.ServerConfig.SetInfo(Index,
         procedure (var Server: TServerConfig)
         begin
-          Server.Protocol := GetServerProtocol(Value, ErrorInfo);
+          Server.ServerType := GetServerType(Value, ErrorInfo);
       end);
     end;
   end);
@@ -712,10 +712,10 @@ begin
 
 end;
 
-function TServerSectionConf.GetServerProtocol(const s: string;
-  const ErrorInfo: TErrorInfo): TServerProtocol;
+function TServerSectionConf.GetServerType(const s: string;
+  const ErrorInfo: TErrorInfo): TServerType;
 begin
-  Result := TServerConfig.ProtocolFromString(s, ErrorInfo.ToString);
+  Result := TServerConfig.ServerTypeFromString(s, ErrorInfo.ToString);
 end;
 
 

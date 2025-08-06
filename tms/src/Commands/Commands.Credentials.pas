@@ -157,7 +157,7 @@ begin
     for var i := 0 to ConfigNoCheck.ServerConfig.ServerCount - 1 do
     begin
       var Server := Config.ServerConfig.GetServer(i);
-      if (not Server.Enabled) or (Server.Protocol <> TServerProtocol.Api) then continue;
+      if (not Server.Enabled) or (Server.ServerType <> TServerType.Api) then continue;
       if not (ServerName = '') and not SameText(Server.Name, ServerName) then continue;
 
       DoServerCredentials(Data, Folders, Server.Name, Server.Url);

@@ -31,12 +31,12 @@ begin
   begin
     var Server := Config.ServerConfig.GetServer(i);
     if not Server.Enabled then continue;
-    if Server.Protocol <> TServerProtocol.Api then continue;
+    if Server.ServerType <> TServerType.Api then continue;
     if ServerIndex <> -1 then raise Exception.Create('In this version of Smart Setup, only one API Server is allowed.');
     ServerIndex := i;
   end;
 
-  if ServerIndex = -1 then exit(TServerConfig.Create('', TServerProtocol.Api, '', false)); //not found
+  if ServerIndex = -1 then exit(TServerConfig.Create('', TServerType.Api, '', false)); //not found
   Result := Config.ServerConfig.GetServer(ServerIndex);
 end;
 

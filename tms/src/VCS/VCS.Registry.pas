@@ -268,7 +268,7 @@ procedure TProductRegistry.LoadPreregisteredProductsFromServer(const Server: TSe
 const
   PredefinedZip = 'predefined.repos.zip';
 begin
-  if (Server.Protocol <> TServerProtocol.ZipFile) or not Server.Enabled then exit;
+  if (Server.ServerType <> TServerType.ZipFile) or not Server.Enabled then exit;
   if (ServerName <> '') and (not SameText(ServerName, Server.Name)) then exit;
 
   try
@@ -324,7 +324,7 @@ end;
 
 procedure TProductRegistry.LoadLocalProductsFromServer(const Server: TServerConfig; const aServerName: string);
 begin
-  if not Server.Enabled or (Server.Protocol <> TServerProtocol.Local) then exit;
+  if not Server.Enabled or (Server.ServerType <> TServerType.Local) then exit;
   if (aServerName <> '') and (not SameText(aServerName, Server.Name)) then exit;
   var StoreFolder := GetLocalStoreFolder(Server);
   if not TDirectory.Exists(StoreFolder) then exit;
@@ -356,7 +356,7 @@ begin
   for var i := 0 to Config.ServerConfig.ServerCount - 1 do
   begin
     var Server := Config.ServerConfig.GetServer(i);
-    if Server.Enabled and (Server.Protocol = TServerProtocol.Local) then
+    if Server.Enabled and (Server.ServerType = TServerType.Local) then
     begin
       inc(ServerCount);
       Result := Server;

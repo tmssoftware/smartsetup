@@ -187,7 +187,7 @@ begin
     Result := Result + '    ' + Server.Name + ':' + NewLine;
     if not Server.IsReservedName then
     begin
-      Result := Result + '      protocol: ' + Server.ProtocolString + NewLine;
+      Result := Result + '      type: ' + Server.ServerTypeString + NewLine;
       Result := Result + '      url: ' + Server.Url + NewLine;
     end;
     Result := Result + '      enabled: ' + BoolToStrLower(Server.Enabled);

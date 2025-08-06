@@ -66,7 +66,7 @@ begin
   var Server := TServerConfigItem.Create;
   FServers.Add(Server);
   Server.Name := 'server';
-  Server.Protocol := 'zipfile';
+  Server.ServerType := 'zipfile';
   Server.Enabled := True;
   UpdateList;
   SelectItem(FServers.Count - 1, edServerName);
@@ -92,7 +92,7 @@ end;
 procedure TServerConfigForm.cbServerTypeClick(Sender: TObject);
 begin
   if SelectedServer = nil then Exit;
-  SelectedServer.Protocol := cbServerType.Text;
+  SelectedServer.ServerType := cbServerType.Text;
   DoModified;
 end;
 
@@ -221,8 +221,8 @@ begin
 
     edServerName.Text := Server.Name;
     edServerUrl.Text := Server.Url;
-    cbServerType.ItemIndex := cbServerType.Items.IndexOf(Server.Protocol);
-    if SameText(Server.Protocol, 'local') then
+    cbServerType.ItemIndex := cbServerType.Items.IndexOf(Server.ServerType);
+    if SameText(Server.ServerType, 'local') then
       cbServerType.ItemIndex := 0;
 
     var Reserved := Server.IsReserved;
@@ -250,7 +250,7 @@ begin
     if Item.Url.Trim = '' then
       RaiseError('Url cannot be empty', I, edServerUrl);
 
-    if (Item.Protocol = '') or SameText(Item.Protocol, 'local') then
+    if (Item.ServerType = '') or SameText(Item.ServerType, 'local') then
       RaiseError('Invalid type, only zipfile and api are allowed', I, cbServerType);
 
     // check duplicated items

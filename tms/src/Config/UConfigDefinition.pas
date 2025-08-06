@@ -101,21 +101,21 @@ type
     Export: string;
   end;
 
-  TServerProtocol = (Local, Api, ZipFile);
+  TServerType = (Local, Api, ZipFile);
 
   TServerConfig = record
   public
     Name: string;
-    Protocol: TServerProtocol;
+    ServerType: TServerType;
     Url: string;
     Enabled: boolean;
 
-    constructor Create(const aName: string; const aProtocol: TServerProtocol; const aUrl: string; const aEnabled: boolean);
+    constructor Create(const aName: string; const aServerType: TServerType; const aUrl: string; const aEnabled: boolean);
     function IsReservedName: boolean; overload;
     class function IsReservedName(const aName: string): boolean; overload; static;
 
-    function ProtocolString: string;
-    class function ProtocolFromString(const value: string; const ExtraInfo: string = ''): TServerProtocol; static;
+    function ServerTypeString: string;
+    class function ServerTypeFromString(const value: string; const ExtraInfo: string = ''): TServerType; static;
   end;
 
   type
@@ -930,7 +930,7 @@ end;
 procedure TServerConfigList.EnsureOneBuiltInServer(const ServerName: string; const ServerPos: integer; const IsEnabled: boolean);
 begin
   var ServerIndex := FindServer(ServerName);
-  if (ServerIndex < 0) or (Servers = nil) then InsertServer(ServerPos, TServerConfig.Create(ServerName, TServerProtocol.Local, '', IsEnabled));
+  if (ServerIndex < 0) or (Servers = nil) then InsertServer(ServerPos, TServerConfig.Create(ServerName, TServerType.Local, '', IsEnabled));
 end;
 
 procedure TServerConfigList.EnsureAllBuiltInServers;
@@ -958,15 +958,15 @@ begin
   begin
     case index of
       0: begin
-        exit(TServerConfig.Create('local', TServerProtocol.Local, '', true));
+        exit(TServerConfig.Create('local', TServerType.Local, '', true));
       end;
 
       1: begin
-        exit(TServerConfig.Create('tms', TServerProtocol.Api, '', true));
+        exit(TServerConfig.Create('tms', TServerType.Api, '', true));
       end;
 
       2: begin
-        exit(TServerConfig.Create('community', TServerProtocol.ZipFile, '', false));
+        exit(TServerConfig.Create('community', TServerType.ZipFile, '', false));
       end;
     end;
     raise Exception.Create('Invalid Server index.');
@@ -977,7 +977,7 @@ end;
 
 function TServerConfigList.NewServer(const aName: string): integer;
 begin
-  AddServer(TServerConfig.Create(aName, TServerProtocol.ZipFile, '', true));
+  AddServer(TServerConfig.Create(aName, TServerType.ZipFile, '', true));
   Result := Length(Servers) - 1;
 end;
 
@@ -1014,11 +1014,11 @@ end;
 { TServerConfig }
 
 constructor TServerConfig.Create(const aName: string;
-  const aProtocol: TServerProtocol; const aUrl: string;
+  const aServerType: TServerType; const aUrl: string;
   const aEnabled: boolean);
 begin
   Name := aName.Trim;
-  Protocol := aProtocol;
+  ServerType := aServerType;
   Url := aUrl;
   Enabled := aEnabled;
 
@@ -1026,19 +1026,19 @@ begin
   begin
     Name := 'local';
     Url := '';
-    Protocol := TServerProtocol.Local;
+    ServerType := TServerType.Local;
   end
   else if SameText(Name, 'tms') then
   begin
     name := 'tms';
     Url := TMSUrl;
-    Protocol := TServerProtocol.Api;
+    ServerType := TServerType.Api;
   end
   else if SameText(Name, 'community') then
   begin
     name := 'community';
     Url := GitHubUrl;
-    Protocol := TServerProtocol.ZipFile;
+    ServerType := TServerType.ZipFile;
   end ;
 end;
 
@@ -1052,27 +1052,27 @@ begin
   Result := SameText(aName, 'local') or SameText(aName, 'tms') or SameText(aName, 'community');
 end;
 
-class function TServerConfig.ProtocolFromString(
-  const value: string; const ExtraInfo: string = ''): TServerProtocol;
+class function TServerConfig.ServerTypeFromString(
+  const value: string; const ExtraInfo: string = ''): TServerType;
 begin
  var s1 := AnsiLowerCase(value.Trim);
- if (s1 = 'local') then exit(TServerProtocol.Local);
- if (s1 = 'api') then exit(TServerProtocol.Api);
- if (s1 = 'zipfile') then exit(TServerProtocol.ZipFile);
+ if (s1 = 'local') then exit(TServerType.Local);
+ if (s1 = 'api') then exit(TServerType.Api);
+ if (s1 = 'zipfile') then exit(TServerType.ZipFile);
 
- raise Exception.Create('"' + value + '" is not a valid Server Protocol value. It must be "local", "api" or "zipfile".' + ExtraInfo);
+ raise Exception.Create('"' + value + '" is not a valid Server Type value. It must be "local", "api" or "zipfile".' + ExtraInfo);
 
 end;
 
-function TServerConfig.ProtocolString: string;
+function TServerConfig.ServerTypeString: string;
 begin
-  case Protocol of
-    TServerProtocol.Local: exit('local');
-    TServerProtocol.Api: exit('api');
-    TServerProtocol.ZipFile: exit('zipfile');
+  case ServerType of
+    TServerType.Local: exit('local');
+    TServerType.Api: exit('api');
+    TServerType.ZipFile: exit('zipfile');
   end;
 
-  raise Exception.Create('Invalid Protocol in Server.');
+  raise Exception.Create('Invalid Server Type.');
 end;
 
 end.

@@ -690,7 +690,7 @@ begin
     // name property is redundant
 //    Product.Name := JsonItem.GetValue<string>('name');
     Item.Url := JsonItem.GetValue<string>('url', '');
-    Item.Protocol := JsonItem.GetValue<string>('protocol', '');
+    Item.ServerType := JsonItem.GetValue<string>('type', '');
     Item.Enabled := JsonItem.GetValue<Boolean>('enabled', False);
   end;
 end;
@@ -699,7 +699,7 @@ end;
 
 procedure TTmsServerAddRunner.RunServerAdd(Item: TServerConfigItem);
 begin
-  var Command := Format('server-add %s %s %s %s', [Item.Name, Item.Protocol, Item.Url, BoolToStr(Item.Enabled, True)]);
+  var Command := Format('server-add %s %s %s %s', [Item.Name, Item.ServerType, Item.Url, BoolToStr(Item.Enabled, True)]);
   Run(Command);
 end;
 

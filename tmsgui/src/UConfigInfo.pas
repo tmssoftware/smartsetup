@@ -8,7 +8,7 @@ uses
 type
   TServerConfigItem = class
     Name: string;
-    Protocol: string;
+    ServerType: string;
     Url: string;
     Enabled: Boolean;
     function IsReserved: Boolean;
@@ -64,7 +64,7 @@ end;
 function TServerConfigItems.RemotesEnabled: Boolean;
 begin
   for var Item in Self do
-    if (Item.Protocol <> 'local') and Item.Enabled then
+    if (Item.ServerType <> 'local') and Item.Enabled then
       Exit(True);
   Result := False;
 end;

@@ -26,7 +26,7 @@ begin
       Root.AddPair(Server.Name, Item);
 
       Item.AddPair('name', Server.Name);
-      Item.AddPair('protocol', Server.ProtocolString);
+      Item.AddPair('type', Server.ServerTypeString);
       Item.AddPair('url', Server.Url);
       Item.AddPair('enabled', Server.Enabled);
     end;
@@ -50,7 +50,7 @@ begin
       WriteLn(Format('%s: %s', [Server.Name, EnabledStr]));
     end else
     begin
-      WriteLn(Format('%s: %s %s %s', [Server.Name, Server.ProtocolString, Server.Url, EnabledStr]));
+      WriteLn(Format('%s: %s %s %s', [Server.Name, Server.ServerTypeString, Server.Url, EnabledStr]));
     end;
   end;
 end;
