@@ -41,16 +41,16 @@ jobs:
         run: mkdir xmldocer
               
       - name: Download xmldocer
-        run: wget -P xmldocer/ https://download.tmssoftware.com/flexcel/xmldocer/xmldocer-linux.zip
+        run: wget -P xmldocer/ https://github.com/agallero/doc-tools-releases/releases/latest/download/xmldocer-linux-x64.zip
 
       - name: Unzip xmldocer
-        run: cd xmldocer && unzip xmldocer-linux.zip 
+        run: cd xmldocer && unzip xmldocer-linux-x64.zip
 
       - name: Make it executable  
         run: chmod +x xmldocer/xmldocer
   
       - name: Run xmldocer
-        run: cd doc && PATH=$PATH:/root/.dotnet/tools && ../xmldocer/xmldocer VCL smartsetupdoc.ini
+        run: cd doc && PATH=$PATH:/root/.dotnet/tools && ../xmldocer/xmldocer VCL smartsetupdoc.ini --verbose
 
 #      - name: Pause
 #        if: always()
