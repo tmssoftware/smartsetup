@@ -117,7 +117,7 @@ This list is ordered and must be read from top to bottom.
 {{#Tip}}
  The example above is complex on purpose, so we can show you all what could be done. But most times, you can probably get away with just:
 
- ```yaml
+```yaml
   dcu megafolders:
     - dcus: '*' 
 ```

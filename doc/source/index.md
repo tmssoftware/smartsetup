@@ -4,7 +4,7 @@ uid: SmartSetup.Overview
 
 # {{title}} introduction
 
-TMS Smart Setup is a new generation to install libraries and components for Delphi, C++ Builder, Lazarus/FPC and .NET, brought by [TMS Software](https://www.tmssoftware.com).
+TMS Smart Setup is a new generation tool to install libraries and components for Delphi, C++ Builder, Lazarus/FPC and .NET, brought by [TMS Software](https://www.tmssoftware.com).
 
 **[Download TMS Smart Setup](download/index.md)**
 
