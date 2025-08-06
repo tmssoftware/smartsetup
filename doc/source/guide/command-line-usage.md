@@ -34,9 +34,9 @@ To find out what are the ids of the products you have available to install, you 
 tms list-remote
 ```
 
-You can also specify multiple products to install, separated either by comma or spaces. Masks can be used to install all products that match the mask. For example, the following command installs all BIZ products and TMS Flexcel for VCL:
+You can also specify multiple products to install, separated either by comma or spaces. Masks can be used to install all products that match the mask. For example, the following command installs all BIZ products and TMS FlexCel for VCL:
 
-```yaml
+```shell
 tms install tms.biz.* tms.flexcel.vcl
 ```
 
@@ -81,7 +81,7 @@ tms uninstall tms.biz.*,tms.flexcel.vcl
 
 Note that `uninstall` command **does not** uninstall dependencies. Thus, if you ask to uninstall `tms.biz.aurelius` only, then `tms.biz.bcl`, which is an TMS Aurelius dependency, will remain installed. To uninstall a product and all its dependencies, use the `-cascade` option:
 
-```
+```shell
 tms uninstall tms.biz.aurelius -cascade
 ```
 

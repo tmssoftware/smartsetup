@@ -31,22 +31,12 @@ jobs:
       - name: Install docfx
         run: dotnet tool install -g docfx
 
-      - name: Install python dev
-        uses: actions/setup-python@v5
+      - name: Install node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.13' 
+          node-version: '24.x'
 
-      - name: Install pypy dev
-        uses: actions/setup-python@v5
-        with:
-          python-version: 'pypy3.10' 
-
-      - name: Install pygments
-        run: pip install Pygments
-
-      - name: Install ctags
-        run: pip install python-ctags3
-
+ 
       - name: Create folder
         run: mkdir xmldocer
               
@@ -60,7 +50,7 @@ jobs:
         run: chmod +x xmldocer/xmldocer
   
       - name: Run xmldocer
-        run: cd doc && PATH=$PATH:/root/.dotnet/tools && ../xmldocer/xmldocer VCL smartsetupdoc-linux.ini
+        run: cd doc && PATH=$PATH:/root/.dotnet/tools && ../xmldocer/xmldocer VCL smartsetupdoc.ini
 
 #      - name: Pause
 #        if: always()

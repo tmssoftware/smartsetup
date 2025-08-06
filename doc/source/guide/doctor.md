@@ -10,7 +10,7 @@ The `doctor` command is a diagnostic tool included in TMS Smart Setup. It analyz
 
 This command is available via the command line:
 
-```
+```shell
 tms doctor
 ```
 
@@ -24,7 +24,7 @@ By default, it performs only diagnostics and does not apply changes. You can cho
 
 ## Usage
 
-```
+```shell
 tms doctor [options]
 ```
 
@@ -36,17 +36,17 @@ tms doctor [options]
 ### Examples:
 
 - Diagnostic only:
-  ```
+  ```shell
   tms doctor
   ```
 
 - Fix problems interactively:
-  ```
+  ```shell
   tms doctor -fix
   ```
 
 - Fix all problems without confirmation:
-  ```
+  ```shell
   tms doctor -fix -do-not-confirm
   ```
 

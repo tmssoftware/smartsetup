@@ -264,7 +264,7 @@ file links:
       link to folder: #optional. If you don't specify it, it will link to bpl folder.
       os: [windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
 
-- link:
+  - link:
       file to link: Packages\dll\Win64\Release\FlexCelDyn64.dll
       link to folder: #optional. If you don't specify it, it will link to bpl folder.
       os: [windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.

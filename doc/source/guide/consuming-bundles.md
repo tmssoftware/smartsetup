@@ -24,19 +24,19 @@ Each one of those provides two things:
 A local server is meant for quick testing and experimenting. It is similar to [ZipFile Servers](#zipfile-servers) in the protocols it supports for downloading files, but the list of products is stored locally in the `.tmssetup` folder.
 
 You can add a product to your active local server with the command:
-```
+```shell
 tms repo-register <protocol> <url>
 ```
 Where **<protocol>** can be **GIT**, **SVN** or **ZIPFILE**
 For example,  to add a product hosted in GitHub, you could write:
-```
+```shell
  tms repo-register git https://github.com/landgraf-dev/aws-sdk-delphi.git
 ```
 
 This will clone the aws-sdk-delphi repository from GitHub and use the latest commit as the product.
 If you wanted to use a specific version of the product instead of the latest, you could register a ZipFile that contains that version instead:
 
-```
+```shell
  tms repo-register zipfile https://github.com/landgraf-dev/aws-sdk-delphi/archive/refs/tags/1.0.0.zip
 ```
 
@@ -171,7 +171,7 @@ Look at [ZipFile Servers](#zipfile-servers) for more information in that file. Y
 You can also list the servers you have with `tms server-remove` and `tms server-list`, but it might be simpler to just edit the file with `tms config` and manually editing the file. So for example, after you added the `myserver` above, `tms.config.yaml` will be:
 
 ```yaml
- # Specify which servers SmartSetup will connect to.
+  # Specify which servers SmartSetup will connect to.
   # When creating your own server, you also need to specify "protocol" (can be local, api, github)
   # And the "url" where the server is.
   servers:

@@ -95,7 +95,7 @@ You could put every dcu in a single folder, and add only that single folder to t
 Below is the example section that comes with `tms.config.yaml`:
 
 ```yaml
- # To enable megafolders, you need to be in dev-mode in Win10+. 
+  # To enable megafolders, you need to be in dev-mode in Win10+. 
   # Megafolders use symlinks, so you need to be able to create them without admin rights.
   dcu megafolders:
     - none: 'tms.flexcel.vcl'   # FlexCel VCL has over 5000 units, it is not worth putting it into a megafolder

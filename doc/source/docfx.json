@@ -40,12 +40,6 @@
       "_disableContribution": true,
       "_disableToc": false
     },
-    "template": [
-      "default"
-    ],
-      "theme": [
-        "docfx-theme"
-    ],
     "postProcessors": [],
     "noLangKeyword": false,
 
