@@ -27,8 +27,6 @@ begin
     //If MaxWorkingThreads < MinWorkerThreads then Max will be ignored.
     TThreadPool.Default.SetMinWorkerThreads(Config.BuildCores);
   end;
-  Logger.Info('Using a maximum of ' + IntToStr(TThreadPool.Default.MaxWorkerThreads) + ' threads.');
-
 end;
 
 class procedure TConfigLoader.LoadIntoConfig(const BaseFilename, Filename: string; const Config: TConfigDefinition;
