@@ -8,14 +8,28 @@ type
   TConfigLoader = class
   private
     class procedure LoadIntoConfig(const BaseFilename, Filename: string; const Config: TConfigDefinition; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
+    class procedure SetMaxCores(const Config: TConfigDefinition); static;
 
   public
     class function LoadConfig(const ConfigFile: string; const CmdParameters: TArray<string>; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TConfigDefinition;
   end;
 implementation
-uses Classes, SysUtils, UMultiLogger;
+uses Classes, SysUtils, UMultiLogger, System.Threading;
 
 { TProjectLoader }
+
+class procedure TConfigLoader.SetMaxCores(const Config: TConfigDefinition);
+begin
+  if (Config.BuildCores < 0) then raise Exception.Create('The number of cores must equal or greater than 0.');
+  if (Config.BuildCores > 0) then
+  begin
+    TThreadPool.Default.SetMaxWorkerThreads(Config.BuildCores);
+    //If MaxWorkingThreads < MinWorkerThreads then Max will be ignored.
+    TThreadPool.Default.SetMinWorkerThreads(Config.BuildCores);
+  end;
+  Logger.Info('Using a maximum of ' + IntToStr(TThreadPool.Default.MaxWorkerThreads) + ' threads.');
+
+end;
 
 class procedure TConfigLoader.LoadIntoConfig(const BaseFilename, Filename: string; const Config: TConfigDefinition;
    const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -34,6 +48,8 @@ begin
   finally
     MainSection.Free;
   end;
+
+  SetMaxCores(Config);
 end;
 
 class function TConfigLoader.LoadConfig(const ConfigFile: string; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean): TConfigDefinition;

@@ -44,19 +44,9 @@ begin
   end;
 end;
 
-
 function GetProjectBuilder(const Config: TConfigDefinition; const FileHasher: TFileHasher): IProjectBuilder;
 begin
-  if (Config.BuildCores < 0) then raise Exception.Create('The number of cores for the build must equal or greater than 0.');
-
   Result := TParallelProjectBuilder.Create(Config, FileHasher);
-  if (Config.BuildCores > 0) then
-  begin
-    TThreadPool.Default.SetMaxWorkerThreads(Config.BuildCores);
-    //If MaxWorkingThreads < MinWorkerThreads then Max will be ignored.
-    TThreadPool.Default.SetMinWorkerThreads(Config.BuildCores);
-  end;
-  Logger.Info('Parallel build. Using a maximum of ' + IntToStr(TThreadPool.Default.MaxWorkerThreads) + ' threads.');
 end;
 
 procedure ExecuteBuildAction(ProductIds: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
