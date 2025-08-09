@@ -36,12 +36,12 @@ tms smart setup options:
     
   
   # add to this list the products you don't want to be built/installed
-  excluded products:
+  %excluded-products-header%:
 %excluded-products%
 
   # if you add at least one item in "included products", then only those will be built/installed.
   # if there are none, all products will be processed.
-  included products:
+  %included-products-header%:
 %included-products%
 
   # By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional
@@ -49,13 +49,13 @@ tms smart setup options:
   # All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will
   # be generated under the additional folders. This is useful if you want to use tms to build your own code.
   # The folders you add here must be in the same drive as the main root folder.
-  additional products folders:
+  %additional-products-folders%:
 %additional-products-folders%
 
   # Specify which servers SmartSetup will connect to.
   # When creating your own server, you also need to specify "protocol" (can be local, api, github)
   # And the "url" where the server is.
-  servers:
+  %servers-header%:
 %servers%
 
   git:
@@ -86,7 +86,7 @@ tms smart setup options:
 
   # To enable megafolders, you need to be in dev-mode in Win10+. 
   # Megafolders use symlinks, so you need to be able to create them without admin rights.
-  dcu megafolders:
+  %dcu-megafolders-header%:
 %dcu-megafolders%
 
 %config-by-product%

@@ -26,7 +26,7 @@ configuration for %product-id%:
   # the versions you set for the %product-id% completely override what you set "for all products".
   # So %product-id% will only be installed for the IDEs below and doesn't inherit other values from "all products".
 %{/is-not-all-products}% 
-  delphi versions:
+  %delphi-versions-header%:
 %delphi-versions%
 
 %{/has-delphi-versions}%    
@@ -40,7 +40,7 @@ configuration for %product-id%:
  # the versions you set for the %product-id% completely override what you set "for all products".
  # So %product-id% will only be installed for the platforms below and doesn't inherit other values from "all products".
 %{/is-not-all-products}% 
-  platforms:
+  %platforms-header%:
 %platforms%
 
 %{/has-platforms}%    
@@ -54,7 +54,7 @@ configuration for %product-id%:
     # you can set a value to false to remove a value that was previously set in all products, for example:
     # - RTTI: false
 %{/is-not-all-products}% 
-    defines:
+    %defines-header%:
 %defines%
 
 %{/has-compilation-options}%    

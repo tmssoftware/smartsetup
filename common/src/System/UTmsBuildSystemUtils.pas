@@ -39,8 +39,14 @@ function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;
 
 type
   TUTF8NoBOMEncoding = class(TUTF8Encoding)
+  private
+    class var
+      FInstance: TUTF8NoBOMEncoding;
   public
+    class constructor Create;
+    class destructor Destroy;
     function GetPreamble: TBytes; override;
+    class property Instance: TUTF8NoBOMEncoding read FInstance;
   end;
 
 implementation
@@ -51,6 +57,16 @@ uses IOUtils, System.Hash, StrUtils, Masks, System.Types,
     {$IFDEF POSIX}
       Posix.Stdlib;
     {$ENDIF POSIX}
+
+class constructor TUTF8NoBOMEncoding.Create;
+begin
+  FInstance := TUTF8NoBOMEncoding.Create;
+end;
+
+class destructor TUTF8NoBOMEncoding.Destroy;
+begin
+  FInstance.Free;
+end;
 
 function TUTF8NoBOMEncoding.GetPreamble: TBytes;
 begin

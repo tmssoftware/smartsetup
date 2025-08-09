@@ -35,6 +35,7 @@ TMegafolderList = class
     constructor Create;
     destructor Destroy; override;
 
+    procedure Clear;
     function Count: integer;
     property Items[const i: integer]: TMegafolder read GetItems; default;
 
@@ -57,6 +58,11 @@ uses IOUtils;
 procedure TMegafolderList.Add(const Item: TMegafolder);
 begin
   FList.Add(Item);
+end;
+
+procedure TMegafolderList.Clear;
+begin
+  FList.Clear;
 end;
 
 function TMegafolderList.Count: integer;

@@ -101,20 +101,15 @@ begin
 var Reader := TStreamReader.Create(SourceFileName);
   try
     //TEncoding.UTF8 won't work in D7, as it writes a bom.
-    var Encoding := TUTF8NoBOMEncoding.Create;
+    var Writer := TStreamWriter.Create(DestFileName, false, TUTF8NoBOMEncoding.Instance);
     try
-      var Writer := TStreamWriter.Create(DestFileName, false, Encoding);
-      try
-        while not Reader.EndOfStream do
-        begin
-          var Line := Reader.ReadLine;
-          Writer.WriteLine(Adapt(Line, Replacement, RCReplacement));
-        end;
-      finally
-        Writer.Free;
+      while not Reader.EndOfStream do
+      begin
+        var Line := Reader.ReadLine;
+        Writer.WriteLine(Adapt(Line, Replacement, RCReplacement));
       end;
     finally
-      Encoding.Free;
+      Writer.Free;
     end;
   finally
     Reader.Free;

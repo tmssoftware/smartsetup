@@ -180,14 +180,14 @@ The rules are:
  1. Take a look at the path for the property in tms.config.yaml. Say we want to change the skip-register setting: it is under `configuration for all products`, then `options`, then `skip register`
  2. Replace the spaces by "-" signs. Note: this step is optional, you can still write the names with spaces, but you will need to quote them so the command line accepts them.
  3. Join the sections with ":"
- 4. If the variable you want to set is an array (like for example the delphi versions), you set them by putting them between brackets and separating them with commas. For example: [delphi11,delphi12].
+ 4. If the variable you want to set is an array (like for example the delphi versions), you set them by putting them between brackets and separating them with commas. For example: [delphi11,delphi12]. You can specify if you want to add those values to the existing array or replace the existing array by [prepending `add-` or `replace-` to the name of the property](xref:SmartSetup.Configuration#overriding-values).
 
  Some examples (the first and the second are similar, but the second omits step 2 above)
 
 ```shell
 tms build -p:configuration-for-all-products:options:skip-register=true
-tms build -p:"configuration for all-products:options:skip register=true"
-tms build -p:configuration-for-all-products:platforms=[win32intel,win64intel] -p:configuration-for-all-products:delphi-versions=[delphi12]
+tms build -p:"configuration for all products:options:skip register=true"
+tms build -p:configuration-for-all-products:platforms=[win32intel,win64intel] -p:configuration-for-all-products:replace-delphi-versions=[delphi12]
 ```
 
 {{#Tip}}

@@ -417,6 +417,7 @@
         <DCCReference Include="src\Installers\UDelphi13Installer.pas"/>
         <DCCReference Include="src\Megafolders\Megafolders.Definition.pas"/>
         <DCCReference Include="src\Megafolders\Megafolders.Manager.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBArrays.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

@@ -3,7 +3,7 @@ unit UConfigWriter;
 
 interface
 uses Classes, SysUtils, Util.Replacer, UConfigDefinition, Generics.Defaults,
-     Generics.Collections, ULogger, Deget.CoreTypes, Megafolders.Definition;
+     Generics.Collections, ULogger, Deget.CoreTypes, Megafolders.Definition, BBArrays, BBClasses;
 type
 TConfigWriter = class
   private
@@ -42,6 +42,9 @@ TConfigWriter = class
     function CommentBlock(const s: string): string;
     function GetServers(const Servers: TServerConfigList): string;
     function GetDcuMegafolders(const Values: TMegafolderList): TArray<string>;
+    function GetHeaderVarName(const Header: string): string;
+    function GetHeaderContent(const Header: string;
+      const ArrayPrefix: TArrayOverrideBehavior): string;
   public
     constructor Create(const aCmdFormat: boolean);
     function ReplaceVariables(const Cfg: TConfigDefinition; const GlobalTemplate, ProductTemplate: string): string;
@@ -203,7 +206,21 @@ begin
   Result := Cfg.GetProduct(ProductId);
 end;
 
+function TConfigWriter.GetHeaderVarName(const Header: string): string;
+begin
+  Result := Header.Replace(' ', '-') + '-header';
+end;
+
+function TConfigWriter.GetHeaderContent(const Header: string; const ArrayPrefix: TArrayOverrideBehavior): string;
+begin
+  exit(TArrayOverrideBehavior_ToStringPrefix(ArrayPrefix) + Header);
+end;
+
 function TConfigWriter.ReplaceGlobalVariables(const Cfg: TConfigDefinition; const GlobalTemplate, ProductTemplate: string): string;
+const
+  ArrayPropertyHeaders: Array[TGlobalPrefixedProperties] of string =
+    ('excluded products', 'included products', 'additional products folders',
+     'servers', 'dcu megafolders');
 begin
   Result := ParseString(GlobalTemplate, function(varName: string): string
     begin
@@ -244,6 +261,10 @@ begin
       if varName = 'config-by-product' then exit(ReplaceAllProductVariables(Cfg.Products, ProductTemplate));
       if varName.StartsWith('config-for-product_') then exit(ReplaceProductVariables(GetProduct(Cfg, varName.Substring(varName.IndexOf('_') + 1)), ProductTemplate));
 
+      for var ArrayProperty := Low(TGlobalPrefixedProperties) to High(TGlobalPrefixedProperties) do
+      begin
+        if varName = GetHeaderVarName(ArrayPropertyHeaders[ArrayProperty])  then exit(GetHeaderContent(ArrayPropertyHeaders[ArrayProperty], Cfg.PrefixedProperties[ArrayProperty]))
+      end;
 
 
       raise Exception.Create('Unknown variable: ' + varName);
@@ -416,6 +437,10 @@ end;
 
 function TConfigWriter.ReplaceProductVariables(
   const ProductCfg: TProductConfigDefinition; const ProductTemplate: string): string;
+const
+  ArrayPropertyHeaders: Array[TProductPrefixedProperties] of string =
+    ('delphi versions', 'platforms', 'defines');
+
 begin
   Result := ParseString(ProductTemplate, function(varName: string): string
     begin
@@ -452,6 +477,11 @@ begin
 
       if varName = 'is-all-products' then exit(BoolToStr(ProductCfg.ProductId = GlobalProductId, true));
       if varName = 'is-not-all-products' then exit(BoolToStr(ProductCfg.ProductId <> GlobalProductId, true));
+
+      for var ArrayProperty := Low(TProductPrefixedProperties) to High(TProductPrefixedProperties) do
+      begin
+        if varName = GetHeaderVarName(ArrayPropertyHeaders[ArrayProperty])  then exit(GetHeaderContent(ArrayPropertyHeaders[ArrayProperty], ProductCfg.PrefixedProperties[ArrayProperty]))
+      end;
 
 
       raise Exception.Create('Unknown variable: ' + varName);
@@ -536,12 +566,7 @@ end;
 procedure TConfigWriter.Save(const Cfg: TConfigDefinition; const GlobalTemplate,
   ProductTemplate: TStream; const FileName: string);
 begin
-  var Encoding := TUTF8NoBOMEncoding.Create;
-  try
-    TFile.WriteAllText(FileName, ReplaceVariables(Cfg, GetData(GlobalTemplate), GetData(ProductTemplate)), Encoding);
-  finally
-    Encoding.Free;
-  end;
+  TFile.WriteAllText(FileName, ReplaceVariables(Cfg, GetData(GlobalTemplate), GetData(ProductTemplate)), TUTF8NoBOMEncoding.Instance);
 end;
 
 end.

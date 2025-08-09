@@ -198,7 +198,8 @@ uses
   Package.Creator in 'src\Packages\Package.Creator.pas',
   UDelphi13Installer in 'src\Installers\UDelphi13Installer.pas',
   Megafolders.Definition in 'src\Megafolders\Megafolders.Definition.pas',
-  Megafolders.Manager in 'src\Megafolders\Megafolders.Manager.pas';
+  Megafolders.Manager in 'src\Megafolders\Megafolders.Manager.pas',
+  BBArrays in '..\common\src\BBYaml\BBArrays.pas';
 
 begin
   try

@@ -2,7 +2,14 @@ unit BBClasses;
 {$i ../tmscommon.inc}
 
 interface
-uses Generics.Collections;
+uses Classes, SysUtils, Generics.Collections, BBArrays;
+
+const
+  SectionAddPrefix = 'add ';
+  SectionReplacePrefix = 'replace ';
+
+  function TArrayOverrideBehavior_FromString(const value: string): TArrayOverrideBehavior;
+  function TArrayOverrideBehavior_ToStringPrefix(const value: TArrayOverrideBehavior): string;
 
 type
 TErrorInfo = class
@@ -17,13 +24,21 @@ end;
 
 TSection = class;
 
-TSectionDictionary = class (TObjectDictionary<string, TSection>)
-  Constructor Create;
+TSectionDictionary = class
+private
+  FData: TObjectDictionary<string, TSection>;
+public
+  constructor Create;
+  destructor Destroy; override;
+  function Values: TEnumerable<TSection>;
+  function TryGetValue(const name: string; out Section: TSection; const ErrorInfo: TErrorInfo; const KeepValues: boolean): boolean;
+  procedure Add(const aKey: string; const aValue: TSection);
+  function Count: integer;
 end;
 
 TAction = reference to procedure(Value: string; ErrorInfo: TErrorInfo);
 TActionNameValue = reference to procedure(Name, Value: string; ErrorInfo: TErrorInfo);
-TChildSectionAction = reference to function(Name: string; ErrorInfo: TErrorInfo): TSection;
+TChildSectionAction = reference to function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection;
 
 TListOfActions = TDictionary<string, TAction>;
 
@@ -58,7 +73,10 @@ public
   ArrayMainAction: TActionNameValue;
   ContainsArrays: Boolean; //Only needs to be set it if not setting ArrayMainAction.
   ArraysCanBeKeys: boolean; //For backwards compat. A key can't be repeated in yaml, but we allowed it sometimes. When set to true, we will allow both "- value:" and "value:" values. This property is *only* for wrong existing data. Don't use it for new data.
-  ClearArrayValues: TAction;  //allows to clear an array before adding new values.
+
+  ArrayValuesAreEmpty: TFunc<boolean>; //Used to know if the arrays need clearing from a previous setup. See https://github.com/tmssoftware/tms-smartsetup/issues/267
+  ClearArrayValues: TProc;  //allows to clear an array before adding new values.
+
   Duplicated: TDictionary<string, boolean>; // keep it nil to allow duplicated values.
   ArrayActions: TListOfActions;
 
@@ -67,6 +85,8 @@ public
 
   function VarPrefix: string; virtual;
   function ExtraInfo: string; virtual;
+
+  procedure LoadedState(const State: TArrayOverrideBehavior); virtual;
 
   property Parent: TSection read FParent;
   property ChildSections: TSectionDictionary read FChildSections;
@@ -82,13 +102,77 @@ public
 end;
 
 implementation
-uses Classes, SysUtils;
 
 { TSectionDictionary }
-
 constructor TSectionDictionary.Create;
 begin
-  inherited Create([doOwnsValues]);
+  FData := TObjectDictionary<string, TSection>.Create([doOwnsValues]);
+end;
+
+destructor TSectionDictionary.Destroy;
+begin
+  FData.Free;
+  inherited;
+end;
+
+function TSectionDictionary.Count: integer;
+begin
+  Result := FData.Count;
+end;
+
+procedure TSectionDictionary.Add(const aKey: string; const aValue: TSection);
+begin
+  FData.Add (aKey, aValue);
+end;
+
+
+
+function TSectionDictionary.TryGetValue(const name: string;
+  out Section: TSection; const ErrorInfo: TErrorInfo; const KeepValues: boolean): boolean;
+begin
+  if FData.TryGetValue(name, Section) then
+  begin
+    if Assigned(Section.ArrayValuesAreEmpty) and (not Section.ArrayValuesAreEmpty()) and not KeepValues then
+    begin
+      if Section.Root.CreatedBy = 'Command line' then  //backwards compat: when setting from the command line, a no-prefix value will behave like the "replace " prefix and overwrite the array.
+      begin
+        if Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
+      end else
+      begin
+        raise Exception.Create('The values in section "' + name + '" were already set and we don''t know what to do with the existing values. ' +
+        'You need to name the section "' + SectionAddPrefix + name + '" to add to the existing values, or "' + SectionReplacePrefix + name + '" to completely replace the existing values.' +
+        'See https://doc.tmssoftware.com/smartsetup/guide/configuration.html#overriding-values .' + ErrorInfo.ToString);
+      end;
+    end;
+    Section.LoadedState(TArrayOverrideBehavior.None);
+    exit(true);
+  end;
+
+  if name.StartsWith(SectionAddPrefix, true) then
+  begin
+    if FData.TryGetValue(name.Substring(SectionAddPrefix.Length), Section) then
+    begin
+      Section.LoadedState(TArrayOverrideBehavior.Add);
+      exit(Assigned(Section.ClearArrayValues));
+    end;
+  end;
+
+  if name.StartsWith(SectionReplacePrefix, true) then
+  begin
+    if FData.TryGetValue(name.Substring(SectionReplacePrefix.Length), Section) then
+    begin
+      if not KeepValues and Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
+      Section.LoadedState(TArrayOverrideBehavior.Add);
+      exit(Assigned(Section.ClearArrayValues));
+    end;
+  end;
+
+  Result := false;
+end;
+
+function TSectionDictionary.Values: TEnumerable<TSection>;
+begin
+  Result := FData.Values;
 end;
 
 { TSection }
@@ -163,6 +247,7 @@ begin
     begin
       Result := Result + sep + '"' + v.SectionName +'"';
       Sep := ', ';
+      if Assigned(v.ClearArrayValues) then Result := Result + sep +  '"' + SectionAddPrefix + v.SectionName +'"' +  sep + '"' + SectionReplacePrefix + v.SectionName +'"';
     end;
   end;
 
@@ -175,6 +260,10 @@ begin
     end;
   end;
 
+end;
+
+procedure TSection.LoadedState(const State: TArrayOverrideBehavior);
+begin
 end;
 
 class function TSection.RemoveDoubleSpaces(const s: string): string;
@@ -272,22 +361,19 @@ function TSection.GotoChild(const Line: string; const ErrorInfo: TErrorInfo; con
 begin
   if Assigned(ChildSectionAction) then
   begin
-    var ChildAction := ChildSectionAction(Line, ErrorInfo);
+    var ChildAction := ChildSectionAction(Line, ErrorInfo, KeepValues);
     if ChildAction <> nil then
     begin
-      if Assigned(ChildAction.ClearArrayValues) then ChildAction.ClearArrayValues(Line, ErrorInfo);
       exit(ChildAction);
     end;
 
   end;
-  if not ChildSections.TryGetValue(Line, Result) then
+  if not ChildSections.TryGetValue(Line, Result, ErrorInfo, KeepValues) then
   begin
     raise Exception.Create('"' + Line +
       '" is an invalid child section for "' + FullSectionName + '". It must be one of: ['
       + ListSectionsAndActions + ']. '+ ErrorInfo.ToString);
   end;
-
-  if not KeepValues and Assigned(Result) and Assigned(Result.ClearArrayValues) then Result.ClearArrayValues(Line, ErrorInfo);
 end;
 
 function TSection.GotoParent: TSection;
@@ -300,6 +386,25 @@ end;
 constructor TErrorInfo.Create(const aIgnoreOtherFiles: boolean);
 begin
   FIgnoreOtherFiles := aIgnoreOtherFiles;
+end;
+
+function TArrayOverrideBehavior_FromString(const value: string): TArrayOverrideBehavior;
+begin
+  if SameText(value, 'none') then exit(TArrayOverrideBehavior.None);
+  if SameText(value, 'add') then exit(TArrayOverrideBehavior.Add);
+  if SameText(value, 'replace') then exit(TArrayOverrideBehavior.Replace);
+
+  raise Exception.Create('Invalid value for Array behavior. Must be "none", "add" or "replace".');
+end;
+
+function TArrayOverrideBehavior_ToStringPrefix(const value: TArrayOverrideBehavior): string;
+begin
+  case value of
+    TArrayOverrideBehavior.None: exit('');
+    TArrayOverrideBehavior.Add: exit(SectionAddPrefix);
+    TArrayOverrideBehavior.Replace: exit(SectionReplacePrefix);
+  end;
+  raise Exception.Create('Invalid value for TArrayOverrideBehavior.');
 end;
 
 end.

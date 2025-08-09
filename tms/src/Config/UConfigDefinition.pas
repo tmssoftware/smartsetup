@@ -4,7 +4,7 @@ unit UConfigDefinition;
 interface
 uses Generics.Defaults, Generics.Collections, Masks, UMultiLogger, UConfigKeys,
      UNaming, UNamingList, SysUtils, Deget.CoreTypes, SyncObjs, ULogger,
-     UConfigFolders, UOSFileLinks, Megafolders.Definition;
+     UConfigFolders, UOSFileLinks, Megafolders.Definition, BBArrays;
 
 type
   TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
@@ -37,6 +37,13 @@ type
     class function None: TSkipRegistering; static;
   end;
 
+  TGlobalPrefixedProperties =(ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
+                             Servers, DcuMegafolders);
+  TGlobalPrefixedPropertiesArray = Array[TGlobalPrefixedProperties] of TArrayOverrideBehavior;
+
+  TProductPrefixedProperties =(DelphiVersions, Platforms, Defines);
+  TProductPrefixedPropertiesArray = Array[TProductPrefixedProperties] of TArrayOverrideBehavior;
+
 
   TProductConfigDefinition = class
   private
@@ -50,6 +57,12 @@ type
     FIdeNamesModified: Boolean;
     FDefines: TDictionary<string, boolean>;
     FCreatedBy: String;
+    FPrefixedProperties: TProductPrefixedPropertiesArray;
+    function GetPrefixedProperties(
+      index: TProductPrefixedProperties): TArrayOverrideBehavior;
+    procedure SetPrefixedProperties(index: TProductPrefixedProperties;
+      const Value: TArrayOverrideBehavior);
+
   public
     constructor Create(const aProductId: string);
     destructor Destroy; override;
@@ -76,12 +89,16 @@ type
 
     procedure AddDefine(const def: string; const LineInfo: string);
     procedure RemoveDefine(const def: string; const LineInfo: string);
+    procedure ClearDefines;
     property ProductId: string read FProductId;
 
     property Defines: TDictionary<string, boolean> read FDefines;
 
     function ListDefines: string;
     property CreatedBy: string read FCreatedBy write FCreatedBy;
+
+    property PrefixedProperties[index: TProductPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
+
   end;
 
   TGitConfig = record
@@ -131,6 +148,7 @@ type
   public
     function NewServer(const aName: string): integer;
     procedure AddServer(const ServerConfig: TServerConfig);
+    procedure ClearServers;
     procedure RemoveServer(const index: integer);
     function ServerCount: integer;
     function GetServer(const index: integer): TServerConfig;
@@ -165,6 +183,7 @@ type
     FServerConfig: TServerConfigList;
     FGitConfig: TGitConfig;
     FSvnConfig: TSvnConfig;
+    FPrefixedProperties: TGlobalPrefixedPropertiesArray;
     FDcuMegafolders: TMegafolderList;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
@@ -175,6 +194,10 @@ type
       const Projects: TDictionary<string, boolean>): boolean;
     function AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;
     function AllPlatformsIfEmpty(const aPlatforms: TPlatformSet): TPlatformSet;
+    function GetPrefixedProperties(
+      index: TGlobalPrefixedProperties): TArrayOverrideBehavior;
+    procedure SetPrefixedProperties(index: TGlobalPrefixedProperties;
+      const Value: TArrayOverrideBehavior);
   public
     constructor Create(const ARootFolder: string);
     destructor Destroy; override;
@@ -189,9 +212,13 @@ type
     procedure ClearIncludedComponents;
     function GetExcludedComponents: TEnumerable<string>;
     function GetIncludedComponents: TEnumerable<string>;
+    function GetExcludedComponentsCount: integer;
+    function GetIncludedComponentsCount: integer;
 
     procedure AddAdditionalProductsFolder(const Name, ErrorInfo: string);
+    procedure ClearAdditionalProductsFolders;
     function GetAdditionalProductsFolders: TEnumerable<string>;
+    function GetAdditionalProductsFoldersCount: integer;
     function GetAllRootFolders: TArray<string>;
 
     function ReadBoolProperty(const ProductId: string; const PropKey: string; const DefaultValue: boolean): boolean;
@@ -207,6 +234,8 @@ type
     property SvnConfig: TSvnConfig read FSvnConfig write FSvnConfig;
 
     property DcuMegafolders: TMegafolderList read FDcuMegafolders;
+
+    property PrefixedProperties[index: TGlobalPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
 
     property ErrorIfSkipped: boolean read FErrorIfSkipped write FErrorIfSkipped;
 
@@ -419,6 +448,12 @@ begin
   end;
 end;
 
+function TConfigDefinition.GetPrefixedProperties(
+  index: TGlobalPrefixedProperties): TArrayOverrideBehavior;
+begin
+  Result := FPrefixedProperties[index];
+end;
+
 function TConfigDefinition.GetNaming(const NamingId,
   ProjectFilename: string): TNaming;
 begin
@@ -472,6 +507,11 @@ begin
       Exit(True);
 end;
 
+procedure TConfigDefinition.ClearAdditionalProductsFolders;
+begin
+  AdditionalProductsFolders.Clear;
+end;
+
 procedure TConfigDefinition.ClearExcludedComponents;
 begin
   ExcludedComponents.Clear;
@@ -481,6 +521,17 @@ procedure TConfigDefinition.ClearIncludedComponents;
 begin
   IncludedComponents.Clear;
 end;
+
+function TConfigDefinition.GetExcludedComponentsCount: integer;
+begin
+  Result := ExcludedComponents.Count;
+end;
+
+function TConfigDefinition.GetIncludedComponentsCount: integer;
+begin
+  Result := IncludedComponents.Count;
+end;
+
 
 function TConfigDefinition.CompilerPath(const ProductId: String; const dv: TIDEName): string;
 begin
@@ -566,6 +617,12 @@ begin
   Result := ResultValue;
 end;
 
+procedure TConfigDefinition.SetPrefixedProperties(index: TGlobalPrefixedProperties;
+  const Value: TArrayOverrideBehavior);
+begin
+  FPrefixedProperties[index] := value;
+end;
+
 function TConfigDefinition.SkipRegistering(const ProductId: String;
   DefaultValue: integer): integer;
 begin
@@ -625,6 +682,11 @@ end;
 function TConfigDefinition.GetAdditionalProductsFolders: TEnumerable<string>;
 begin
   Result := AdditionalProductsFolders.Keys;
+end;
+
+function TConfigDefinition.GetAdditionalProductsFoldersCount: integer;
+begin
+  Result := AdditionalProductsFolders.Count;
 end;
 
 procedure TConfigDefinition.AddExcludedComponent(const Name, ErrorInfo: string);
@@ -793,6 +855,17 @@ begin
   FPlatformsModified := True;
 end;
 
+procedure TProductConfigDefinition.SetPrefixedProperties(
+  index: TProductPrefixedProperties; const Value: TArrayOverrideBehavior);
+begin
+  FPrefixedProperties[index] := value;
+end;
+
+procedure TProductConfigDefinition.ClearDefines;
+begin
+  FDefines.Clear;
+end;
+
 procedure TProductConfigDefinition.ClearIDENames;
 begin
   FIdeNames := [];
@@ -815,6 +888,12 @@ begin
   Result := FPlatforms;
 end;
 
+
+function TProductConfigDefinition.GetPrefixedProperties(
+  index: TProductPrefixedProperties): TArrayOverrideBehavior;
+begin
+  Result := FPrefixedProperties[index];
+end;
 
 procedure TProductConfigDefinition.SetString(const v, i: string);
 begin
@@ -931,6 +1010,12 @@ procedure TServerConfigList.EnsureOneBuiltInServer(const ServerName: string; con
 begin
   var ServerIndex := FindServer(ServerName);
   if (ServerIndex < 0) or (Servers = nil) then InsertServer(ServerPos, TServerConfig.Create(ServerName, TServerType.Local, '', IsEnabled));
+end;
+
+procedure TServerConfigList.ClearServers;
+begin
+  Servers := nil;
+  EnsureAllBuiltInServers;
 end;
 
 procedure TServerConfigList.EnsureAllBuiltInServers;

@@ -67,7 +67,11 @@ begin
   begin
     Logger.Trace('Loading Configuration from ' + ConfigFile);
   end;
-  Result := TConfigDefinition.Create(TPath.GetDirectoryName(TPath.GetFullPath(ConfigFile)));
+
+  var ConfigFileFullName := ConfigFile;
+  if ConfigFile <> '' then ConfigFileFullName := TPath.GetDirectoryName(TPath.GetFullPath(ConfigFile));
+
+  Result := TConfigDefinition.Create(ConfigFileFullName);
   try
     LoadIntoConfig(BaseConfigFile, ConfigFile, Result, CmdParameters, aStopAt, aIgnoreOtherFiles);
   Except

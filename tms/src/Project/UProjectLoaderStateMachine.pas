@@ -444,9 +444,9 @@ constructor TSupportedFrameworksSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
       Result := TFrameworkVersionSectionDef.Create(Self, aProject, Name);
       ChildSections.Add(Name, Result);
     end;
@@ -720,9 +720,9 @@ begin
   inherited Create(aParent, aProject);
   ContainsArrays := true;
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
       Result := TRegistryEntrySectionDef.Create(Self, aProject, Name);
       ChildSections.Add(Name, Result);
     end;
@@ -1123,9 +1123,9 @@ begin
   ChildSections.Add(TLinkSectionDef.SectionNameStatic, TLinkSectionDef.Create(Self, aProject));
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
       begin
         Project.Shortcuts.Add(TShortcutDefinition.Create(TShortcutType.filelink, '', '', '', ''));
         exit;
@@ -1180,9 +1180,9 @@ begin
   ChildSections.Add(TFileLinkSectionDef.SectionNameStatic, TFileLinkSectionDef.Create(Self, aProject));
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
       begin
         Project.FileLinks.Add(TFileLinkDefinition.Create);
         exit;
@@ -1257,9 +1257,9 @@ constructor TPackageDefinitionsSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
       var Package := FindPackage(Name, Project.Packages);
       if Package = nil then raise Exception.Create('Cannot find the package ' + Name + ' in the section "packages". ' + ErrorInfo.ToString);
 

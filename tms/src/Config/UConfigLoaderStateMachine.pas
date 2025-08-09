@@ -2,7 +2,9 @@ unit UConfigLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBClasses, Megafolders.Definition, UConfigDefinition, Generics.Collections, SysUtils, Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
+uses BBArrays, BBClasses, Megafolders.Definition,
+     UConfigDefinition, Generics.Collections, SysUtils,
+     Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
 
 type
   TSectionConf = class(TSection)
@@ -44,24 +46,28 @@ type
   TExcludedComponentsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
   TIncludedComponentsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
   TAdditionalProductsFoldersSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
   TServersSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
@@ -94,6 +100,7 @@ type
   TDelphiVersionsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
 
     procedure AddOrRemoveDelphiVersion(const dv: TIDEName; const value: string; const ErrorInfo: TErrorInfo);
@@ -104,6 +111,7 @@ type
   TPlatformsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
 
     procedure AddOrRemoveDelphiPlat(const dp: TPlatform; const value: string; const ErrorInfo: TErrorInfo);
@@ -152,6 +160,7 @@ type
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition;
         const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
 
   end;
@@ -165,6 +174,7 @@ type
   TDcuMegafoldersSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
@@ -189,9 +199,9 @@ begin
   ChildSections.Add(TTmsBuildOptionsSectionConf.SectionNameStatic, TTmsBuildOptionsSectionConf.Create(Self, aConfig));
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
 
       if not Name.StartsWith('configuration for ')
         then raise Exception.Create('The name "' + Name
@@ -199,7 +209,7 @@ begin
                    + TTmsBuildOptionsSectionConf.SectionNameStatic + '". ' + ErrorInfo.ToString);
 
       Name := Name.Substring(('configuration for ').Length).Trim;
-      if ChildSections.TryGetValue(Name, Result) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
 
       Result := TProductSectionConf.Create(Self, aConfig, Name, ErrorInfo);
       ChildSections.Add(Name, Result);
@@ -327,10 +337,18 @@ constructor TExcludedComponentsSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aConfig.ClearExcludedComponents;end;
+
+  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.GetExcludedComponentsCount = 0; end;
+  ClearArrayValues := procedure begin aConfig.ClearExcludedComponents;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end;
 
+end;
+
+procedure TExcludedComponentsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.ExcludedProducts] := State;
 end;
 
 class function TExcludedComponentsSectionConf.SectionNameStatic: string;
@@ -346,9 +364,16 @@ constructor TIncludedComponentsSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aConfig.ClearIncludedComponents;end;
+  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.GetIncludedComponentsCount = 0; end;
+  ClearArrayValues := procedure begin aConfig.ClearIncludedComponents;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end;
+end;
+
+procedure TIncludedComponentsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.IncludedProducts] := State;
 end;
 
 class function TIncludedComponentsSectionConf.SectionNameStatic: string;
@@ -365,7 +390,16 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
 
+  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.GetAdditionalProductsFoldersCount = 0; end;
+  ClearArrayValues := procedure begin aConfig.ClearAdditionalProductsFolders;end;
+
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end;
+end;
+
+procedure TAdditionalProductsFoldersSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.AdditionalProductsFolders] := State;
 end;
 
 class function TAdditionalProductsFoldersSectionConf.SectionNameStatic: string;
@@ -403,13 +437,21 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aProductConfig.ClearIDENames;end;
+
+  ArrayValuesAreEmpty := function : boolean begin Result := aProductConfig.GetIDENames = []; end;
+  ClearArrayValues := procedure begin aProductConfig.ClearIDENames;end;
 
   Actions := TListOfActions.Create;
   for var dv := Low(TIDEName) to High(TIDEName) do
   begin
     Actions.Add(IDEId[dv], Capture(dv));
   end;
+end;
+
+procedure TDelphiVersionsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then ProductConfig.PrefixedProperties[TProductPrefixedProperties.DelphiVersions] := State;
 end;
 
 class function TDelphiVersionsSectionConf.SectionNameStatic: string;
@@ -445,7 +487,9 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aProductConfig.ClearPlatforms;end;
+
+  ArrayValuesAreEmpty := function : boolean begin Result := aProductConfig.GetPlatforms = []; end;
+  ClearArrayValues := procedure begin aProductConfig.ClearPlatforms;end;
 
   Actions := TListOfActions.Create;
   for dp := Low(TPlatform) to High(TPlatform) do
@@ -453,6 +497,13 @@ begin
     Actions.Add(PlatformId[dp], Capture(dp));
   end;
 end;
+
+procedure TPlatformsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then ProductConfig.PrefixedProperties[TProductPrefixedProperties.Platforms] := State;
+end;
+
 
 class function TPlatformsSectionConf.SectionNameStatic: string;
 begin
@@ -596,6 +647,10 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.Both;
+
+  ArrayValuesAreEmpty := function : boolean begin Result := aProductConfig.Defines.Count = 0; end;
+  ClearArrayValues := procedure begin aProductConfig.ClearDefines;end;
+
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     if GetBoolEx(value, ErrorInfo) then
     begin
@@ -607,6 +662,13 @@ begin
     end;
   end;
 end;
+
+procedure TDefinesSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then ProductConfig.PrefixedProperties[TProductPrefixedProperties.Defines] := State;
+end;
+
 
 class function TDefinesSectionConf.SectionNameStatic: string;
 begin
@@ -647,10 +709,14 @@ constructor TServersSectionConf.Create(const aParent: TSection;
   const aProductConfig: TProductConfigDefinition);
 begin
   inherited Create(aParent, aConfig, aProductConfig);
+
+  ArrayValuesAreEmpty := function : boolean begin Result := true; {aConfig.ServerConfig.ServerCount = 0;} end;
+  ClearArrayValues := procedure begin aConfig.ServerConfig.ClearServers;end;
+
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
       begin
         if (Result.CreatedBy <> Root.CreatedBy) then
         begin
@@ -666,6 +732,12 @@ begin
       Result := TServerSectionConf.Create(Self, aConfig, Name, aProductConfig);
       ChildSections.Add(Name, Result);
     end;
+end;
+
+procedure TServersSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.Servers] := State;
 end;
 
 class function TServersSectionConf.SectionNameStatic: string;
@@ -788,11 +860,22 @@ constructor TDcuMegafoldersSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
 
+  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.DcuMegafolders.Count = 0; end;
+  ClearArrayValues := procedure begin aConfig.DcuMegafolders.Clear;end;
+
+
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Config.DcuMegafolders.Add(TMegafolder.Create(name, value));
     end;
 end;
+
+procedure TDcuMegafoldersSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.DcuMegafolders] := State;
+end;
+
 
 class function TDcuMegafoldersSectionConf.SectionNameStatic: string;
 begin
