@@ -294,8 +294,7 @@ begin
     end;
   except on ex: Exception do
   begin
-    Logger.Error('Error loading server ' + Server.Name + ': "' + ex.Message + '". We can continue, but the preregistered GIT repositories might not be loaded.');
-    //Do not re-raise. We can still work if this fails.
+    raise Exception.Create('Error loading server ' + Server.Name + ': "' + ex.Message + '"');
   end;
   end;
 end;
