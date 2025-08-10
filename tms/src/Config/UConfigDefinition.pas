@@ -574,7 +574,10 @@ begin
   try
     Products.BestMatch(ProductId, function(Product: TProductConfigDefinition): boolean
     begin
-      Result := Product.BoolProperties.TryGetValue(PropKey, ResultValue);
+      var LocalResultValue: boolean;
+      Result := Product.BoolProperties.TryGetValue(PropKey, LocalResultValue);
+      if Result then ResultValue := LocalResultValue;
+
     end);
   finally
     MonitorExit(Products);
@@ -591,7 +594,10 @@ begin
   try
     Products.BestMatch(ProductId, function(Product: TProductConfigDefinition): boolean
     begin
-      Result := Product.IntProperties.TryGetValue(PropKey, ResultValue);
+      var LocalResultValue: integer;
+      Result := Product.IntProperties.TryGetValue(PropKey, LocalResultValue);
+      if Result then ResultValue := LocalResultValue;
+
     end);
   finally
     MonitorExit(Products);
@@ -608,7 +614,10 @@ begin
   try
     Products.BestMatch(ProductId, function(Product: TProductConfigDefinition): boolean
     begin
-      Result := Product.StringProperties.TryGetValue(PropKey, ResultValue);
+      var LocalResultValue: string;
+      Result := Product.StringProperties.TryGetValue(PropKey, LocalResultValue);
+      if Result then ResultValue := LocalResultValue;
+      
     end);
   finally
     MonitorExit(Products);
