@@ -3,7 +3,9 @@ param(
     [Parameter(Mandatory = $false, Position = 0)]
     [string]$testsToRunParam = "",
     [Alias("skip-slow")]    
-    [switch]$skipSlow = $false 
+    [switch]$skipSlow = $false,
+    [Alias("failed")]
+    [switch]$openFailedFiles = $false
 )
 . $PSScriptRoot/util/util.errors.ps1
 
@@ -42,6 +44,7 @@ $successfulTests = @()
 $failedTests = @()
 $skippedTests = @()
 $index = 0
+$opened = 0
 
 $IsSingleTest = $tests.Count -eq 1
 tmsutil clean-locked  | Out-Null
@@ -55,10 +58,27 @@ foreach ($test in $tests) {
         $skippedTests += $test.Name
         continue
     }
+        
+    $testDir = "$tmsTestRootDir\tmp-run\$($test.Directory.Name)"
+
+    if ($openFailedFiles) {
+        if (Test-Path -Path "$testDir\ok.txt") { continue }
+        if ($opened -lt 5) {
+            Write-Output "Opening test results for $($test.Directory.Name)."
+            $logPath = "$testDir\output2.log"
+            if (Test-Path -Path $logPath) {
+                $opened++
+                Start-Process -FilePath $logPath
+            }
+        }
+        else {
+            Write-Output "Maximum number of opened log files reached."
+        }
+        continue
+    }
+
     Write-Host "Running test: $($test.Name)"  -NoNewline -ForegroundColor Cyan
     try {
-        # Copy the test to a place where it can be executed
-        $testDir = "$tmsTestRootDir\tmp-run\$($test.Directory.Name)"
         # Delete the test directory if it exists
         if (Test-Path -Path $testDir) {
             #Remove-Item -Path $testDir -Recurse -Force
@@ -82,6 +102,7 @@ foreach ($test in $tests) {
                 Stop-Transcript | Out-Null
             }
             $successfulTests += $test.Name
+            Write-Output "Ok" > "$testDir\ok.txt"
             Write-Host " -> OK" -ForegroundColor Green
 
         }

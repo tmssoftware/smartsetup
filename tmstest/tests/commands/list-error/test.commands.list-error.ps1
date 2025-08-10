@@ -1,6 +1,6 @@
 . test.setup
 
-tms config -array-prefix:add -print
+tms config -print
 tms server-add potato zipfile https://tmssoftware.com/potato.zip
 
 tms server-enable tms false
