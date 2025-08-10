@@ -25,5 +25,5 @@ At the right, you have some buttons that perform on the selected products:
 
 In the status bar, at the bottom of the main window, the GUI displays the current working folder, and the current Smart Setup version.
 
-Under the hood, the GUI just executes the `tms` command-line. The `Output` tab shows the output of current command-line being executed. For long-running commands like installing and building, you can switch to it to follow the progress of the execution.
+Under the hood, the GUI just executes the `tms` command-line. The `Output` tab shows the output of the current command-line being executed. For long-running commands like installing and building, you can switch to it to follow the progress of the execution.
 
