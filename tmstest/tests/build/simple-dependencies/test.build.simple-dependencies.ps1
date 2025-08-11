@@ -56,3 +56,4 @@ if ($results.Count -ne 2) {
 }
 
 uninstall-and-check(0)
+exit 0

@@ -14,3 +14,5 @@ catch
 {
   Write-Output "Correctly returned an error."
 }
+
+exit 0

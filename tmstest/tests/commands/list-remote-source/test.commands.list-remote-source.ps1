@@ -2,6 +2,7 @@
 # See https://github.com/tmssoftware/tms-smartsetup/issues/265
 . test.setup
 
+Remove-Item ".\tms.config.yaml" -Force
 try
  {
     tms list-remote -server:community

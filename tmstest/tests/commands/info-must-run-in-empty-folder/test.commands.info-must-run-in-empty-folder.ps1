@@ -2,6 +2,7 @@
 
 . test.setup
 
+Remove-Item ".\tms.config.yaml" -Force
 tms info
 $info = tms info -json | ConvertFrom-Json
 
