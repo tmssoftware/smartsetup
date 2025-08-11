@@ -27,6 +27,8 @@ uid: SmartSetup.ReleaseNotes
 
 - **Fixed**: *Install* and *Uninstall* buttons in `tmsgui` are now enabled when the product is in status *available*.
 
+- **Breaking change**: Removed `repo-register`, `repo-unregister` and `repo-list` commands. The functionality they offered is now replaced by [servers](xref:SmartSetup.ConsumingBundles)
+
 ## Version 1.10 (June, 2025)
 
 - **Fixed**: Command-line not accepting multiple product names, like `tms install tms.biz.bcl tms.webcore` (Regression).

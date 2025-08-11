@@ -68,9 +68,6 @@ tms smart setup options:
     # Command for git pull
     %git-pull-command-comment%pull command: %git-pull-command%
 
-    # Command for a shallow clone that will be used to get a single file.
-    %git-shallow-clone-command-comment%shallow clone command: %git-shallow-clone-command%
-
   svn:
     # Location where to find svn.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.
     %svn-svn-location-comment%svn location: %svn-svn-location%
@@ -80,9 +77,6 @@ tms smart setup options:
 
     # Command for svn update
     %svn-update-command-comment%update command: %svn-update-command%
-
-    # Command for svn export
-    %svn-export-command-comment%export command: %svn-export-command%
 
   # To enable megafolders, you need to be in dev-mode in Win10+. 
   # Megafolders use symlinks, so you need to be able to create them without admin rights.

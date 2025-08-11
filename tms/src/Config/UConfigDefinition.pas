@@ -106,8 +106,6 @@ type
     GitCommand: string;
     Clone: string;
     Pull: string;
-    Checkout: string;
-    ShallowClone: string;
   end;
 
   TSvnConfig = record
@@ -115,7 +113,6 @@ type
     SvnCommand: string;
     Checkout: string;
     Update: string;
-    Export: string;
   end;
 
   TServerType = (Api, ZipFile);

@@ -25,7 +25,7 @@ uses
 
 procedure TZipFileEngine.Clone(const aCloneFolder, aURL: string);
 begin
-  raise Exception.Create('Pull not supported in ZIPFILE protocol.');
+  raise Exception.Create('Clone not supported in ZIPFILE protocol.');
 end;
 
 //This method is to handle a case where the product is all put inside a folder.

@@ -17,14 +17,12 @@ type
     class function CaptureFetch(TK: integer; Proc: TProc<integer>): TProc; static;
     class function FetchProduct(const Product: TRegisteredProduct): TVCSFetchStatus; static;
     class procedure DoFetchProduct(const ProductFolderRoot, ProductFolder: string; const Product: TRegisteredProduct); static;
-    class function DoGetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition; static;
     class function HasErrors(const Status: TArray<TVCSFetchStatus>): boolean; static;
     class function GetInstalledProducts: THashSet<string>; static;
     class procedure AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct); static;
     class function FindTmsBuildYaml(const ProductFolder: string): string; static;
   public
     class function Fetch(const AProductIds: TArray<string>; const OnlyInstalled: boolean): THashSet<string>; static;
-    class function GetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition;
 
   end;
 
@@ -48,69 +46,6 @@ begin
     Deleter.Free;
   end;
 end;
-
-class function TVCSManager.DoGetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition;
-begin
-  // We originally made this very complex to try to avoid fetching the repo twice.
-  // We would download to a tmp folder, and then on install, rename that folder.
-  // But at the end, it is just simpler and more elegant to download the repo twice,
-  // and do cleanup in place. It covers much better corner cases like someone yanking
-  // the plug in the middle of a clone, then the clone living forever.
-
-  Result := nil;
-  try
-    Logger.StartSpinner;
-    try
-      var Engine := TVCSFactory.Instance.GetEngine(Protocol);
-      var TempGUIDProductFolder := TPath.Combine(Config.Folders.VCSTempFolder, GuidToStringN(TGUID.NewGuid));
-      try
-        Engine.GetFile(TProjectLoader.TMSBuildDefinitionFile, TempGUIDProductFolder, Url, Server);
-        var def := TProjectLoader.LoadProjectDefinition(TempGUIDProductFolder, 'root:application:description', true);
-        try
-          Result := def.Application.Clone;
-        finally
-          def.Free;
-        end;
-      finally
-        DeleteFolder(TempGUIDProductFolder);
-      end;
-    finally
-      Logger.StopSpinner;
-    end;
-  except
-    Result.Free;
-    raise;
-  end;
-end;
-
-class function TVCSManager.GetProduct(const Protocol: TVCSProtocol; const Url, Server: string): TApplicationDefinition;
-begin
-  Result := nil;
-  var HasErrors := false;
-  var ProtocolString := TRegisteredProduct.GetStringFromProtocol(Protocol);
-  Logger.StartSection(TMessageType.VCSFetch, Url + ' from ' + ProtocolString);
-  try
-  try
-    CheckAppTerminated;
-    Logger.Info('Downloading config for ' + Url + ' from ' + ProtocolString);
-    Result := DoGetProduct(Protocol, Url, Server);
-    Logger.Info('Downloaded config for ' + Url + ' from ' + ProtocolString);
-  except
-    on ex: Exception do
-    begin
-      Logger.Error(Format('Error fetching %s from %s: %s', [Url, ProtocolString, ex.Message]));
-      HasErrors := true;
-      Result.Free;
-      raise;
-    end;
-
-  end;
-  finally
-    Logger.FinishSection(TMessageType.VCSFetch, HasErrors);
-  end;
-end;
-
-
 
 class procedure TVCSManager.DoFetchProduct(const ProductFolderRoot, ProductFolder: string; const Product: TRegisteredProduct);
 begin

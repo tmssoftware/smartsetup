@@ -10,9 +10,8 @@ uid: SmartSetup.ConsumingBundles
 
 SmartSetup 2.0 introduced the concept of **Servers**. A Server is just a place that can provide multiple SmartSetup products for you to install.
 
-It supports three types of servers:
+It supports two types of servers:
 
-  * Local Servers
   * Api Servers
   * ZipFile Servers
 
@@ -20,39 +19,39 @@ Each one of those provides two things:
   * A list of products available to install
   * A way to download any of those products into your machine so you can install them.
 
-### Local Servers
-A local server is meant for quick testing and experimenting. It is similar to [ZipFile Servers](#zipfile-servers) in the protocols it supports for downloading files, but the list of products is stored locally in the `.tmssetup` folder.
 
-You can add a product to your active local server with the command:
-```shell
-tms repo-register <protocol> <url>
-```
-Where **<protocol>** can be **GIT**, **SVN** or **ZIPFILE**
-For example,  to add a product hosted in GitHub, you could write:
-```shell
- tms repo-register git https://github.com/landgraf-dev/aws-sdk-delphi.git
-```
+### ZipFile Servers
 
-This will clone the aws-sdk-delphi repository from GitHub and use the latest commit as the product.
-If you wanted to use a specific version of the product instead of the latest, you could register a ZipFile that contains that version instead:
+ZipFile servers work by having a list of products inside a zip file.
 
-```shell
- tms repo-register zipfile https://github.com/landgraf-dev/aws-sdk-delphi/archive/refs/tags/1.0.0.zip
-```
+The zip file must contain folders, each one with a tmsbuild.yaml file inside, describing a particular product. 
 
-{{#Important}}
-The products you add with `tms repo-register` will be stored locally inside your `.tmssetup` folder as individual json files, instead of in the main `tms.config.yaml` file. For this reason, they won't normally be backed up, and if you copy `tms.config.yaml` to a different machine, you will have to re-register them. So if you are looking for something more permanent, we recommend to use [ZipFile Servers](#zipfile-servers) instead.
-{{/Important}}
-
-You can also use `tms repo-unregister` to unregister a repository, and `tms repo-list` to get a list of repositories locally installed in your machine.
+You can see an example of this kind of server in our "Community" server, which is hosted at https://github.com/tmssoftware/smartsetup-registry
 
 {{#Note}}
-`tms repo unregister` uses the id of the product to unregister it, while `tms repo register` uses the url. So if you register a repo with `tms repo-register git https://github.com/landgraf-dev/aws-sdk-delphi.git` you need to unregister it with `landgraf.aws.sdk`. You can find the id of a registered repository using `tms repo-list`.
+While we host the community server at GitHub for convenience so everyone can collaborate, we don't actually use Git to retrieve the list of products. We use this zip file instead: https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip which contains the contents of the repository inside.
 {{/Note}}
 
-### Local Server Protocols
+To avoid constantly re downloading the zip file with the products for checking updates, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag), same as we do when downloading a file using the [ZipFile](#zipfile) protocol. GitHub supports ETags by default, so if you host a ZipFile server in GitHub, there is nothing to be done. When hosting it in your own servers, you might have to configure them to support ETags. If they don't, SmartSetup will still work, but print a message telling you to enable ETag support.
 
-As mentioned above, a server consists of two parts: A list of products, and a way to download those products to the machine. The list of products is stored differently between Local and ZipFile servers, but the protocols for downloading the products are the same. Those are:
+Currently, the ZipFile server only uses the following information of the `tmsbuild.yaml` file:
+```yaml
+application:
+  id: tms.example # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
+  name: TMS Example for VCL
+  description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
+  url: https://www.tmssoftware.com/
+  vcs protocol: git  #might be git, svn or zipfile. If omitted, it will be git.
+```
+
+The most important ones are the url to the repository, and the vcs protocol (which defaults to git, but you can change it to be a different one)
+
+The rest of the file is ignored, except when the repository at `url` doesn't contain a `tmsbuild.yaml` file. If the target repository contains a `tmsbuild.yaml` file, that file will be used for building. If it doesn't, then SmartSetup will copy and use the `tmsbuild.yaml` file in the server-zip file. **This allows you to add SmartSetup support for existing repositories without having to add a `tmsbuild.yaml` file to them**. Just adding the file in the ZipFile Server is enough. 
+
+
+### ZipFile Server Protocols
+
+As mentioned above, a server consists of two parts: A list of products, and a way to download those products to the machine. In the previous section, we saw how a ZipFile server handled the list of products. It is always a compressed file with `tmsbuild.yaml` files inside. Now, to actually download the products in the list, the following protocols are available:
  
 #### GIT
 
@@ -117,34 +116,6 @@ apiservers are also the only ones that download to downloads so they are backed 
 {{#Note}}
 Currently Api servers are the only ones that support authentication. For that reason, and to keep the interface simpler, at the moment we only allow a single active Api server at a time. Otherwise you would have to login to each Api server separately. 
 {{/Note}}
-
-### ZipFile Servers
-
-ZipFile servers work similarly to [Local Servers](#local-servers), but instead of storing the list of products locally in json files, they are stored inside a zip file too.
-
-The zip file must contain folders, each one with a tmsbuild.yaml file inside, describing a particular product. 
-
-You can see an example of this server in our "Community" server, which is hosted at https://github.com/tmssoftware/smartsetup-registry
-
-Note that while we host the community server at GitHub for convenience so everyone can collaborate, we don't actually use Git to retrieve the list of products. We use this zip file instead: https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip which contains the contents of the repository inside.
-
-To avoid constantly re downloading the zip file for checking updates, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag), same as we do when downloading a file using the [ZipFile](#zipfile) protocol. GitHub supports ETags by default, so if you host a ZipFile server in GitHub, there is nothing to be done. When hosting it in your own servers, you might have to configure them to support ETags. If they don't, SmartSetup will still work, but print a message telling you to enable ETag support.
-
-Currently, the ZipFile server only uses the following information of the `tmsbuild.yaml` file:
-```yaml
-application:
-  id: tms.example # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
-  name: TMS Example for VCL
-  description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
-  url: https://www.tmssoftware.com/
-  vcs protocol: git  #might be git, svn or zipfile. If omitted, it will be git.
-```
-
-The most important ones are the url to the repository, and the vcs protocol (which defaults to git, but you can change it to be a different one)
-
-The rest of the file is ignored, except when the repository at `url` doesn't contain a `tmsbuild.yaml` file. If the target repository contains a `tmsbuild.yaml` file, that file will be used for building. If it doesn't, then SmartSetup will copy and use the `tmsbuild.yaml` file in the zip file. **This allows you to add SmartSetup support for existing repositories without having to add a `tmsbuild.yaml` file to them**. Just adding the file in the ZipFile Server is enough. 
-
-As mentioned before, the main difference between a local and a zipfile server is the way they provide a list of the products available. For downloading those products, zipfile and local servers are the same, and zipfile servers use the same [protocols as a a local server](#local-server-protocols). You can specify the protocol for downloading files in the "vcs protocol" property of `tmsbuild.yaml`.
 
 ## Predefined servers
 

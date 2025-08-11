@@ -241,10 +241,6 @@ begin
       if varName = 'git-clone-command-comment' then exit(GetComment(Cfg.GitConfig.Clone));
       if varName = 'git-pull-command' then exit(ExampleString(Quote(Cfg.GitConfig.Pull), 'pull'));
       if varName = 'git-pull-command-comment' then exit(GetComment(Cfg.GitConfig.Pull));
-      //if varName = 'git-checkout-command' then exit(ExampleString(Cfg.GitConfig.Checkout, 'checkout HEAD --'));
-      //if varName = 'git-checkout-command-comment' then exit(GetComment(Cfg.GitConfig.Checkout));
-      if varName = 'git-shallow-clone-command' then exit(ExampleString(Quote(Cfg.GitConfig.ShallowClone), 'clone --depth 1 --filter=blob:none --sparse'));
-      if varName = 'git-shallow-clone-command-comment' then exit(GetComment(Cfg.GitConfig.ShallowClone));
 
       if varName = 'svn-svn-location' then exit(ExampleString(Quote(Cfg.SvnConfig.SvnCommand), 'C:\fpc\fpcbootstrap\svn\bin\svn.exe'));
       if varName = 'svn-svn-location-comment' then exit(GetComment(Cfg.SvnConfig.SvnCommand));
@@ -252,8 +248,6 @@ begin
       if varName = 'svn-checkout-command-comment' then exit(GetComment(Cfg.SvnConfig.Checkout));
       if varName = 'svn-update-command' then exit(ExampleString(Quote(Cfg.SvnConfig.Update), 'update'));
       if varName = 'svn-update-command-comment' then exit(GetComment(Cfg.SvnConfig.Update));
-      if varName = 'svn-export-command' then exit(ExampleString(Quote(Cfg.SvnConfig.Export), 'export'));
-      if varName = 'svn-export-command-comment' then exit(GetComment(Cfg.SvnConfig.Export));
 
       if varName = 'dcu-megafolders' then exit(GetArray(GetDcuMegafolders(Cfg.DcuMegafolders), 2));
 

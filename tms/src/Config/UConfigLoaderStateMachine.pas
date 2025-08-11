@@ -816,8 +816,8 @@ begin
   Actions.Add('git location', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.GitCommand := value; Config.GitConfig := Git; end);
   Actions.Add('clone command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.Clone := value; Config.GitConfig := Git; end);
   Actions.Add('pull command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.Pull := value; Config.GitConfig := Git; end);
-  Actions.Add('checkout command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.Checkout := value; Config.GitConfig := Git; end);
-  Actions.Add('shallow clone command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.ShallowClone := value; Config.GitConfig := Git; end);
+  Actions.Add('checkout command', procedure(value: string; ErrorInfo: TErrorInfo) begin;  {ignore it, backwards compat} end);
+  Actions.Add('shallow clone command', procedure(value: string; ErrorInfo: TErrorInfo) begin; {ignore it, backwards compat}; end);
 end;
 
 class function TGitSectionConf.SectionNameStatic: string;
@@ -842,7 +842,7 @@ begin
   Actions.Add('svn location', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.SvnCommand := value; Config.SvnConfig := Svn; end);
   Actions.Add('checkout command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.Checkout := value; Config.SvnConfig := Svn; end);
   Actions.Add('update command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.Update := value; Config.SvnConfig := Svn; end);
-  Actions.Add('export command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.Export := value; Config.SvnConfig := Svn; end);
+  Actions.Add('export command', procedure(value: string; ErrorInfo: TErrorInfo) begin; {ignore it, backwards compat} end);
 end;
 
 class function TSvnSectionConf.SectionNameStatic: string;

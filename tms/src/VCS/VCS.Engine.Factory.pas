@@ -42,8 +42,8 @@ end;
 function TVCSFactory.GetEngine(const Protocol: TVCSProtocol): IVCSEngine;
 begin
   case Protocol of
-    TVCSProtocol.Git: exit(TGitEngine.Create(Config.GitConfig.GitCommand, Config.GitConfig.Clone, Config.GitConfig.Pull, Config.GitConfig.Checkout, Config.GitConfig.ShallowClone));
-    TVCSProtocol.Svn: exit(TSvnEngine.Create(Config.SvnConfig.SvnCommand, Config.SvnConfig.Checkout, Config.SvnConfig.Update, Config.SvnConfig.Export));
+    TVCSProtocol.Git: exit(TGitEngine.Create(Config.GitConfig.GitCommand, Config.GitConfig.Clone, Config.GitConfig.Pull));
+    TVCSProtocol.Svn: exit(TSvnEngine.Create(Config.SvnConfig.SvnCommand, Config.SvnConfig.Checkout, Config.SvnConfig.Update));
     TVCSProtocol.ZipFile: exit(TZipFileEngine.Create);
     else raise Exception.Create('Invalid VCS protocol.');
   end;
