@@ -9,6 +9,7 @@
 Copy-Item -Path testapp -Destination testapp-no-tmsbuild -Exclude tmsbuild.yaml -Recurse -Force
 
 tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
+tms server-enable community
 
 tms fetch *   #do not install, so we can build with the testapp at the same time and see deps work fine.
 tms fetch  tms.flexcel.vcl tms.biz.aurelius tms.vcl.crypto sglienke.spring4d tms.biz.scripter tms.fnc.core

@@ -148,7 +148,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    function NewServer(const aName: string): integer;
+    function EnsureServer(const aName: string): integer;
     procedure AddServer(const ServerConfig: TServerConfig);
     procedure ClearServers;
     procedure RemoveServer(const index: integer);
@@ -1003,7 +1003,7 @@ end;
 
 procedure TServerConfigList.AddServer(const ServerConfig: TServerConfig);
 begin
-  if FindServer(ServerConfig.Name) < 0 then raise Exception.Create('The server ' + ServerConfig.Name + ' was already added');
+  if FindServer(ServerConfig.Name) >= 0 then raise Exception.Create('The server ' + ServerConfig.Name + ' was already added');
 
   SetLength(Servers, Length(Servers) + 1);
   Servers[Length(Servers) - 1] := ServerConfig;
@@ -1044,8 +1044,11 @@ begin
   Result := Servers[index];
 end;
 
-function TServerConfigList.NewServer(const aName: string): integer;
+function TServerConfigList.EnsureServer(const aName: string): integer;
 begin
+  Result := FindServer(aName);
+  if Result >= 0 then exit;
+
   AddServer(TServerConfig.Create(aName, TServerType.ZipFile, '', true));
   Result := Length(Servers) - 1;
 end;

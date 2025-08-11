@@ -74,7 +74,6 @@ type
   TServerSectionConf = class(TSectionConf)
   private
     Name: string;
-    Index: integer;
     function GetServerType(const s: string;
       const ErrorInfo: TErrorInfo): TServerType;
   public
@@ -705,6 +704,11 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
 
   ClearArrayValues := procedure begin aConfig.ServerConfig.ClearServers;end;
+  for var i := Low(TServerConfig.BuiltinServers) to High(TServerConfig.BuiltinServers) do
+  begin
+    var server := TServerConfig.BuiltinServers[i];
+    ChildSections.Add(server, TServerSectionConf.Create(Self, aConfig, server, aProductConfig ));
+  end;
 
   ChildSectionAction :=
     function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
@@ -746,11 +750,11 @@ constructor TServerSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
   Name := aName;
-  Index := Config.ServerConfig.NewServer(aName);
 
   Actions := TListOfActions.Create;
   Actions.Add('type', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;
+    var Index := Config.ServerConfig.EnsureServer(aName);
     if not Config.ServerConfig.GetServer(Index).IsReservedName then
     begin
       Config.ServerConfig.SetInfo(Index,
@@ -763,6 +767,7 @@ begin
 
   Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;
+    var Index := Config.ServerConfig.EnsureServer(aName);
     if not Config.ServerConfig.GetServer(Index).IsReservedName then
     begin
       Config.ServerConfig.SetInfo(Index,
@@ -773,7 +778,11 @@ begin
     end;
   end);
 
-  Actions.Add('enabled', procedure(value: string; ErrorInfo: TErrorInfo) begin; Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end); end);
+  Actions.Add('enabled', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    var Index := Config.ServerConfig.EnsureServer(aName);
+    Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end);
+  end);
 
 end;
 
