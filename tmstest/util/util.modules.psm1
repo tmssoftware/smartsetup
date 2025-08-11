@@ -7,3 +7,14 @@ function Invoke-WithExitCodeIgnored {
   } catch {
  }
 }
+
+function uninstall-and-check {
+    param([Parameter(Mandatory, Position=0)] [int] $expectedRemaining)
+
+    tms uninstall *
+
+    $remaining = tms list -json | ConvertFrom-Json -AsHashtable
+    if ($remaining.Count -ne $expectedRemaining) {
+        Write-Error "There should be $expectedRemaining results remaining, but there are $($remaining.Count)."
+    }
+}

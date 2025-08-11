@@ -31,7 +31,7 @@ if ($Result -ne $expectedResult) {
 }
 
 Set-Location -
-tms uninstall * #only if no errors. If there are errors, we leave it there for investigation.
+uninstall-and-check(1) #only if no errors. If there are errors, we leave it there for investigation.
 
 #check registry is the same as the one we used to install.
 
