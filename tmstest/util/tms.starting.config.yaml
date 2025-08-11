@@ -6,9 +6,6 @@ tms smart setup options:
   error if skipped: true
 
   servers:
-    local:
-      enabled: true
-
     tms:
       enabled: true
 

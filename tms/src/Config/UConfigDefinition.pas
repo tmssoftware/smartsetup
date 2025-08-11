@@ -1077,14 +1077,14 @@ end;
 { TServerConfig }
 constructor TServerConfig.CreateInternalServer(const aName: string);
 begin
-  if SameText(Name, 'tms') then
+  if SameText(aName, 'tms') then
   begin
     name := 'tms';
     Url := TMSUrl;
     ServerType := TServerType.Api;
     Enabled := true;
   end
-  else if SameText(Name, 'community') then
+  else if SameText(aName, 'community') then
   begin
     name := 'community';
     Url := GitHubUrl;
