@@ -190,6 +190,9 @@ type
     procedure AddServerConfigItem(Item: TServerConfigItem);
     procedure EnableServerConfigItem(const Name: string; Enabled: Boolean);
 
+    // Additional check to see if a TGUIProduct instance is valid, i.e., was not deleted
+    function IsValidProduct(Product: TGUIProduct): Boolean;
+
     /// <summary>
     ///   Updates the search filter used to filter products. Setting this will refresh the product list.
     /// </summary>
@@ -850,6 +853,11 @@ end;
 function TGUIEnvironment.IsRunning: Boolean;
 begin
   Result := FRunningCount > 0;
+end;
+
+function TGUIEnvironment.IsValidProduct(Product: TGUIProduct): Boolean;
+begin
+  Result := FFetchedProducts.IndexOf(Product) >= 0;
 end;
 
 function TGUIEnvironment.IsFilterActive(Filter: TProductFilter): Boolean;

@@ -53,7 +53,7 @@ type
     edSearch: TEdit;
     btConfiguration2: TSpeedButton;
     cbServer: TComboBox;
-    Label1: TLabel;
+    lbServer: TLabel;
     acSearchFocus: TAction;
     btCredentials: TButton;
     procedure FormCreate(Sender: TObject);
@@ -594,6 +594,8 @@ begin
   finally
     cbServer.Items.EndUpdate;
   end;
+  cbServer.Visible := cbServer.Items.Count > 2;
+  lbServer.Visible := cbServer.Visible;
 end;
 
 procedure TMainForm.ShowInfo;
@@ -640,7 +642,7 @@ end;
 
 function TMainForm.ProductFromItem(Item: TListItem): TGUIProduct;
 begin
-  if (Item <> nil) and (Item.Data <> nil) then
+  if (Item <> nil) and (Item.Data <> nil) and GUI.IsValidProduct(TGUIProduct(Item.Data)) then
     Result := TGUIProduct(Item.Data)
   else
     Result := nil;

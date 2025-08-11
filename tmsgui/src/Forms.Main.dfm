@@ -194,7 +194,7 @@ object MainForm: TMainForm
             ParentFont = False
             ExplicitLeft = 871
           end
-          object Label1: TLabel
+          object lbServer: TLabel
             Left = 742
             Top = 8
             Width = 35
