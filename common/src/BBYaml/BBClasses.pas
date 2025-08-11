@@ -74,7 +74,6 @@ public
   ContainsArrays: Boolean; //Only needs to be set it if not setting ArrayMainAction.
   ArraysCanBeKeys: boolean; //For backwards compat. A key can't be repeated in yaml, but we allowed it sometimes. When set to true, we will allow both "- value:" and "value:" values. This property is *only* for wrong existing data. Don't use it for new data.
 
-  ArrayValuesAreEmpty: TFunc<boolean>; //Used to know if the arrays need clearing from a previous setup. See https://github.com/tmssoftware/tms-smartsetup/issues/267
   ClearArrayValues: TProc;  //allows to clear an array before adding new values.
 
   Duplicated: TDictionary<string, boolean>; // keep it nil to allow duplicated values.
@@ -132,18 +131,7 @@ function TSectionDictionary.TryGetValue(const name: string;
 begin
   if FData.TryGetValue(name, Section) then
   begin
-    if Assigned(Section.ArrayValuesAreEmpty) and (not Section.ArrayValuesAreEmpty()) and not KeepValues then
-    begin
-      if Section.Root.CreatedBy = 'Command line' then  //backwards compat: when setting from the command line, a no-prefix value will behave like the "replace " prefix and overwrite the array.
-      begin
-        if Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
-      end else
-      begin
-        raise Exception.Create('The values in section "' + name + '" were already set and we don''t know what to do with the existing values. ' +
-        'You need to name the section "' + SectionAddPrefix + name + '" to add to the existing values, or "' + SectionReplacePrefix + name + '" to completely replace the existing values.' +
-        'See https://doc.tmssoftware.com/smartsetup/guide/configuration.html#overriding-values .' + ErrorInfo.ToString);
-      end;
-    end;
+    if not KeepValues and Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
     Section.LoadedState(TArrayOverrideBehavior.None);
     exit(true);
   end;
@@ -162,7 +150,7 @@ begin
     if FData.TryGetValue(name.Substring(SectionReplacePrefix.Length), Section) then
     begin
       if not KeepValues and Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
-      Section.LoadedState(TArrayOverrideBehavior.Add);
+      Section.LoadedState(TArrayOverrideBehavior.Replace);
       exit(Assigned(Section.ClearArrayValues));
     end;
   end;

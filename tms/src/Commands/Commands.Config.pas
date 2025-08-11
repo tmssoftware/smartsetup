@@ -11,41 +11,21 @@ implementation
 
 uses
   UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes,
-  System.Types, UConfigWriter, UConfigDefinition, UConfigKeys, Deget.CoreTypes, BBArrays, BBClasses, UConfigLoader;
+  System.Types, UConfigWriter, UConfigDefinition, UConfigKeys,
+  Deget.CoreTypes;
 
 var
   Print,
-  Reset,
-  Empty: Boolean;
-  ArrayPrefix: TArrayOverrideBehavior;
+  Reset: boolean;
 
 function CreateDefaultConfig: TConfigDefinition;
 begin
-  Result := TConfigLoader.LoadConfig('', CommandLineConfig);
-  Result.EnsureAllProducts;
-  for var ArrayProperty := Low(TGlobalPrefixedProperties) to High(TGlobalPrefixedProperties) do
-  begin
-    Result.PrefixedProperties[ArrayProperty] := ArrayPrefix;
-  end;
-
-  for var Product in Result.Products.Values do
-  begin
-    for var ArrayProperty := Low(TProductPrefixedProperties) to High(TProductPrefixedProperties) do
-    begin
-      Product.PrefixedProperties[ArrayProperty] := ArrayPrefix;
-    end;
-  end;
-
+  Result := TConfigDefinition.Create('');
+  Result.Products.Add(GlobalProductId, TProductConfigDefinition.Create(GlobalProductId));
 end;
 
 procedure CreateNewConfigFile;
 begin
-  if Empty then
-  begin
-    TFile.WriteAllText(ConfigFileName, '', TUTF8NoBOMEncoding.Instance);
-    exit;
-  end;
-
   var StandardConfigFileGlobal := TResourceStream.Create(HInstance, 'StandardConfigFileGlobal', RT_RCDATA);
   try
     var StandardConfigFileProduct := TResourceStream.Create(HInstance, 'StandardConfigFileProduct', RT_RCDATA);
@@ -104,12 +84,6 @@ begin
       Reset := Value;
     end);
   optionReset.HasValue := False;
-
-  var optionArray := cmd.RegisterOption<string>('array-prefix', '', 'When creating a config file, it will add the prefix to array properties.',
-    procedure(const Value : string)
-    begin
-      ArrayPrefix := TArrayOverrideBehavior_FromString(Value);
-    end);
 
   AddCommand(cmd.Name, CommandGroups.Config, RunConfigCommand);
 end;

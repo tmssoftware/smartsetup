@@ -338,7 +338,6 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
 
-  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.GetExcludedComponentsCount = 0; end;
   ClearArrayValues := procedure begin aConfig.ClearExcludedComponents;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end;
@@ -364,7 +363,6 @@ constructor TIncludedComponentsSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
-  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.GetIncludedComponentsCount = 0; end;
   ClearArrayValues := procedure begin aConfig.ClearIncludedComponents;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end;
@@ -390,7 +388,6 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
 
-  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.GetAdditionalProductsFoldersCount = 0; end;
   ClearArrayValues := procedure begin aConfig.ClearAdditionalProductsFolders;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end;
@@ -438,7 +435,6 @@ begin
   SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
 
-  ArrayValuesAreEmpty := function : boolean begin Result := aProductConfig.GetIDENames = []; end;
   ClearArrayValues := procedure begin aProductConfig.ClearIDENames;end;
 
   Actions := TListOfActions.Create;
@@ -488,7 +484,6 @@ begin
   SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
 
-  ArrayValuesAreEmpty := function : boolean begin Result := aProductConfig.GetPlatforms = []; end;
   ClearArrayValues := procedure begin aProductConfig.ClearPlatforms;end;
 
   Actions := TListOfActions.Create;
@@ -648,7 +643,6 @@ begin
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.Both;
 
-  ArrayValuesAreEmpty := function : boolean begin Result := aProductConfig.Defines.Count = 0; end;
   ClearArrayValues := procedure begin aProductConfig.ClearDefines;end;
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo) begin
@@ -710,7 +704,6 @@ constructor TServersSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
 
-  ArrayValuesAreEmpty := function : boolean begin Result := true; {aConfig.ServerConfig.ServerCount = 0;} end;
   ClearArrayValues := procedure begin aConfig.ServerConfig.ClearServers;end;
 
   ChildSectionAction :=
@@ -860,7 +853,6 @@ constructor TDcuMegafoldersSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
 
-  ArrayValuesAreEmpty := function : boolean begin Result := aConfig.DcuMegafolders.Count = 0; end;
   ClearArrayValues := procedure begin aConfig.DcuMegafolders.Clear;end;
 
 
