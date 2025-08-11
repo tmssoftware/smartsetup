@@ -87,6 +87,7 @@ foreach ($test in $tests) {
 
         # Copy the folder to the test directory
         Copy-Item -Path $test.Directory.FullName -Destination "$tmsTestRootDir\tmp-run\" -Recurse -Force -Exclude "test.*.ps1"
+        Copy-Item -Path "$tmsTestRootDir\util\tms.starting.config.yaml" -Destination "$testDir\tms.config.yaml" -Force
 
         Set-Location $testDir
         try {

@@ -96,7 +96,7 @@ function RegisteredVCSRepos(const Server: string): TProductRegistry;
 begin
   if _RegisteredVCSRepos = nil then
   begin
-  _RegisteredVCSRepos := TProductRegistry.Create(Config.Folders.VCSMetaFolder, Server);
+  _RegisteredVCSRepos := TProductRegistry.Create(Server);
   end;
   Result := _RegisteredVCSRepos;
 

@@ -118,9 +118,12 @@ type
     Export: string;
   end;
 
-  TServerType = (Local, Api, ZipFile);
+  TServerType = (Api, ZipFile);
 
   TServerConfig = record
+  public
+  const
+    BuiltinServers: array[0..1] of string = ('tms', 'community');
   public
     Name: string;
     ServerType: TServerType;
@@ -128,6 +131,7 @@ type
     Enabled: boolean;
 
     constructor Create(const aName: string; const aServerType: TServerType; const aUrl: string; const aEnabled: boolean);
+    constructor CreateInternalServer(const aName: string);
     function IsReservedName: boolean; overload;
     class function IsReservedName(const aName: string): boolean; overload; static;
 
@@ -138,14 +142,12 @@ type
   type
     TVarProc<T> = reference to procedure (var Arg1: T);
 
-  TServerConfigList = record
+  TServerConfigList = class
   private
     Servers: TArray<TServerConfig>;
-    procedure EnsureOneBuiltInServer(const ServerName: string;
-      const ServerPos: integer; const IsEnabled: boolean);
-    procedure InsertServer(const Index: integer;
-      const ServerConfig: TServerConfig);
   public
+    constructor Create;
+    destructor Destroy; override;
     function NewServer(const aName: string): integer;
     procedure AddServer(const ServerConfig: TServerConfig);
     procedure ClearServers;
@@ -156,8 +158,6 @@ type
 
     //Will return -1 if not found
     function FindServer(const Name: string): integer;
-
-    procedure EnsureAllBuiltInServers;
   end;
 
   TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
@@ -280,6 +280,7 @@ begin
   ExcludedComponents := TDictionary<string, string>.Create;
   IncludedComponents := TDictionary<string, string>.Create;
   AdditionalProductsFolders := TDictionary<string, string>.Create;
+  FServerConfig := TServerConfigList.Create;
   Namings := TNamingList.Create;
   FBuildCores := 0; // make it parallel by default
   FPreventSleep := true;
@@ -292,6 +293,7 @@ destructor TConfigDefinition.Destroy;
 begin
   FDcuMegafolders.Free;
   Namings.Free;
+  FServerConfig.Free;
   IncludedComponents.Free;
   ExcludedComponents.Free;
   AdditionalProductsFolders.Free;
@@ -1001,38 +1003,29 @@ end;
 
 procedure TServerConfigList.AddServer(const ServerConfig: TServerConfig);
 begin
+  if FindServer(ServerConfig.Name) < 0 then raise Exception.Create('The server ' + ServerConfig.Name + ' was already added');
+
   SetLength(Servers, Length(Servers) + 1);
   Servers[Length(Servers) - 1] := ServerConfig;
 end;
 
-procedure TServerConfigList.InsertServer(const Index: integer; const ServerConfig: TServerConfig);
-begin
-  SetLength(Servers, Length(Servers) + 1);
-  for var i := High(Servers) - 1 downto Index do
-  begin
-    Servers[i + 1] := Servers[i];
-  end;
-  Servers[Index] := ServerConfig;
-end;
-
-procedure TServerConfigList.EnsureOneBuiltInServer(const ServerName: string; const ServerPos: integer; const IsEnabled: boolean);
-begin
-  var ServerIndex := FindServer(ServerName);
-  if (ServerIndex < 0) or (Servers = nil) then InsertServer(ServerPos, TServerConfig.Create(ServerName, TServerType.Local, '', IsEnabled));
-end;
-
 procedure TServerConfigList.ClearServers;
 begin
-  Servers := nil;
-  EnsureAllBuiltInServers;
+  SetLength(Servers, Length(TServerConfig.BuiltinServers));
 end;
 
-procedure TServerConfigList.EnsureAllBuiltInServers;
+constructor TServerConfigList.Create;
 begin
-  var IsEmpty := Servers = nil;
-  EnsureOneBuiltInServer('local', 0, IsEmpty);
-  EnsureOneBuiltInServer('tms', 1, IsEmpty);
-  EnsureOneBuiltInServer('community', 2, false);
+  SetLength(Servers, Length(TServerConfig.BuiltinServers));
+  for var i := Low(TServerConfig.BuiltinServers) to High(TServerConfig.BuiltinServers) do
+  begin
+    Servers[i] := TServerConfig.CreateInternalServer(TServerConfig.BuiltinServers[i]);
+  end;
+end;
+
+destructor TServerConfigList.Destroy;
+begin
+  inherited;
 end;
 
 function TServerConfigList.FindServer(const Name: string): integer;
@@ -1048,24 +1041,6 @@ end;
 
 function TServerConfigList.GetServer(const index: integer): TServerConfig;
 begin
-  if Servers = nil then
-  begin
-    case index of
-      0: begin
-        exit(TServerConfig.Create('local', TServerType.Local, '', true));
-      end;
-
-      1: begin
-        exit(TServerConfig.Create('tms', TServerType.Api, '', true));
-      end;
-
-      2: begin
-        exit(TServerConfig.Create('community', TServerType.ZipFile, '', false));
-      end;
-    end;
-    raise Exception.Create('Invalid Server index.');
-  end;
-
   Result := Servers[index];
 end;
 
@@ -1077,6 +1052,8 @@ end;
 
 procedure TServerConfigList.RemoveServer(const index: integer);
 begin
+  if index < Length(TServerConfig.BuiltinServers) then raise Exception.Create('Cannot remove a built-in server. Disable it instead.');
+
   for var i := index to Length(Servers) - 2 do
   begin
     Servers[i] := Servers[i + 1];
@@ -1086,7 +1063,6 @@ end;
 
 function TServerConfigList.ServerCount: integer;
 begin
-  if Servers = nil then exit(3);
   exit(Length(Servers));
 end;
 
@@ -1095,17 +1071,29 @@ procedure TServerConfigList.SetInfo(const index: integer;
 begin
   var Server := GetServer(index);
   Action(Server);
-  if Length(Servers) = 0 then //when empty, there are 3 predefined servers.
-  begin
-    AddServer(Server);
-    exit;
-  end;
-
-
   Servers[index] := Server;
 end;
 
 { TServerConfig }
+constructor TServerConfig.CreateInternalServer(const aName: string);
+begin
+  if SameText(Name, 'tms') then
+  begin
+    name := 'tms';
+    Url := TMSUrl;
+    ServerType := TServerType.Api;
+    Enabled := true;
+  end
+  else if SameText(Name, 'community') then
+  begin
+    name := 'community';
+    Url := GitHubUrl;
+    ServerType := TServerType.ZipFile;
+    Enabled := false;
+  end
+  else raise Exception.Create('The name ' + aName + ' is not a valid internal name.');
+
+end;
 
 constructor TServerConfig.Create(const aName: string;
   const aServerType: TServerType; const aUrl: string;
@@ -1115,25 +1103,6 @@ begin
   ServerType := aServerType;
   Url := aUrl;
   Enabled := aEnabled;
-
-  if SameText(Name, 'local') then
-  begin
-    Name := 'local';
-    Url := '';
-    ServerType := TServerType.Local;
-  end
-  else if SameText(Name, 'tms') then
-  begin
-    name := 'tms';
-    Url := TMSUrl;
-    ServerType := TServerType.Api;
-  end
-  else if SameText(Name, 'community') then
-  begin
-    name := 'community';
-    Url := GitHubUrl;
-    ServerType := TServerType.ZipFile;
-  end ;
 end;
 
 function TServerConfig.IsReservedName: boolean;
@@ -1143,25 +1112,24 @@ end;
 
 class function TServerConfig.IsReservedName(const aName: string): boolean;
 begin
-  Result := SameText(aName, 'local') or SameText(aName, 'tms') or SameText(aName, 'community');
+  for var server in BuiltinServers do if SameText(aName.Trim, server) then exit(true);
+  Result := false;
 end;
 
 class function TServerConfig.ServerTypeFromString(
   const value: string; const ExtraInfo: string = ''): TServerType;
 begin
  var s1 := AnsiLowerCase(value.Trim);
- if (s1 = 'local') then exit(TServerType.Local);
  if (s1 = 'api') then exit(TServerType.Api);
  if (s1 = 'zipfile') then exit(TServerType.ZipFile);
 
- raise Exception.Create('"' + value + '" is not a valid Server Type value. It must be "local", "api" or "zipfile".' + ExtraInfo);
+ raise Exception.Create('"' + value + '" is not a valid Server Type value. It must be "api" or "zipfile".' + ExtraInfo);
 
 end;
 
 function TServerConfig.ServerTypeString: string;
 begin
   case ServerType of
-    TServerType.Local: exit('local');
     TServerType.Api: exit('api');
     TServerType.ZipFile: exit('zipfile');
   end;

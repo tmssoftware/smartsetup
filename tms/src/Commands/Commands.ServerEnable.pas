@@ -23,7 +23,6 @@ begin
        var ConfigWriter := TConfigWriter.Create(false);
        try
          Config.EnsureAllProducts;
-         Config.ServerConfig.EnsureAllBuiltInServers;
          var ServerIndex := Config.ServerConfig.FindServer(ServerName);
          if ServerIndex < 0 then
          begin

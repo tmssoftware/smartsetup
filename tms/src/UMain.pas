@@ -21,9 +21,6 @@ uses
   Commands.Build,
   Commands.SelfUpdate,
   Commands.Info,
-  Commands.RepoRegister,
-  Commands.RepoUnregister,
-  Commands.RepoList,
   Commands.Doctor,
   Commands.LogView,
   Commands.Uncompress;
@@ -90,10 +87,6 @@ begin
   RegisterServerListCommand;
   RegisterServerAddCommand;
   RegisterServerRemoveCommand;
-
-  RegisterRepoRegisterCommand;
-  RegisterRepoUnregisterCommand;
-  RegisterRepoListCommand;
 
   RegisterDoctorCommand;
 

@@ -380,9 +380,6 @@
         <DCCReference Include="src\VCS\VCS.Engine.Factory.pas"/>
         <DCCReference Include="src\VCS\VCS.CoreTypes.pas"/>
         <DCCReference Include="src\VCS\VCS.Engine.Svn.pas"/>
-        <DCCReference Include="src\Commands\Commands.RepoRegister.pas"/>
-        <DCCReference Include="src\Commands\Commands.RepoUnregister.pas"/>
-        <DCCReference Include="src\Commands\Commands.RepoList.pas"/>
         <DCCReference Include="..\common\src\USimpleJsonSerializer.pas"/>
         <DCCReference Include="src\Commands\Commands.LogView.pas"/>
         <DCCReference Include="..\common\src\Compression\Decompressor.ZSTD.pas"/>

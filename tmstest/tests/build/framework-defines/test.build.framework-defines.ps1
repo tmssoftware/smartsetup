@@ -3,6 +3,8 @@
 
 . test.setup
 
+tms config-write -p:"configuration for test.framework.defines.ok:compilation options:add-defines=[MYDEF]"
+
 $results = Invoke-WithExitCodeIgnored{tms build -full} | tmsutil summary-to-json | ConvertFrom-Json -AsHashtable 
 
 if ($results.Count -ne 3) {
