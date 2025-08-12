@@ -15,12 +15,20 @@ jobs:
   xmldocer:
     uses: ./.github/workflows/xmldocer-build-pages.yml
 
-  # Build job
-  build:
+  # deploy job
+  deploy-aws:
     runs-on: ubuntu-latest
     needs: xmldocer
 
     steps:
+      - name: Download last generated doc
+        uses: actions/download-artifact@v4
+        with:
+          name: smartsetup-doc
+
+      - name: Check folder
+        run: ls -la
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -28,8 +36,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Check folder
+        run: ls -la
+
       - name: Upload documentation files 
-        run: aws s3 sync /doc/_output/_site s3://tms-site-doc/smartsetup
+        run: aws s3 sync ./smartsetup-doc s3://tms-site-doc/smartsetup
 
       - name: Invalidate CDN
         run: aws cloudfront create-invalidation --distribution-id E28KJG21XS16K3 --paths "/smartsetup*"
