@@ -49,7 +49,7 @@ tms smart setup options:
   # All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will
   # be generated under the additional folders. This is useful if you want to use tms to build your own code.
   # The folders you add here must be in the same drive as the main root folder.
-  %additional-products-folders%:
+  %additional-products-folders-header%:
 %additional-products-folders%
 
   # Specify which servers SmartSetup will connect to.
