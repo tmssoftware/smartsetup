@@ -3,16 +3,20 @@ unit UConfigDefinition;
 
 interface
 uses Generics.Defaults, Generics.Collections, Masks, UMultiLogger, UConfigKeys,
-     UNaming, UNamingList, SysUtils, Deget.CoreTypes, SyncObjs, ULogger, UConfigFolders, UOSFileLinks;
+     UNaming, UNamingList, SysUtils, Deget.CoreTypes, SyncObjs, ULogger,
+     UConfigFolders, UOSFileLinks, Megafolders.Definition, BBArrays;
 
 type
-  TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore);
+  TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
   TSkipRegisteringSet = set of TSkipRegisteringOptions;
 
 const
   TSkipRegisteringName: array[TSkipRegisteringOptions] of string = (
-  'packages', 'startmenu', 'help', 'windowspath', 'webcore'
+  'packages', 'startmenu', 'help', 'windowspath', 'webcore', 'registry', 'filelinks'
   );
+
+  TMSUrl = 'https://api.landgraf.dev/tms';
+  GitHubUrl = 'https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip';
 
 type
 
@@ -26,10 +30,19 @@ type
     function Help: boolean;
     function WindowsPath: boolean;
     function WebCore: boolean;
+    function FileLinks: boolean;
+    function Registry: boolean;
 
     class function All: TSkipRegistering; static;
     class function None: TSkipRegistering; static;
   end;
+
+  TGlobalPrefixedProperties =(ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
+                             Servers, DcuMegafolders);
+  TGlobalPrefixedPropertiesArray = Array[TGlobalPrefixedProperties] of TArrayOverrideBehavior;
+
+  TProductPrefixedProperties =(DelphiVersions, Platforms, Defines);
+  TProductPrefixedPropertiesArray = Array[TProductPrefixedProperties] of TArrayOverrideBehavior;
 
 
   TProductConfigDefinition = class
@@ -44,6 +57,12 @@ type
     FIdeNamesModified: Boolean;
     FDefines: TDictionary<string, boolean>;
     FCreatedBy: String;
+    FPrefixedProperties: TProductPrefixedPropertiesArray;
+    function GetPrefixedProperties(
+      index: TProductPrefixedProperties): TArrayOverrideBehavior;
+    procedure SetPrefixedProperties(index: TProductPrefixedProperties;
+      const Value: TArrayOverrideBehavior);
+
   public
     constructor Create(const aProductId: string);
     destructor Destroy; override;
@@ -70,12 +89,16 @@ type
 
     procedure AddDefine(const def: string; const LineInfo: string);
     procedure RemoveDefine(const def: string; const LineInfo: string);
+    procedure ClearDefines;
     property ProductId: string read FProductId;
 
     property Defines: TDictionary<string, boolean> read FDefines;
 
     function ListDefines: string;
     property CreatedBy: string read FCreatedBy write FCreatedBy;
+
+    property PrefixedProperties[index: TProductPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
+
   end;
 
   TGitConfig = record
@@ -83,8 +106,6 @@ type
     GitCommand: string;
     Clone: string;
     Pull: string;
-    Checkout: string;
-    ShallowClone: string;
   end;
 
   TSvnConfig = record
@@ -92,7 +113,48 @@ type
     SvnCommand: string;
     Checkout: string;
     Update: string;
-    Export: string;
+  end;
+
+  TServerType = (Api, ZipFile);
+
+  TServerConfig = record
+  public
+  const
+    BuiltinServers: array[0..1] of string = ('tms', 'community');
+  public
+    Name: string;
+    ServerType: TServerType;
+    Url: string;
+    Enabled: boolean;
+
+    constructor Create(const aName: string; const aServerType: TServerType; const aUrl: string; const aEnabled: boolean);
+    constructor CreateInternalServer(const aName: string);
+    function IsReservedName: boolean; overload;
+    class function IsReservedName(const aName: string): boolean; overload; static;
+
+    function ServerTypeString: string;
+    class function ServerTypeFromString(const value: string; const ExtraInfo: string = ''): TServerType; static;
+  end;
+
+  type
+    TVarProc<T> = reference to procedure (var Arg1: T);
+
+  TServerConfigList = class
+  private
+    Servers: TArray<TServerConfig>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function EnsureServer(const aName: string): integer;
+    procedure AddServer(const ServerConfig: TServerConfig);
+    procedure ClearServers;
+    procedure RemoveServer(const index: integer);
+    function ServerCount: integer;
+    function GetServer(const index: integer): TServerConfig;
+    procedure SetInfo(const index: integer; const Action: TVarProc<TServerConfig>);
+
+    //Will return -1 if not found
+    function FindServer(const Name: string): integer;
   end;
 
   TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
@@ -115,8 +177,11 @@ type
     FErrorIfSkipped: boolean;
     FAlternateRegistryKey: string;
     FMaxVersionsPerProduct: integer;
+    FServerConfig: TServerConfigList;
     FGitConfig: TGitConfig;
     FSvnConfig: TSvnConfig;
+    FPrefixedProperties: TGlobalPrefixedPropertiesArray;
+    FDcuMegafolders: TMegafolderList;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -126,6 +191,10 @@ type
       const Projects: TDictionary<string, boolean>): boolean;
     function AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;
     function AllPlatformsIfEmpty(const aPlatforms: TPlatformSet): TPlatformSet;
+    function GetPrefixedProperties(
+      index: TGlobalPrefixedProperties): TArrayOverrideBehavior;
+    procedure SetPrefixedProperties(index: TGlobalPrefixedProperties;
+      const Value: TArrayOverrideBehavior);
   public
     constructor Create(const ARootFolder: string);
     destructor Destroy; override;
@@ -140,9 +209,13 @@ type
     procedure ClearIncludedComponents;
     function GetExcludedComponents: TEnumerable<string>;
     function GetIncludedComponents: TEnumerable<string>;
+    function GetExcludedComponentsCount: integer;
+    function GetIncludedComponentsCount: integer;
 
     procedure AddAdditionalProductsFolder(const Name, ErrorInfo: string);
+    procedure ClearAdditionalProductsFolders;
     function GetAdditionalProductsFolders: TEnumerable<string>;
+    function GetAdditionalProductsFoldersCount: integer;
     function GetAllRootFolders: TArray<string>;
 
     function ReadBoolProperty(const ProductId: string; const PropKey: string; const DefaultValue: boolean): boolean;
@@ -151,8 +224,15 @@ type
     property PreventSleep: boolean read FPreventSleep write FPreventSleep;
     property AlternateRegistryKey: string read FAlternateRegistryKey write FAlternateRegistryKey;
     property MaxVersionsPerProduct: integer read FMaxVersionsPerProduct write FMaxVersionsPerProduct;
+
+    property ServerConfig: TServerConfigList read FServerConfig write FServerConfig;
+
     property GitConfig: TGitConfig read FGitConfig write FGitConfig;
     property SvnConfig: TSvnConfig read FSvnConfig write FSvnConfig;
+
+    property DcuMegafolders: TMegafolderList read FDcuMegafolders;
+
+    property PrefixedProperties[index: TGlobalPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
 
     property ErrorIfSkipped: boolean read FErrorIfSkipped write FErrorIfSkipped;
 
@@ -197,16 +277,20 @@ begin
   ExcludedComponents := TDictionary<string, string>.Create;
   IncludedComponents := TDictionary<string, string>.Create;
   AdditionalProductsFolders := TDictionary<string, string>.Create;
+  FServerConfig := TServerConfigList.Create;
   Namings := TNamingList.Create;
   FBuildCores := 0; // make it parallel by default
   FPreventSleep := true;
   FMaxVersionsPerProduct := -1;
   FErrorIfSkipped := false;
+  FDcuMegafolders := TMegafolderList.Create;
 end;
 
 destructor TConfigDefinition.Destroy;
 begin
+  FDcuMegafolders.Free;
   Namings.Free;
+  FServerConfig.Free;
   IncludedComponents.Free;
   ExcludedComponents.Free;
   AdditionalProductsFolders.Free;
@@ -363,6 +447,12 @@ begin
   end;
 end;
 
+function TConfigDefinition.GetPrefixedProperties(
+  index: TGlobalPrefixedProperties): TArrayOverrideBehavior;
+begin
+  Result := FPrefixedProperties[index];
+end;
+
 function TConfigDefinition.GetNaming(const NamingId,
   ProjectFilename: string): TNaming;
 begin
@@ -416,6 +506,11 @@ begin
       Exit(True);
 end;
 
+procedure TConfigDefinition.ClearAdditionalProductsFolders;
+begin
+  AdditionalProductsFolders.Clear;
+end;
+
 procedure TConfigDefinition.ClearExcludedComponents;
 begin
   ExcludedComponents.Clear;
@@ -425,6 +520,17 @@ procedure TConfigDefinition.ClearIncludedComponents;
 begin
   IncludedComponents.Clear;
 end;
+
+function TConfigDefinition.GetExcludedComponentsCount: integer;
+begin
+  Result := ExcludedComponents.Count;
+end;
+
+function TConfigDefinition.GetIncludedComponentsCount: integer;
+begin
+  Result := IncludedComponents.Count;
+end;
+
 
 function TConfigDefinition.CompilerPath(const ProductId: String; const dv: TIDEName): string;
 begin
@@ -467,7 +573,10 @@ begin
   try
     Products.BestMatch(ProductId, function(Product: TProductConfigDefinition): boolean
     begin
-      Result := Product.BoolProperties.TryGetValue(PropKey, ResultValue);
+      var LocalResultValue: boolean;
+      Result := Product.BoolProperties.TryGetValue(PropKey, LocalResultValue);
+      if Result then ResultValue := LocalResultValue;
+
     end);
   finally
     MonitorExit(Products);
@@ -484,7 +593,10 @@ begin
   try
     Products.BestMatch(ProductId, function(Product: TProductConfigDefinition): boolean
     begin
-      Result := Product.IntProperties.TryGetValue(PropKey, ResultValue);
+      var LocalResultValue: integer;
+      Result := Product.IntProperties.TryGetValue(PropKey, LocalResultValue);
+      if Result then ResultValue := LocalResultValue;
+
     end);
   finally
     MonitorExit(Products);
@@ -501,13 +613,22 @@ begin
   try
     Products.BestMatch(ProductId, function(Product: TProductConfigDefinition): boolean
     begin
-      Result := Product.StringProperties.TryGetValue(PropKey, ResultValue);
+      var LocalResultValue: string;
+      Result := Product.StringProperties.TryGetValue(PropKey, LocalResultValue);
+      if Result then ResultValue := LocalResultValue;
+      
     end);
   finally
     MonitorExit(Products);
   end;
 
   Result := ResultValue;
+end;
+
+procedure TConfigDefinition.SetPrefixedProperties(index: TGlobalPrefixedProperties;
+  const Value: TArrayOverrideBehavior);
+begin
+  FPrefixedProperties[index] := value;
 end;
 
 function TConfigDefinition.SkipRegistering(const ProductId: String;
@@ -569,6 +690,11 @@ end;
 function TConfigDefinition.GetAdditionalProductsFolders: TEnumerable<string>;
 begin
   Result := AdditionalProductsFolders.Keys;
+end;
+
+function TConfigDefinition.GetAdditionalProductsFoldersCount: integer;
+begin
+  Result := AdditionalProductsFolders.Count;
 end;
 
 procedure TConfigDefinition.AddExcludedComponent(const Name, ErrorInfo: string);
@@ -737,6 +863,17 @@ begin
   FPlatformsModified := True;
 end;
 
+procedure TProductConfigDefinition.SetPrefixedProperties(
+  index: TProductPrefixedProperties; const Value: TArrayOverrideBehavior);
+begin
+  FPrefixedProperties[index] := value;
+end;
+
+procedure TProductConfigDefinition.ClearDefines;
+begin
+  FDefines.Clear;
+end;
+
 procedure TProductConfigDefinition.ClearIDENames;
 begin
   FIdeNames := [];
@@ -759,6 +896,12 @@ begin
   Result := FPlatforms;
 end;
 
+
+function TProductConfigDefinition.GetPrefixedProperties(
+  index: TProductPrefixedProperties): TArrayOverrideBehavior;
+begin
+  Result := FPrefixedProperties[index];
+end;
 
 procedure TProductConfigDefinition.SetString(const v, i: string);
 begin
@@ -833,6 +976,16 @@ begin
   Result := TSkipRegisteringOptions.WindowsPath in FOptions;
 end;
 
+function TSkipRegistering.Registry: boolean;
+begin
+  Result := TSkipRegisteringOptions.Registry in FOptions;
+end;
+
+function TSkipRegistering.FileLinks: boolean;
+begin
+  Result := TSkipRegisteringOptions.FileLinks in FOptions;
+end;
+
 class function TSkipRegistering.All: TSkipRegistering;
 begin
   Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
@@ -841,6 +994,147 @@ end;
 class function TSkipRegistering.None: TSkipRegistering;
 begin
   Result := TSkipRegistering.Create([]);
+end;
+
+{ TServerConfigList }
+
+procedure TServerConfigList.AddServer(const ServerConfig: TServerConfig);
+begin
+  if FindServer(ServerConfig.Name) >= 0 then raise Exception.Create('The server ' + ServerConfig.Name + ' was already added');
+
+  SetLength(Servers, Length(Servers) + 1);
+  Servers[Length(Servers) - 1] := ServerConfig;
+end;
+
+procedure TServerConfigList.ClearServers;
+begin
+  SetLength(Servers, Length(TServerConfig.BuiltinServers));
+end;
+
+constructor TServerConfigList.Create;
+begin
+  SetLength(Servers, Length(TServerConfig.BuiltinServers));
+  for var i := Low(TServerConfig.BuiltinServers) to High(TServerConfig.BuiltinServers) do
+  begin
+    Servers[i] := TServerConfig.CreateInternalServer(TServerConfig.BuiltinServers[i]);
+  end;
+end;
+
+destructor TServerConfigList.Destroy;
+begin
+  inherited;
+end;
+
+function TServerConfigList.FindServer(const Name: string): integer;
+begin
+  for var i := 0 to ServerCount - 1 do
+  begin
+    var Server := GetServer(i);
+    if SameText(Server.Name.Trim, Name.Trim) then exit(i);
+  end;
+
+  Result := -1;
+end;
+
+function TServerConfigList.GetServer(const index: integer): TServerConfig;
+begin
+  Result := Servers[index];
+end;
+
+function TServerConfigList.EnsureServer(const aName: string): integer;
+begin
+  Result := FindServer(aName);
+  if Result >= 0 then exit;
+
+  AddServer(TServerConfig.Create(aName, TServerType.ZipFile, '', true));
+  Result := Length(Servers) - 1;
+end;
+
+procedure TServerConfigList.RemoveServer(const index: integer);
+begin
+  if index < Length(TServerConfig.BuiltinServers) then raise Exception.Create('Cannot remove a built-in server. Disable it instead.');
+
+  for var i := index to Length(Servers) - 2 do
+  begin
+    Servers[i] := Servers[i + 1];
+  end;
+  SetLength(Servers, Length(Servers) - 1);
+end;
+
+function TServerConfigList.ServerCount: integer;
+begin
+  exit(Length(Servers));
+end;
+
+procedure TServerConfigList.SetInfo(const index: integer;
+  const Action: TVarProc<TServerConfig>);
+begin
+  var Server := GetServer(index);
+  Action(Server);
+  Servers[index] := Server;
+end;
+
+{ TServerConfig }
+constructor TServerConfig.CreateInternalServer(const aName: string);
+begin
+  if SameText(aName, 'tms') then
+  begin
+    name := 'tms';
+    Url := TMSUrl;
+    ServerType := TServerType.Api;
+    Enabled := true;
+  end
+  else if SameText(aName, 'community') then
+  begin
+    name := 'community';
+    Url := GitHubUrl;
+    ServerType := TServerType.ZipFile;
+    Enabled := false;
+  end
+  else raise Exception.Create('The name ' + aName + ' is not a valid internal name.');
+
+end;
+
+constructor TServerConfig.Create(const aName: string;
+  const aServerType: TServerType; const aUrl: string;
+  const aEnabled: boolean);
+begin
+  Name := aName.Trim;
+  ServerType := aServerType;
+  Url := aUrl;
+  Enabled := aEnabled;
+end;
+
+function TServerConfig.IsReservedName: boolean;
+begin
+  Result := IsReservedName(Name);
+end;
+
+class function TServerConfig.IsReservedName(const aName: string): boolean;
+begin
+  for var server in BuiltinServers do if SameText(aName.Trim, server) then exit(true);
+  Result := false;
+end;
+
+class function TServerConfig.ServerTypeFromString(
+  const value: string; const ExtraInfo: string = ''): TServerType;
+begin
+ var s1 := AnsiLowerCase(value.Trim);
+ if (s1 = 'api') then exit(TServerType.Api);
+ if (s1 = 'zipfile') then exit(TServerType.ZipFile);
+
+ raise Exception.Create('"' + value + '" is not a valid Server Type value. It must be "api" or "zipfile".' + ExtraInfo);
+
+end;
+
+function TServerConfig.ServerTypeString: string;
+begin
+  case ServerType of
+    TServerType.Api: exit('api');
+    TServerType.ZipFile: exit('zipfile');
+  end;
+
+  raise Exception.Create('Invalid Server Type.');
 end;
 
 end.

@@ -7,6 +7,7 @@ uses Classes, System.Generics.Collections, UConfigDefinition, UProjectDefinition
      UUninstallInfo, UMultiLogger;
 
 type
+  TIDENameArray = Array[TIDEName] of TIDEName;
 
   TProjectAnalyzer = class
   private
@@ -39,12 +40,14 @@ type
     function GetUninstallList: TObjectList<TProjectDefinition>;
     function BackToFolder(const StartFolder: string;
       const PackageFolders: TPackageFolders): string;
+    function GetIDEs(const Project: TProjectDefinition): TIDENameArray;
 
   public
     constructor Create(const aConfig: TConfigDefinition; const aProjectList: TProjectList; const aFileHasher: TFileHasher);
     destructor Destroy; override;
 
     procedure Analyze(const Projects: TProjectDefinitionList);
+    procedure CheckAllDependenciesExist(const Projects: TProjectDefinitionList);
     procedure AnalyzeUnusedPackages;
     property BuildInfo: TBuildInfo read FBuildInfo;
     property ProjectFinder: THashSet<string> read FProjectFinder;
@@ -53,7 +56,7 @@ type
 implementation
 uses UPackageFinder, UProjectBuildInfo, UIDEBuildInfo,
      UPlatformBuildInfo, UPackageBuildInfo, Generics.Collections, UProjectInstaller,
-     UAppTerminated, IOUtils, Deget.IDEInfo, Deget.DelphiInfo;
+     UAppTerminated, IOUtils, Deget.IDEInfo, Deget.DelphiInfo, UTmsBuildSystemUtils;
 
 { TProjectAnalyzer }
 
@@ -65,7 +68,7 @@ begin
     if not Map.TryGetValue(dep.Id, ProjDep) then
     begin
       if IsWeak then continue;
-      raise Exception.Create('Internal Error: Dependency ' + dep.Id + ' not found.');
+      raise Exception.Create('The product "' + Project.Application.Name + '" requires the product "' + dep.Description + '" to build, and it isn''t present. Add product "' + dep.Id + '" to the list of installed products.' );
     end;
 
     if Project.IncludeInBuild then
@@ -96,7 +99,7 @@ begin
     Project.IncludeInBuild := Config.IsIncluded(Project.Application.Id);
     if Project.IncludeInBuild then Inc(IncludedCount);
   end;
-  if (IncludedCount = Projects.Count) then exit; //no need to analyze further.
+  if (IncludedCount = Projects.Count) or (IncludedCount = 0) then exit; //no need to analyze further.
 
 
   var Map := TDictionary<string, TProjectDefinition>.Create;
@@ -128,10 +131,36 @@ begin
   end;
 end;
 
+procedure TProjectAnalyzer.CheckAllDependenciesExist(
+  const Projects: TProjectDefinitionList);
+begin
+  var Map := TDictionary<string, TProjectDefinition>.Create;
+  try
+    ProjectList.LoadDeps(Map);
+
+    for var Project in Projects do
+    begin
+      if not Project.IncludeInBuild then continue;
+      for var dep in Project.Dependencies do
+      begin
+        if not Map.ContainsKey(dep.Id) then
+        begin
+          raise Exception.Create('The product "' + Project.Application.Name + '" requires the product "' + dep.Description + '" to build, and it isn''t present. Add product "' + dep.Id + '" to the list of installed products.' );
+        end;
+
+      end;
+    end;
+  finally
+    Map.Free;
+  end;
+end;
+
+
 procedure TProjectAnalyzer.Analyze(const Projects: TProjectDefinitionList);
 begin
   Validate(Projects);
   AnalyzeProjectsToInclude(Projects);
+  CheckAllDependenciesExist(Projects);
   for var Project in Projects do Project.NeedsCompiling.Clear;
   for var Project in Projects do AnalyzeOneProject(Project);
 
@@ -205,7 +234,18 @@ begin
   var PackageCache := TPackageCache.Create;
   try
     BuildInfo.CurrentProject.SourceCodeHash := FileHasher.GenerateSourceCodeHash(PackageCache, Project);
-    BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, TPath.GetDirectoryName(Project.FullPath), Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
+    var PackagesFolder :=  TPath.GetDirectoryName(Project.FullPath);
+    if Project.RootPackageFolder <> '' then
+    begin
+      PackagesFolder := TPath.GetFullPath(TPath.Combine(PackagesFolder, Project.RootPackageFolder));
+      if FolderIsOutside(PackagesFolder, [Project.RootFolder])
+        then raise Exception.Create('The base package folder can''t be outside the root folder of the project. Current base package folder is: "' + PackagesFolder + '" and the root folder is "' + Project.RootFolder + '"');
+
+      BuildInfo.CurrentProject.BasePackagesFolder := PackagesFolder;
+    end else
+    begin
+      BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
+    end;
     var DepsCompiled := DependenciesRebuilt(Config, Project);
 
     AnalyzePackages(PackageCache, Project, DepsCompiled, BuildInfo.CurrentProject.BasePackagesFolder);
@@ -282,12 +322,24 @@ begin
   Result := false;
 end;
 
+function TProjectAnalyzer.GetIDEs(const Project: TProjectDefinition): TIDENameArray;
+begin
+  for var dv := Low(TIDEName) to High(TIDEName) do
+  begin
+    var dvr := dv;
+    if Project.IsExe and (Project.ExeOptions.CompileWith = TExeCompileWith.Latest) then dvr := TIDEName(Integer(High(TIDEName)) + Integer(Low(TIDEName)) - Integer(dv));
+    Result[dvr] := dv;
+  end;
+
+end;
+
 procedure TProjectAnalyzer.AnalyzePackages(const PackageCache: TPackageCache; const Project: TProjectDefinition; const DepsCompiled: TPlatsCompiled; const BasePackagesFolder: string);
 var
   ErrorMessage: string;
 begin
   var SupportedIDENames := Config.GetIDENames(Project.Application.Id);
-  for var dv := Low(TIDEName) to High(TIDEName) do
+  var AlreadyProcessed := -1;
+  for var dv in GetIDES(Project) do
   begin
     if not (dv in SupportedIDENames) then continue;
 
@@ -307,6 +359,12 @@ begin
       continue;
     end;
 
+    if (AlreadyProcessed > 0) and Project.IsExe and (Project.ExeOptions.CompileWith <> TExeCompileWith.All) then
+    begin
+      BuildInfo.CurrentProject.Notes.Add('Skipped ' + Project.Application.Id + ' for ' + Installer.DisplayName + '. It was compiled with ' + IDEId[TIDEName(AlreadyProcessed)] + '.', Installer.IDEName, TNoteType.SkippedIDE);
+      continue;
+    end;
+    AlreadyProcessed := Ord(dv);
     var plats := Config.GetPlatforms(dv, Project.Application.Id);
     for var dp in plats do
     begin
@@ -439,7 +497,8 @@ begin
     else if not Package.IsRuntime then exit;
   end;
 
-  if FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '') or (dp in DepsCompiled[dv]) then //we check at project level, not package.
+  if FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '')
+    or (dp in DepsCompiled[dv]) then //we check at project level, not package.
   begin
     BuildInfo.CurrentProject.AddBuildInfo(dv, TPackageBuildInfo.Create(
         Package,

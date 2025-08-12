@@ -1,0 +1,15 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: test.framework.defines.missingmydef.fail
+  name: "Framework defines: Missing MyDef FAILED."
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - Framework_Defines: [runtime, rtl]
+

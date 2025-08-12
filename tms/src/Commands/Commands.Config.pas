@@ -11,11 +11,12 @@ implementation
 
 uses
   UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes,
-  System.Types, UConfigWriter, UConfigDefinition, UConfigKeys, Deget.CoreTypes;
+  System.Types, UConfigWriter, UConfigDefinition, UConfigKeys,
+  Deget.CoreTypes;
 
 var
   Print,
-  Reset: Boolean;
+  Reset: boolean;
 
 function CreateDefaultConfig: TConfigDefinition;
 begin

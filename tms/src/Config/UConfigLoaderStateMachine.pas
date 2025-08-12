@@ -2,7 +2,9 @@ unit UConfigLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBClasses, UConfigDefinition, Generics.Collections, SysUtils, Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
+uses BBArrays, BBClasses, Megafolders.Definition,
+     UConfigDefinition, Generics.Collections, SysUtils,
+     Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
 
 type
   TSectionConf = class(TSection)
@@ -32,7 +34,7 @@ type
 
   TOptionsSectionConf = class(TSectionConf)
   private
-    function MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringOptions;
+    function MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
@@ -44,19 +46,40 @@ type
   TExcludedComponentsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
   TIncludedComponentsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
   TAdditionalProductsFoldersSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
+  end;
+
+  TServersSectionConf = class(TSectionConf)
+  public
+    constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
+    class function SectionNameStatic: string; override;
+  end;
+
+  TServerSectionConf = class(TSectionConf)
+  private
+    Name: string;
+    function GetServerType(const s: string;
+      const ErrorInfo: TErrorInfo): TServerType;
+  public
+    constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aName: string; const aProductConfig: TProductConfigDefinition);
+    class function SectionNameStatic: string; override;
+    function SectionName: string; override;
   end;
 
   TGitSectionConf = class(TSectionConf)
@@ -76,6 +99,7 @@ type
   TDelphiVersionsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
 
     procedure AddOrRemoveDelphiVersion(const dv: TIDEName; const value: string; const ErrorInfo: TErrorInfo);
@@ -86,6 +110,7 @@ type
   TPlatformsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
 
     procedure AddOrRemoveDelphiPlat(const dp: TPlatform; const value: string; const ErrorInfo: TErrorInfo);
@@ -134,6 +159,7 @@ type
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition;
         const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
 
   end;
@@ -141,6 +167,13 @@ type
   TTmsBuildOptionsSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
+  TDcuMegafoldersSectionConf = class(TSectionConf)
+  public
+    constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
     class function SectionNameStatic: string; override;
   end;
 
@@ -165,9 +198,9 @@ begin
   ChildSections.Add(TTmsBuildOptionsSectionConf.SectionNameStatic, TTmsBuildOptionsSectionConf.Create(Self, aConfig));
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo): TSection
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
 
       if not Name.StartsWith('configuration for ')
         then raise Exception.Create('The name "' + Name
@@ -175,7 +208,7 @@ begin
                    + TTmsBuildOptionsSectionConf.SectionNameStatic + '". ' + ErrorInfo.ToString);
 
       Name := Name.Substring(('configuration for ').Length).Trim;
-      if ChildSections.TryGetValue(Name, Result) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
 
       Result := TProductSectionConf.Create(Self, aConfig, Name, ErrorInfo);
       ChildSections.Add(Name, Result);
@@ -253,14 +286,16 @@ begin
 
 end;
 
-function TOptionsSectionConf.MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringOptions;
+function TOptionsSectionConf.MatchSkipRegistering(const Value: string; const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
 begin
    var v := Value.ToLowerInvariant.Trim;
+   if v = 'all' then exit([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
+
    for var SkipOption := Low(TSkipRegisteringOptions) to High(TSkipRegisteringOptions) do
    begin
-     if v = TSkipRegisteringName[SkipOption] then exit(SkipOption);
+     if v = TSkipRegisteringName[SkipOption] then exit([SkipOption]);
    end;
-   raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of [Packages, StartMenu, Help, WindowsPath, WebCore].'+ ErrorInfo.ToString);
+   raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks].'+ ErrorInfo.ToString);
 end;
 
 function TOptionsSectionConf.GetSkipRegistering(const s: string;
@@ -272,13 +307,16 @@ begin
  if (s1 = 'true') then exit([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
  if (s1 = 'false') then exit([]);
  if not s1.StartsWith('[') or not s1.EndsWith(']') then
-   raise Exception.Create('"' + s + '" is not a valid skip registering value. It must be "true", "false" or an array containing any of [Packages, StartMenu, Help, WindowsPath, WebCore]. ' + ErrorInfo.ToString);
+   raise Exception.Create('"' + s + '" is not a valid skip registering value. It must be "true", "false" or an array containing any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]. ' + ErrorInfo.ToString);
 
  Result := [];
  var Values := s1.Substring(1, s1.Length - 2).Split([','], TStringSplitOptions.ExcludeEmpty);
  for var Value in Values do
  begin
-   Result := Result + [MatchSkipRegistering(Value, ErrorInfo)];
+   var TrimValue := Value.Trim;
+   if TrimValue.StartsWith('-')
+     then Result := Result - MatchSkipRegistering(TrimValue.Substring(1), ErrorInfo)
+     else Result := Result + MatchSkipRegistering(TrimValue, ErrorInfo);
  end;
 
 
@@ -298,10 +336,17 @@ constructor TExcludedComponentsSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aConfig.ClearExcludedComponents;end;
+
+  ClearArrayValues := procedure begin aConfig.ClearExcludedComponents;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end;
 
+end;
+
+procedure TExcludedComponentsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.ExcludedProducts] := State;
 end;
 
 class function TExcludedComponentsSectionConf.SectionNameStatic: string;
@@ -317,9 +362,15 @@ constructor TIncludedComponentsSectionConf.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aConfig.ClearIncludedComponents;end;
+  ClearArrayValues := procedure begin aConfig.ClearIncludedComponents;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end;
+end;
+
+procedure TIncludedComponentsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.IncludedProducts] := State;
 end;
 
 class function TIncludedComponentsSectionConf.SectionNameStatic: string;
@@ -336,7 +387,15 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
 
+  ClearArrayValues := procedure begin aConfig.ClearAdditionalProductsFolders;end;
+
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end;
+end;
+
+procedure TAdditionalProductsFoldersSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.AdditionalProductsFolders] := State;
 end;
 
 class function TAdditionalProductsFoldersSectionConf.SectionNameStatic: string;
@@ -374,13 +433,20 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aProductConfig.ClearIDENames;end;
+
+  ClearArrayValues := procedure begin aProductConfig.ClearIDENames;end;
 
   Actions := TListOfActions.Create;
   for var dv := Low(TIDEName) to High(TIDEName) do
   begin
     Actions.Add(IDEId[dv], Capture(dv));
   end;
+end;
+
+procedure TDelphiVersionsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then ProductConfig.PrefixedProperties[TProductPrefixedProperties.DelphiVersions] := State;
 end;
 
 class function TDelphiVersionsSectionConf.SectionNameStatic: string;
@@ -416,7 +482,8 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
-  ClearArrayValues := procedure(v: string; ErrorInfo: TErrorInfo) begin aProductConfig.ClearPlatforms;end;
+
+  ClearArrayValues := procedure begin aProductConfig.ClearPlatforms;end;
 
   Actions := TListOfActions.Create;
   for dp := Low(TPlatform) to High(TPlatform) do
@@ -424,6 +491,13 @@ begin
     Actions.Add(PlatformId[dp], Capture(dp));
   end;
 end;
+
+procedure TPlatformsSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then ProductConfig.PrefixedProperties[TProductPrefixedProperties.Platforms] := State;
+end;
+
 
 class function TPlatformsSectionConf.SectionNameStatic: string;
 begin
@@ -567,6 +641,9 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.Both;
+
+  ClearArrayValues := procedure begin aProductConfig.ClearDefines;end;
+
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     if GetBoolEx(value, ErrorInfo) then
     begin
@@ -578,6 +655,13 @@ begin
     end;
   end;
 end;
+
+procedure TDefinesSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then ProductConfig.PrefixedProperties[TProductPrefixedProperties.Defines] := State;
+end;
+
 
 class function TDefinesSectionConf.SectionNameStatic: string;
 begin
@@ -593,8 +677,10 @@ begin
   ChildSections.Add(TExcludedComponentsSectionConf.SectionNameStatic, TExcludedComponentsSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TIncludedComponentsSectionConf.SectionNameStatic, TIncludedComponentsSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TAdditionalProductsFoldersSectionConf.SectionNameStatic, TAdditionalProductsFoldersSectionConf.Create(Self, aConfig, ProductConfig));
+  ChildSections.Add(TServersSectionConf.SectionNameStatic, TServersSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TGitSectionConf.SectionNameStatic, TGitSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TSvnSectionConf.SectionNameStatic, TSvnSectionConf.Create(Self, aConfig, ProductConfig));
+  ChildSections.Add(TDcuMegafoldersSectionConf.SectionNameStatic, TDcuMegafoldersSectionConf.Create(Self, aConfig, ProductConfig));
 
   Actions := TListOfActions.Create;
   Actions.Add('build cores', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.BuildCores := GetInt(value, ErrorInfo) end);
@@ -609,6 +695,115 @@ begin
   Result := 'tms smart setup options';
 end;
 
+{ TServersSectionConf }
+
+constructor TServersSectionConf.Create(const aParent: TSection;
+  const aConfig: TConfigDefinition;
+  const aProductConfig: TProductConfigDefinition);
+begin
+  inherited Create(aParent, aConfig, aProductConfig);
+
+  ClearArrayValues := procedure begin aConfig.ServerConfig.ClearServers;end;
+  for var i := Low(TServerConfig.BuiltinServers) to High(TServerConfig.BuiltinServers) do
+  begin
+    var server := TServerConfig.BuiltinServers[i];
+    ChildSections.Add(server, TServerSectionConf.Create(Self, aConfig, server, aProductConfig ));
+  end;
+
+  ChildSectionAction :=
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    begin
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
+      begin
+        if (Result.CreatedBy <> Root.CreatedBy) then
+        begin
+          Result.CreatedBy := Root.CreatedBy;
+          exit; //Allow you to define the same server in different files. Not twice in the same file.
+        end;
+
+        raise Exception.Create('The server "' + Name
+                   + '" is already defined. ' + ErrorInfo.ToString);
+
+      end;
+
+      Result := TServerSectionConf.Create(Self, aConfig, Name, aProductConfig);
+      ChildSections.Add(Name, Result);
+    end;
+end;
+
+procedure TServersSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.Servers] := State;
+end;
+
+class function TServersSectionConf.SectionNameStatic: string;
+begin
+  Result := 'servers';
+end;
+
+{ TServerSectionConf }
+
+constructor TServerSectionConf.Create(const aParent: TSection;
+  const aConfig: TConfigDefinition; const aName: string;
+  const aProductConfig: TProductConfigDefinition);
+begin
+  inherited Create(aParent, aConfig, aProductConfig);
+  Name := aName;
+
+  Actions := TListOfActions.Create;
+  Actions.Add('type', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    var Index := Config.ServerConfig.EnsureServer(aName);
+    if not Config.ServerConfig.GetServer(Index).IsReservedName then
+    begin
+      Config.ServerConfig.SetInfo(Index,
+        procedure (var Server: TServerConfig)
+        begin
+          Server.ServerType := GetServerType(Value, ErrorInfo);
+      end);
+    end;
+  end);
+
+  Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    var Index := Config.ServerConfig.EnsureServer(aName);
+    if not Config.ServerConfig.GetServer(Index).IsReservedName then
+    begin
+      Config.ServerConfig.SetInfo(Index,
+        procedure (var Server: TServerConfig)
+        begin
+          Server.Url := Value.Trim;
+        end);
+    end;
+  end);
+
+  Actions.Add('enabled', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    var Index := Config.ServerConfig.EnsureServer(aName);
+    Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end);
+  end);
+
+end;
+
+function TServerSectionConf.GetServerType(const s: string;
+  const ErrorInfo: TErrorInfo): TServerType;
+begin
+  Result := TServerConfig.ServerTypeFromString(s, ErrorInfo.ToString);
+end;
+
+
+function TServerSectionConf.SectionName: string;
+begin
+  Result := Name;
+end;
+
+class function TServerSectionConf.SectionNameStatic: string;
+begin
+  Result := 'Error';
+end;
+
+
 { TGitSectionConf }
 
 constructor TGitSectionConf.Create(const aParent: TSection;
@@ -621,8 +816,8 @@ begin
   Actions.Add('git location', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.GitCommand := value; Config.GitConfig := Git; end);
   Actions.Add('clone command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.Clone := value; Config.GitConfig := Git; end);
   Actions.Add('pull command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.Pull := value; Config.GitConfig := Git; end);
-  Actions.Add('checkout command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.Checkout := value; Config.GitConfig := Git; end);
-  Actions.Add('shallow clone command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Git := Config.GitConfig; Git.ShallowClone := value; Config.GitConfig := Git; end);
+  Actions.Add('checkout command', procedure(value: string; ErrorInfo: TErrorInfo) begin;  {ignore it, backwards compat} end);
+  Actions.Add('shallow clone command', procedure(value: string; ErrorInfo: TErrorInfo) begin; {ignore it, backwards compat}; end);
 end;
 
 class function TGitSectionConf.SectionNameStatic: string;
@@ -647,7 +842,7 @@ begin
   Actions.Add('svn location', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.SvnCommand := value; Config.SvnConfig := Svn; end);
   Actions.Add('checkout command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.Checkout := value; Config.SvnConfig := Svn; end);
   Actions.Add('update command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.Update := value; Config.SvnConfig := Svn; end);
-  Actions.Add('export command', procedure(value: string; ErrorInfo: TErrorInfo) begin; var Svn := Config.SvnConfig; Svn.Export := value; Config.SvnConfig := Svn; end);
+  Actions.Add('export command', procedure(value: string; ErrorInfo: TErrorInfo) begin; {ignore it, backwards compat} end);
 end;
 
 class function TSvnSectionConf.SectionNameStatic: string;
@@ -658,6 +853,34 @@ end;
 function TSvnSectionConf.VarPrefix: string;
 begin
   Result := 'svn-';
+end;
+
+{ TDcuMegafoldersSectionConf }
+
+constructor TDcuMegafoldersSectionConf.Create(const aParent: TSection;
+  const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+begin
+  inherited Create(aParent, aConfig, aProductConfig);
+
+  ClearArrayValues := procedure begin aConfig.DcuMegafolders.Clear;end;
+
+
+  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+    begin
+      Config.DcuMegafolders.Add(TMegafolder.Create(name, value));
+    end;
+end;
+
+procedure TDcuMegafoldersSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.DcuMegafolders] := State;
+end;
+
+
+class function TDcuMegafoldersSectionConf.SectionNameStatic: string;
+begin
+  Result := 'dcu megafolders';
 end;
 
 end.

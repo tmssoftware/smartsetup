@@ -20,16 +20,18 @@ type
   private
     FProductId: string;
     FVersion: TVersion;
+    FServer: string;
     FStatus: TFetchStatus;
     FDependenciesProcessed: Boolean;
     FSkipExtraction: Boolean;
     FInternal: Boolean;
     FFileHash: string;
   public
-    constructor Create(const AProductId, AVersion: string);
+    constructor Create(const AProductId, AVersion, AServer: string);
     function UniqueName: string;
     property ProductId: string read FProductId;
     property Version: TVersion read FVersion;
+    property Server: string read FServer;
     property FileHash: string read FFileHash write FFileHash;
     property Status: TFetchStatus read FStatus write FStatus;
     property SkipExtraction: Boolean read FSkipExtraction write FSkipExtraction;
@@ -46,10 +48,11 @@ implementation
 
 { TFetchItem }
 
-constructor TFetchItem.Create(const AProductId, AVersion: string);
+constructor TFetchItem.Create(const AProductId, AVersion, AServer: string);
 begin
   FProductId := AProductId;
   FVersion := AVersion;
+  FServer := AServer;
 end;
 
 function TFetchItem.UniqueName: string;

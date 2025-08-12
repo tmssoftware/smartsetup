@@ -1,0 +1,53 @@
+{
+  "build": {
+    "content": [
+      {
+        "files": [
+          "guide/**.md",
+          "download/**.md",
+          "toc.yml",
+          "*.md"
+        ],
+        "exclude": [
+          "obj/**",
+          "_site/**"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "images/**",
+          "files/**"
+        ],
+        "exclude": [
+          "obj/**",
+          "_site/**"
+        ]
+      }
+    ],
+    "dest": "chm/_site_chm",
+    "globalMetadataFiles": [],
+    "fileMetadataFiles": [],
+    
+    "globalMetadata": {
+      "_appTitle": "{{title}} documentation",
+      "_appFooter":"{{{product-version}}} <br /> &copy; 2022 - {{year}} tmssoftware.com",
+      "_appLogoPath": "images/{{ProductShortName}}.png",
+      "_appFaviconPath":"images/{{ProductShortName}}.ico",
+      "_enableSearch": false,
+      "_disableBreadcrumb": true,
+      "_disableContribution": true,
+      "_disableToc": true,
+      "_disableNavbar": true
+    },
+    "template": [
+      "default"
+    ],
+      "theme": [
+        "docfx-theme"
+    ],
+    "postProcessors": [],
+    "noLangKeyword": false
+  }
+}

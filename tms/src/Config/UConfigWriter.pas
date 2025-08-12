@@ -2,7 +2,8 @@ unit UConfigWriter;
 {$i ../../tmssetup.inc}
 
 interface
-uses Classes, SysUtils, Util.Replacer, UConfigDefinition, Generics.Defaults, Generics.Collections, ULogger, Deget.CoreTypes;
+uses Classes, SysUtils, Util.Replacer, UConfigDefinition, Generics.Defaults,
+     Generics.Collections, ULogger, Deget.CoreTypes, Megafolders.Definition, BBArrays, BBClasses;
 type
 TConfigWriter = class
   private
@@ -39,6 +40,11 @@ TConfigWriter = class
     function GetCompilerPath(const ProductCfg: TProductConfigDefinition;
       const ProductId: string): string;
     function CommentBlock(const s: string): string;
+    function GetServers(const Servers: TServerConfigList): string;
+    function GetDcuMegafolders(const Values: TMegafolderList): TArray<string>;
+    function GetHeaderVarName(const Header: string): string;
+    function GetHeaderContent(const Header: string;
+      const ArrayPrefix: TArrayOverrideBehavior): string;
   public
     constructor Create(const aCmdFormat: boolean);
     function ReplaceVariables(const Cfg: TConfigDefinition; const GlobalTemplate, ProductTemplate: string): string;
@@ -68,6 +74,12 @@ begin
   if String.IsNullOrWhiteSpace(s) then exit('#');
   exit('');
 
+end;
+
+function Quote(const s: string): string;
+begin
+  if s.IndexOfAny(['*', '%']) < 0 then exit(s);
+  Result := '''' + s.Replace('''', '''''') + '''';
 end;
 
 function TConfigWriter.GetCmdArray(const Items: Array of string): string;
@@ -145,6 +157,47 @@ begin
 
 end;
 
+function TConfigWriter.GetDcuMegafolders(const Values: TMegafolderList): TArray<string>;
+begin
+  Result := nil;
+  SetLength(Result, Values.Count);
+  for var i := 0 to Values.Count - 1 do
+  begin
+    Result[i] := Values[i].Folder + ': ' + Quote(Values[i].Mask);
+  end;
+
+  if Values.Count > 0 then exit;
+
+  Result :=
+  [
+    '#none: ''tms.flexcel.vcl''   # FlexCel VCL has over 5000 units, it is not worth putting it into a megafolder',
+    '#tms: ''tms.*''   # All other products matching tms.* except FlexCel go to the tms folder',
+    '#none: ''biglib.*'' # All "none" entries won''t use megafolders. Use none for big libraries.',
+    '#other: ''*'' #all products that didn''t match our previous rules go into other.'
+  ];
+
+end;
+
+
+function TConfigWriter.GetServers(const Servers: TServerConfigList): string;
+begin
+  Result := '';
+  for var i := 0 to Servers.ServerCount - 1 do
+  begin
+    var Server := Servers.GetServer(i);
+    if i > 0 then  Result := Result + NewLine + NewLine;
+    
+    Result := Result + '    ' + Server.Name + ':' + NewLine;
+    if not Server.IsReservedName then
+    begin
+      Result := Result + '      type: ' + Server.ServerTypeString + NewLine;
+      Result := Result + '      url: ' + Server.Url + NewLine;
+    end;
+    Result := Result + '      enabled: ' + BoolToStrLower(Server.Enabled);
+  end;
+
+end;
+
 function GetProduct(const Cfg: TConfigDefinition; const AProductId: string): TProductConfigDefinition;
 begin
   var ProductId := aProductId;
@@ -153,7 +206,21 @@ begin
   Result := Cfg.GetProduct(ProductId);
 end;
 
+function TConfigWriter.GetHeaderVarName(const Header: string): string;
+begin
+  Result := Header.Replace(' ', '-') + '-header';
+end;
+
+function TConfigWriter.GetHeaderContent(const Header: string; const ArrayPrefix: TArrayOverrideBehavior): string;
+begin
+  exit(TArrayOverrideBehavior_ToStringPrefix(ArrayPrefix) + Header);
+end;
+
 function TConfigWriter.ReplaceGlobalVariables(const Cfg: TConfigDefinition; const GlobalTemplate, ProductTemplate: string): string;
+const
+  ArrayPropertyHeaders: Array[TGlobalPrefixedProperties] of string =
+    ('excluded products', 'included products', 'additional products folders',
+     'servers', 'dcu megafolders');
 begin
   Result := ParseString(GlobalTemplate, function(varName: string): string
     begin
@@ -166,30 +233,32 @@ begin
       if varName = 'included-products' then exit(GetArray(GetIncludedExcludedComponents(Cfg.GetIncludedComponents), 2));
       if varName = 'additional-products-folders' then exit(GetArray(GetAdditionalProductsFolders(Cfg.GetAdditionalProductsFolders), 2));
 
-      if varName = 'git-git-location' then exit(ExampleString(Cfg.GitConfig.GitCommand, 'c:\git\git.exe'));
-      if varName = 'git-git-location-comment' then exit(GetComment(Cfg.GitConfig.GitCommand));
-      if varName = 'git-clone-command' then exit(ExampleString(Cfg.GitConfig.Clone, 'clone'));
-      if varName = 'git-clone-command-comment' then exit(GetComment(Cfg.GitConfig.Clone));
-      if varName = 'git-pull-command' then exit(ExampleString(Cfg.GitConfig.Pull, 'pull'));
-      if varName = 'git-pull-command-comment' then exit(GetComment(Cfg.GitConfig.Pull));
-      //if varName = 'git-checkout-command' then exit(ExampleString(Cfg.GitConfig.Checkout, 'checkout HEAD --'));
-      //if varName = 'git-checkout-command-comment' then exit(GetComment(Cfg.GitConfig.Checkout));
-      if varName = 'git-shallow-clone-command' then exit(ExampleString(Cfg.GitConfig.ShallowClone, 'clone --depth 1 --filter=blob:none --sparse'));
-      if varName = 'git-shallow-clone-command-comment' then exit(GetComment(Cfg.GitConfig.ShallowClone));
+      if varName = 'servers' then exit(GetServers(Cfg.ServerConfig));
 
-      if varName = 'svn-svn-location' then exit(ExampleString(Cfg.SvnConfig.SvnCommand, 'C:\fpc\fpcbootstrap\svn\bin\svn.exe'));
+      if varName = 'git-git-location' then exit(ExampleString(Quote(Cfg.GitConfig.GitCommand), 'c:\git\git.exe'));
+      if varName = 'git-git-location-comment' then exit(GetComment(Cfg.GitConfig.GitCommand));
+      if varName = 'git-clone-command' then exit(ExampleString(Quote(Cfg.GitConfig.Clone), 'clone'));
+      if varName = 'git-clone-command-comment' then exit(GetComment(Cfg.GitConfig.Clone));
+      if varName = 'git-pull-command' then exit(ExampleString(Quote(Cfg.GitConfig.Pull), 'pull'));
+      if varName = 'git-pull-command-comment' then exit(GetComment(Cfg.GitConfig.Pull));
+
+      if varName = 'svn-svn-location' then exit(ExampleString(Quote(Cfg.SvnConfig.SvnCommand), 'C:\fpc\fpcbootstrap\svn\bin\svn.exe'));
       if varName = 'svn-svn-location-comment' then exit(GetComment(Cfg.SvnConfig.SvnCommand));
-      if varName = 'svn-checkout-command' then exit(ExampleString(Cfg.SvnConfig.Checkout, 'checkout'));
+      if varName = 'svn-checkout-command' then exit(ExampleString(Quote(Cfg.SvnConfig.Checkout), 'checkout'));
       if varName = 'svn-checkout-command-comment' then exit(GetComment(Cfg.SvnConfig.Checkout));
-      if varName = 'svn-update-command' then exit(ExampleString(Cfg.SvnConfig.Update, 'update'));
+      if varName = 'svn-update-command' then exit(ExampleString(Quote(Cfg.SvnConfig.Update), 'update'));
       if varName = 'svn-update-command-comment' then exit(GetComment(Cfg.SvnConfig.Update));
-      if varName = 'svn-export-command' then exit(ExampleString(Cfg.SvnConfig.Export, 'export'));
-      if varName = 'svn-export-command-comment' then exit(GetComment(Cfg.SvnConfig.Export));
+
+      if varName = 'dcu-megafolders' then exit(GetArray(GetDcuMegafolders(Cfg.DcuMegafolders), 2));
 
 
       if varName = 'config-by-product' then exit(ReplaceAllProductVariables(Cfg.Products, ProductTemplate));
       if varName.StartsWith('config-for-product_') then exit(ReplaceProductVariables(GetProduct(Cfg, varName.Substring(varName.IndexOf('_') + 1)), ProductTemplate));
 
+      for var ArrayProperty := Low(TGlobalPrefixedProperties) to High(TGlobalPrefixedProperties) do
+      begin
+        if varName = GetHeaderVarName(ArrayPropertyHeaders[ArrayProperty])  then exit(GetHeaderContent(ArrayPropertyHeaders[ArrayProperty], Cfg.PrefixedProperties[ArrayProperty]))
+      end;
 
 
       raise Exception.Create('Unknown variable: ' + varName);
@@ -362,6 +431,10 @@ end;
 
 function TConfigWriter.ReplaceProductVariables(
   const ProductCfg: TProductConfigDefinition; const ProductTemplate: string): string;
+const
+  ArrayPropertyHeaders: Array[TProductPrefixedProperties] of string =
+    ('delphi versions', 'platforms', 'defines');
+
 begin
   Result := ParseString(ProductTemplate, function(varName: string): string
     begin
@@ -398,6 +471,11 @@ begin
 
       if varName = 'is-all-products' then exit(BoolToStr(ProductCfg.ProductId = GlobalProductId, true));
       if varName = 'is-not-all-products' then exit(BoolToStr(ProductCfg.ProductId <> GlobalProductId, true));
+
+      for var ArrayProperty := Low(TProductPrefixedProperties) to High(TProductPrefixedProperties) do
+      begin
+        if varName = GetHeaderVarName(ArrayPropertyHeaders[ArrayProperty])  then exit(GetHeaderContent(ArrayPropertyHeaders[ArrayProperty], ProductCfg.PrefixedProperties[ArrayProperty]))
+      end;
 
 
       raise Exception.Create('Unknown variable: ' + varName);
@@ -482,12 +560,7 @@ end;
 procedure TConfigWriter.Save(const Cfg: TConfigDefinition; const GlobalTemplate,
   ProductTemplate: TStream; const FileName: string);
 begin
-  var Encoding := TUTF8NoBOMEncoding.Create;
-  try
-    TFile.WriteAllText(FileName, ReplaceVariables(Cfg, GetData(GlobalTemplate), GetData(ProductTemplate)), Encoding);
-  finally
-    Encoding.Free;
-  end;
+  TFile.WriteAllText(FileName, ReplaceVariables(Cfg, GetData(GlobalTemplate), GetData(ProductTemplate)), TUTF8NoBOMEncoding.Instance);
 end;
 
 end.

@@ -10,20 +10,18 @@ type
     FSvnCommandLine: string;
     FCloneCommand: string;
     FPullCommand: string;
-    FExportCommand: string;
 
     function GetEnvCommandLine: string;
   public
-    constructor Create(const aSvnCommandLine, aCloneCommand, aPullCommand, aExportCommand: string);
+    constructor Create(const aSvnCommandLine, aCloneCommand, aPullCommand: string);
 
     property SvnCommandLine: string read FSvnCommandLine;
     property CloneCommand: string read FCloneCommand;
     property PullCommand: string read FPullCommand;
-    property ExportCommand: string read FExportCommand;
 
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
-    procedure GetFile(const aFileName, aDestFolder, aURL: string);
+    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
   end;
 
 implementation
@@ -31,7 +29,7 @@ uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtil
 
 { TSvnEngine }
 
-constructor TSvnEngine.Create(const aSvnCommandLine, aCloneCommand, aPullCommand, aExportCommand: string);
+constructor TSvnEngine.Create(const aSvnCommandLine, aCloneCommand, aPullCommand: string);
 begin
   if aSvnCommandLine.Trim = '' then FSvnCommandLine := GetEnvCommandLine
   else FSvnCommandLine := aSvnCommandLine;
@@ -40,8 +38,6 @@ begin
 
   if aCloneCommand.Trim = '' then FCloneCommand := 'checkout' else FCloneCommand := aCloneCommand;
   if aPullCommand.Trim = '' then FPullCommand := 'update' else FPullCommand := aPullCommand;
-  if aExportCommand.Trim = '' then FExportCommand := 'export' else FExportCommand := aExportCommand;
-
 end;
 
 function TSvnEngine.GetEnvCommandLine: string;
@@ -60,16 +56,9 @@ begin
   Result := FindExeInPath(Path, SvnExe);
 end;
 
-procedure TSvnEngine.GetFile(const aFileName, aDestFolder, aURL: string);
+function TSvnEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
 begin
-  var Output := '';
-  var DestFolder := TPath.GetFullPath(aDestFolder);
-  var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + ExportCommand + ' "' + aURL + '/' + aFileName + '" "' + DestFolder + '"';
-  if DirectoryExists(DestFolder) then raise Exception.Create('Can''t svn export into an existing folder: "' + DestFolder + '"');
-  TDirectory_CreateDirectory(DestFolder);
-  if not ExecuteCommand(FullCommand, DestFolder, Output)
-    then raise Exception.Create('Error trying to get file "' +  aFileName + '" from "' + aUrl + '". Verify that the file exists.');
-
+  Result := false;
 end;
 
 procedure TSvnEngine.Clone(const aCloneFolder, aURL: string);

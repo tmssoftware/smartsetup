@@ -13,13 +13,14 @@ uses
   Commands.Config,
   Commands.ConfigWrite,
   Commands.ConfigRead,
+  Commands.ServerEnable,
+  Commands.ServerList,
+  Commands.ServerAdd,
+  Commands.ServerRemove,
   Commands.Fetch,
   Commands.Build,
   Commands.SelfUpdate,
   Commands.Info,
-  Commands.RepoRegister,
-  Commands.RepoUnregister,
-  Commands.RepoList,
   Commands.Doctor,
   Commands.LogView,
   Commands.Uncompress;
@@ -44,6 +45,7 @@ begin
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.ProductsTempFolder);
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.CompileTempFolder);
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.VCSTempFolder, true, true);
+    TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.ZipFileTempFolder);
 
     // self-update
     TryToDeleteAllFilesInFolderIgnoringLocked(TPath.Combine(TPath.GetDirectoryName(paramstr(0)), '.locked'), false, true, '*' + TempExtension);
@@ -81,9 +83,10 @@ begin
   RegisterConfigWriteCommand;
   RegisterConfigReadCommand;
 
-  RegisterRepoRegisterCommand;
-  RegisterRepoUnregisterCommand;
-  RegisterRepoListCommand;
+  RegisterServerEnableCommand;
+  RegisterServerListCommand;
+  RegisterServerAddCommand;
+  RegisterServerRemoveCommand;
 
   RegisterDoctorCommand;
 

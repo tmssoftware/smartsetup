@@ -145,6 +145,8 @@ begin
 
   FDryRun := aConfig.DryRun(ProjectId);
   FDebugDCUs := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.DebugDcus, true);
+  if aProject.IsExe and not aProject.ExeOptions.ExeDebug then FDebugDCUs := false;
+
   if aProject.Application.CanAddSourceCodeToLibraryPath then
   begin
     FAddSourceCodeToLibraryPath := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.AddSourceCodeToLibraryPath, false);
@@ -380,9 +382,10 @@ end;
 
 function TProjectBuildInfo.SkipRegistering: TSkipRegistering;
 begin
-  if Project.IsExe then exit(TSkipRegistering.All);
+  var Settings := TSkipRegisteringSet(Byte((Config.SkipRegistering(ProjectId, 0))));
+  if Project.IsExe then Settings := Settings + [TSkipRegisteringOptions.Packages];
 
-  Result := TSkipRegistering.Create(TSkipRegisteringSet(Byte((Config.SkipRegistering(ProjectId, 0)))));
+  Result := TSkipRegistering.Create(Settings);
 end;
 
 { TPlatformsToUninstall }

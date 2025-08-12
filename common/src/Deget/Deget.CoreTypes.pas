@@ -29,7 +29,8 @@ type
     delphirio,
     delphisydney,
     delphi11,
-    delphi12
+    delphi12,
+    delphi13
     );
 
     TIDENameSet = set of TIDEName;
@@ -62,7 +63,8 @@ const
     'delphirio',
     'delphisydney',
     'delphi11',
-    'delphi12'
+    'delphi12',
+    'delphi13'
     );
 
 const

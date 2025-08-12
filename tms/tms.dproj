@@ -105,11 +105,11 @@
         <SanitizedProjectName>tms</SanitizedProjectName>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup;FileVersion=1.10.0.0;InternalName=TMS Smart Setup;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. cmd;ProductName=TMS Smart Setup;ProductVersion=1.10.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup;FileVersion=2.0.0.0;InternalName=TMS Smart Setup;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. cmd;ProductName=TMS Smart Setup;ProductVersion=2.0.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
         <VerInfo_Release>0</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_MinorVer>10</VerInfo_MinorVer>
-        <VerInfo_MajorVer>1</VerInfo_MajorVer>
+        <VerInfo_MinorVer>0</VerInfo_MinorVer>
+        <VerInfo_MajorVer>2</VerInfo_MajorVer>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <DCC_UsePackage>FlexCel_Report;TMSLogging;fmx;DbxCommonDriver;bindengine;IndyIPCommon;emsclient;FireDACCommonDriver;aurelius;IndyProtocols;sparkle;sphinx;IndyIPClient;dbxcds;FmxTeeUI;bindcompfmx;FlexCel_Pdf;FireDACSqliteDriver;DbxClientDriver;soapmidas;TMSScripter;fmxFireDAC;dbexpress;inet;DataSnapCommon;fmxase;dbrtl;FireDACDBXDriver;FlexCel_XlsAdapter;CustomIPTransport;tmsbcl;DBXInterBaseDriver;IndySystem;FlexCel_Core;bindcomp;FireDACCommon;FlexCel_Render;IndyCore;RESTBackendComponents;bindcompdbx;rtl;remotedb;RESTComponents;DBXSqliteDriver;IndyIPServer;dsnapxml;DataSnapClient;DataSnapProviderClient;DataSnapFireDAC;emsclientfiredac;FireDAC;FireDACDSDriver;xmlrtl;tethering;dsnap;xdata;CloudService;DataSnapNativeClient;FMXTee;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
@@ -274,7 +274,6 @@
         <DCCReference Include="src\Commands\Commands.Termination.pas"/>
         <DCCReference Include="src\Builder\UParallelProjectBuilder.pas"/>
         <DCCReference Include="src\Project\UProjectDefinition.pas"/>
-        <DCCReference Include="src\Naming\UTmsPackNaming.pas"/>
         <DCCReference Include="src\Naming\UStandardNaming.pas"/>
         <DCCReference Include="src\Naming\UNaming.pas"/>
         <DCCReference Include="src\Installers\UMsBuildInstaller.pas"/>
@@ -381,9 +380,6 @@
         <DCCReference Include="src\VCS\VCS.Engine.Factory.pas"/>
         <DCCReference Include="src\VCS\VCS.CoreTypes.pas"/>
         <DCCReference Include="src\VCS\VCS.Engine.Svn.pas"/>
-        <DCCReference Include="src\Commands\Commands.RepoRegister.pas"/>
-        <DCCReference Include="src\Commands\Commands.RepoUnregister.pas"/>
-        <DCCReference Include="src\Commands\Commands.RepoList.pas"/>
         <DCCReference Include="..\common\src\USimpleJsonSerializer.pas"/>
         <DCCReference Include="src\Commands\Commands.LogView.pas"/>
         <DCCReference Include="..\common\src\Compression\Decompressor.ZSTD.pas"/>
@@ -408,6 +404,17 @@
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas"/>
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas"/>
         <DCCReference Include="..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas"/>
+        <DCCReference Include="src\VCS\ZipFile.Download.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerEnable.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerList.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerAdd.pas"/>
+        <DCCReference Include="src\Commands\Commands.ServerRemove.pas"/>
+        <DCCReference Include="src\VCS\VCS.Engine.ZipFile.pas"/>
+        <DCCReference Include="src\Packages\Package.Creator.pas"/>
+        <DCCReference Include="src\Installers\UDelphi13Installer.pas"/>
+        <DCCReference Include="src\Megafolders\Megafolders.Definition.pas"/>
+        <DCCReference Include="src\Megafolders\Megafolders.Manager.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBArrays.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

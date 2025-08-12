@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+	       "files.exclude": {
+            "tmp-run/**": true,
+            "**/.DS_Store": true,
+            "**/__*": true,
+            "**/Thumbs.db": true,
+            "test.code-workspace": true
+        }
+	}
+}

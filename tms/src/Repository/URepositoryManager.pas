@@ -73,6 +73,7 @@ type
     FClient: THTTPClient;
     FAccessToken: string;
     FUrl: string;
+    FServer: string;
     FProducts: TObjectList<TRepositoryProduct>;
     FProductsLoaded: Boolean;
     function CreateRequest(const Method, Url: string): IHTTPRequest;
@@ -87,22 +88,26 @@ type
     function FindProduct(const ProductId: string): TRepositoryProduct;
     function GetDownloadInfo(const ProductId, Version: string): TDownloadInfo;
     property Url: string read FUrl write FUrl;
+    property Server: string read FServer write FServer;
     property AccessToken: string read FAccessToken write FAccessToken;
   end;
 
-function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const ThrowExceptions: boolean): TRepositoryManager;
+function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const ThrowExceptions: boolean): TRepositoryManager;
 
 implementation
 
 uses
   UMultiLogger;
 
-function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const ThrowExceptions: boolean): TRepositoryManager;
+function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const ThrowExceptions: boolean): TRepositoryManager;
 begin
+  if not ThrowExceptions and (RootUrl = '') then exit(nil);
+
   Result := TRepositoryManager.Create;
   try
-    Result.Url := Options.RepositoryInfo.ApiUrl;
-    Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options);
+    Result.Url := Options.RepositoryInfo(RootUrl).ApiUrl;
+    Result.Server := Server;
+    Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, Options.RepositoryInfo(RootUrl).AuthUrl);
   except
     Result.Free;
     if ThrowExceptions then raise else Result := nil;

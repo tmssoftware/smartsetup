@@ -22,7 +22,7 @@ TPersistence = class
   function Retrieve(const Project: string; const IDE: string = ''; const Platform: string = ''; const Package: string = ''): string; virtual; abstract;
   procedure Remove(const Project: string; const IDE: string = ''; const Platform: string = ''; const Package: string = ''); virtual; abstract;
   procedure RemoveAndBelow(const Project: string; const IDE: string = ''; const Platform: string = ''); virtual; abstract;
-  procedure RemoveAll; virtual; abstract;
+  procedure RemoveAll(const ForceExcluded: boolean; out AllIncluded: boolean); virtual; abstract;
 
   function List(const Project: string; const IDE: string = ''; const Platform: string = ''): TArray<TStrUninstallInfo>; virtual; abstract;
 end;

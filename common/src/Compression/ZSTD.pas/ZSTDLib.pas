@@ -23,7 +23,10 @@ unit ZSTDLib;
  * You may select, at your option, one of the above-listed licenses.
  *)
 
-//To Compile the .o for Win64:
+
+//To compile the .o for Win64 see GeneratingOBJ.md
+
+//Deprecated: To Compile the .o for Win64 using C++Builder (modern):
 //Edit lib\Win64\generateobj.bat, set the correct paths and run it.
 
 //To get the files in linux:
@@ -47,6 +50,7 @@ unit ZSTDLib;
 
 {$LINK 'lib\Win64\fse_decompress.o'}
 {$LINK 'lib\Win64\huf_decompress.o'}
+{.$LINK 'lib\Win64\huf_decompress_amd64.o'} //requires setting ZSTD_HAS_NOEXECSTACK in the cmake file. see https://github.com/facebook/zstd/issues/4280
 {$LINK 'lib\Win64\zstd_ddict.o'}
 {$LINK 'lib\Win64\zstd_decompress.o'}
 {$LINK 'lib\Win64\zstd_decompress_block.o'}
@@ -64,13 +68,18 @@ unit ZSTDLib;
 {$LINK 'lib\Win64\zstd_compress_sequences.o'}
 {$LINK 'lib\Win64\zstd_compress_superblock.o'}
 {$LINK 'lib\Win64\zstd_double_fast.o'}
+
+{$LINK 'lib\Win64\zstd_v05.o'}
+{$LINK 'lib\Win64\zstd_v06.o'}
+{$LINK 'lib\Win64\zstd_v07.o'}
+{$LINK 'lib\Win64\zstd_preSplit.o'}
 {$ENDIF}
 
 interface
 
 uses
   {$IFDEF MSWINDOWS}
-  Windows,
+  Windows,{ System.Win.Crtl, }
   {$ENDIF}
   {$IFDEF POSIX}
   Posix.SysTypes,
@@ -1081,9 +1090,14 @@ function ZSTD_sizeof_DDict(ddict: ZSTD_DDict): size_t; external {$IFDEF ZSTD_DLL
 
 implementation
 {$IFNDEF ZSTD_DLL}
-//External definitions from https://github.com/tinyBigGAMES/CPas/blob/main/lib/CPas.CRuntime.pas
+//External definitions
 const
-  ucrt = 'api-ms-win-crt-stdio-l1-1-0.dll';
+  //We could use System.Win.Crtl here, but it uses Delphi's mem allocator for malloc, and zstd doesn't seem to like it.
+  //It also uses ucrt, which Windows 7 and Server 2012 don't like.
+
+  //UCRT is the more modern option, but it fails in win7/server 2012 without installing ucrt: https://learn.microsoft.com/en-us/cpp/porting/upgrade-your-code-to-the-universal-crt?view=msvc-170
+  //ucrt = 'api-ms-win-crt-stdio-l1-1-0.dll';
+  ucrt = 'msvcrt.dll';  //msvcrt is older, but seems to work and it works everywhere.
   kernelbase = 'kernelbase.dll';
 
   procedure ___chkstk_ms; stdcall; external kernelbase name '__chkstk';
@@ -1095,6 +1109,8 @@ const
   function memmove(dst: Pointer; src: Pointer; num: Size_t): Pointer; cdecl; external ucrt;
   function _beginthreadex(security: Pointer; stack_size: Cardinal; start_address: Pointer; arglist: Pointer; initflag: Cardinal; threadaddr: PCardinal): THandle; cdecl; external ucrt;
   function _errno: PInteger; cdecl; external ucrt;
+
+
 
 {$region 'Missing externals. No need to declare the parameters'}
 procedure FSE_readNCount_bmi2;external;
@@ -1149,6 +1165,7 @@ procedure ZSTDMT_nextInputSizeHint; external;
 procedure ZSTDMT_createCCtx_advanced; external;
 procedure ZSTDMT_initCStream_internal; external;
 procedure HIST_countFast_wksp; external;
+procedure HIST_add; external;
 procedure ZSTD_ldm_skipRawSeqStoreBytes; external;
 procedure ZSTD_ldm_skipSequences; external;
 procedure ZSTD_ldm_blockCompress; external;
@@ -1201,6 +1218,8 @@ procedure ZSTD_noCompressLiterals; external;
 procedure ZSTD_compressRleLiteralsBlock; external;
 procedure HUF_compress1X_usingCTable; external;
 procedure HUF_compress4X_usingCTable; external;
+//procedure HUF_decompress4X2_usingDTable_internal_fast_asm_loop; external;
+//procedure HUF_decompress4X1_usingDTable_internal_fast_asm_loop; external;
 {$ENDIF}
 
 {$endregion}

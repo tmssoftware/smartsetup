@@ -2,18 +2,31 @@ unit VCS.Registry;
 {$I ../../tmssetup.inc}
 
 interface
-uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes;
+uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes,
+  UProjectDefinition, UConfigDefinition;
 type
+  //In the future, we might add more stuff to the registry, like an image or path files.
+  //That data would go inside this record.
+  TPredefinedData = record
+  public
+    Tmsbuild_Yaml: string;
+
+    constructor Create(const aTmsbuild_Yaml: string);
+    function Equals(const obj: TPredefinedData): boolean;
+    class function Empty: TPredefinedData; static;
+  end;
+
   TRegisteredProduct = class
   private
-    const ProtocolToStr: Array[TVCSProtocol] of string = ('GIT', 'SVN');
+    const ProtocolToStr: Array[TVCSProtocol] of string = ('GIT', 'SVN', 'ZIPFILE');
   private
     FUrl: string;
     FProtocol: TVCSProtocol;
     FProductId: string;
     FName: string;
     FDescription: string;
-    FIsPredefined: boolean;
+    FServer: string;
+    FPredefinedData: TPredefinedData;
     function GetProtocolString: string;
   public
     property Url: string read FUrl;
@@ -22,56 +35,50 @@ type
     property ProductId: string read FProductId;
     property Name: string read FName;
     property Description: string read FDescription;
-    property IsPredefined: boolean read FIsPredefined;
+    property Server: string read FServer write FServer;
+    property PredefinedData: TPredefinedData read FPredefinedData;
 
-    class function GetProtocolFromString(const aProtocol: string): TVCSProtocol; static;
+    class function GetProtocolFromString(const aProtocol: string; const DefaultIsGit: boolean): TVCSProtocol; static;
     class function GetStringFromProtocol(const aProtocol: TVCSProtocol): string; static;
 
-    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aIsPredefined: boolean);
+    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string; const aPredefinedData: TPredefinedData);
     function Equals(ProductB: TObject): boolean; override;
   end;
 
   TProductRegistry = class
   private
-    const RepoExt = '.repo.json';
-  private
-    StoreFolder: string;
     FProducts: TObjectDictionary<string, TRegisteredProduct>;
-    function AlreadySaved(const Filename: string; const Product: TRegisteredProduct): boolean;
-    function GetProductFromFile(const Filename: string): TRegisteredProduct;
-    function GetProductID(const Filename: string): string;
-    function GetProductFromText(const Filename, Text: string;
-      const aLoadingPredefined: boolean): TRegisteredProduct;
-    procedure LoadPreregisteredProducts;
+    function GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText: string): TRegisteredProduct;
+    procedure LoadPreregisteredProducts(const aServerName: string);
+    procedure LoadOnePreregisteredProduct(const FileName, Text, Server: string);
+    procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
   public
-    constructor Create(const aStoreFolder: string);
+    constructor Create(aServerName: string);
     destructor Destroy; override;
 
-    procedure Add(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string);
-    function Remove(const aProductId: string): boolean;
     function GetProducts(const ProductIdMask: string; const List: TList<TRegisteredProduct>; const InstalledProducts: THashSet<string>): boolean;
     function Contains(const ProductId: string): boolean;
 
-    procedure Save;
-    procedure Load;
+    procedure Load(const aServerName: string);
 
   end;
 
 implementation
 uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJsonSerializer,
-     System.Types, Zip;
+     System.Types, Zip, ZipFile.Download, UProjectLoader, UMultiLogger, VCS.Summary;
 
 { TRegisteredProduct }
 
 constructor TRegisteredProduct.Create(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aIsPredefined: boolean);
+  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aServer: string; const aPredefinedData: TPredefinedData);
 begin
   FProductId := aProductId;
   FProtocol := aProtocol;
   FUrl := aUrl;
   FName := aName;
   FDescription := aDescription;
-  FIsPredefined := aIsPredefined;
+  FServer := aServer;
+  FPredefinedData := aPredefinedData;
 end;
 
 function TRegisteredProduct.Equals(ProductB: TObject): boolean;
@@ -83,20 +90,25 @@ begin
   if b.FProductId <> FProductId then exit(false);
   if b.FName <> FName then exit(false);
   if b.FDescription <> FDescription then exit(false);
-  if b.FIsPredefined <> FIsPredefined then exit(false);
+  if b.Server <> FServer then exit(false);
+
+  if not b.PredefinedData.Equals(FPredefinedData) then exit(false);
+
 
   exit(true);
 end;
 
 class function TRegisteredProduct.GetProtocolFromString(
-  const aProtocol: string): TVCSProtocol;
+  const aProtocol: string; const DefaultIsGit: boolean): TVCSProtocol;
 begin
+  if DefaultIsGit and (aProtocol.Trim = '') then exit (TVCSProtocol.Git);
+
   for var p := Low(TVCSProtocol) to High(TVCSProtocol) do
   begin
     if SameText(ProtocolToStr[p], aProtocol.Trim) then exit(p);
   end;
 
-  raise Exception.Create('Undefined VCS engine: ' + aProtocol);
+  raise Exception.Create('Undefined VCS protocol: ' + aProtocol);
 end;
 
 
@@ -118,28 +130,16 @@ begin
   Result := FProducts.ContainsKey(ProductId);
 end;
 
-constructor TProductRegistry.Create(const aStoreFolder: string);
+constructor TProductRegistry.Create(aServerName: string);
 begin
-  StoreFolder := aStoreFolder;
   FProducts := TObjectDictionary<string, TRegisteredProduct>.Create([doOwnsValues], TIStringComparer.Ordinal);
-  Load;
+  Load(aServerName);
 end;
 
 destructor TProductRegistry.Destroy;
 begin
   FProducts.Free;
   inherited;
-end;
-
-procedure TProductRegistry.Add(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string);
-begin
-  var Product: TRegisteredProduct := nil;
-  if FProducts.TryGetValue(aProductId, Product) then
-  begin
-    if not Product.IsPredefined then raise Exception.Create('Product ' + aProductId + ' is already registered. Try unregistering it first.');
-  end;
-  FProducts.AddOrSetValue(aProductId, TRegisteredProduct.Create(aProductId, aProtocol, aUrl, aName, aDescription, false));
 end;
 
 function TProductRegistry.GetProducts(const ProductIdMask: string; const List: TList<TRegisteredProduct>; const InstalledProducts: THashSet<string>): boolean;
@@ -159,144 +159,95 @@ begin
 end;
 
 
-function TProductRegistry.Remove(const aProductId: string): boolean;
+function TProductRegistry.GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText: string): TRegisteredProduct;
 begin
-  Result := FProducts.ContainsKey(aProductId);
-  if not Result then exit;
-  FProducts.Remove(aProductId);
-  Save;
-end;
-
-function TProductRegistry.GetProductID(const Filename: string): string;
-begin
-  Result := TPath.GetFileName(Filename);
-  if not Result.EndsWith(RepoExt) then raise Exception.Create('Invalid filename: ' + Filename);
-  Result := Result.Remove(Result.Length - RepoExt.Length);
-
-end;
-
-function TProductRegistry.GetProductFromText(const Filename, Text: string; const aLoadingPredefined: boolean): TRegisteredProduct;
-begin
-  var Json := TJSONObject.ParseJSONValue(Text, false, true);
-  try
   Result := TRegisteredProduct.Create(
-                GetProductId(Filename),
-                TRegisteredProduct.GetProtocolFromString(Json.GetValue<string>('protocol')),
-                Json.GetValue<string>('url'),
-                Json.GetValue<string>('name'),
-                Json.GetValue<string>('description'),
-                aLoadingPredefined);
+                Project.Application.Id,
+                TRegisteredProduct.GetProtocolFromString(Project.Application.VCSProtocol, true),
+                Project.Application.Url,
+                Project.Application.Name,
+                Project.Application.Description,
+                Server,
+                TPredefinedData.Create(PredefinedText) );
+end;
 
+procedure TProductRegistry.LoadOnePreregisteredProduct(const FileName, Text, Server: string);
+begin
+  var Project := TProjectDefinition.Create(FileName);
+  try
+    TProjectLoader.LoadDataIntoProject(FileName, Text, Project, 'root:supported frameworks', true);
+    FProducts.AddOrSetValue(Project.Application.Id, GetProductFromProject(Project, Server, Text));
   finally
-    Json.Free;
+    Project.Free;
+  end;
+
+end;
+
+procedure TProductRegistry.LoadPreregisteredProducts(const aServerName: string);
+begin
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    LoadPreregisteredProductsFromServer(Config.ServerConfig.GetServer(i), aServerName);
   end;
 end;
 
-function TProductRegistry.GetProductFromFile(const Filename: string): TRegisteredProduct;
+procedure TProductRegistry.LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
+const
+  PredefinedZip = 'predefined.repos.zip';
 begin
-  var Text := TFile.ReadAllText(Filename, TEncoding.UTF8);
-  Result := GetProductFromText(Filename, Text, false);
-end;
+  if (Server.ServerType <> TServerType.ZipFile) or not Server.Enabled then exit;
+  if (ServerName <> '') and (not SameText(ServerName, Server.Name)) then exit;
 
-procedure TProductRegistry.LoadPreregisteredProducts;
-begin
-  var PredefinedRepositories := TResourceStream.Create(HInstance, 'PredefinedRepositories', RT_RCDATA);
   try
+    var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
+    ZipDownloader.GetRepo(Server.Url, PredefinedRepositories, Server.Name, AddToVCSFetchLogSummary);
+
     var Zip := TZipFile.Create;
     try
       Zip.Open(PredefinedRepositories, TZipMode.zmRead);
       for var i := 0 to Zip.FileCount - 1 do
       begin
-        if Zip.FileNames[i].EndsWith(RepoExt, true) then
+        if SameText(TPath.GetFileName(Zip.FileNames[i]), TProjectLoader.TMSBuildDefinitionFile) then
         begin
           var Filename := Zip.FileNames[i];
           var Bytes: TBytes;
           Zip.Read(i, Bytes);
           var Text := TEncoding.UTF8.GetString(Bytes);
-          FProducts.Add(GetProductId(Filename), GetProductFromText(Filename, Text, true));
+          LoadOnePreregisteredProduct(FileName, Text, Server.Name);
         end;
       end;
     finally
       Zip.Free;
     end;
-
-  finally
-    PredefinedRepositories.Free;
+  except on ex: Exception do
+  begin
+    raise Exception.Create('Error loading server ' + Server.Name + ': "' + ex.Message + '"');
   end;
-
+  end;
 end;
 
 
-procedure TProductRegistry.Load;
+procedure TProductRegistry.Load(const aServerName: string);
 begin
   FProducts.Clear;
-  LoadPreregisteredProducts;
-  if not TDirectory.Exists(StoreFolder) then exit;
-  var Items := TDirectory.GetFiles(StoreFolder, '*' + RepoExt);
-  for var Item in Items do
-  begin
-    var Data := GetProductFromFile(Item);
-    FProducts.AddOrSetValue(Data.ProductId, Data);
-  end;
-
+  LoadPreregisteredProducts(aServerName);
 end;
 
-function TProductRegistry.AlreadySaved(const Filename: string; const Product: TRegisteredProduct): boolean;
+{ TPredefinedData }
+
+constructor TPredefinedData.Create(const aTmsbuild_Yaml: string);
 begin
-  if not TFile.Exists(Filename) then exit(false);
-
-  var Data := GetProductFromFile(Filename);
-  try
-    Result := Data.Equals(Product);
-  finally
-    Data.Free;
-  end;
-
+  Tmsbuild_Yaml := aTmsbuild_Yaml;
 end;
 
-procedure TProductRegistry.Save;
+class function TPredefinedData.Empty: TPredefinedData;
 begin
-  TDirectory_CreateDirectory(StoreFolder);
+  Result.Tmsbuild_Yaml := '';
+end;
 
-  var ProductsInFolder := THashSet<string>.Create(TIStringComparer.Ordinal);
-  try
-    for var Product in FProducts.Values.ToArray do
-    begin
-      if Product.IsPredefined then continue;
-      ProductsInFolder.Add(Product.ProductId + RepoExt);
-    end;
-
-    var Items := TDirectory.GetFiles(StoreFolder, '*' + RepoExt);
-    for var Item in Items do
-    begin
-      if not ProductsInFolder.Contains(TPath.GetFileName(Item)) then
-      begin
-        DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, Item);
-      end;
-    end;
-
-  finally
-    ProductsInFolder.Free;
-  end;
-
-  for var Product in FProducts.Values.ToArray do
-  begin
-    if Product.IsPredefined then continue;
-    var Filename := TPath.GetFullPath(TPath.Combine(StoreFolder, Product.ProductId + RepoExt));
-    if AlreadySaved(Filename, Product) then continue;
-
-    var Item := TJSONObject.Create;
-    try
-      Item.AddPair('protocol', Product.ProtocolString);
-      Item.AddPair('url', Product.Url);
-      Item.AddPair('name', Product.Name);
-      Item.AddPair('description', Product.Description);
-      var Json := TSimpleJsonSerializer.Serialize(Item);
-      TFile.WriteAllText(Filename, Json, TEncoding.UTF8);
-    finally
-      Item.Free;
-    end;
-  end;
+function TPredefinedData.Equals(const obj: TPredefinedData): boolean;
+begin
+  Result := obj.Tmsbuild_Yaml = Tmsbuild_Yaml;
 end;
 
 end.

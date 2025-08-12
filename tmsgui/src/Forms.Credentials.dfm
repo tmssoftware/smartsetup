@@ -3,22 +3,22 @@ object CredentialsForm: TCredentialsForm
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Enter credentials'
-  ClientHeight = 231
-  ClientWidth = 258
+  ClientHeight = 234
+  ClientWidth = 288
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clBtnText
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
-  Position = poMainFormCenter
+  Position = poScreenCenter
   DesignSize = (
-    258
-    231)
+    288
+    234)
   TextHeight = 15
   object lbInvalidCredentials: TLabel
     Left = 16
-    Top = 160
+    Top = 166
     Width = 95
     Height = 15
     Caption = 'Invalid credentials'
@@ -31,18 +31,18 @@ object CredentialsForm: TCredentialsForm
   end
   object lblNotRequired: TLabel
     Left = 16
-    Top = 16
-    Width = 219
-    Height = 33
+    Top = 13
+    Width = 249
+    Height = 18
     Anchors = [akLeft, akTop, akRight]
     AutoSize = False
-    Caption = 'Credentials are NOT required for third-party products.'
+    Caption = 'Enter your TMS Software account credentials'
     WordWrap = True
   end
   object edEmail: TLabeledEdit
     Left = 16
-    Top = 80
-    Width = 219
+    Top = 56
+    Width = 249
     Height = 23
     Anchors = [akLeft, akTop, akRight]
     EditLabel.Width = 34
@@ -59,8 +59,8 @@ object CredentialsForm: TCredentialsForm
   end
   object edCode: TLabeledEdit
     Left = 16
-    Top = 131
-    Width = 219
+    Top = 107
+    Width = 249
     Height = 23
     Anchors = [akLeft, akTop, akRight]
     EditLabel.Width = 28
@@ -75,32 +75,36 @@ object CredentialsForm: TCredentialsForm
     PasswordChar = '*'
     TabOrder = 1
     Text = ''
-    ExplicitWidth = 217
   end
   object btOk: TButton
-    Left = 79
-    Top = 195
+    Left = 109
+    Top = 198
     Width = 75
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Ok'
     Default = True
-    TabOrder = 2
+    TabOrder = 3
     OnClick = btOkClick
-    ExplicitLeft = 77
-    ExplicitTop = 187
   end
   object btCancel: TButton
-    Left = 160
-    Top = 195
+    Left = 190
+    Top = 198
     Width = 75
     Height = 25
     Anchors = [akRight, akBottom]
     Cancel = True
-    Caption = '&Skip'
+    Caption = '&Cancel'
     ModalResult = 2
-    TabOrder = 3
-    ExplicitLeft = 158
-    ExplicitTop = 187
+    TabOrder = 4
+  end
+  object cbNoAccount: TCheckBox
+    Left = 16
+    Top = 141
+    Width = 249
+    Height = 17
+    Caption = 'I don'#39't have a TMS Software account'
+    TabOrder = 2
+    OnClick = cbNoAccountClick
   end
 end

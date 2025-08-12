@@ -92,3 +92,4 @@ installer/output
 
 !common/src/Compression/ZSTD.pas/lib/Win64
 !common/src/Compression/ZSTD.pas/lib/Win64/*
+tmstest/tmp-run

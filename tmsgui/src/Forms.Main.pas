@@ -5,7 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
-  GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus;
+  GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus,
+  Forms.Config, UConfigInfo, Forms.Start;
 
 type
   TMainForm = class(TForm)
@@ -25,13 +26,12 @@ type
     Panel3: TPanel;
     PageControl1: TPageControl;
     tsProducts: TTabSheet;
-    Panel1: TPanel;
+    LeftPanel: TPanel;
     rbAll: TRadioButton;
     rbInstalled: TRadioButton;
     lvProducts: TListView;
-    Panel2: TPanel;
+    RightPanel: TPanel;
     Button1: TButton;
-    btCredentials: TButton;
     Button2: TButton;
     Button3: TButton;
     Button4: TButton;
@@ -48,6 +48,14 @@ type
     acVersionHistory: TAction;
     pmProducts: TPopupMenu;
     Openversionhistory1: TMenuItem;
+    acSettings: TAction;
+    TopPanel: TPanel;
+    edSearch: TEdit;
+    btConfiguration2: TSpeedButton;
+    cbServer: TComboBox;
+    lbServer: TLabel;
+    acSearchFocus: TAction;
+    btCredentials: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -76,6 +84,11 @@ type
     procedure acVersionHistoryExecute(Sender: TObject);
     procedure lvProductsCompare(Sender: TObject; Item1, Item2: TListItem; Data: Integer; var Compare: Integer);
     procedure lvProductsColumnClick(Sender: TObject; Column: TListColumn);
+    procedure acSettingsExecute(Sender: TObject);
+    procedure acSettingsUpdate(Sender: TObject);
+    procedure edSearchChange(Sender: TObject);
+    procedure acSearchFocusExecute(Sender: TObject);
+    procedure cbServerChange(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -92,9 +105,12 @@ type
     procedure UpdateSortArrows;
     function Repository: string;
   public
+    procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
+    procedure ServersUpdatedEvent(Servers: TServerConfigItems);
     procedure GetSelectedProductsEvent(Products: TGUIProductList);
-    procedure RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
+    procedure RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean;
+      LastWasInvalid: Boolean; var DisableServer: Boolean);
     procedure LogItemGeneratedEvent(const Item: TGUILogItem);
     procedure CommandOutputEvent(const Text: string);
     procedure ProgressEvent(const Percent: Integer);
@@ -197,6 +213,39 @@ begin
   acPartialBuild.Enabled := GUI.CanBuild;
 end;
 
+procedure TMainForm.acSettingsExecute(Sender: TObject);
+begin
+  var ConfigInfo := TConfigInfo.Create;
+  try
+    GUI.GetServerConfigItems(ConfigInfo.Servers);
+
+    var Form := TConfigForm.Create(Application);
+    try
+      Form.OnUpdateServers := procedure
+        begin
+          GUI.UpdateServerConfigItems(ConfigInfo.Servers);
+          GUI.RefreshServers;
+        end;
+      Form.Execute(ConfigInfo);
+    finally
+      Form.Free;
+    end;
+  finally
+    ConfigInfo.Free;
+  end;
+end;
+
+procedure TMainForm.acSettingsUpdate(Sender: TObject);
+begin
+  acSettings.Enabled := GUI.CanConfigure;
+end;
+
+procedure TMainForm.acSearchFocusExecute(Sender: TObject);
+begin
+  if edSearch.CanFocus then
+    edSearch.SetFocus;
+end;
+
 procedure TMainForm.acUninstallExecute(Sender: TObject);
 begin
   GUI.ExecuteUninstall(ProgressEvent);
@@ -220,6 +269,14 @@ procedure TMainForm.acVersionHistoryUpdate(Sender: TObject);
 begin
   var Product := ProductFromItem(lvProducts.Selected);
   acVersionHistory.Enabled := GetVersionHistoryUrl(Product) <> '';
+end;
+
+procedure TMainForm.cbServerChange(Sender: TObject);
+begin
+  var Server := '';
+  if cbServer.ItemIndex > 0 then // ignore "all"
+    Server := cbServer.Items[cbServer.ItemIndex];
+  GUI.SetServer(Server);
 end;
 
 procedure TMainForm.CommandOutputEvent(const Text: string);
@@ -253,6 +310,11 @@ begin
     Result := 0;
 end;
 
+procedure TMainForm.edSearchChange(Sender: TObject);
+begin
+  GUI.SetSearchFilter(edSearch.Text);
+end;
+
 function TMainForm.FindProductItem(const ProductId: string): TListItem;
 begin
   for var Item in lvProducts.Items do
@@ -275,6 +337,7 @@ begin
   GUI := TGUIEnvironment.Create;
 
   GUI.OnProductsUpdated := ProductsUpdatedEvent;
+  GUI.OnServersUpdated := ServersUpdatedEvent;
   GUI.OnRequestCredentials := RequestCredentialsEvent;
   GUI.OnGetSelectedProducts := GetSelectedProductsEvent;
   GUI.OnLogItemGenerated := LogItemGeneratedEvent;
@@ -304,7 +367,25 @@ end;
 
 procedure TMainForm.FormShow(Sender: TObject);
 begin
-  GUI.Start;
+  if not GUI.Info.FolderInitialized then
+  begin
+    var TMS, Community: Boolean;
+    if TStartForm.Execute(TMS, Community) then
+    begin
+      // Initialize the folders only if one of servers were chosen
+      if TMS or Community then
+      begin
+        GUI.ExecuteConfigure(True);
+        GUI.EnableServerConfigItem('tms', TMS);
+        GUI.EnableServerConfigItem('community', Community);
+      end;
+    end;
+  end;
+
+  if GUI.Info.FolderInitialized then
+    GUI.Start
+  else
+    Application.Terminate;
 end;
 
 procedure TMainForm.GetSelectedProductsEvent(Products: TGUIProductList);
@@ -352,6 +433,12 @@ begin
     Exit(Format('https://www.tmssoftware.com/site/%s.asp?s=history', [Product.VendorId]));
 
   Result := '';
+end;
+
+procedure TMainForm.InitiateAction;
+begin
+  inherited;
+  acCredentials.Visible := GUI.Servers.IsEnabled('tms');
 end;
 
 procedure TMainForm.lbLogItemsClick(Sender: TObject);
@@ -438,21 +525,18 @@ end;
 
 procedure TMainForm.NewVersionDetectedEvent;
 begin
-  if GUI.Info.HasCredentials then
+  if (ParamCount = 0) or (ParamStr(1) <> '-no-self-update') then
   begin
-    if (ParamCount = 0) or (ParamStr(1) <> '-no-self-update') then
-    begin
-      TThread.Queue(nil, procedure
-        begin
-          ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
-          GUI.ExecuteSelfUpdate(ProgressEvent,
-            procedure
-            begin
-              Relaunch := True;
-              TThread.Synchronize(nil, Application.MainForm.Close); //must be called from the main thread.
-            end);
-        end);
-    end;
+    TThread.Queue(nil, procedure
+      begin
+        ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
+        GUI.ExecuteSelfUpdate(ProgressEvent,
+          procedure
+          begin
+            Relaunch := True;
+            TThread.Synchronize(nil, Application.MainForm.Close); //must be called from the main thread.
+          end);
+      end);
   end;
 end;
 
@@ -468,9 +552,12 @@ begin
     end;
 end;
 
-procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
+procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean;
+  LastWasInvalid: Boolean; var DisableServer: Boolean);
 begin
-  Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid);
+  Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid, DisableServer);
+  if DisableServer and not Confirm then
+    ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
 end;
 
 procedure TMainForm.RunFinishEvent;
@@ -485,6 +572,30 @@ end;
 
 procedure TMainForm.RunStartEvent;
 begin
+end;
+
+procedure TMainForm.ServersUpdatedEvent(Servers: TServerConfigItems);
+begin
+  var Selected := '';
+  if cbServer.ItemIndex >= 0 then
+    Selected := cbServer.Items[cbServer.ItemIndex];
+
+  cbServer.Items.BeginUpdate;
+  try
+    cbServer.Items.Clear;
+    cbServer.Items.Add('all');
+    for var Item in Servers do
+      if Item.Enabled then
+        cbServer.Items.Add(Item.Name);
+    var Index := cbServer.Items.IndexOf(Selected);
+    if Index = -1 then
+      Index := 0;
+    cbServer.ItemIndex := Index;
+  finally
+    cbServer.Items.EndUpdate;
+  end;
+  cbServer.Visible := cbServer.Items.Count > 2;
+  lbServer.Visible := cbServer.Visible;
 end;
 
 procedure TMainForm.ShowInfo;
@@ -531,7 +642,7 @@ end;
 
 function TMainForm.ProductFromItem(Item: TListItem): TGUIProduct;
 begin
-  if (Item <> nil) and (Item.Data <> nil) then
+  if (Item <> nil) and (Item.Data <> nil) and GUI.IsValidProduct(TGUIProduct(Item.Data)) then
     Result := TGUIProduct(Item.Data)
   else
     Result := nil;

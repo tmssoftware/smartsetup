@@ -18,7 +18,7 @@ procedure AlertAboutDiskSpace;
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
 
 implementation
-uses Commands.GlobalConfig, commands.SelfUpdate, UTmsBuildSystemUtils, Deget.Version, Commands.CommonOptions;
+uses Commands.GlobalConfig, commands.SelfUpdate, UTmsBuildSystemUtils, Deget.Version, Commands.CommonOptions, Threading;
 const
   {$i ../../../Version.inc}
 
@@ -72,6 +72,8 @@ begin
   Logger.Trace(TOSVersion.ToString);
   Logger.Trace('File system: ' + GetFileSystemName(TDirectory.GetCurrentDirectory));
   Logger.Trace('Current dir: ' + TDirectory.GetCurrentDirectory);
+  Logger.Trace('Build cores: ' + IntToStr(TThreadPool.Default.MaxWorkerThreads));
+
   Logger.FinishSection(TMessageType.BasicInfo);
 end;
 

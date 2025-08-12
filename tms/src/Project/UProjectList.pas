@@ -52,7 +52,7 @@ end;
 
 destructor TProjectList.Destroy;
 begin
-  Resolved.Free;
+  FResolved.Free;
   FList.Destroy;
   inherited;
 end;
@@ -128,7 +128,7 @@ var
   Map: TDictionary<string, TProjectDefinition>;
   Cycles: TStack<string>;
 begin
-  Resolved.Clear;
+  FResolved.Clear;
   Map := TDictionary<string, TProjectDefinition>.Create;
   try
     Cycles := TStack<string>.Create;
@@ -173,9 +173,12 @@ begin
     begin
       if not Map.TryGetValue(dep.Id, NewProject) then
       begin
-        raise Exception.Create('The product "' + Project.Application.Name + '" requires the product "' + dep.Description + '" to build, and it isn''t present. Add product "' + dep.Description + '" to the list of installed products.' );
+       // We will check this later on the chain, see https://github.com/tmssoftware/tms-smartsetup/issues/268
+       // raise Exception.Create('The product "' + Project.Application.Name + '" requires the product "' + dep.Description + '" to build, and it isn''t present. Add product "' + dep.Description + '" to the list of installed products.' );
+      end else
+      begin
+        AddDep(Action, NewProject, Map, Cycles);
       end;
-      AddDep(Action, NewProject, Map, Cycles);
     end;
 
     for var dep in Project.WeakDependencies do

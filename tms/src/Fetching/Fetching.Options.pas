@@ -16,7 +16,7 @@ type
     FTargetRepository: string;
   public
     constructor Create;
-    function RepositoryInfo: IRepositoryInfo;
+    function RepositoryInfo(const Url: string): IRepositoryInfo;
     property TargetRepository: string read FTargetRepository write FTargetRepository;
   end;
 
@@ -34,9 +34,9 @@ begin
     TargetRepository := 'production'; // production repository by default
 end;
 
-function TFetchOptions.RepositoryInfo: IRepositoryInfo;
+function TFetchOptions.RepositoryInfo(const Url: string): IRepositoryInfo;
 begin
-  Result := GetRepositoryInfo(TargetRepository);
+  Result := GetRepositoryInfo(TargetRepository, Url);
 end;
 
 end.

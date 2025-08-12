@@ -6,7 +6,7 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
-  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger;
+  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UConfigInfo;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -44,6 +44,7 @@ type
     FStatus: TProductStatus;
     FHasFetchInfo: Boolean;
     FVendorId: string;
+    FServer: string;
   public
     function IsOutdated: Boolean;
     function DisplayName: string;
@@ -54,6 +55,7 @@ type
     property Status: TProductStatus read FStatus write FStatus;
     property HasFetchInfo: Boolean read FHasFetchInfo write FHasFetchInfo;
     property VendorId: string read FVendorId write FVendorId;
+    property Server: string read FServer write FServer;
   end;
 
   TGUIProductList = class(TObjectList<TGUIProduct>)
@@ -82,7 +84,9 @@ type
   end;
 
   TProductsProc = reference to procedure(Products: TGUIProductList);
-  TRequestCredentialsEvent = reference to procedure(var Email, Code: string; var Confirm: Boolean; LastWasInvalid: Boolean);
+  TServersProc = reference to procedure(Servers: TServerConfigItems);
+  TRequestCredentialsEvent = reference to procedure(var Email, Code: string; var Confirm: Boolean;
+    LastWasInvalid: Boolean; var DisableServer: Boolean);
   TGetSelectedProductsProc = reference to procedure(Products: TGUIProductList);
   TCommandOutputProc = reference to procedure(const PartialText: string);
   TProgressProc = reference to procedure(const Percent: Integer);
@@ -92,11 +96,15 @@ type
 
   TGUIEnvironment = class
   private
+    FFetchedProducts: TGUIProductList;
     FProducts: TGUIProductList;
     FSelected: TGUIProductList;
+    FSearchFilter: string;
     FOnProductsUpdated: TProductsProc;
     FCurrentRunner: TTmsRunner;
     FInfo: TTmsInfo;
+    FServer: string;
+    FServers: TServerConfigItems;
     FOnRequestCredentials: TRequestCredentialsEvent;
     FOnGetSelectedProducts: TGetSelectedProductsProc;
     FOnLogItemGenerated: TLogItemEvent;
@@ -109,6 +117,7 @@ type
     FOnNewVersionDetected: TProc;
     FNewVersionNotified: Boolean;
     FOnRunnerCreated: TRunnerProc;
+    FOnServersUpdated: TServersProc;
     procedure ConsolidateGUIProductList(GUIProducts: TGUIProductList; Local, Remote: TProductInfoList);
     procedure UpdateSelectedProducts;
     procedure LogMessageReceived(const Level: TLogLevel; const Message: string);
@@ -123,7 +132,8 @@ type
     procedure DoRunFinish;
     procedure DoNotifyNewVersion;
     procedure DoRunnerCreated(Runner: TTmsRunner);
-    procedure RefreshProducts(Filter: TProductFilter);
+    procedure RefreshFetchedProducts(Filter: TProductFilter);
+    procedure ApplyProductFilters;
     procedure BeginRunning;
     procedure EndRunning;
   protected
@@ -135,6 +145,7 @@ type
     destructor Destroy; override;
 
     procedure Start;
+    procedure RefreshServers;
 
     function IsRunning: Boolean;
     procedure CancelRun;
@@ -152,7 +163,7 @@ type
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
     procedure ExecuteRequestCredentials;
 
-    procedure ExecuteConfigure;
+    procedure ExecuteConfigure(Silent: Boolean = False);
 
     // Change the current applied filter. Will fire the OnProductsUpdated after the product list is modified.
     procedure ChangeProductFilter(Filter: TProductFilter);
@@ -172,16 +183,39 @@ type
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
     function ConfigWrite(const ParamName: string; const Values: TArray<string>): Boolean;
 
+    // Functions to manipulate server config options
+    procedure GetServerConfigItems(Items: TServerConfigItems);
+    procedure UpdateServerConfigItems(Items: TServerConfigItems);
+    procedure RemoveServerConfigItem(const Name: string);
+    procedure AddServerConfigItem(Item: TServerConfigItem);
+    procedure EnableServerConfigItem(const Name: string; Enabled: Boolean);
+
+    // Additional check to see if a TGUIProduct instance is valid, i.e., was not deleted
+    function IsValidProduct(Product: TGUIProduct): Boolean;
+
+    /// <summary>
+    ///   Updates the search filter used to filter products. Setting this will refresh the product list.
+    /// </summary>
+    procedure SetSearchFilter(const Value: string);
+
+    /// <summary>
+    ///   Specifies a server from which the products will be retrieved. If empty, all servers will be used.
+    /// </summary>
+    procedure SetServer(const Value: string);
+
     /// <summary>
     ///   Retrieves general information about Smart Setup folder
     /// </summary>
     property Info: TTmsInfo read GetInfo;
+
+    property Servers: TServerConfigItems read FServers;
 
     property Products: TGUIProductList read FProducts;
     property LogItems: TObjectList<TGUILogItem> read FLogItems;
 
     property OnProductsUpdated: TProductsProc read FOnProductsUpdated write FOnProductsUpdated;
     property OnRequestCredentials: TRequestCredentialsEvent read FOnRequestCredentials write FOnRequestCredentials;
+    property OnServersUpdated: TServersProc read FOnServersUpdated write FOnServersUpdated;
 
     // Should fill in a list with TGUIProduct objects that represent the current selection.
     // The objects must be the instances previously provided in the OnProductsUpdated
@@ -199,6 +233,9 @@ type
   end;
 
 implementation
+
+uses
+  Masks;
 
 { TGUILogger }
 
@@ -270,6 +307,15 @@ end;
 
 { TGUIEnvironment }
 
+procedure TGUIEnvironment.AddServerConfigItem(Item: TServerConfigItem);
+begin
+  RunSync<TTmsServerAddRunner>(
+    procedure(Runner: TTmsServerAddRunner)
+    begin
+      Runner.RunServerAdd(Item);
+    end);
+end;
+
 procedure TGUIEnvironment.BeginRunning;
 begin
   if AtomicIncrement(FRunningCount) = 1 then
@@ -288,7 +334,7 @@ begin
 
   UpdateSelectedProducts;
   Result := False;
-  for var Product in Products do
+  for var Product in FSelected do
     if Product.Status in [TProductStatus.Installed, TProductStatus.Available] then
       Exit(True);
 end;
@@ -309,18 +355,27 @@ function TGUIEnvironment.CanInstallSelected: Boolean;
 begin
   if IsRunning then Exit(False);
 
-  UpdateSelectedProducts;
-  Result := False;
-  for var Product in FSelected do
-  begin
-    if (Product.Status = TProductStatus.NotInstalled)  then
-      Result := True
-    else
-    if (Product.Status = TProductStatus.Installed) and Product.IsOutdated then
-      Result := True
-    else
-      Exit(False);
-  end;
+  // According with the desired logic below, the Install button will only be disabled for
+  // products that are already installed and don't have a new version available to download
+  // Since "installing" a product that is in the latest version is harmless, let's simplify everything
+  // and just leave the Install button always enabled.
+  Result := True;
+
+
+//  UpdateSelectedProducts;
+//  Result := False;
+//  for var Product in FSelected do
+//  begin
+//    if (Product.Status = TProductStatus.NotInstalled)  then
+//      Result := True
+//    else
+//    if (Product.Status = TProductStatus.Installed) and Product.IsOutdated then
+//      Result := True
+//    else
+//    if (Product.Status = TProductStatus.Available) then
+//    else
+//      Exit(False);
+//  end;
 end;
 
 function TGUIEnvironment.CanRequestCredentials: Boolean;
@@ -337,6 +392,9 @@ begin
   Result := False;
   for var Product in FSelected do
     if Product.Status = TProductStatus.Installed then
+      Result := True
+    else
+    if Product.Status = TProductStatus.Available then
       Result := True
     else
       Exit(False);
@@ -390,6 +448,7 @@ begin
     else
       GUIProduct.Status := TProductStatus.Available;
     GUIProduct.HasFetchInfo := not Product.Local;
+    GUIProduct.Server := Product.Server;
   end;
 
   for var Product in Remote do
@@ -407,6 +466,10 @@ begin
     if GUIProduct.HasFetchInfo then // only update if it's same origin. For now, only one origin is available
       GUIProduct.RemoteVersion := Product.Version;
 
+    // If there is a remote product value in server, override it here
+    if Product.Server <> '' then
+      GUIProduct.Server := Product.Server;
+
     // Update VendorId. For now, only remote products have vendor id, so we are setting here regardless.
     GUIProduct.VendorId := Product.VendorId;
   end;
@@ -415,14 +478,25 @@ end;
 constructor TGUIEnvironment.Create;
 begin
   inherited Create;
-  FProducts := TGUIProductList.Create;
+  FFetchedProducts := TGUIProductList.Create;
+  FProducts := TGUIProductList.Create(False);
   FSelected := TGUIProductList.Create(False);
   FLogItems := TObjectList<TGUILogItem>.Create;
+  FServers := TServerConfigItems.Create;
 
   // Init logging
   var GUILogger := TGUILogger.Create;
   Logger := TMultiLogger.Create([GUILogger]);
   GUILogger.OnLogMessage := LogMessageReceived;
+end;
+
+procedure TGUIEnvironment.RemoveServerConfigItem(const Name: string);
+begin
+  RunSync<TTmsServerRemoveRunner>(
+    procedure(Runner: TTmsServerRemoveRunner)
+    begin
+      Runner.RunServerRemove(Name);
+    end);
 end;
 
 destructor TGUIEnvironment.Destroy;
@@ -438,9 +512,11 @@ begin
   end;
 
   FProducts.Free;
+  FFetchedProducts.Free;
   FSelected.Free;
   FLogItems.Free;
   FInfo.Free;
+  FServers.Free;
   Logger.Free;
   inherited;
 end;
@@ -526,6 +602,16 @@ begin
   );
 end;
 
+procedure TGUIEnvironment.EnableServerConfigItem(const Name: string;
+  Enabled: Boolean);
+begin
+  RunSync<TTmsServerEnableRunner>(
+    procedure(Runner: TTmsServerEnableRunner)
+    begin
+      Runner.RunServerEnable(Name, Enabled);
+    end);
+end;
+
 procedure TGUIEnvironment.EndRunning;
 begin
   if AtomicDecrement(FRunningCount) = 0 then
@@ -571,16 +657,16 @@ begin
         ProgressCallback(ProgressInfo);
       end;
 
-      RefreshProducts(FProductFilter);
+      RefreshFetchedProducts(FProductFilter);
     end);
 end;
 
-procedure TGUIEnvironment.ExecuteConfigure;
+procedure TGUIEnvironment.ExecuteConfigure(Silent: Boolean = False);
 begin
   RunSync<TTmsConfigureRunner>(
     procedure(Runner: TTmsConfigureRunner)
     begin
-      Runner.RunConfigure;
+      Runner.RunConfigure(Silent);
       RefreshInfo;
     end);
 end;
@@ -628,7 +714,7 @@ begin
         ProgressCallback(ProgressInfo);
       end;
 
-      RefreshProducts(FProductFilter);
+      RefreshFetchedProducts(FProductFilter);
     end);
 end;
 
@@ -664,7 +750,7 @@ begin
           ProgressCallback(100);
       end;
 
-      RefreshProducts(FProductFilter);
+      RefreshFetchedProducts(FProductFilter);
     end);
 end;
 
@@ -720,15 +806,17 @@ end;
 
 procedure TGUIEnvironment.Start;
 begin
-  if not Info.HasCredentials then
+  RefreshServers;
+
+  if FServers.IsEnabled('tms') and not Info.HasCredentials then
     ExecuteRequestCredentials;
 
   RunBackground(procedure
     begin
-      if Info.HasCredentials then
-        RefreshProducts(TProductFilter.All)
+      if FServers.RemotesEnabled then
+        RefreshFetchedProducts(TProductFilter.All)
       else
-        RefreshProducts(TProductFilter.Installed);
+        RefreshFetchedProducts(TProductFilter.Installed);
     end);
 end;
 
@@ -753,9 +841,23 @@ begin
   Result := FInfo;
 end;
 
+procedure TGUIEnvironment.GetServerConfigItems(Items: TServerConfigItems);
+begin
+  RunSync<TTmsServerListRunner>(
+    procedure(Runner: TTmsServerListRunner)
+    begin
+      Runner.RunServerList(Items);
+    end);
+end;
+
 function TGUIEnvironment.IsRunning: Boolean;
 begin
   Result := FRunningCount > 0;
+end;
+
+function TGUIEnvironment.IsValidProduct(Product: TGUIProduct): Boolean;
+begin
+  Result := FFetchedProducts.IndexOf(Product) >= 0;
 end;
 
 function TGUIEnvironment.IsFilterActive(Filter: TProductFilter): Boolean;
@@ -773,7 +875,7 @@ begin
   FreeAndNil(FInfo);
 end;
 
-procedure TGUIEnvironment.RefreshProducts(Filter: TProductFilter);
+procedure TGUIEnvironment.RefreshFetchedProducts(Filter: TProductFilter);
 begin
   RunSync<TTmsListRunner>(
     procedure(ListRunner: TTmsListRunner)
@@ -783,30 +885,42 @@ begin
       RunSync<TTmsListRemoteRunner>(
         procedure(RemoteRunner: TTmsListRemoteRunner)
         begin
-          if Info.FolderInitialized and Info.HasCredentials then
+          if Info.FolderInitialized then
+          begin
+            RemoteRunner.Server := FServer;
             RemoteRunner.RunListRemote;
-          ConsolidateGUIProductList(Self.Products, ListRunner.Products, RemoteRunner.Products);
+          end;
+          ConsolidateGUIProductList(Self.FFetchedProducts, ListRunner.Products, RemoteRunner.Products);
           FProductFilter := Filter;
 
           // Filter products
           var Predicate :=
             function(Product: TGUIProduct): Boolean
             begin
-              case FProductFilter of
-                TProductFilter.Installed: Result := not Product.LocalVersion.IsNull;
-              else
-                Result := True;
-              end;
+              if (FProductFilter = TProductFilter.Installed) and (Product.Status <> TProductStatus.Installed) then
+                Exit(False);
+
+              if (FServer <> '') and not SameText(FServer, Product.Server) then
+                Exit(False);
+
+              Result := True;
             end;
-          for var I := Self.Products.Count - 1 downto 0 do
-            if not Predicate(Self.Products[I]) then
-              Self.Products.Delete(I);
+          for var I := Self.FFetchedProducts.Count - 1 downto 0 do
+            if not Predicate(Self.FFetchedProducts[I]) then
+              Self.FFetchedProducts.Delete(I);
 
           // fire event to refresh producs
-          if Assigned(OnProductsUpdated) then
-            FOnProductsUpdated(FProducts);
+          ApplyProductFilters;
         end)
     end)
+end;
+
+procedure TGUIEnvironment.RefreshServers;
+begin
+  if not Assigned(FOnServersUpdated) then Exit;
+
+  GetServerConfigItems(FServers);
+  FOnServersUpdated(FServers);
 end;
 
 procedure TGUIEnvironment.ExecuteRequestCredentials;
@@ -825,11 +939,18 @@ begin
       var Confirm: Boolean;
       repeat
         Confirm := False;
-        FOnRequestCredentials(Email, Code, Confirm, not LastValid);
+        var Disable := False;
+        FOnRequestCredentials(Email, Code, Confirm, not LastValid, Disable);
         if Confirm then
         begin
           LastValid := Runner.RunUpdateCredentials(Email, Code);
           RefreshInfo;
+        end
+        else
+        if Disable then
+        begin
+          EnableServerConfigItem('tms', False);
+          RefreshServers;
         end;
       until not Confirm or LastValid;
     end);
@@ -843,7 +964,7 @@ begin
     procedure
     begin
       try
-        RefreshProducts(Filter);
+        RefreshFetchedProducts(Filter);
       finally
         EndRunning;
       end;
@@ -860,10 +981,81 @@ begin
   end;
 end;
 
+procedure TGUIEnvironment.ApplyProductFilters;
+begin
+  var Filter := FSearchFilter.ToLower;
+  var Mask := TMask.Create(Filter);
+  try
+    var Predicate :=
+      function(Product: TGUIProduct): Boolean
+      begin
+        Result := True;
+        if Filter.Trim <> '' then
+        begin
+          var IdLower := Product.Id.ToLower;
+          var NameLower := Product.Name.ToLower;
+          Result := IdLower.Contains(Filter) or NameLower.Contains(Filter) or Mask.Matches(IdLower);
+        end;
+      end;
+
+    FProducts.Clear;
+    for var Product in FFetchedProducts do
+      if Predicate(Product) then
+        FProducts.Add(Product);
+    if Assigned(FOnProductsUpdated) then
+      FOnProductsUpdated(FProducts);
+  finally
+    Mask.Free;
+  end;
+end;
+
+procedure TGUIEnvironment.SetSearchFilter(const Value: string);
+begin
+  if FSearchFilter <> Value then
+  begin
+    FSearchFilter := Value;
+    ApplyProductFilters;
+  end;
+end;
+
+procedure TGUIEnvironment.SetServer(const Value: string);
+begin
+  if FServer <> Value then
+  begin
+    FServer := Value;
+    RefreshFetchedProducts(FProductFilter);
+  end;
+end;
+
 procedure TGUIEnvironment.UpdateSelectedProducts;
 begin
   if Assigned(FOnGetSelectedProducts) then
     FOnGetSelectedProducts(FSelected);
+end;
+
+procedure TGUIEnvironment.UpdateServerConfigItems(Items: TServerConfigItems);
+begin
+  var OldItems := TServerConfigItems.Create;
+  try
+    GetServerConfigItems(OldItems);
+
+    // Delete all but reserved
+    for var OldItem in OldItems do
+      if not OldItem.IsReserved then
+        RemoveServerConfigItem(OldItem.Name);
+
+    // Re-add all but reserved
+    for var Item in Items do
+      if not Item.IsReserved then
+        AddServerConfigItem(Item);
+
+    // Change enable status of reserved items
+    for var Item in Items do
+      if Item.IsReserved then
+        EnableServerConfigItem(Item.Name, Item.Enabled);
+  finally
+    OldItems.Free;
+  end;
 end;
 
 { TGUIProductList }

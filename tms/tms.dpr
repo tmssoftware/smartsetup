@@ -56,7 +56,6 @@ uses
   Commands.Termination in 'src\Commands\Commands.Termination.pas',
   UParallelProjectBuilder in 'src\Builder\UParallelProjectBuilder.pas',
   UProjectDefinition in 'src\Project\UProjectDefinition.pas',
-  UTmsPackNaming in 'src\Naming\UTmsPackNaming.pas',
   UStandardNaming in 'src\Naming\UStandardNaming.pas',
   UNaming in 'src\Naming\UNaming.pas',
   UMsBuildInstaller in 'src\Installers\UMsBuildInstaller.pas',
@@ -163,9 +162,6 @@ uses
   VCS.Engine.Factory in 'src\VCS\VCS.Engine.Factory.pas',
   VCS.CoreTypes in 'src\VCS\VCS.CoreTypes.pas',
   VCS.Engine.Svn in 'src\VCS\VCS.Engine.Svn.pas',
-  Commands.RepoRegister in 'src\Commands\Commands.RepoRegister.pas',
-  Commands.RepoUnregister in 'src\Commands\Commands.RepoUnregister.pas',
-  Commands.RepoList in 'src\Commands\Commands.RepoList.pas',
   USimpleJsonSerializer in '..\common\src\USimpleJsonSerializer.pas',
   Commands.LogView in 'src\Commands\Commands.LogView.pas',
   Decompressor.ZSTD in '..\common\src\Compression\Decompressor.ZSTD.pas',
@@ -189,7 +185,18 @@ uses
   VSoft.CommandLine.Parser in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Parser.pas',
   VSoft.CommandLine.Utils in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.Utils.pas',
   VSoft.CommandLine.CommandDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.CommandDef.pas',
-  VSoft.CommandLine.OptionDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas';
+  VSoft.CommandLine.OptionDef in '..\externals\VSoft.CommandLineParser\Src\VSoft.CommandLine.OptionDef.pas',
+  ZipFile.Download in 'src\VCS\ZipFile.Download.pas',
+  Commands.ServerEnable in 'src\Commands\Commands.ServerEnable.pas',
+  Commands.ServerList in 'src\Commands\Commands.ServerList.pas',
+  Commands.ServerAdd in 'src\Commands\Commands.ServerAdd.pas',
+  Commands.ServerRemove in 'src\Commands\Commands.ServerRemove.pas',
+  VCS.Engine.ZipFile in 'src\VCS\VCS.Engine.ZipFile.pas',
+  Package.Creator in 'src\Packages\Package.Creator.pas',
+  UDelphi13Installer in 'src\Installers\UDelphi13Installer.pas',
+  Megafolders.Definition in 'src\Megafolders\Megafolders.Definition.pas',
+  Megafolders.Manager in 'src\Megafolders\Megafolders.Manager.pas',
+  BBArrays in '..\common\src\BBYaml\BBArrays.pas';
 
 begin
   try

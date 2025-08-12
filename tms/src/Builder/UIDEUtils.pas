@@ -42,7 +42,8 @@ DelphiRegsFmt: array[TIDEName] of string = (
     'SOFTWARE\Embarcadero\%1:s\20.0',   //rio
     'SOFTWARE\Embarcadero\%1:s\21.0',   //sydney
     'SOFTWARE\Embarcadero\%1:s\22.0',   //delphi11
-    'SOFTWARE\Embarcadero\%1:s\23.0'   //delphi12
+    'SOFTWARE\Embarcadero\%1:s\23.0',   //delphi12
+    'SOFTWARE\Embarcadero\%1:s\37.0'   //delphi13
 );
 
 {$IFNDEF MSWINDOWS}

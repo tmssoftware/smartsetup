@@ -5,7 +5,7 @@ interface
 uses SysUtils, UConfigDefinition, UProjectDefinition, UBuildInfo, UProjectBuilderInterface, Deget.CoreTypes,
      UProjectBuildInfo, UIDEBuildInfo, UPlatformBuildInfo, UPackageBuildInfo, UProjectList,
      UInstaller, UFullBuildInfo, UFileHasher, UProjectInstaller,
-     Threading, UParallelProjectInfo, UAppTerminated;
+     Threading, UParallelProjectInfo, Megafolders.Definition, Generics.Collections, UAppTerminated;
 
 type
   TParallelProjectBuilder = class(TInterfacedObject, IProjectBuilder)
@@ -16,6 +16,7 @@ type
     ProcessedPackages, TotalPackages: integer;
     ShowProcessedPackagesProgress: boolean;
     ParallelProjects: TParallelProjectInfoList;
+    UsedDcuMegafolders: TUsedMegafolders;
 
     procedure SetupLogger(const BuildInfo: TBuildInfo);
 
@@ -34,7 +35,7 @@ type
     function DependenciesDontSupport(const Project: TProjectBuildInfo;
       const IDE: TIDEName; const Platform: TPlatform;
       out UnsupportedDependency: string): boolean;
-
+    procedure SyncMegafolders(const BuildInfo: TBuildInfo);
   public
     constructor Create(const aConfig: TConfigDefinition; const aFileHasher: TFileHasher);
     destructor Destroy; override;
@@ -43,7 +44,7 @@ type
 
 implementation
 uses ULogger, UMultiLogger, UDefines, UConfigKeys, UCoreTypes, UParallelDependencies,
-     Generics.Collections, UBuildSummary, Deget.IDEInfo, Deget.DelphiInfo;
+     UBuildSummary, Deget.IDEInfo, Deget.DelphiInfo, Megafolders.Manager, IOUtils, Deget.IDETypes;
 
 { TDelphiBuilder }
 
@@ -54,6 +55,7 @@ begin
   FileHasher := aFileHasher;
   ProjectInstaller := TProjectInstaller.Create(aConfig);
   ParallelProjects := TParallelProjectInfoList.Create;
+  UsedDcuMegafolders := TUsedMegafolders.Create()
 end;
 
 destructor TParallelProjectBuilder.Destroy;
@@ -61,6 +63,7 @@ begin
   Logger.ResetPercentAction;
   ProjectInstaller.Free;
   ParallelProjects.Free;
+  UsedDcuMegafolders.Free;
   inherited;
 end;
 
@@ -76,6 +79,34 @@ begin
 
      Result := (ProcessedPackages * 100) div TotalPackages;
   end);
+end;
+
+procedure TParallelProjectBuilder.SyncMegafolders(const BuildInfo: TBuildInfo);
+begin
+  if Config.DcuMegafolders.Count = 0 then
+  begin
+    //in case of leftovers.
+    TMegafolderManager.RemoveAll(Config.Folders.DcuMegafolder);
+    exit;
+  end;
+  Logger.StartSection(TMessageType.Megafolder, 'Sync Megafolders');
+  try
+    Logger.Info('Synchronizing Megafolders...');
+    for var Uninstalled in BuildInfo.ProjectsToUninstall do
+    begin
+      var Megafolder := Config.DcuMegafolders.Match(Uninstalled.ProjectId);
+      if (Megafolder <> '') then UsedDcuMegafolders.Add(Megafolder);
+    end;
+
+    TMegafolderManager.CleanupAll(Config.Folders.DcuMegafolder, UsedDcuMegafolders);
+
+    TMegafolderManager.Save(Config.DcuMegafolders, Config.Folders.DcuMegafolder);
+    Logger.FinishSection(TMessageType.Megafolder, false);
+  except
+    Logger.FinishSection(TMessageType.Megafolder, true);
+    raise;
+  end;
+
 end;
 
 procedure TParallelProjectBuilder.Build(BuildInfo: TBuildInfo);
@@ -132,6 +163,7 @@ begin
       end;
 
       Logger.Info('All projects built.');
+      SyncMegafolders(BuildInfo);
     finally
       ShowProcessedPackagesProgress := false;
     end;
@@ -283,7 +315,7 @@ begin
           CheckAppTerminated;
           BuildOnePackage(Installer, BuildInfo.WithPackage(BuildPackage), ProcessedInPlatform);
         end;
-        ProjectInstaller.MoveDataFromTempProjects(Installer, BuildInfo);
+        ProjectInstaller.MoveDataFromTempProjects(Installer, BuildInfo, UsedDcuMegafolders);
         ProjectInstaller.RemoveTempProjects(Installer, BuildInfo);
         ProjectInstaller.RegisterAtPlatformLevel(Installer, BuildInfo);
         //When we analyze, we analyze up to platform level. This is the hash that matters.

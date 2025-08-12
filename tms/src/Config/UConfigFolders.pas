@@ -14,10 +14,11 @@ type
     function LogFile :string;
     function HashesFolder: string;
     function UninstallFolder: string;
+    function MegafoldersUninstallFolder: string;
     function SelfUninstallFolder: string;
     function DoctorUndoFolder: string;
     function LockedFilesFolder: string;
-    function CredentialsFile: string;
+    function CredentialsFile(const ServerName: string): string;
     function DownloadsFolder: string;
     function OldDownloadsFolder: string;
     function ProductsFolder: string;
@@ -26,6 +27,8 @@ type
     function CompileTempFolder: string;
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
+    function ZipFileTempFolder: string;
+    function DcuMegafolder: string;
   end;
 
   TBuildFolders = class(TInterfacedObject, IBuildFolders)
@@ -46,10 +49,11 @@ type
     function LogFile :string;
     function HashesFolder: string;
     function UninstallFolder: string;
+    function MegafoldersUninstallFolder: string;
     function SelfUninstallFolder: string;
     function DoctorUndoFolder: string;
     function LockedFilesFolder: string;
-    function CredentialsFile: string;
+    function CredentialsFile(const ServerName: string): string;
     function DownloadsFolder: string;
     function OldDownloadsFolder: string;
     function ProductsFolder: string;
@@ -58,6 +62,8 @@ type
     function CompileTempFolder: string;
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
+    function ZipFileTempFolder: string;
+    function DcuMegafolder: string;
   end;
 
 implementation
@@ -106,9 +112,12 @@ begin
 end;
 
 
-function TBuildFolders.CredentialsFile: string;
+function TBuildFolders.CredentialsFile(const ServerName: string): string;
 begin
-  Result := TPath.Combine(MetaFetchFolder, 'credentials');
+  var Prefix := '';
+  if ServerName <> 'tms' then Prefix := ServerName + '.'; //For v1.0 compat, if the source is tms, keep the credentials file named "credentials", not tms.credentials.
+
+  Result := TPath.Combine(MetaFetchFolder, Prefix + 'credentials');
 end;
 
 function TBuildFolders.DownloadsFolder: string;
@@ -171,6 +180,11 @@ begin
   Result := TPath.Combine(MetaBuildFolder, 'uninstall');
 end;
 
+function TBuildFolders.MegafoldersUninstallFolder: string;
+begin
+  Result := TPath.Combine(MetaBuildFolder, 'megafolder-uninstall');
+end;
+
 function TBuildFolders.SelfUninstallFolder: string;
 begin
   Result := TPath.Combine(MetaBuildFolder, 'self-uninstall');
@@ -184,6 +198,16 @@ end;
 function TBuildFolders.VCSTempFolder: string;
 begin
   Result := TPath.Combine(TempFolder, '.repositories')
+end;
+
+function TBuildFolders.ZipFileTempFolder: string;
+begin
+  Result := TPath.Combine(TempFolder, '.zipfiles')
+end;
+
+function TBuildFolders.DcuMegafolder: string;
+begin
+  Result := TPath.Combine(MetaFolder, 'lib')
 end;
 
 function TBuildFolders.DoctorUndoFolder: string;

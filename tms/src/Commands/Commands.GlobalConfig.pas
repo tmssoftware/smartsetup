@@ -6,13 +6,14 @@ uses
   System.IOUtils, System.SysUtils, UConfigDefinition, UConfigLoader, UConfigFolders, VCS.Registry;
 
 function Config: TConfigDefinition;
+function ConfigNoCheck: TConfigDefinition;
 procedure SetConfigFileName(const FileName: string);
 procedure AddConfigParameter(const Parameter: string);
 function ConfigFileName: string;
 function IsValidTMSSetupFolder: Boolean;
 procedure CheckValidTMSSetupFolder;
-function RegisteredVCSRepos: TProductRegistry;
-
+function RegisteredVCSRepos(const Server: string=''): TProductRegistry;
+function CommandLineConfig: TArray<string>;
 var
   NeedsToRestartIDE: boolean; // Not sure if here is the best place to put it.
 
@@ -21,8 +22,13 @@ implementation
 var
   _Config: TConfigDefinition;
   _CustomFileName: string;
-  _CommandLineParameters: TArray<string>;
+  _CommandLineConfig: TArray<string>;
   _RegisteredVCSRepos: TProductRegistry;
+
+function CommandLineConfig: TArray<string>;
+begin
+  Result := _CommandLineConfig;
+end;
 
 function ConfigFileName: string;
 begin
@@ -44,8 +50,8 @@ end;
 
 procedure AddConfigParameter(const Parameter: string);
 begin
-  SetLength(_CommandLineParameters, Length(_CommandLineParameters) + 1); //not worth using a TList here. FastMM is good enough resizing arrays
-  _CommandLineParameters[Length(_CommandLineParameters) - 1] := Parameter;
+  SetLength(_CommandLineConfig, Length(_CommandLineConfig) + 1); //not worth using a TList here. FastMM is good enough resizing arrays
+  _CommandLineConfig[Length(_CommandLineConfig) - 1] := Parameter;
 
 end;
 
@@ -70,17 +76,27 @@ begin
   if _Config = nil then
   begin
     CheckValidTMSSetupFolder;
-    _Config := TConfigLoader.LoadConfig(ConfigFileName, _CommandLineParameters);
+    _Config := TConfigLoader.LoadConfig(ConfigFileName, _CommandLineConfig);
 
   end;
   Result :=_Config;
 end;
 
-function RegisteredVCSRepos: TProductRegistry;
+function ConfigNoCheck: TConfigDefinition;
+begin
+  if _Config = nil then
+  begin
+    _Config := TConfigLoader.LoadConfig(ConfigFileName, _CommandLineConfig);
+
+  end;
+  Result :=_Config;
+end;
+
+function RegisteredVCSRepos(const Server: string): TProductRegistry;
 begin
   if _RegisteredVCSRepos = nil then
   begin
-  _RegisteredVCSRepos := TProductRegistry.Create(Config.Folders.VCSMetaFolder);
+  _RegisteredVCSRepos := TProductRegistry.Create(Server);
   end;
   Result := _RegisteredVCSRepos;
 

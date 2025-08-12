@@ -24,7 +24,7 @@ begin
 
   var AllStopWatch := TStopWatch.Create;
   AllStopWatch.Start;
-
+  var ActualProductIds: TArray<string> := nil;
   try
     // Process items to be removed
     var Manager := TRemovalManager.Create(Config.Folders, Config.GetAllRootFolders);
@@ -52,6 +52,8 @@ begin
         // Summary
         CheckAppTerminated;
         for var Item in Manager.RemovalItems do
+        begin
+          if Item.ProductPath <> '' then ActualProductIds := ActualProductIds + [Item.ProductId];
           case Item.Status of
             TRemovalStatus.Failed:
               // this line should never be executed, actually, because if there are items failed, an exception will be
@@ -60,6 +62,7 @@ begin
           else
             Logger.Info(Format('%s -> REMOVED', [Item.ProductId]));
           end;
+        end;
       finally
   //      LogFetchSummary(Manager.FetchItems);
       end;
@@ -70,7 +73,7 @@ begin
     // Build to unregister deleted products
     // For now, I don't think there is a reason for -nobuild parameter
   //  if not NoBuild then
-    ExecuteBuildAction(ProductIds, False);
+    ExecuteBuildAction(ActualProductIds, False);
   finally
     //remove even if there was an error trying to uninstall (maybe because there aren't any more products)
     RemoveFromWindowsPathIfNoProducts;

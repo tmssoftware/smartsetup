@@ -1,4 +1,5 @@
 unit UCoreTypes;
+{$i ../../tmssetup.inc}
 
 interface
 

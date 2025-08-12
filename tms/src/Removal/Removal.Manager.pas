@@ -61,7 +61,7 @@ begin
       var ProjectFolder := TPath.GetDirectoryName(Project.FullPath);
       if TPath.GetDirectoryName(ProjectFolder) = '' then continue; //Don't remove projects at the root of a drive.
 
-      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, Project.Application.Version, 'unknown'));
+      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, Project.Application.Version, 'unknown', ''));
     end;
   finally
     Projects.Free;
@@ -167,10 +167,11 @@ begin
   Result := [];
   if ProductPath = '' then
     Exit;
-  if not TProjectLoader.HasProjectDefinition(ProductPath) then
+  var YamlProductPath := TProjectLoader.GetProjectDefinition(ProductPath);
+  if YamlProductPath = '' then
     Exit;
 
-  var def := TProjectLoader.LoadProjectDefinition(ProductPath);
+  var def := TProjectLoader.LoadProjectDefinition(YamlProductPath);
   try
     for var Dependency in def.Dependencies do
       Result := Result + [Dependency.Id];
@@ -192,7 +193,6 @@ begin
     else
     begin
       GetFetchedProducts(FFolders.ProductsFolder, FInstalledProducts);
-      GetRepoProducts(FFolders.ProductsFolder, FInstalledProducts);
     end;
 
   end;

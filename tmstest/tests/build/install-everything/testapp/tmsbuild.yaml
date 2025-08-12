@@ -1,0 +1,27 @@
+minimum required tmsbuild version: 2.0
+  
+application:
+  id: testapp.tmsbuild
+  name: testapp
+
+supported frameworks:
+  vcl:
+    ide since: delphi11
+    platforms:
+      - win32intel
+      - win64intel
+
+packages:
+  - testapp: [exe, vcl]
+
+exe options:
+  delphi versions: latest
+  debug exes: false
+
+dependencies:
+  - tms.flexcel.vcl: tms.flexcel.vcl
+  - tms.biz.aurelius: tms.aurelius
+  - tms.vcl.crypto: tms.vcl.crypto
+  - sglienke.spring4d: sglienke.spring4d
+  - tms.biz.scripter: tms.biz.scripter
+  - tms.fnc.core: tms.fnc.core

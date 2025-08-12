@@ -63,7 +63,7 @@ type
     procedure SaveHash(const Project: TProjectDefinition;
             ProductHash: TProductHash; const IDE: TIDEName; const Platform: TPlatform; const Package: string);
 
-    procedure CleanHashes;
+    procedure CleanHashes(const ForceExcluded: boolean; out AllIncluded: boolean);
 
     procedure RemoveHashesForPlatform(const ProjectId, IdeId,
       PlatformId: string);
@@ -418,9 +418,9 @@ begin
 end;
 
 
-procedure TFileHasher.CleanHashes;
+procedure TFileHasher.CleanHashes(const ForceExcluded: boolean; out AllIncluded: boolean);
 begin
-  Persist.RemoveAll;
+  Persist.RemoveAll(ForceExcluded, AllIncluded);
 end;
 
 procedure TFileHasher.RemoveHashesForPlatform(const ProjectId, IdeId, PlatformId: string);

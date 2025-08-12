@@ -8,13 +8,18 @@ uses
 const
   DelphiSuffixes: array[TIDEName] of string =
     ('lazarus', 'd6', 'd7', 'd2005', 'd2006', 'd2007', 'd2009', 'd2010', 'dxe', 'dxe2', 'dxe3', 'dxe4', 'dxe5',
-     'dxe6', 'dxe7', 'dxe8', 'dseattle', 'dberlin', 'dtokyo', 'drio', 'dsydney', 'd11', 'd12');
+     'dxe6', 'dxe7', 'dxe8', 'dseattle', 'dberlin', 'dtokyo', 'drio', 'dsydney', 'd11', 'd12','d13');
   DelphiVersionNames: array[TIDEName] of string =
     ('lazarus', '6', '7', '2005', '2006', '2007', '2009', '2010', 'xe', 'xe2', 'xe3', 'xe4', 'xe5',
-     'xe6', 'xe7', 'xe8', 'seattle', 'berlin', 'tokyo', 'rio', 'sydney', '11', '12');
+     'xe6', 'xe7', 'xe8', 'seattle', 'berlin', 'tokyo', 'rio', 'sydney', '11', '12','13');
   PackageSuffixes: array[TIDEName] of string =
     ('lazarus', '60', '70', '90', '100', '110', '120', '140', '150', '160', '170', '180', '190',
-     '200', '210', '220', '230', '240', '250', '260', '270', '280', '290');
+     '200', '210', '220', '230', '240', '250', '260', '270', '280', '290', '370');
+  //$(ProductVersion) Available since XE2. Value is in CodeGear.Common.Targets, <ProductVersion> define.
+  DelphiProductVersion: array[TIDEName] of string =
+    ({this ones don't exist}'lazarus', '1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '8.0',
+     {XE2}'9.0', '10.0', '11.0', '12.0',
+     '14.0', '15.0', '16.0', '17.0', '18.0', '19.0', '20.0', '21.0', '22.0', '23.0', '37.0');
   DelphiRegistryRoot: array[TIDEName] of string = (
     'Lazarus',
     'Software\Borland\Delphi\6.0',
@@ -38,7 +43,8 @@ const
     'Software\Embarcadero\BDS\20.0',
     'Software\Embarcadero\BDS\21.0',
     'Software\Embarcadero\BDS\22.0',
-    'Software\Embarcadero\BDS\23.0'
+    'Software\Embarcadero\BDS\23.0',
+    'Software\Embarcadero\BDS\37.0'
   );
 
   DelphiNames: array[TIDEName] of string = (
@@ -64,7 +70,8 @@ const
     'Delphi 10.3 Rio',
     'Delphi 10.4 Sydney',
     'Delphi 11',
-    'Delphi 12'
+    'Delphi 12',
+    'Delphi 13'
   );
 
   RadStudioNames: array[TIDEName] of string = (
@@ -90,7 +97,8 @@ const
     'Rad Studio 10.3 Rio',
     'Rad Studio 10.4 Sydney',
     'Rad Studio 11',
-    'Rad Studio 12'
+    'Rad Studio 12',
+    'Rad Studio 13'
   );
 
 
@@ -111,10 +119,13 @@ const
       [win32intel, win64intel, macos32intel, iOSSimulator, iOSDevice32, android32, iOSDevice64, Linux64, macos64intel, Android64],  // rio
       [win32intel, win64intel, iOSSimulator, android32, iOSDevice64, Linux64, macos64intel, Android64],  // sydney
       [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm],  // d11
-      [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm, iossimulator64arm, win64Xintel]  // d12
+      [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm, iossimulator64arm, win64Xintel],  // d12
+      [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm, iossimulator64arm, win64Xintel]  // d13
     );
 
 function TrySuffixToIDEName(const Suffix: string; var IDEName: TIDEName): Boolean;
+function GetLibSuffix(const IDEName: TIDEName; const Quote: boolean): string;
+function GetLibSuffixDProj(const IDEName: TIDEName): string;
 
 implementation
 
@@ -130,6 +141,25 @@ begin
       Exit(True);
     end;
   Result := False;
+end;
+
+function GetLibSuffix(const IDEName: TIDEName; const Quote: boolean): string;
+begin
+  if IDEName >= delphi11 then
+    Result := 'auto'
+  else
+  begin
+    Result := PackageSuffixes[IDEName];
+    if Quote then Result := '''' + Result + '''';
+  end;
+end;
+
+function GetLibSuffixDProj(const IDEName: TIDEName): string;
+begin
+  if IDEName >= delphi11 then
+    Result := '$(Auto)'
+  else
+    Result := PackageSuffixes[IDEName];
 end;
 
 end.

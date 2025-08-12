@@ -2,7 +2,7 @@ unit UNamingList;
 {$i ../../tmssetup.inc}
 
 interface
-uses SysUtils, Generics.Collections, UNaming, UStandardNaming, UTmsPackNaming;
+uses SysUtils, Generics.Collections, UNaming, UStandardNaming;
 
 type
   TNamingList = class
@@ -22,7 +22,6 @@ constructor TNamingList.Create;
 begin
   FList := TObjectDictionary<string, TNaming>.Create([doOwnsValues]);
   FList.Add(TStandardNaming.IdStatic, TStandardNaming.Create);
-  FList.Add(TTMSPackNaming.IdStatic, TTMSPackNaming.Create);
 end;
 
 destructor TNamingList.Destroy;

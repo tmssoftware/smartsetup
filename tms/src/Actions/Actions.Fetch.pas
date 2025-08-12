@@ -21,11 +21,29 @@ uses
   Fetching.Manager,
   Fetching.Summary,
   Commands.Logging,
+  UConfigDefinition,
   VCS.Manager;
+
+function FindApiServer: TServerConfig;
+begin
+  var ServerIndex := -1;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    var Server := Config.ServerConfig.GetServer(i);
+    if not Server.Enabled then continue;
+    if Server.ServerType <> TServerType.Api then continue;
+    if ServerIndex <> -1 then raise Exception.Create('In this version of Smart Setup, only one API Server is allowed.');
+    ServerIndex := i;
+  end;
+
+  if ServerIndex = -1 then exit(TServerConfig.Create('', TServerType.Api, '', false)); //not found
+  Result := Config.ServerConfig.GetServer(ServerIndex);
+end;
 
 procedure ExecuteFetchAction(AProductIds: TArray<string>; FetchMode: TFetchMode);
 begin
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile, FetchOptions, false);
+  var ApiServer := FindApiServer;
+  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, false);
   try
     var VCSProducts := TVCSManager.Fetch(AProductIds, FetchMode = TFetchMode.OnlyInstalled);
     try

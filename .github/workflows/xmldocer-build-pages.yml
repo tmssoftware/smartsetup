@@ -1,0 +1,58 @@
+# Create Docs using XMLDocer
+
+name: Generate DOCFX
+
+# Controls when the workflow will run
+on: 
+  workflow_call:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.x
+      - name: Display dotnet version
+        run: dotnet --version
+        
+      - name: Install docfx
+        run: dotnet tool install -g docfx
+
+      - name: Install node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+
+ 
+      - name: Create folder
+        run: mkdir xmldocer
+              
+      - name: Download xmldocer
+        run: wget -P xmldocer/ https://github.com/agallero/doc-tools-releases/releases/latest/download/xmldocer-linux-x64.zip
+
+      - name: Unzip xmldocer
+        run: cd xmldocer && unzip xmldocer-linux-x64.zip
+
+      - name: Make it executable  
+        run: chmod +x xmldocer/xmldocer
+  
+      - name: Run xmldocer
+        run: cd doc && PATH=$PATH:/root/.dotnet/tools && ../xmldocer/xmldocer VCL smartsetupdoc.ini --verbose
+
+#      - name: Pause
+#        if: always()
+#        run: sleep 30000
+      

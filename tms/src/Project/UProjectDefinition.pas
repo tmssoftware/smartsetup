@@ -14,6 +14,8 @@ type
     FUrl: string;
     FCopyright: string;
     FVersion: string;
+    FCompanyName: string;
+    FVCSProtocol: string;
     FCanAddSourceCodeToLibraryPath: boolean;
     function GetName: string;
   public
@@ -25,6 +27,8 @@ type
     property Url: string read FUrl write FUrl;
     property Docs: string read FDocs write FDocs;
     property Version: string read FVersion write FVersion;
+    property CompanyName: string read FCompanyName write FCompanyName;
+    property VCSProtocol: string read FVCSProtocol write FVCSProtocol;
     property CanAddSourceCodeToLibraryPath: boolean read FCanAddSourceCodeToLibraryPath write FCanAddSourceCodeToLibraryPath;
 
     function NameAndVersion: string;
@@ -34,6 +38,40 @@ type
 
   end;
 
+  TFileMasks = record
+    BaseFolder: string;
+    IncludeFolders: TArray<string>;
+    ExcludeFolders: TArray<string>;
+    IncludeFiles: TArray<string>;
+    ExcludeFiles: TArray<string>;
+    Recursive: boolean;
+    constructor Create (const aBaseFolder: string);
+    procedure AddIncludeFolders(const Masks: TArray<string>);
+    procedure AddExcludeFolders(const Masks: TArray<string>);
+    procedure AddIncludeFiles(const Masks: TArray<string>);
+    procedure AddExcludeFiles(const Masks: TArray<string>);
+    procedure SetRecursive(const value: boolean);
+  end;
+
+  TFileMasksList = record
+  private
+    FFileMasks: TArray<TFileMasks>;
+    function GetLast: TFileMasks;
+    procedure SetLast(const Value: TFileMasks);
+
+    property Last: TFileMasks read GetLast write SetLast;
+  public
+    procedure AddFolder(const aBaseFolder: string);
+    procedure SetIncludeFolders(const Masks: TArray<string>);
+    procedure SetExcludeFolders(const Masks: TArray<string>);
+    procedure SetIncludeFiles(const Masks: TArray<string>);
+    procedure SetExcludeFiles(const Masks: TArray<string>);
+    procedure SetRecursive(const value: boolean);
+
+    property FileMasks: TArray<TFileMasks> read FFileMasks;
+    function Empty: boolean;
+  end;
+
   TPackage = class
   private
     FName: string;
@@ -41,14 +79,26 @@ type
     FIsRuntime: boolean;
     FIsDesign: boolean;
     FPackageType: TPackageType;
+    FDescription: string;
+    FDelphiFrameworkType: string;
+    FRequires: TArray<string>;
+    FFileMasks: TFileMasksList;
   public
-    Constructor Create(const aName: string);
+    constructor Create(const aName: string);
     property Name: string read FName write FName;
     property IsRuntime: boolean read FIsRuntime write FIsRuntime;
     property IsDesign: boolean read FIsDesign write FIsDesign;
     property PackageType: TPackageType read FPackageType write FPackageType;
 
     property Frameworks: TFrameworkSet read FFrameworks write FFrameworks;
+
+    //For creating packages
+    property Description: string read FDescription write FDescription;
+    property DelphiFrameworkType: string read FDelphiFrameworkType write FDelphiFrameworkType;
+    property Requires: TArray<string> read FRequires write FRequires;
+    property FileMasks: TFileMasksList read FFileMasks write FFileMasks;
+
+    function AutoGenerate: boolean;
   end;
 
   TDependency = class
@@ -200,6 +250,16 @@ type
     ValueType: TRegistryEntryType;
   end;
 
+  TExeCompileWith = (All, Latest, Earliest);
+  TExeOptions = class
+  private
+    FCompileWith: TExeCompileWith;
+    FExeDebug: boolean;
+  public
+    property CompileWith: TExeCompileWith read FCompileWith write FCompileWith;
+    property ExeDebug: boolean read FExeDebug write FExeDebug;
+  end;
+
   TProjectDefinition = class
   private
     FFullPath: string;
@@ -223,10 +283,14 @@ type
     FShortcuts: TObjectList<TShortcutDefinition>;
     FFileLinks: TObjectList<TFileLinkDefinition>;
     FOtherRegistryKeys: TList<string>;
+    FRootPackageFolder: string;
     FPackageFolders: TPackageFolders;
     FLibSuffixes: TLibSuffixes;
     FHasMultiIDEPackages: Nullable<boolean>;
     FIgnoreDprojPlatforms: boolean;
+    FAddLibSuffix: boolean;
+    FPackageExtraDefines: TList<string>;
+    FExeOptions: TExeOptions;
 
     function GetHasMultiIDEPackages: boolean;
 
@@ -246,8 +310,10 @@ type
     property WeakDependencies: TObjectList<TDependency> read FWeakDependencies;
     property ResolvedState: TResolvedState read FResolvedState write FResolvedState;
     property IgnoreDprojPlatforms: boolean read FIgnoreDprojPlatforms write FIgnoreDprojPlatforms;
+    property AddLibSuffix: boolean read FAddLibSuffix write FAddLibSuffix;
 
     property Naming: string read FNaming write FNaming;
+    property RootPackageFolder: string read FRootPackageFolder write FRootPackageFolder;
     property PackageFolders: TPackageFolders read FPackageFolders;
     property LibSuffixes: TLibSuffixes read FLibSuffixes;
 
@@ -278,6 +344,10 @@ type
     property Shortcuts: TObjectList<TShortcutDefinition> read FShortcuts;
     property FileLinks: TObjectList<TFileLinkDefinition> read FFileLinks;
     property OtherRegistryKeys: TList<string> read FOtherRegistryKeys;
+
+    property PackageExtraDefines: TList<string> read FPackageExtraDefines;
+
+    property ExeOptions: TExeOptions read FExeOptions;
 
     property HasMultiIDEPackages: boolean read GetHasMultiIDEPackages;
 
@@ -334,6 +404,8 @@ begin
   FShortcuts := TObjectList<TShortcutDefinition>.Create;
   FFileLinks := TObjectList<TFileLinkDefinition>.Create;
   FOtherRegistryKeys := TList<string>.Create;
+  FPackageExtraDefines := TList<string>.Create;
+  FExeOptions := TExeOptions.Create;
 end;
 
 
@@ -351,6 +423,8 @@ begin
   FShortcuts.Free;
   FFileLinks.Free;
   FOtherRegistryKeys.Free;
+  FPackageExtraDefines.Free;
+  FExeOptions.Free;
   inherited;
 end;
 
@@ -377,6 +451,15 @@ end;
 function TProjectDefinition.GetHasMultiIDEPackages: boolean;
 begin
   if FHasMultiIDEPackages.HasValue then exit(FHasMultiIDEPackages.Value);
+  for var Package in Packages do
+  begin
+    //Autogenerated packages always have MultiIDE.
+    if Package.AutoGenerate then
+    begin
+      FHasMultiIDEPackages := true;
+      exit(true);
+    end;
+  end;
 
   var Finder: THashSet<string> := nil;
   try
@@ -539,6 +622,11 @@ begin
 end;
 
 { TPackage }
+function TPackage.AutoGenerate: boolean;
+begin
+  Result := not FileMasks.Empty;
+end;
+
 constructor TPackage.Create(const aName: string);
 begin
   Name := aName;
@@ -667,6 +755,7 @@ begin
   Result.FUrl := FUrl;
   Result.FCopyright := FCopyright;
   Result.FVersion := FVersion;
+  Result.FVCSProtocol := FVCSProtocol;
   Result.FCanAddSourceCodeToLibraryPath := FCanAddSourceCodeToLibraryPath;
 end;
 
@@ -763,6 +852,98 @@ constructor TPlatformPaths.Create(const APlatforms: TPlatformSet;
 begin
   Platforms := APlatforms;
   Path := APath;
+end;
+
+
+{ TFileMasks }
+
+procedure TFileMasks.AddExcludeFiles(const Masks: TArray<string>);
+begin
+  ExcludeFiles := ExcludeFiles + Masks;
+end;
+
+procedure TFileMasks.AddExcludeFolders(const Masks: TArray<string>);
+begin
+  ExcludeFolders := ExcludeFolders + Masks;
+end;
+
+procedure TFileMasks.AddIncludeFiles(const Masks: TArray<string>);
+begin
+  IncludeFiles := IncludeFiles + Masks;
+end;
+
+procedure TFileMasks.AddIncludeFolders(const Masks: TArray<string>);
+begin
+  IncludeFolders := IncludeFolders + Masks;
+end;
+
+constructor TFileMasks.Create(const aBaseFolder: string);
+begin
+  BaseFolder := aBaseFolder;
+end;
+
+procedure TFileMasks.SetRecursive(const value: boolean);
+begin
+  Recursive := value;
+end;
+
+{ TFileMasksList }
+
+procedure TFileMasksList.AddFolder(const aBaseFolder: string);
+begin
+  FFileMasks := FFileMasks + [TFileMasks.Create(aBaseFolder)];
+end;
+
+function TFileMasksList.Empty: boolean;
+begin
+  Result := FFileMasks = nil;
+end;
+
+function TFileMasksList.GetLast: TFileMasks;
+begin
+  if FileMasks = nil then raise Exception.Create('There are no folders defined to add a mask.');
+  Result := FileMasks[Length(FileMasks) - 1];
+end;
+
+procedure TFileMasksList.SetLast(const Value: TFileMasks);
+begin
+  FFileMasks[Length(FileMasks) - 1] := Value;
+end;
+
+
+procedure TFileMasksList.SetExcludeFiles(const Masks: TArray<string>);
+begin
+  var tmp := Last;
+  tmp.AddExcludeFiles(Masks);
+  Last := tmp;
+end;
+
+procedure TFileMasksList.SetExcludeFolders(const Masks: TArray<string>);
+begin
+  var tmp := Last;
+  tmp.AddExcludeFolders(Masks);
+  Last := tmp;
+end;
+
+procedure TFileMasksList.SetIncludeFiles(const Masks: TArray<string>);
+begin
+  var tmp := Last;
+  tmp.AddIncludeFiles(Masks);
+  Last := tmp;
+end;
+
+procedure TFileMasksList.SetIncludeFolders(const Masks: TArray<string>);
+begin
+  var tmp := Last;
+  tmp.AddIncludeFolders(Masks);
+  Last := tmp;
+end;
+
+procedure TFileMasksList.SetRecursive(const value: boolean);
+begin
+  var tmp := Last;
+  tmp.SetRecursive(value);
+  Last := tmp;
 end;
 
 end.

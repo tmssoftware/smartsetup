@@ -1,0 +1,15 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: test.localized.build.cpp
+  name: "Test Localized Build C++"
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - LocalizedBindings: [runtime, rtl]
+

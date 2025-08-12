@@ -45,6 +45,9 @@ type
     // Returns the value of "$(Platform)" macro
     function PlatformMacroValue: string;
 
+    // Returns the value of "$(ProductVersion)" macro
+    function ProductVersionMacroValue: string;
+
     // Returns the name of generated binary package file name given the package base name
     // it will automatically add the suffix if AddLibSuffix is true.
     // Example: base name is "aurelius", and function will return aurelius210.bpl for windows in XE7

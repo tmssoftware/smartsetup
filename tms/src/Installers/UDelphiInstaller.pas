@@ -4,13 +4,13 @@ unit UDelphiInstaller;
 interface
 
 uses
-  UPlatformBuildInfo, UPackageBuildInfo, Deget.CoreTypes,
+  UPlatformBuildInfo, UPackageBuildInfo, Deget.CoreTypes,  Generics.Defaults,
   UConfigDefinition, UFullBuildInfo, ULogger, UMultiLogger, UProjectDefinition,
 {$IFDEF MSWINDOWS}
   Windows, SysUtils, TypInfo, JSON, IOUtils, Generics.Collections,
   Deget.IDETypes, Deget.Compilation, Deget.IDEInfo, Deget.PackageConfig,
 {$ENDIF}
-  UUninstallInfo, UInstaller, Classes;
+  UUninstallInfo, UInstaller, Classes, Megafolders.Definition;
 
 {$IFDEF MSWINDOWS}
 type
@@ -32,13 +32,12 @@ type
   strict private
     function CreateIDEInfo(BuildInfo: TFullBuildInfo): IDelphiIDEInfo; overload;
     function CreateIDEInfo(UninstallInfo: IUninstallInfo): IDelphiIDEInfo; overload;
-    function ConsolidatePackages(BuildInfo: TFullBuildInfo; PlatformInfo: IDelphiPlatformInfo): TPackagesConsolidation;
-    procedure AppendConsolidation(PackageInfo :IDelphiPackageInfo; var Consolidation: TPackagesConsolidation; DebugDCUs, SupportsCppBuilder: Boolean);
+    function ConsolidatePackages(BuildInfo: TFullBuildInfo; PlatformInfo: IDelphiPlatformInfo; const InMegafolder: boolean): TPackagesConsolidation;
+    procedure AppendConsolidation(PackageInfo :IDelphiPackageInfo; var Consolidation: TPackagesConsolidation; DebugDCUs, SupportsCppBuilder, InMegafolder: Boolean);
     procedure RegisterPackage(BuildInfo: TFullBuildInfo; PackBuildInfo: TPackageBuildInfo; PackUninstall: TJSONObject);
     procedure LinkPackageFile(const ProductId, LinkedFileName, BinaryPackageFileName: string; PackUninstall: TJSONObject);
     function AddPathOverride(IDEInfo: IDelphiIDEInfo; const AlternateRegistryKey, Folder: string): boolean;
-    procedure CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; IDEName: TIDEName; const IsExe: boolean;
-              const Application: TApplicationDefinition; const Brcc32Path: string);
+    procedure CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; const BuildInfo: TFullBuildInfo);
     procedure UpdatePackageSource(const Orig, OutputDir: string; IDEName: TIDEName);
     procedure RegisterHelp(const ProductName, HelpFile: string; IDEName: TIDEName; const Config: TConfigDefinition; const UninstallInfo: IUninstallInfo);
     function UnRegisterHelp(const UninstallInfo: IUninstallInfo): boolean;
@@ -62,14 +61,21 @@ type
 
     procedure RegisterAtIDELevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
     procedure RegisterAtPlatformLevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
+    procedure RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
 
     procedure UnRegisterAtIDELevel(const UninstallInfo: IUninstallInfo); override;
     procedure UnRegisterAtPlatformLevel(const UninstallInfo: IUninstallInfo); override;
+    procedure UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>); override;
 
     procedure UpdateProjectsSource(const BuildInfo: TFullBuildInfo); override;
 
+    procedure UpdateMegafolders(const SourceFolder, ProjectId: string;
+      const IDEName: TIDEName; const Platform: TPlatform;
+      const BuildConfig: TBuildConfig;
+      const UsedDcuMegafolders: TUsedMegafolders); override;
+
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); override;
-    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); override;
+    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
     function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
   end;
@@ -125,8 +131,14 @@ type
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
     function ProjectFileSupportsPlatform(const IgnoreDprojPlatforms: boolean; const RootFolder, PackageFileName: string; const dp: TPlatform): boolean; override;
-    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo); override;
+    procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); override;
 
+    procedure RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); override;
+    procedure UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>); override;
+    procedure UpdateMegafolders(const SourceFolder, ProjectId: string;
+      const IDEName: TIDEName; const Platform: TPlatform;
+      const BuildConfig: TBuildConfig;
+      const UsedDcuMegafolders: TUsedMegafolders); override;
 
   end;
 {$ENDIF}
@@ -136,8 +148,9 @@ implementation
 uses
   Deget.DelphiInfo, Deget.IDEUtils, Deget.FileUtils, Deget.RCFileFormat,
   Deget.Filer.DprojFile, Deget.Filer.DpkFile, Deget.Filer.DprFile, UIDEUtils,
-  Deget.Filer.ProjectFactory, UEnvironmentPath,
-  UWindowsPath, UTmsBuildSystemUtils, Commands.GlobalConfig, Deget.ResFile, Threading, UOSFileLinks, ULoggerTask;
+  Deget.Filer.ProjectFactory, UEnvironmentPath, Megafolders.Manager,
+  UWindowsPath, UTmsBuildSystemUtils, Commands.GlobalConfig, Deget.ResFile, Threading, UOSFileLinks,
+  ULoggerTask, UProjectInstallerConstants;
 
 { TDelphiInstaller }
 
@@ -173,8 +186,13 @@ end;
 
 
 procedure TDelphiInstaller.AppendConsolidation(PackageInfo: IDelphiPackageInfo; var Consolidation: TPackagesConsolidation;
-  DebugDCUs, SupportsCppBuilder: boolean);
+  DebugDCUs, SupportsCppBuilder, InMegafolder: boolean);
 begin
+  Consolidation.BplOutputDir := AddPaths(Consolidation.BplOutputDir, TPath.GetDirectoryName(PackageInfo.BinaryPackageFileName('Release')));
+  Consolidation.BrowsingPath := AddPaths(Consolidation.BrowsingPath, PackageInfo.SourcePathFromDpk);
+
+  if InMegafolder then exit;
+
   if DebugDCUs then
   begin
     Consolidation.DebugDcuOutputDir := AddPaths(Consolidation.DebugDcuOutputDir, PackageInfo.ExpandedDcuOutputDir('Debug'));
@@ -191,9 +209,34 @@ begin
     Consolidation.CppHppOutputDir := AddPaths(Consolidation.CppHppOutputDir, PackageInfo.ExpandedCppHppOutputDir('Release'));
     Consolidation.CppObjOutputDir := AddPaths(Consolidation.CppObjOutputDir, PackageInfo.ExpandedCppObjOutputDir('Release'));
   end;
+end;
 
-  Consolidation.BplOutputDir := AddPaths(Consolidation.BplOutputDir, TPath.GetDirectoryName(PackageInfo.BinaryPackageFileName('Release')));
-  Consolidation.BrowsingPath := AddPaths(Consolidation.BrowsingPath, PackageInfo.SourcePathFromDpk);
+function ExcludeDefine(const Define: string; const PackageExtraDefines: TList<string>): boolean;
+begin
+  Result := false;
+  for var d in PackageExtraDefines do
+  begin
+    if not d.StartsWith('-') then continue;
+    if (SameText(Define.Trim(), d.Substring(1).Trim)) then exit(true);
+  end;
+end;
+
+function ProcessDefines(const DefineString: string; const PackageExtraDefines: TList<string>): string;
+begin
+  if PackageExtraDefines = nil then exit(DefineString); //most common case.
+  var SplitDefines := DefineString.Split([';'], TStringSplitOptions.ExcludeEmpty);
+  Result := '';
+  for var Extra in PackageExtraDefines do
+  begin
+    if Extra.StartsWith('-') then continue;
+    if Result <> '' then Result := Result + ';';
+    Result := Result + Extra;
+  end;
+  for var Def in SplitDefines do
+  begin
+    if ExcludeDefine(Def, PackageExtraDefines) then continue;
+    Result := Result + ';' + Def;
+  end;
 end;
 
 procedure TDelphiInstaller._BuildPackage(const BuildConfig: string; const BuildInfo: TFullBuildInfo;
@@ -223,7 +266,7 @@ begin
     try
       Settings.Defines := String.Join(';', BuildInfo.Project.Defines);
       var PkgDefines := PackageInfo.Defines(BuildConfig);
-      if PkgDefines <> '' then Settings.Defines := PkgDefines + ';' + Settings.Defines;
+      if PkgDefines <> '' then Settings.Defines := ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines) + ';' + Settings.Defines;
       
 
       if not BuildInfo.Project.DryRun then
@@ -287,7 +330,7 @@ begin
   try
     // Copy resources to output dir
     var PackageDirs := TPackagesConsolidation.Init;
-    AppendConsolidation(PackageInfo, PackageDirs, BuildInfo.Project.DebugDCUs, BuildInfo.Package.SupportsCppBuilder);
+    AppendConsolidation(PackageInfo, PackageDirs, BuildInfo.Project.DebugDCUs, BuildInfo.Package.SupportsCppBuilder, false);
 
     var FilesToDelete: TArray<string>;
     var FileMasksToDelete: TArray<string>;
@@ -448,7 +491,7 @@ begin
     Config.FileLinkType(ProductId), NeedsToRestartIDE);
 end;
 
-function TDelphiInstaller.ConsolidatePackages(BuildInfo: TFullBuildInfo; PlatformInfo: IDelphiPlatformInfo): TPackagesConsolidation;
+function TDelphiInstaller.ConsolidatePackages(BuildInfo: TFullBuildInfo; PlatformInfo: IDelphiPlatformInfo; const InMegafolder: boolean): TPackagesConsolidation;
 var
   PackBuildInfo: TPackageBuildInfo;
   Package: TPackage;
@@ -461,7 +504,7 @@ begin
   begin
     Package := PackBuildInfo.Package;
     PackageInfo := TPackageConfig.Create(Package.Name, PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, PackBuildInfo.PackageExt, BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
-    AppendConsolidation(PackageInfo, Result, BuildInfo.Project.DebugDCUs, PackBuildInfo.SupportsCppBuilder);
+    AppendConsolidation(PackageInfo, Result, BuildInfo.Project.DebugDCUs, PackBuildInfo.SupportsCppBuilder, InMegafolder);
   end;
 end;
 
@@ -497,6 +540,85 @@ begin
   Result := [TPlatform.win32intel, TPlatform.win64intel];
 end;
 
+procedure TDelphiInstaller.RegisterMegafolders(const BuildInfo: TFullBuildInfo;
+  const UninstallInfo: IUninstallInfo);
+begin
+  var Megafolder := Config.DcuMegafolders.Match(BuildInfo.Project.ProjectId);
+  if Megafolder = '' then exit;  
+
+  if BuildInfo.Project.SkipRegistering.Packages or BuildInfo.Project.DryRun then exit;
+  UninstallInfo.Value.WriteStr(UninstallConsts.AlternateRegistryKey, Config.AlternateRegistryKey);
+
+
+  for var BuildConfigIndex := Low(TBuildConfig) to High(TBuildConfig) do
+  begin
+    var RelMegafolderPath := TMegafolderManager.GetFolderName(Megafolder, IDEName, BuildInfo.Platform.Name, BuildConfigIndex);
+    var FullFolderPath := TPath.Combine(Config.Folders.DcuMegafolder, RelMegafolderPath);
+
+    var IDEInfo := CreateIDEInfo(BuildInfo);
+    var PlatformInfo := IDEInfo.GetPlatform(BuildInfo.Platform.Name);
+
+    for var PathType := Low(TDelphiPathType) to High(TDelphiPathType) do
+    begin
+      if PathType in [TDelphiPathType.ptBrowsingPath, TDelphiPathType.ptCppBrowsingPath, TDelphiPathType.ptCppClang32BrowsingPath] then continue;
+
+      if (BuildConfigIndex = TBuildConfig.Debug) and (PathType <> TDelphiPathType.ptDebugDcuPath) then continue;
+      if (BuildConfigIndex = TBuildConfig.Release) and (PathType = TDelphiPathType.ptDebugDcuPath) then continue;
+
+      UninstallInfo.Value.WriteStr(UninstallConsts.IDEPaths[PathType], FullFolderPath);
+      PlatformInfo.AddIDEPath(PathType, FullFolderPath);
+      Logger.Trace(Format('%s added to platform "%s.%s": %s', [
+        UninstallConsts.IDEPaths[PathType],
+        DisplayName,
+        PlatformId[PlatformInfo.PlatType],
+        FullFolderPath
+      ]));
+
+    end;
+
+  end;
+end;
+
+function OtherEntriesContain(const OtherEntries: TArray<string>; const AlternateRegistryKey, PathType, PathValue: string): boolean;
+begin
+  Result := false;
+  for var Entry in OtherEntries do
+  begin
+    var Value := TJSONObject.ParseJSONValue(Entry, false, true) as TJSONObject;
+    try
+      var EntryAlternateRegistryKey := Value.ReadStr(UninstallConsts.AlternateRegistryKey);
+      if not SameText(AlternateRegistryKey, EntryAlternateRegistryKey) then continue;
+      var EntryValue := Value.ReadStr(PathType);
+      if SameText(EntryValue, PathValue) then exit(true);
+    finally
+      Value.Free;
+    end;
+  end;
+end;
+
+procedure TDelphiInstaller.UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>);
+begin
+  var IDEInfo := CreateIDEInfo(UninstallInfo);
+  var PlatformInfo := IDEInfo.GetPlatform(UninstallInfo.Platform);
+  var AlternateRegistryKey := UninstallInfo.Value.ReadStr(UninstallConsts.AlternateRegistryKey);
+  for var PathType := Low(TDelphiPathType) to High(TDelphiPathType) do
+  begin
+    var PathsToRemove := UninstallInfo.Value.ReadStr(UninstallConsts.IDEPaths[PathType], '');
+    if PathsToRemove = '' then continue;
+    if OtherEntriesContain(OtherEntries, AlternateRegistryKey, UninstallConsts.IDEPaths[PathType], PathsToRemove) then continue;
+
+
+    if not UninstallInfo.DryRun then
+      PlatformInfo.RemoveIDEPath(PathType, PathsToRemove);
+    Logger.Trace(Format('Removed from %s in platform "%s.%s": %s', [
+      UninstallConsts.IDEPaths[PathType],
+      DisplayName,
+      PlatformId[PlatformInfo.PlatType],
+      PathsToRemove
+    ]));
+  end;
+end;
+
 procedure TDelphiInstaller.RegisterAtIDELevel(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo);
 begin
   UninstallInfo.Value.WriteStr(UninstallConsts.AlternateRegistryKey, BuildInfo.Project.AlternateRegistryKey);
@@ -530,6 +652,11 @@ begin
   begin
     var LinkedFolder := TPath.Combine(BuildInfo.Project.BplFolder, PlatformInfo.PlatformMacroValue);
     var LinkedFileName := TPath.Combine(LinkedFolder, TPath.GetFileName(BinaryPackageFileName));
+    if not TFile.Exists(BinaryPackageFileName) then
+    begin
+      raise Exception.Create('Can''t find the package ' + BinaryPackageFileName + '. It likely has wrong or no LIBSUFFIX.');
+    end;
+
     if not BuildInfo.Project.DryRun then
     begin
       LinkPackageFile(BuildInfo.Project.ProjectId, LinkedFileName, BinaryPackageFileName, PackUninstall);
@@ -603,13 +730,14 @@ var
 
 begin
   if BuildInfo.Project.SkipRegistering.Packages then exit;
+  var InMegafolder := Config.DcuMegafolders.Match(BuildInfo.Project.ProjectId) <> '';
 
   // Initialize IDE and Platform helper interfaces
   IDEInfo := CreateIDEInfo(BuildInfo);
   PlatformInfo := IDEInfo.GetPlatform(BuildInfo.Platform.Name);
 
   // Get consolidated (merged) folders from all packages in platform
-  Consolidation := ConsolidatePackages(BuildInfo, PlatformInfo);
+  Consolidation := ConsolidatePackages(BuildInfo, PlatformInfo, InMegafolder);
 
   // Save alternate registry key to uninstall info so next uninstall removes data from correct registry
   if not BuildInfo.Project.DryRun then
@@ -848,8 +976,7 @@ begin
 
         CopyProjects(OrigPackage, TempPackage, PackageInfo.UnexpandedOutputDir,
                      ExeOutputDir,
-                     BuildInfo.IDE.Name, BuildInfo.Project.Project.IsExe,
-                     BuildInfo.Project.Project.Application, CreateIDEInfo(BuildInfo).Brcc32File);
+                     BuildInfo);
       end;
     end;
   finally
@@ -857,7 +984,31 @@ begin
   end;
 end;
 
-procedure TDelphiInstaller.MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo);
+procedure TDelphiInstaller.UpdateMegafolders(const SourceFolder, ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform; const BuildConfig: TBuildConfig;
+  const UsedDcuMegafolders: TUsedMegafolders);
+begin
+  var Megafolder := Config.DcuMegafolders.Match(ProjectId);
+  if Megafolder <> '' then
+  begin
+    Logger.StartSection(TMessageType.Megafolder, 'Update DCU Megafolders');
+    try
+      var RelMegafolderPath := TMegafolderManager.GetFolderName(Megafolder, IDEName, Platform, BuildConfig);
+      if UsedDcuMegafolders <> nil then UsedDcuMegafolders.Add(RelMegafolderPath);
+      Logger.Trace('Updating ' + ProjectId + ' in the DCU Megafolder ' + RelMegafolderPath + '...');
+      var MegafolderCount := 0;
+      var MegaPath := TPath.Combine(Config.Folders.DcuMegafolder, RelMegafolderPath);
+      TDirectory_CreateDirectory(MegaPath);
+      TMegafolderManager.UpdateFolder(SourceFolder, MegaPath, MegafolderCount);
+
+      if (MegafolderCount = 0) then Logger.Trace('DCU Megafolder up to date')
+      else Logger.Trace('Updated ' + IntToStr(MegafolderCount) + ' files in the Megafolder.');
+    finally
+      Logger.FinishSection(TMessageType.Megafolder);
+    end;
+  end;
+end;
+
+procedure TDelphiInstaller.MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders);
 begin
   var PlatformInfo := CreateIDEInfo(BuildInfo).GetPlatform(BuildInfo.Platform.Name);
 
@@ -866,7 +1017,7 @@ begin
     var BuildConfig := BuildConfigs[BuildConfigIndex];
 
     var TempProjFolder := TempProjectDirectory(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
-    var TempPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, TempProjFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
+    var TempPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, TempProjFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, false);
     var TempOutputFolder := TempPackageInfo.ExpandedDcuOutputDir(BuildConfig);
 
     var OutputPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
@@ -878,6 +1029,9 @@ begin
     begin
       DeleteFolderMovingToLocked(Config.Folders.LockedFilesFolder, FinalOutputFolder, true);
       RenameAndCheckFolder(TempOutputFolder, FinalOutputFolder);
+
+      if (not BuildInfo.Project.SkipRegistering.Packages)
+        then UpdateMegafolders(FinalOutputFolder, BuildInfo.Project.ProjectId, PlatformInfo.IDEInfo.IDEName, PlatformInfo.PlatType, BuildConfigIndex, UsedDcuMegafolders);
     end;
 
     if BuildInfo.Project.Project.IsExe then
@@ -1029,8 +1183,8 @@ begin
   Result := TPath.GetFileName(FileName);
 end;
 
-procedure TDelphiInstaller.CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; IDEName: TIDEName; const IsExe: boolean;
-    const Application: TApplicationDefinition; const Brcc32Path: string);
+procedure TDelphiInstaller.CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string;
+    const BuildInfo: TFullBuildInfo);
 var
   SourceDir, TargetDir: string;
 
@@ -1068,6 +1222,36 @@ var
     end;
   end;
 
+  procedure AddExtraInfoToDproj(const DProjModifier: TDprojModifier);
+  begin
+    var Defines := String.Join(';', BuildInfo.Project.Defines);
+    var BaseNodeForDefines: IInterface := nil;
+    try
+      DProjModifier.LoopOverAllNodes(function (NodeName, NodeText: string; PropGroupIsBase: boolean): string
+        begin
+          if (NodeName = '/#document/Project/PropertyGroup/DCC_Define/#text') then
+            begin;
+              if PropGroupIsBase then BaseNodeForDefines := nil;
+              var PkgDefines := ProcessDefines(NodeText, BuildInfo.Project.Project.PackageExtraDefines);
+              if Defines<>'' then exit(Defines + ';' + PkgDefines);
+              exit(PkgDefines);
+            end;
+
+          Result := NodeText;
+        end,
+        procedure (Node: IInterface)
+        begin
+          BaseNodeForDefines := Node;
+        end
+      );
+
+      if (BaseNodeForDefines <> nil) and (Defines <> '') then DProjModifier.AddChildNode(BaseNodeForDefines, 'DCC_Define', Defines);
+
+    finally
+      BaseNodeForDefines := nil; //remove the reference so it can be freed before DProjModifier.
+    end;
+  end;
+
   procedure AddMissingOutputs(const DProjModifier: TDProjModifier; const ISCPP: boolean; const ExistingOutputs: THashSet<string>; const OutputDir, ExeOutputDir: string);
   begin
     for var OutputNode in DProjModifier.AllOutputNodes do
@@ -1082,13 +1266,12 @@ var
     end;
   end;
 
-
 begin
   TargetDir := TPath.GetDirectoryName(Temp);
   SourceDir := TPath.GetDirectoryName(Orig);
   var ExistingOutputs := THashSet<string>.Create;
   try
-    CopyProjectRes(Orig, TargetDir, IDEName, Application, Brcc32Path);
+    CopyProjectRes(Orig, TargetDir, IDEName, BuildInfo.Project.Project.Application, CreateIDEInfo(BuildInfo).Brcc32File);
     // Copy and modify dproj
     if IsXMLProj(Orig) then
     begin
@@ -1115,7 +1298,7 @@ begin
              if NodeIsOutput then
              begin
                if NodeIsBase then ExistingOutputs.Add(NodeName);
-               if IsExe and NodeIsExe then exit(ExeOutputDir) else exit(OutputDir);
+               if BuildInfo.Project.Project.IsExe and NodeIsExe then exit(ExeOutputDir) else exit(OutputDir);
              end;
 
              Result := ConvertPathToTarget(SourceDir, TargetDir, OriginalPath);
@@ -1126,6 +1309,7 @@ begin
            end
            );
 
+          AddExtraInfoToDproj(DProjModifier);
           var ISCPP := TPath.GetExtension(Orig) = '.cbproj';
           AddMissingOutputs(DProjModifier, ISCPP, ExistingOutputs, OutputDir, ExeOutputDir);
           if (IsCPP) then EnsureRootFolderInLinkPath(DProjModifier);
@@ -1151,7 +1335,7 @@ begin
   begin
   end else
   begin
-    if IsExe then
+    if BuildInfo.Project.Project.IsExe then
     begin
       var SourceDpr := TPath.ChangeExtension(Orig, '.dpr');
       var TargetDpr := TPath.ChangeExtension(Temp, '.dpr');
@@ -1189,6 +1373,7 @@ begin
           Writer.UpdateDcrFiles(PackData.DcrFiles);
           Writer.UpdateRequires(PackData.Requires);
           Writer.UpdatePasFiles(PackData.PasFiles);
+          if BuildInfo.Project.Project.AddLibSuffix then Writer.UpdateDllSuffix(GetLibSuffix(IDEName, false));
           Writer.Flush;
         finally
           Writer.Free;
@@ -1218,7 +1403,7 @@ begin
 end;
 
 procedure TDelphiInstaller.MoveDataFromTempProjects(
-  const BuildInfo: TFullBuildInfo);
+  const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders);
 begin
 end;
 
@@ -1268,6 +1453,24 @@ function TDelphiInstaller.SupportsCppBuilder(
 begin
    Result := (Platform = TPlatform.win32intel) and (IDEName >= TIDEName.delphi2006);
 end;
+
+procedure TDelphiInstaller.UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>);
+begin
+end;
+
+procedure TDelphiInstaller.RegisterMegafolders(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo);
+begin
+end;
+
+procedure TDelphiInstaller.UpdateMegafolders(const SourceFolder, ProjectId: string;
+      const IDEName: TIDEName; const Platform: TPlatform;
+      const BuildConfig: TBuildConfig;
+      const UsedDcuMegafolders: TUsedMegafolders);
+begin
+
+end;
+
+
 
 {$endregion}
 

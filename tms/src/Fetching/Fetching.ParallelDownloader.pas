@@ -118,7 +118,7 @@ end;
 
 procedure TParallelDownloader.CreateInstallInfoFile(const Folder: string; const FetchItem: TFetchItem);
 begin
-  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, FetchItem.Version);
+  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, FetchItem.Version, FetchItem.Server);
 end;
 
 function TParallelDownloader.GetBestFileName(const FileNames: TArray<string>; const FetchItemFileHash: string): string;

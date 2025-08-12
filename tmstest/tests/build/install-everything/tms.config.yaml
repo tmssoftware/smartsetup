@@ -1,0 +1,20 @@
+tms smart setup options:
+
+  # installs the component in an alternate place so you can have different components installed in the same Delphi.
+  # see https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
+  alternate registry key: 
+
+  add servers:
+    local:
+      enabled: true
+
+    tms:
+      enabled: true
+
+    community:
+      enabled: true
+
+configuration for all products:
+  compilation options:
+    debug dcus: false
+
