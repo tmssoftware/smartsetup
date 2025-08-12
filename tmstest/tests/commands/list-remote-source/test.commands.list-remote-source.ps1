@@ -13,7 +13,7 @@ try
  }
 
  #JSON
-tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
+tmscredentials
 tms server-enable community
 $JsonCommunityProducts = tms list-remote -server:community -json | ConvertFrom-Json -AsHashtable
 

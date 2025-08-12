@@ -5,3 +5,4 @@ $BDS_ROOT_DIR = Get-ItemProperty -Path "HKCU:\Software\Embarcadero\BDS\$($BaseDe
 $Env:TMS_RSVARS = "$($BDS_ROOT_DIR.RootDir)\bin\rsvars.bat"
 
 set-alias msbuild "$tmsTestRootDir\util\build.bat"
+

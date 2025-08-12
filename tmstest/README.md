@@ -177,8 +177,11 @@ The following environment variables are set:
 > [!NOTE]
 > We can't run rsvars from powershell. It runs, but the call is `cmd.exe rsvars.bat` which means that when the call ends, the variables rsvars set are forgotten. We already provide a command that runs msbuild.exe (`msbuild`) But if you need more control, to run msbuild directly, you need to create a .bat, and call it from the test script. Inside the bat you can write `"%TMS_RSVARS%"` to execute rsvars.
 
-The following functions are defined:
+The following functions are defined in util.modules.psm1:
   * **Invoke-WithExitCodeIgnored**: Allows you to run a command that will fail and not crash.
+  * **tmscredentials**: runs tms credentials so you can access tms repos.
+  * **uninstall-and-check(products-remaining)**: uninstalls everything and checks that product-remaining products remain. Normally you will call this at the end of the script with products-remaining = 0.
+
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

@@ -8,6 +8,14 @@ function Invoke-WithExitCodeIgnored {
  }
 }
 
+function tmscredentials {
+    if (-not $env:TMSTEST_CODE -or -not $env:TMSTEST_EMAIL) {
+        Write-Error "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
+        return
+    }
+    tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
+}
+
 function uninstall-and-check {
     param([Parameter(Mandatory, Position=0)] [int] $expectedRemaining)
 

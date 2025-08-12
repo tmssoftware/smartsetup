@@ -47,6 +47,7 @@ type
     destructor Destroy; override;
 
     procedure Analyze(const Projects: TProjectDefinitionList);
+    procedure CheckAllDependenciesExist(const Projects: TProjectDefinitionList);
     procedure AnalyzeUnusedPackages;
     property BuildInfo: TBuildInfo read FBuildInfo;
     property ProjectFinder: THashSet<string> read FProjectFinder;
@@ -130,10 +131,36 @@ begin
   end;
 end;
 
+procedure TProjectAnalyzer.CheckAllDependenciesExist(
+  const Projects: TProjectDefinitionList);
+begin
+  var Map := TDictionary<string, TProjectDefinition>.Create;
+  try
+    ProjectList.LoadDeps(Map);
+
+    for var Project in Projects do
+    begin
+      if not Project.IncludeInBuild then continue;
+      for var dep in Project.Dependencies do
+      begin
+        if not Map.ContainsKey(dep.Id) then
+        begin
+          raise Exception.Create('The product "' + Project.Application.Name + '" requires the product "' + dep.Description + '" to build, and it isn''t present. Add product "' + dep.Id + '" to the list of installed products.' );
+        end;
+
+      end;
+    end;
+  finally
+    Map.Free;
+  end;
+end;
+
+
 procedure TProjectAnalyzer.Analyze(const Projects: TProjectDefinitionList);
 begin
   Validate(Projects);
   AnalyzeProjectsToInclude(Projects);
+  CheckAllDependenciesExist(Projects);
   for var Project in Projects do Project.NeedsCompiling.Clear;
   for var Project in Projects do AnalyzeOneProject(Project);
 

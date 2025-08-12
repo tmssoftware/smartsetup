@@ -1,6 +1,6 @@
 . test.setup
 
-tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
+tmscredentials
 
 tms install tms.biz.aurelius
 $results = tms list -json | ConvertFrom-Json -AsHashtable
