@@ -51,7 +51,7 @@ jobs:
       - name: Run xmldocer
         run: cd doc && PATH=$PATH:/root/.dotnet/tools && ../xmldocer/xmldocer VCL smartsetupdoc.ini --verbose
 
-      - name: Archive code coverage results
+      - name: Archive generated documentation
         uses: actions/upload-artifact@v4
         with:
           name: smartsetup-doc

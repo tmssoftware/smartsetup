@@ -26,7 +26,9 @@ jobs:
         with:
           name: smartsetup-doc
 
-      - name: Check folder
+      - name: Check folder 1
+        run: pwd
+      - name: Check folder 2
         run: ls -la
 
       - name: Configure AWS credentials
@@ -40,7 +42,7 @@ jobs:
         run: ls -la
 
       - name: Upload documentation files 
-        run: aws s3 sync ./smartsetup-doc s3://tms-site-doc/smartsetup
+        run: aws s3 sync ./ s3://tms-site-doc/smartsetup
 
       - name: Invalidate CDN
         run: aws cloudfront create-invalidation --distribution-id E28KJG21XS16K3 --paths "/smartsetup*"
