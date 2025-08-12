@@ -67,7 +67,7 @@ begin
     if not Map.TryGetValue(dep.Id, ProjDep) then
     begin
       if IsWeak then continue;
-      raise Exception.Create('Internal Error: Dependency ' + dep.Id + ' not found.');
+      raise Exception.Create('The product "' + Project.Application.Name + '" requires the product "' + dep.Description + '" to build, and it isn''t present. Add product "' + dep.Id + '" to the list of installed products.' );
     end;
 
     if Project.IncludeInBuild then
@@ -98,7 +98,7 @@ begin
     Project.IncludeInBuild := Config.IsIncluded(Project.Application.Id);
     if Project.IncludeInBuild then Inc(IncludedCount);
   end;
-  if (IncludedCount = Projects.Count) then exit; //no need to analyze further.
+  if (IncludedCount = Projects.Count) or (IncludedCount = 0) then exit; //no need to analyze further.
 
 
   var Map := TDictionary<string, TProjectDefinition>.Create;
