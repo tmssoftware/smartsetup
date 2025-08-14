@@ -1,0 +1,575 @@
+{
+  "$id": "https://github.com/tmssoftware/smartsetup/tree/main/tms/example-config/tms.config.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TMS Smart Setup Configuration",
+  "type": "object",
+  "properties": {
+    "tms smart setup options": {
+      "type": "object",
+      "description": "General options that are not 'per product'.",
+      "properties": {
+        "build cores": {
+          "type": "integer",
+          "description": "0 means use the optimum for the cores in the machine (default). 1 means single core. 2 two cores and so on.",
+          "default": 0
+        },
+        "alternate registry key": {
+          "type": ["string", "null"],
+          "description": "installs the component in an alternate place so you can have different components installed in the same Delphi.\nsee https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key"
+        },
+        "prevent sleep": {
+          "type": "boolean",
+          "description": " prevents the machine from going to sleep while smart setup is running. Default is true.\nnote that for this setting to work, \"Allow applications to prevent automatic sleep (plugged in)\" must be set\nto Enabled in the Group Policy Settings. See https://github.com/microsoft/PowerToys/issues/12326#issuecomment-1304934080",
+          "default": true
+        },
+        "versions to keep": {
+          "type": "integer",
+          "description": "smart setup will delete the oldest downloaded versions when they reach this count. If you\nfor example set this value to 4, smart setup will keep the last 4 versions of each product, and\nversions older than that will be deleted forever.\nA value of 0 means to delete all products after unzipped, including the current versions.\nA value of -1 means to keep all versions and never delete any.",
+          "default": -1
+        },
+        "error if skipped": {
+          "type": "boolean",
+          "description": "  # the default behavior of smart setup is to skip Delphi versions and platforms that are not installed.\nthis is normally what you want, so you don't have to manually specify in this file which platforms and Delphi versions\nto compile. You just leave it to compile all, and smart setup will skip what is not installed.\nbut when running smart setup from a CI or other automated system, you might want to configure exactly what\nplatforms and Delphi IDEs you want to build, and have smart setup return an error code instead of just skipping them.\nif you set this property true, smart setup will return an error value if it skips any Delphi version or platform.",
+          "default": false
+        },
+        "excluded products": {
+          "type": ["array", "null"],
+          "description": "add to this list the products you don't want to be built/installed",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "included products": {
+          "type": ["array", "null"],
+          "description": "add to this list the products you want to be built/installed. If this list is empty, all products will be built/installed.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "additional products folders": {
+          "type": ["array", "null"],
+          "description": "By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional \nroot folders here, so tms also looks for tmsbuild.yaml files in those folders.\n All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will be generated under the additional folders. This is useful if you want to use tms to build your own code.\nThe folders you add here must be in the same drive as the main root folder.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "servers": {
+          "type": "object",
+          "description": "Specify which servers SmartSetup will connect to.\nWhen creating your own server, you also need to specify \"type\" (can be api, github)\nAnd the \"url\" where the server is.",
+          "properties": {
+            "tms": {
+              "type": "object",
+              "description": "Built-in TMS server. This server cannot be configured or deleted, only disabled.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable or disable the TMS server.",
+                  "default": true
+                }
+              },
+              "additionalProperties": false
+            },
+            "community": {
+              "type": "object",
+              "description": "Built-in Community server. This server cannot be configured or deleted, only disabled.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable or disable the Community server.",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "patternProperties": {
+            "^(?!^(tms|community)$).+$": {
+              "type": "object",
+              "description": "Custom server configuration.",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "The type of server (e.g., api, github).",
+                  "enum": ["api", "github"]
+                },
+                "url": {
+                  "type": "string",
+                  "description": "The URL of the server."
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "git": {
+          "type": ["object", "null"],
+          "description": "Git client configuration.",
+          "properties": {
+            "git-location": {
+              "type": ["string", "null"],
+              "description": "Location where to find git.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.\nIf you specify a path, it must be the full path to git.exe, including the executable name."
+            },
+            "clone command": {
+              "type": ["string", "null"],
+              "description": "Here you can specify extra parameters for the git clone call. If not specified, smart setup will do a plain clone."
+            },
+            "pull command": {
+              "type": ["string", "null"],
+              "description": "Here you can specify extra parameters for the git pull call. If not specified, smart setup will do a plain pull."
+            },
+            "additionalProperties": false
+          }
+        },
+        "svn": {
+          "type": ["object", "null"],
+          "description": "Subversion (SVN) client configuration.",
+          "properties": {
+            "svn-location": {
+              "type": ["string", "null"],
+              "description": "Location where to find svn.exe. If not specified, smart setup will search for the first svn.exe available in the OS PATH.\nIf you specify a path, it must be the full path to svn.exe, including the executable name."
+            },
+            "checkout command": {
+              "type": ["string", "null"],
+              "description": "Here you can specify extra parameters for the svn checkout call. If not specified, smart setup will do a plain checkout."
+            },
+            "update command": {
+              "type": ["string", "null"],
+              "description": "Here you can specify extra parameters for the svn update call. If not specified, smart setup will do a plain update."
+            },
+            "additionalProperties": false
+          }
+        },
+        "dcu megafolders": {
+          "type": ["array", "null"],
+          "description": "To enable megafolders, you need to be in dev-mode in Win10+.\nMegafolders use symlinks, so you need to be able to create them without admin rights.",
+          "items": {
+            "type": "object",
+            "patternProperties": {
+              "^[\\w-]+$": {
+                "type": "string"
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "patternProperties": {
+    "^configuration for\\s+.*$": {
+      "type": "object",
+      "description": "Configuration for all products or a specific product.",
+      "properties": {
+        "options": {
+          "type": "object",
+          "description": "general options for the product.",
+          "properties": {
+            "verbosity": {
+              "type": "string",
+              "description": "How much information to display.",
+              "enum": ["trace", "info", "error"]
+            },
+            "skip register": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "all",
+                      "packages",
+                      "startmenu",
+                      "help",
+                      "windowspath",
+                      "webcore",
+                      "registry",
+                      "filelinks",
+                      "-packages",
+                      "-startmenu",
+                      "-help",
+                      "-windowspath",
+                      "-webcore",
+                      "-registry",
+                      "-filelinks"
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "if true the components will be compiled but not registered in the IDE.\nAlso the Windows PATH won't be modified when this setting is true.\nYou can use \"true\" or \"false\" here to skip all or none, and also an array like \"[All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]\" to be more specific about what you want to skip. For example: skip register: [StartMenu, Help] would skip registering the start menu and the help, but not the others.\nWhen specifically skipping parts, you might want to use negatives, like [All, -StartMenu, -Help] to skip all but start menu and help.",
+              "default": false
+            },
+            "dry run": {
+              "type": "boolean",
+              "description": "if true, the setup will not make any changes to the system. This is useful for testing the configuration without applying it."
+            }
+          },
+          "additionalProperties": false
+        },
+        "delphi versions": {
+          "type": ["array", "null"],
+          "description": "List of Delphi versions to build for this product. If empty, all installed Delphi versions will be built. Smart Setup will anyway avoid installing to a Delphi version if it is not installed in the machine",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "lazarus",
+                  "delphi6",
+                  "delphi7",
+                  "delphi2005",
+                  "delphi2006",
+                  "delphi2007",
+                  "delphi2009",
+                  "delphi2010",
+                  "delphixe",
+                  "delphixe2",
+                  "delphixe3",
+                  "delphixe4",
+                  "delphixe5",
+                  "delphixe6",
+                  "delphixe7",
+                  "delphixe8",
+                  "delphiseattle",
+                  "delphiberlin",
+                  "delphitokyo",
+                  "delphirio",
+                  "delphisydney",
+                  "delphi11",
+                  "delphi12",
+                  "delphi13"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "lazarus": {
+                    "type": "boolean",
+                    "description": "Whether to target Lazarus."
+                  },
+                  "delphi6": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 6."
+                  },
+                  "delphi7": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 7."
+                  },
+                  "delphi2005": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 2005."
+                  },
+                  "delphi2006": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 2006."
+                  },
+                  "delphi2007": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 2007."
+                  },
+                  "delphi2009": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 2009."
+                  },
+                  "delphi2010": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 2010."
+                  },
+                  "delphixe": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE."
+                  },
+                  "delphixe2": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE2."
+                  },
+                  "delphixe3": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE3."
+                  },
+                  "delphixe4": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE4."
+                  },
+                  "delphixe5": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE5."
+                  },
+                  "delphixe6": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE6."
+                  },
+                  "delphixe7": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE7."
+                  },
+                  "delphixe8": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi XE8."
+                  },
+                  "delphiseattle": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi Seattle."
+                  },
+                  "delphiberlin": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi Berlin."
+                  },
+                  "delphitokyo": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi Tokyo."
+                  },
+                  "delphirio": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi Rio."
+                  },
+                  "delphisydney": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi Sydney."
+                  },
+                  "delphi11": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 11."
+                  },
+                  "delphi12": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 12."
+                  },
+                  "delphi13": {
+                    "type": "boolean",
+                    "description": "Whether to target Delphi 13."
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "uniqueItems": true
+        },
+        "platforms": {
+          "type": ["array", "null"],
+          "description": "List of platforms to build for this product. If empty, all installed platforms will be built.\nSmart Setup will anyway avoid building to a platform if it is not supported or property installed/configured.",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "win32intel",
+                  "win64intel",
+                  "macos32intel",
+                  "macos64intel",
+                  "macos64arm",
+                  "iossimulator",
+                  "iosdevice32",
+                  "iosdevice64",
+                  "android32",
+                  "android64",
+                  "linux64",
+                  "iossimulator64arm",
+                  "win64xintel"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "win32intel": { "type": "boolean" },
+                  "win64intel": { "type": "boolean" },
+                  "macos32intel": { "type": "boolean" },
+                  "macos64intel": { "type": "boolean" },
+                  "macos64arm": { "type": "boolean" },
+                  "iossimulator": { "type": "boolean" },
+                  "iosdevice32": { "type": "boolean" },
+                  "iosdevice64": { "type": "boolean" },
+                  "android32": { "type": "boolean" },
+                  "android64": { "type": "boolean" },
+                  "linux64": { "type": "boolean" },
+                  "iossimulator64arm": { "type": "boolean" },
+                  "win64xintel": { "type": "boolean" }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "uniqueItems": true
+        },
+        "compilation options": {
+          "type": "object",
+          "description": "Compilation options for the product.",
+          "properties": {
+            "debug dcus": {
+              "type": "boolean",
+              "description": "Whether to build debug DCUs. Debug DCUs are useful for stepping into the component code, but they take more time to compile and double the used disk space.",
+              "default": true
+            },
+            "defines": {
+              "type": ["array", "null"],
+              "description": "List of compiler defines to use for compiling. The defines here are added to the ones already defined before. To remove a define that is normally defined, set it to false, like for example \" - DEBUG: false\".",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "patternProperties": {
+                      "^\\w+$": { "type": "boolean" }
+                    }
+                  }
+                ]
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "advanced options": {
+          "type": "object",
+          "description": "for internal tmsbuild development. do not change.",
+          "properties": {
+            "use symlinks": {
+              "type": "boolean",
+              "description": "By setting this to true, smart setup will use symlinks instead of hard links. Symlinks require admin rights, unless your PC is in \"dev mode\".\nSee https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/ ",
+              "default": false
+            },
+            "keep parallel folders": {
+              "type": "boolean",
+              "description": "In order to build the projects, we copy them into a \"parallel\" temporary folder that is automatically deleted once the build is done.\nIf you set this to true, the temporary parallel folders won't be deleted and you can examine what they have.",
+              "default": false
+            },
+            "modify sources": {
+              "type": "boolean",
+              "description": "Smart setup by default won't modify any file in the sources folder./nIf you set this to true, it will modify and adapt files in the sources so when you compile them manually they behave similar to when you use Smart setup.",
+              "default": false
+            },
+            "partial builds": {
+              "type": "boolean",
+              "description": "When a product fails, by default Smart Setup tries to recompile all the packages in the product again.\nThis is done for safety, and because building the full product is normally fast enough.\nIf you enable partial builds, Smart setup will try to compile only those packages that were actually modified and those that depend on it. **This feature is highly experimental and not likely to work well**",
+              "default": false
+            },
+            "add source code to library path": {
+              "type": "boolean",
+              "description": "if enabled, adds the source code paths to Delphi library path\ndo not enable this option unless you really need it.",
+              "default": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "compiler paths": {
+          "type": ["object", "null"],
+          "description": "for Lazarus, the path where lazbuild.exe is located\nfor Delphi, the path where bin\\rsvars.bat is located.\nsmart setup will find paths to Delphi automatically from registry keys,\nso this option is not needed unless you have a build machine you didn't install Delphi to,\nor you want to compile lazarus packages.",
+          "properties": {
+            "lazarus": {
+              "type": ["string", "null"],
+              "description": "Path where lazbuild.exe is located. If not specified, smart setup will try to find lazarus automatically."
+            },
+            "delphi6": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 6. If not specified, smart setup will try to find Delphi 6 automatically."
+            },
+            "delphi7": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 7. If not specified, smart setup will try to find Delphi 7 automatically."
+            },
+            "delphi2005": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 2005. If not specified, smart setup will try to find Delphi 2005 automatically."
+            },
+            "delphi2006": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 2006. If not specified, smart setup will try to find Delphi 2006 automatically."
+            },
+            "delphi2007": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 2007. If not specified, smart setup will try to find Delphi 2007 automatically."
+            },
+            "delphi2009": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 2009. If not specified, smart setup will try to find Delphi 2009 automatically."
+            },
+            "delphi2010": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 2010. If not specified, smart setup will try to find Delphi 2010 automatically."
+            },
+            "delphixe": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE. If not specified, smart setup will try to find Delphi XE automatically."
+            },
+            "delphixe2": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE2. If not specified, smart setup will try to find Delphi XE2 automatically."
+            },
+            "delphixe3": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE3. If not specified, smart setup will try to find Delphi XE3 automatically."
+            },
+            "delphixe4": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE4. If not specified, smart setup will try to find Delphi XE4 automatically."
+            },
+            "delphixe5": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE5. If not specified, smart setup will try to find Delphi XE5 automatically."
+            },
+            "delphixe6": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE6. If not specified, smart setup will try to find Delphi XE6 automatically."
+            },
+            "delphixe7": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE7. If not specified, smart setup will try to find Delphi XE7 automatically."
+            },
+            "delphixe8": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi XE8. If not specified, smart setup will try to find Delphi XE8 automatically."
+            },
+            "delphiseattle": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi Seattle. If not specified, smart setup will try to find Delphi Seattle automatically."
+            },
+            "delphiberlin": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi Berlin. If not specified, smart setup will try to find Delphi Berlin automatically."
+            },
+            "delphitokyo": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi Tokyo. If not specified, smart setup will try to find Delphi Tokyo automatically."
+            },
+            "delphirio": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi Rio. If not specified, smart setup will try to find Delphi Rio automatically."
+            },
+            "delphisydney": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi Sydney. If not specified, smart setup will try to find Delphi Sydney automatically."
+            },
+            "delphi11": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 11. If not specified, smart setup will try to find Delphi 11 automatically."
+            },
+            "delphi12": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 12. If not specified, smart setup will try to find Delphi 12 automatically."
+            },
+            "delphi13": {
+              "type": ["string", "null"],
+              "description": "Path where bin\\rsvars.bat is located for Delphi 13. If not specified, smart setup will try to find Delphi 13 automatically."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "additionalProperties": false
+  }
+}

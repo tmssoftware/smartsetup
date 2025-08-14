@@ -2,7 +2,7 @@
 configuration for %product-id%:
 %{#has-options}%
   options:
-    # can be info, messages or errors
+    # can be trace, info or errors
     verbosity: %verbosity%
 
     # if true the components will be compiled but not registered in the IDE.
