@@ -56,7 +56,7 @@ tms smart setup options:
     #- ..\..\Other products  #Try to use relative folders if possible.
 
   # Specify which servers SmartSetup will connect to.
-  # When creating your own server, you also need to specify "protocol" (can be local, api, github)
+  # When creating your own server, you also need to specify "type" (can be api, github)
   # And the "url" where the server is.
   servers:
     tms:
@@ -76,7 +76,7 @@ tms smart setup options:
     #pull command: pull
 
   svn:
-    # Location where to find svn.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.
+    # Location where to find svn.exe. If not specified, smart setup will search for the first svn.exe available in the OS PATH.
     #svn location: C:\fpc\fpcbootstrap\svn\bin\svn.exe
 
     # Here you can specify extra parameters for the svn checkout call. If not specified, smart setup will do a plain checkout.
@@ -96,7 +96,7 @@ tms smart setup options:
 # the settings in this section apply to all products. You might apply different settings to specific products below
 configuration for all products:
   options:
-    # can be info, messages or errors
+    # can be trace, info or errors
     verbosity: info
 
     # if true the components will be compiled but not registered in the IDE.

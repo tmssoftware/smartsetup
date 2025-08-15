@@ -13,6 +13,7 @@ type
     CompilerPath = 'compiler-path.';
     CompilerParameters = 'compiler-parameters.';
     SkipRegister = 'skip-register';
+    SkipRegisterExt = 'skip-register-ext';
     DebugDcus = 'debug-dcus';
     AddSourceCodeToLibraryPath = 'add-source-code-to-library-path';
     KeepParallelFolders = 'keep-parallel-folders';

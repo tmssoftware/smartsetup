@@ -17,7 +17,7 @@ TConfigWriter = class
     function GetIncludedExcludedComponents(
       const Values: TEnumerable<string>): TArray<string>;
     function GetVerbosity(const v: TVerbosity): string;
-    function GetSkipRegistering(const v: TSkipRegisteringSet): string;
+    function GetSkipRegistering(const v: string): string;
     function GetDelphiVersions(const IDEs: TIDENameSet): string;
     function GetPlatforms(const Platforms: TPlatformSet): string;
     function GetDefines(const Values: TDictionary<string, boolean>; const IsAllProducts: boolean): TArray<string>;
@@ -281,23 +281,9 @@ begin
   end;
 end;
 
-function TConfigWriter.GetSkipRegistering(const v: TSkipRegisteringSet): string;
+function TConfigWriter.GetSkipRegistering(const v: string): string;
 begin
-  if v = [] then exit('false');
-
-  Result := '';
-  var HasAllOptions := true;
-  var Sep := '';
-  for var skip := Low(TSkipRegisteringOptions) to High(TSkipRegisteringOptions) do
-  begin
-    if skip in v then Result := Result + Sep + TSkipRegisteringName[skip]
-    else HasAllOptions := false;
-    Sep := ', ';
-  end;
-
-  if HasAllOptions then exit('true');
-  Result := '[' + Result + ']';
-
+  Result := v;
 end;
 
 function TConfigWriter.GetDelphiVersions(const IDEs: TIDENameSet): string;
@@ -443,7 +429,7 @@ begin
       if varName = 'product-id' then exit(ProductCfg.ProductId);
 
       if varName = 'verbosity' then exit(GetVerbosity(TVerbosity(ProductCfg.GetInt(ConfigKeys.Verbosity, 1))));
-      if varName = 'skip-register' then exit(GetSkipRegistering(TSkipRegisteringSet(Byte(ProductCfg.GetInt(ConfigKeys.SkipRegister, 0)))));
+      if varName = 'skip-register' then exit(ProductCfg.GetString(ConfigKeys.SkipRegisterExt, 'false'));
       if varName = 'dry-run' then exit(BoolToStrLower(ProductCfg.GetBool(ConfigKeys.DryRun, false)));
       if varName = 'has-options' then exit(BoolToStr(HasOptions(ProductCfg), true));
 

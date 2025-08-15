@@ -385,7 +385,9 @@ begin
   var Settings := TSkipRegisteringSet(Byte((Config.SkipRegistering(ProjectId, 0))));
   if Project.IsExe then Settings := Settings + [TSkipRegisteringOptions.Packages];
 
-  Result := TSkipRegistering.Create(Settings);
+  var SettingsExt := Config.SkipRegisteringExt(ProjectId, TSkipRegisteringOptionsExt_False);
+
+  Result := TSkipRegistering.Create(Settings, SettingsExt);
 end;
 
 { TPlatformsToUninstall }

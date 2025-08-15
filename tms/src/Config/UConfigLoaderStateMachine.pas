@@ -40,7 +40,7 @@ type
     class function SectionNameStatic: string; override;
 
     function GetVerbosity(const s: string; const ErrorInfo: TErrorInfo): TVerbosity;
-    function GetSkipRegistering(const s: string; const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
+    procedure GetSkipRegistering(const s: string; const ErrorInfo: TErrorInfo; out Skip: TSkipRegisteringSet; out SkipExt: string);
   end;
 
   TExcludedComponentsSectionConf = class(TSectionConf)
@@ -269,7 +269,14 @@ begin
   Actions := TListOfActions.Create;
   s := 'verbosity'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetInt(ConfigKeys.Verbosity, Integer(GetVerbosity(value, ErrorInfo))); end);
   s := 'dry run'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetBool(ConfigKeys.DryRun, GetBool(value, ErrorInfo)); end);
-  s := 'skip register'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetInt(ConfigKeys.SkipRegister, Byte(GetSkipRegistering(value, ErrorInfo))); end);
+  s := 'skip register'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+     var Skip: TSkipRegisteringSet;
+     var SkipExt: string;
+     GetSkipRegistering(value, ErrorInfo,  Skip, SkipExt);
+     ProductConfig.SetInt(ConfigKeys.SkipRegister, Byte(Skip));
+     ProductConfig.SetString(ConfigKeys.SkipRegisterExt, SkipExt);
+    end);
 end;
 
 function TOptionsSectionConf.GetVerbosity(const s: string;
@@ -298,26 +305,49 @@ begin
    raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks].'+ ErrorInfo.ToString);
 end;
 
-function TOptionsSectionConf.GetSkipRegistering(const s: string;
-  const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
+procedure TOptionsSectionConf.GetSkipRegistering(const s: string;
+  const ErrorInfo: TErrorInfo; out Skip: TSkipRegisteringSet; out SkipExt: string);
 var
   s1: string;
 begin
  s1 := AnsiLowerCase(s);
- if (s1 = 'true') then exit([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
- if (s1 = 'false') then exit([]);
+ if (s1 = TSkipRegisteringOptionsExt_True) or (s1 = '') then
+ begin
+   Skip := [Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)];
+   SkipExt := TSkipRegisteringOptionsExt_True;
+   exit;
+ end;
+ if (s1 = TSkipRegisteringOptionsExt_False) then
+ begin
+   Skip := [];
+   SkipExt := TSkipRegisteringOptionsExt_False;
+   exit;
+ end;
+
  if not s1.StartsWith('[') or not s1.EndsWith(']') then
    raise Exception.Create('"' + s + '" is not a valid skip registering value. It must be "true", "false" or an array containing any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]. ' + ErrorInfo.ToString);
 
- Result := [];
+ Skip := [];
+ SkipExt := '';
  var Values := s1.Substring(1, s1.Length - 2).Split([','], TStringSplitOptions.ExcludeEmpty);
  for var Value in Values do
  begin
    var TrimValue := Value.Trim;
    if TrimValue.StartsWith('-')
-     then Result := Result - MatchSkipRegistering(TrimValue.Substring(1), ErrorInfo)
-     else Result := Result + MatchSkipRegistering(TrimValue, ErrorInfo);
+     then
+     begin
+       Skip := Skip - MatchSkipRegistering(TrimValue.Substring(1), ErrorInfo);
+       if SkipExt <> '' then SkipExt := SkipExt + ', ';
+       SkipExt := SkipExt + '-' + TrimValue.Substring(1).ToLowerInvariant;
+     end
+     else
+     begin
+       Skip := Skip + MatchSkipRegistering(TrimValue, ErrorInfo);
+       if SkipExt <> '' then SkipExt := SkipExt + ', ';
+       SkipExt := SkipExt + TrimValue.ToLowerInvariant;
+     end;
  end;
+ SkipExt := '[' + SkipExt + ']';
 
 
 end;

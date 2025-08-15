@@ -31,6 +31,7 @@ const
 
 
 implementation
+uses Math;
 
 { TNotLockingStreamReader }
 
@@ -358,24 +359,21 @@ begin
 end;
 
 class function TBBYamlReader.UnescapeLine(const Line: string): string;
-var
-  idx: integer;
 begin
   Result := Line.Trim(TrimWhitespace);
-  idx := 0;
-  //If the line starts with #, it is always a comment. No escaping here, as in url##parameter.
-  if line.StartsWith('#') then exit('');
+  //If the line starts with #, it is always a comment.
+  if Result.StartsWith('#') then exit('');
 
-  //The only escape allowed is ## for #
-  while true do
-  begin
-    idx := Result.IndexOf('#', idx);
-    if idx < 0 then exit;
-    if idx + 1 >= Result.Length then exit (Result.Substring(0, Result.Length - 1));
-    if Result[idx + 2] <> '#' then exit (Result.Substring(0, idx));
-    Result := Result.Remove(Idx, 1);
-    inc(Idx);
-  end;
+  //If not, it has to have a space and a '#'
+  var idxSpace := Result.IndexOf(' #');
+  var idxTab :=  Result.IndexOf(#9 + '#');
+
+  var idx := 0;
+  if idxSpace < 0 then idx := idxTab else if idxTab < 0 then idx := idxSpace else idx := Min(idxSpace, idxTab);
+
+
+  if idx < 0 then exit;
+  Result := Result.Substring(0, idx).Trim(TrimWhiteSpace); //trim because it can have more spaces.
 end;
 
 { TFileErrorInfo }

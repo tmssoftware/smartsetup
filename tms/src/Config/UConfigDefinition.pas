@@ -7,10 +7,13 @@ uses Generics.Defaults, Generics.Collections, Masks, UMultiLogger, UConfigKeys,
      UConfigFolders, UOSFileLinks, Megafolders.Definition, BBArrays;
 
 type
-  TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
+  TSkipRegisteringOptions =  (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
   TSkipRegisteringSet = set of TSkipRegisteringOptions;
 
 const
+  TSkipRegisteringOptionsExt_All = 'all';
+  TSkipRegisteringOptionsExt_True = 'true';
+  TSkipRegisteringOptionsExt_False = 'false';
   TSkipRegisteringName: array[TSkipRegisteringOptions] of string = (
   'packages', 'startmenu', 'help', 'windowspath', 'webcore', 'registry', 'filelinks'
   );
@@ -23,8 +26,9 @@ type
   TSkipRegistering = record
   private
     FOptions: TSkipRegisteringSet;
+    FOriginalOptions: string;
   public
-    constructor Create(const AOptions: TSkipRegisteringSet);
+    constructor Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
     function Packages: boolean;
     function StartMenu: boolean;
     function Help: boolean;
@@ -240,6 +244,7 @@ type
 
     function Verbosity(const ProductId: String; DefaultVerbosity: TVerbosity): TVerbosity;
     function SkipRegistering(const ProductId: String; DefaultValue: integer): integer;
+    function SkipRegisteringExt(const ProductId: String; DefaultValue: string): string;
     function DryRun(const ProductId: String): boolean;
     function IsIncluded(const ProductId: String): boolean;
     function GetAllDefines(const ProductId: string): TArray<string>;
@@ -637,6 +642,12 @@ begin
   Result := ReadIntProperty(ProductId, ConfigKeys.SkipRegister, DefaultValue);
 end;
 
+function TConfigDefinition.SkipRegisteringExt(const ProductId: String;
+  DefaultValue: string): string;
+begin
+  Result := ReadStringProperty(ProductId, ConfigKeys.SkipRegisterExt, DefaultValue);
+end;
+
 function TConfigDefinition.Match(const IdWithMask: string; const Projects: TDictionary<string, boolean>): boolean;
 begin
   for var p in Projects.Keys do if MatchesMask(p, IdWithMask) then exit(true);
@@ -946,9 +957,10 @@ end;
 
 { TSkipRegistering }
 
-constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet);
+constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
 begin
   FOptions := AOptions;
+  FOriginalOptions := aOriginalOptions;
 end;
 
 function TSkipRegistering.Help: boolean;
@@ -988,12 +1000,12 @@ end;
 
 class function TSkipRegistering.All: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
+  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)], TSkipRegisteringOptionsExt_True);
 end;
 
 class function TSkipRegistering.None: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([]);
+  Result := TSkipRegistering.Create([], TSkipRegisteringOptionsExt_False);
 end;
 
 { TServerConfigList }
