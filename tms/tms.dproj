@@ -416,6 +416,7 @@
         <DCCReference Include="src\Megafolders\Megafolders.Manager.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBArrays.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Writer.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBYaml.Types.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

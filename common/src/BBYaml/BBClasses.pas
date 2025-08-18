@@ -82,7 +82,6 @@ public
   procedure ThrowInvalidTag(const Name: string; const ErrorInfo: TErrorInfo);
   class procedure GetArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
 
-  function VarPrefix: string; virtual;
   function ExtraInfo: string; virtual;
 
   procedure LoadedState(const State: TArrayOverrideBehavior); virtual;
@@ -292,11 +291,6 @@ procedure TSection.ThrowInvalidTag(const Name: string;
 begin
   raise Exception.Create('Invalid tag "' + Name + '" for section "' + FullSectionName +
   '". It must be one of [' + ListSectionsAndActions + ']. ' + ErrorInfo.ToString);
-end;
-
-function TSection.VarPrefix: string;
-begin
-  Result := '';
 end;
 
 class procedure TSection.GetArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);

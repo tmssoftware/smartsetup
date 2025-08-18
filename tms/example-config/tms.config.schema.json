@@ -52,6 +52,10 @@
         "additional products folders": {
           "type": ["array", "null"],
           "description": "By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional \nroot folders here, so tms also looks for tmsbuild.yaml files in those folders.\n All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will be generated under the additional folders. This is useful if you want to use tms to build your own code.\nThe folders you add here must be in the same drive as the main root folder.",
+          "examples": [
+            "c:\\MyProducts   #All folders containing tmsbuild.yaml files inside c:\\MyProducts will be added to the build.",
+            "..\\..\\Other products  #Try to use relative folders if possible."
+          ],
           "items": {
             "type": "string"
           },
@@ -115,18 +119,21 @@
           "properties": {
             "git location": {
               "type": ["string", "null"],
-              "description": "Location where to find git.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.\nIf you specify a path, it must be the full path to git.exe, including the executable name."
+              "description": "Location where to find git.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.\nIf you specify a path, it must be the full path to git.exe, including the executable name.",
+              "examples": ["c:\\git\\bin\\git.exe"]
             },
             "clone command": {
               "type": ["string", "null"],
-              "description": "Here you can specify extra parameters for the git clone call. If not specified, smart setup will do a plain clone."
+              "description": "Here you can specify extra parameters for the git clone call. If not specified, smart setup will do a plain clone.",
+              "examples": ["clone --branch my-branch --single-branch"]
             },
             "pull command": {
               "type": ["string", "null"],
-              "description": "Here you can specify extra parameters for the git pull call. If not specified, smart setup will do a plain pull."
-            },
-            "additionalProperties": false
-          }
+              "description": "Here you can specify extra parameters for the git pull call. If not specified, smart setup will do a plain pull.",
+              "examples": ["pull --ff-only"]
+            }
+          },
+          "additionalProperties": false
         },
         "svn": {
           "type": ["object", "null"],
@@ -143,9 +150,9 @@
             "update command": {
               "type": ["string", "null"],
               "description": "Here you can specify extra parameters for the svn update call. If not specified, smart setup will do a plain update."
-            },
-            "additionalProperties": false
-          }
+            }
+          },
+          "additionalProperties": false
         },
         "dcu megafolders": {
           "type": ["array", "null"],
@@ -155,9 +162,9 @@
             "patternProperties": {
               "^[\\w-]+$": {
                 "type": "string"
-              },
-              "additionalProperties": false
-            }
+              }
+            },
+            "additionalProperties": false
           }
         }
       },
@@ -219,140 +226,34 @@
         },
         "delphi versions": {
           "type": ["array", "null"],
-          "description": "List of Delphi versions to build for this product. If empty, all installed Delphi versions will be built. Smart Setup will anyway avoid installing to a Delphi version if it is not installed in the machine",
+          "description": "List of Delphi versions to build for this product.\nIf empty, all installed Delphi versions will be built.\nSmart Setup will anyway avoid installing to a Delphi version\nif it is not installed in the machine",
           "items": {
-            "oneOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "lazarus",
-                  "delphi6",
-                  "delphi7",
-                  "delphi2005",
-                  "delphi2006",
-                  "delphi2007",
-                  "delphi2009",
-                  "delphi2010",
-                  "delphixe",
-                  "delphixe2",
-                  "delphixe3",
-                  "delphixe4",
-                  "delphixe5",
-                  "delphixe6",
-                  "delphixe7",
-                  "delphixe8",
-                  "delphiseattle",
-                  "delphiberlin",
-                  "delphitokyo",
-                  "delphirio",
-                  "delphisydney",
-                  "delphi11",
-                  "delphi12",
-                  "delphi13"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "lazarus": {
-                    "type": "boolean",
-                    "description": "Whether to target Lazarus."
-                  },
-                  "delphi6": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 6."
-                  },
-                  "delphi7": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 7."
-                  },
-                  "delphi2005": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 2005."
-                  },
-                  "delphi2006": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 2006."
-                  },
-                  "delphi2007": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 2007."
-                  },
-                  "delphi2009": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 2009."
-                  },
-                  "delphi2010": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 2010."
-                  },
-                  "delphixe": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE."
-                  },
-                  "delphixe2": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE2."
-                  },
-                  "delphixe3": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE3."
-                  },
-                  "delphixe4": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE4."
-                  },
-                  "delphixe5": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE5."
-                  },
-                  "delphixe6": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE6."
-                  },
-                  "delphixe7": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE7."
-                  },
-                  "delphixe8": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi XE8."
-                  },
-                  "delphiseattle": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi Seattle."
-                  },
-                  "delphiberlin": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi Berlin."
-                  },
-                  "delphitokyo": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi Tokyo."
-                  },
-                  "delphirio": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi Rio."
-                  },
-                  "delphisydney": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi Sydney."
-                  },
-                  "delphi11": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 11."
-                  },
-                  "delphi12": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 12."
-                  },
-                  "delphi13": {
-                    "type": "boolean",
-                    "description": "Whether to target Delphi 13."
-                  }
-                },
-                "additionalProperties": false
-              }
+            "type": "string",
+            "enum": [
+              "lazarus",
+              "delphi6",
+              "delphi7",
+              "delphi2005",
+              "delphi2006",
+              "delphi2007",
+              "delphi2009",
+              "delphi2010",
+              "delphixe",
+              "delphixe2",
+              "delphixe3",
+              "delphixe4",
+              "delphixe5",
+              "delphixe6",
+              "delphixe7",
+              "delphixe8",
+              "delphiseattle",
+              "delphiberlin",
+              "delphitokyo",
+              "delphirio",
+              "delphisydney",
+              "delphi11",
+              "delphi12",
+              "delphi13"
             ]
           },
           "uniqueItems": true
@@ -361,44 +262,21 @@
           "type": ["array", "null"],
           "description": "List of platforms to build for this product. If empty, all installed platforms will be built.\nSmart Setup will anyway avoid building to a platform if it is not supported or property installed/configured.",
           "items": {
-            "oneOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "win32intel",
-                  "win64intel",
-                  "macos32intel",
-                  "macos64intel",
-                  "macos64arm",
-                  "iossimulator",
-                  "iosdevice32",
-                  "iosdevice64",
-                  "android32",
-                  "android64",
-                  "linux64",
-                  "iossimulator64arm",
-                  "win64xintel"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "win32intel": { "type": "boolean" },
-                  "win64intel": { "type": "boolean" },
-                  "macos32intel": { "type": "boolean" },
-                  "macos64intel": { "type": "boolean" },
-                  "macos64arm": { "type": "boolean" },
-                  "iossimulator": { "type": "boolean" },
-                  "iosdevice32": { "type": "boolean" },
-                  "iosdevice64": { "type": "boolean" },
-                  "android32": { "type": "boolean" },
-                  "android64": { "type": "boolean" },
-                  "linux64": { "type": "boolean" },
-                  "iossimulator64arm": { "type": "boolean" },
-                  "win64xintel": { "type": "boolean" }
-                },
-                "additionalProperties": false
-              }
+            "type": "string",
+            "enum": [
+              "win32intel",
+              "win64intel",
+              "macos32intel",
+              "macos64intel",
+              "macos64arm",
+              "iossimulator",
+              "iosdevice32",
+              "iosdevice64",
+              "android32",
+              "android64",
+              "linux64",
+              "iossimulator64arm",
+              "win64xintel"
             ]
           },
           "uniqueItems": true
@@ -570,8 +448,7 @@
         }
       },
       "additionalProperties": false
-    },
-    "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

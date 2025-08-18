@@ -12,22 +12,12 @@ uses UCommandLine, Commands.CommonOptions,
 
 procedure RunConfigWriteCommand;
 begin
-  var StandardConfigFileGlobal := TResourceStream.Create(HInstance, 'StandardConfigFileGlobal', RT_RCDATA);
+  var ConfigWriter := TConfigWriter.Create(false);
   try
-    var StandardConfigFileProduct := TResourceStream.Create(HInstance, 'StandardConfigFileProduct', RT_RCDATA);
-    try
-       var ConfigWriter := TConfigWriter.Create(false);
-       try
-         Config.EnsureAllProducts;
-         ConfigWriter.Save(Config, StandardConfigFileGlobal, StandardConfigFileProduct, ConfigFileName);
-       finally
-         ConfigWriter.Free;
-       end;
-    finally
-      StandardConfigFileProduct.Free;
-    end;
+   Config.EnsureAllProducts;
+   ConfigWriter.Save(Config, ConfigFileName);
   finally
-    StandardConfigFileGlobal.Free;
+   ConfigWriter.Free;
   end;
 end;
 

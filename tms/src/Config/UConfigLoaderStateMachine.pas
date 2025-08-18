@@ -86,14 +86,12 @@ type
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
-    function VarPrefix: string; override;
   end;
 
   TSvnSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
-    function VarPrefix: string; override;
   end;
 
   TDelphiVersionsSectionConf = class(TSectionConf)
@@ -142,7 +140,6 @@ type
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
-    function VarPrefix: string; override;
 
     function Capture(const dv: TIDEName): TAction;
   end;
@@ -627,11 +624,6 @@ begin
   Result := 'compiler paths';
 end;
 
-function TCompilerPathSectionConf.VarPrefix: string;
-begin
-  Result := 'compiler-paths_';
-end;
-
 { TCompilerParametersSectionConf }
 
 function TCompilerParametersSectionConf.Capture(const dv: TIDEName): TAction;
@@ -855,11 +847,6 @@ begin
   Result := 'git';
 end;
 
-function TGitSectionConf.VarPrefix: string;
-begin
-  Result := 'git-';
-end;
-
 { TSvnSectionConf }
 
 constructor TSvnSectionConf.Create(const aParent: TSection;
@@ -878,11 +865,6 @@ end;
 class function TSvnSectionConf.SectionNameStatic: string;
 begin
   Result := 'svn';
-end;
-
-function TSvnSectionConf.VarPrefix: string;
-begin
-  Result := 'svn-';
 end;
 
 { TDcuMegafoldersSectionConf }

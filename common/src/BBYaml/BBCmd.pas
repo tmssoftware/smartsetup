@@ -26,13 +26,10 @@ TBBCmdReader = class
     class procedure ProcessArray(const ArrayStr: string; const ArrayAction: TActionNameValue; const ErrorInfo: TErrorInfo);
     class procedure ProcessOneParameter(const Parameter, SectionSeparator: string; const MainSection: TSection);
     class function AdaptForCmd(const s, SectionSeparator: string): string; static;
-    class function AdaptToCmd(const s, SectionSeparator: string): string; static;
     class function IsSeparator(const Parameter: string; const Position: integer;
       const SectionSeparator: string): boolean; static;
   public
     class procedure ProcessCommandLine(const Parameters: array of string; const MainSection: TSection; const SectionSeparator: string);
-    class function GetVariableName(const Parameter, SectionSeparator: string;
-      const MainSection: TSection; const ExtraInfos: TList<string>): string; static;
 end;
 
 implementation
@@ -134,16 +131,6 @@ begin
   Result := s.Replace('_', ' ').Replace('-', ' ').Replace('#', SectionSeparator);
 end;
 
-class function TBBCmdReader.AdaptToCmd(const s, SectionSeparator: string): string;
-begin
-  Result := s.Trim;
-  while Result.IndexOf('  ') >= 0 do
-  begin
-    Result := Result.Replace('  ', ' ');
-  end;
-  Result := Result.Replace(' ', '-');
-end;
-
 class procedure TBBCmdReader.ProcessOneParameter(const Parameter, SectionSeparator: string;
   const MainSection: TSection);
 begin
@@ -189,64 +176,6 @@ begin
           end
           else Section.ThrowInvalidTag(N, ErrorInfo);
          end, ErrorInfo);
-      end
-      else raise Exception.Create('Can''t access section: ' + ActionStr + ' from the command line. ' + ErrorInfo.ToString);
-    end;
-
-  finally
-    ErrorInfo.Free;
-  end;
-
-end;
-
-class function TBBCmdReader.GetVariableName(const Parameter, SectionSeparator: string;
-  const MainSection: TSection; const ExtraInfos: TList<string>): string;
-begin
-  var SectionsStr: TArray<string> := nil;
-  var Value: string;
-  ParseParameter(Parameter, SectionSeparator, SectionsStr, Value);
-
-  var ErrorInfo := TCMDErrorInfo.Create(Parameter);
-  try
-    var VarPrefix := '';
-    var Section := MainSection;
-    for var i := Low(SectionsStr) to High(SectionsStr) - 1 do
-    begin
-      Section := Section.GotoChild(AdaptForCmd(SectionsStr[i], SectionSeparator), ErrorInfo, true);
-      if Section.VarPrefix <> '' then VarPrefix := VarPrefix + Section.VarPrefix;
-      if Section.ExtraInfo <> '' then ExtraInfos.Add(Section.ExtraInfo);      
-    end;
-
-    if Length(SectionsStr) = 0 then
-    begin
-      raise Exception.Create('Invalid parameter: "' + Parameter + '".');
-    end;
-
-    var ActionStr := AdaptForCmd(SectionsStr[Length(SectionsStr) - 1], SectionSeparator);
-    Result := VarPrefix + AdaptToCmd(ActionStr, SectionSeparator);
-    var Action: TAction;
-
-    if ((Section.Actions <> nil) and Section.Actions
-      .TryGetValue(ActionStr, Action)) then
-    begin
-      exit;
-    end
-    else
-    begin
-      Section := Section.GotoChild(ActionStr, ErrorInfo, true);
-      if Section.VarPrefix <> '' then
-      begin
-        VarPrefix := VarPrefix + Section.VarPrefix;
-        Result := VarPrefix + AdaptToCmd(ActionStr, SectionSeparator);
-      end;
-
-      if (Assigned(Section.ArrayMainAction)) then
-      begin
-        exit;
-      end
-      else if Section.ContainsArrays then
-      begin
-        exit;
       end
       else raise Exception.Create('Can''t access section: ' + ActionStr + ' from the command line. ' + ErrorInfo.ToString);
     end;

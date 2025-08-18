@@ -16,6 +16,7 @@ var
 
 procedure RunConfigReadCommand;
 begin
+  var FullyChangeThisMethod:='r';
   if String.IsNullOrWhiteSpace(VariableName) then
   begin
     raise Exception.Create('There is no variable specified.');
@@ -27,17 +28,17 @@ begin
     try
       var ExtraInfos := TList<string>.Create;
       try
-        var PercentVariableName := TBBCmdReader.GetVariableName(VariableName, ':', MainSection, ExtraInfos);
-        var value := '';
+
+        //var value := ConfigWriter.Create();
         if ExtraInfos.Count > 0 then
         begin
-          value := ConfigWriter.ReplaceVariables(Config, '%config-for-product_' + ExtraInfos[0].Replace(' ', '.') + '%', '%' + PercentVariableName + '%');
+          //value := ConfigWriter.ReplaceVariables(Config, '%config-for-product_' + ExtraInfos[0].Replace(' ', '.') + '%', '%' + PercentVariableName + '%');
         end
         else
         begin
-          value := ConfigWriter.ReplaceVariables(Config, '%' + PercentVariableName + '%', '');
+          //value := ConfigWriter.ReplaceVariables(Config, '%' + PercentVariableName + '%', '');
         end;
-        WriteLn(value);
+        //WriteLn(value);
       finally
         ExtraInfos.Free;
       end;

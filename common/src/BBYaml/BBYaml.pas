@@ -368,7 +368,7 @@ begin
   var idxSpace := Result.IndexOf(' #');
   var idxTab :=  Result.IndexOf(#9 + '#');
 
-  var idx := 0;
+  var idx: integer;
   if idxSpace < 0 then idx := idxTab else if idxTab < 0 then idx := idxSpace else idx := Min(idxSpace, idxTab);
 
 

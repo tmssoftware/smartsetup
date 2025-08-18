@@ -102,7 +102,7 @@ type
     property CreatedBy: string read FCreatedBy write FCreatedBy;
 
     property PrefixedProperties[index: TProductPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
-
+    function IsGlobal: boolean;
   end;
 
   TGitConfig = record
@@ -154,7 +154,8 @@ type
     procedure ClearServers;
     procedure RemoveServer(const index: integer);
     function ServerCount: integer;
-    function GetServer(const index: integer): TServerConfig;
+    function GetServer(const index: integer): TServerConfig; overload;
+    function GetServer(const name: string): TServerConfig; overload;
     procedure SetInfo(const index: integer; const Action: TVarProc<TServerConfig>);
 
     //Will return -1 if not found
@@ -658,7 +659,7 @@ procedure TConfigDefinition.Validate(const Projects: TDictionary<string, boolean
 begin
   for var p in Products.Values do
   begin
-    if p.ProductId = GlobalProductId then continue;
+    if p.IsGlobal then continue;
 
     if not Match(p.ProductId, Projects) then
     begin
@@ -852,6 +853,11 @@ end;
 function TProductConfigDefinition.HasString(const v: string): boolean;
 begin
   Result := StringProperties.ContainsKey(v);
+end;
+
+function TProductConfigDefinition.IsGlobal: boolean;
+begin
+  Result := ProductId = GlobalProductId;
 end;
 
 procedure TProductConfigDefinition.SetIDEName(const dv: TIDEName;
@@ -1050,7 +1056,14 @@ end;
 
 function TServerConfigList.GetServer(const index: integer): TServerConfig;
 begin
+  if (Index < 0) or (Index >= Length(Servers)) then raise Exception.Create('Invalid index for server: ' + IntToStr(index));
+
   Result := Servers[index];
+end;
+
+function TServerConfigList.GetServer(const name: string): TServerConfig;
+begin
+  Result := GetServer(FindServer(name));
 end;
 
 function TServerConfigList.EnsureServer(const aName: string): integer;
