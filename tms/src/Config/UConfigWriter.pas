@@ -110,17 +110,7 @@ end;
 function TConfigWriter.GetProductConfigurations: TArray<TNameAndComment>;
 begin 
   var SortedProducts := Cfg.Products.Keys.ToArray;
-  var Comparer: IComparer<string> := TDelegatedComparer<string>.Create(
-  function(const Left, Right: string): integer
-  begin
-    if Left = Right then exit(0);
-    if Left = GlobalProductId then exit(-1);
-    if Right = GlobalProductId then exit(1);
-    exit (Left.CompareTo(Right));
-  end);
-
-  TArray.Sort<string>(SortedProducts, Comparer);
-
+  //do not sort, order might be important if you have a tms.*, then tms.product
   Result := nil;             
   SetLength(Result, Length(SortedProducts));
 
@@ -146,7 +136,6 @@ begin
   var ArrayResult := Values.ToArray;
   if Length(ArrayResult) > 0 then
   begin
-    TArray.Sort<string>(ArrayResult);
     exit(TYamlValue.MakeArray(ArrayResult, BlockArray));
   end;
 
@@ -165,7 +154,6 @@ begin
   var ArrayResult := Values.ToArray;
   if Length(ArrayResult) > 0 then
   begin
-    TArray.Sort<string>(ArrayResult);
     exit(TYamlValue.MakeArray(ArrayResult, BlockArray));
   end;
 
@@ -218,6 +206,10 @@ begin
   if FullName.StartsWith('configuration for') 
     and FullName.Contains(':compiler paths:') 
     and not FullName.EndsWith(':compiler paths:') then exit('');
+
+  if FullName.StartsWith('configuration for ')
+    and not FullName.StartsWith('configuration for ' + GlobalProductId + ':')
+    and (FullName.IndexOf(':') + 1 < Length(FullName)) then exit('');
 
   exit(Comment);
 end;
@@ -327,7 +319,6 @@ begin
   if (Defines.Count > 0) then
   begin
     var ArrResult := Defines.Keys.ToArray;
-    TArray.Sort<string>(ArrResult);
 
     SetLength(YamlArray, Length(ArrResult));
     for var i := Low(ArrResult) to High(ArrResult) do

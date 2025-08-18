@@ -41,7 +41,7 @@ type
     class function None: TSkipRegistering; static;
   end;
 
-  TGlobalPrefixedProperties =(ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
+  TGlobalPrefixedProperties = (ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
                              Servers, DcuMegafolders);
   TGlobalPrefixedPropertiesArray = Array[TGlobalPrefixedProperties] of TArrayOverrideBehavior;
 
@@ -59,7 +59,7 @@ type
     FPlatformsModified: Boolean;
     FIdeNames: TIDENameSet;
     FIdeNamesModified: Boolean;
-    FDefines: TDictionary<string, boolean>;
+    FDefines: TOrderedDictionary<string, boolean>;
     FCreatedBy: String;
     FPrefixedProperties: TProductPrefixedPropertiesArray;
     function GetPrefixedProperties(
@@ -96,7 +96,7 @@ type
     procedure ClearDefines;
     property ProductId: string read FProductId;
 
-    property Defines: TDictionary<string, boolean> read FDefines;
+    property Defines: TOrderedDictionary<string, boolean> read FDefines;
 
     function ListDefines: string;
     property CreatedBy: string read FCreatedBy write FCreatedBy;
@@ -162,7 +162,7 @@ type
     function FindServer(const Name: string): integer;
   end;
 
-  TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
+  TProductConfigDefinitionDictionary = class(TObjectOrderedDictionary<string, TProductConfigDefinition>)
   public
     constructor Create;
     procedure BestMatch(const ProductId: string; const IfMatched: TFunc<TProductConfigDefinition, boolean>);
@@ -174,8 +174,8 @@ type
   private
     FRootFolder: string;
     FProducts: TProductConfigDefinitionDictionary;
-    ExcludedComponents, IncludedComponents: TDictionary<string, string>;
-    AdditionalProductsFolders: TDictionary<string, string>;
+    ExcludedComponents, IncludedComponents: TOrderedDictionary<string, string>;
+    AdditionalProductsFolders: TOrderedDictionary<string, string>;
     Namings: TNamingList;
     FBuildCores: integer;
     FPreventSleep: boolean;
@@ -280,9 +280,9 @@ constructor TConfigDefinition.Create(const ARootFolder: string);
 begin
   FRootFolder := ARootFolder;
   FProducts := TProductConfigDefinitionDictionary.Create;
-  ExcludedComponents := TDictionary<string, string>.Create;
-  IncludedComponents := TDictionary<string, string>.Create;
-  AdditionalProductsFolders := TDictionary<string, string>.Create;
+  ExcludedComponents := TOrderedDictionary<string, string>.Create;
+  IncludedComponents := TOrderedDictionary<string, string>.Create;
+  AdditionalProductsFolders := TOrderedDictionary<string, string>.Create;
   FServerConfig := TServerConfigList.Create;
   Namings := TNamingList.Create;
   FBuildCores := 0; // make it parallel by default
@@ -942,7 +942,7 @@ begin
   StringProperties := TDictionary<string, string>.Create;
   BoolProperties := TDictionary<string, boolean>.Create;
   IntProperties := TDictionary<string, integer>.Create;
-  FDefines := TDictionary<string, boolean>.Create;
+  FDefines := TOrderedDictionary<string, boolean>.Create;
 end;
 
 destructor TProductConfigDefinition.Destroy;
