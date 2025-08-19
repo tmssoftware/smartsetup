@@ -201,7 +201,7 @@
         },
         "error if skipped": {
           "type": "boolean",
-          "description": "  # the default behavior of smart setup is to skip Delphi versions and platforms that are not installed.\nthis is normally what you want, so you don't have to manually specify in this file which platforms and Delphi versions\nto compile. You just leave it to compile all, and smart setup will skip what is not installed.\nbut when running smart setup from a CI or other automated system, you might want to configure exactly what\nplatforms and Delphi IDEs you want to build, and have smart setup return an error code instead of just skipping them.\nif you set this property true, smart setup will return an error value if it skips any Delphi version or platform.",
+          "description": "The default behavior of smart setup is to skip Delphi versions and platforms that are not installed.\nthis is normally what you want, so you don't have to manually specify in this file which platforms and Delphi versions\nto compile. You just leave it to compile all, and smart setup will skip what is not installed.\nbut when running smart setup from a CI or other automated system, you might want to configure exactly what\nplatforms and Delphi IDEs you want to build, and have smart setup return an error code instead of just skipping them.\nif you set this property true, smart setup will return an error value if it skips any Delphi version or platform.",
           "default": false
         },
 

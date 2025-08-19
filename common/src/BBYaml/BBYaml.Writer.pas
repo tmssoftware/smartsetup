@@ -54,6 +54,7 @@ type
     function ArrIndent: string;
   end;
 
+  TWritingFormat = (Minimal, NoComments, Full);
 
   TBBYamlWriter = class
   private
@@ -82,11 +83,10 @@ type
     function GetJSONPath(const s: string): string;
     function GetAddReplaceOverload(const Name: string): string;
     function GetSingleJSONObject(const Obj: TJSONObject): string;
+    function IsEmpty(const jValue: TYamlValue): boolean;
   var
     InvariantCulture : TFormatSettings;
-    FWriteComments: boolean;
-    FOuputJSON: boolean;
-    FOutputJSON: boolean;
+    FWritingFormat: TWritingFormat;
     FOnMember: TMemberAction;
     FOnComment: TCommentAction;
     FGetPatternMembers: TGetPatternMembersAction;
@@ -96,11 +96,10 @@ type
     Stack: TBBYamlWriterStack;
     FullSchema: TJSONObject;
   public
-    constructor Create(const aWriteComments, aOutputJSON: boolean);
+    constructor Create(const aWritingFormat: TWritingFormat);
     destructor Destroy; override;
 
-    property WriteComments: boolean read FWriteComments write FWriteComments;
-    property OutputJSON: boolean read FOutputJSON;
+    property WritingFormat: TWritingFormat read FWritingFormat write FWritingFormat;
 
     property OnMember: TMemberAction read FOnMember write FOnMember;
     property OnComment: TCommentAction read FOnComment write FOnComment;
@@ -115,11 +114,10 @@ uses BBClasses;
 
 { TBBYamlWriter }
 
-constructor TBBYamlWriter.Create(const aWriteComments, aOutputJSON: boolean);
+constructor TBBYamlWriter.Create(const aWritingFormat: TWritingFormat);
 begin
   InvariantCulture := TFormatSettings.Create('en-US');
-  FWriteComments := aWriteComments;
-  FOuputJSON := aOutputJSON;
+  FWritingFormat := aWritingFormat;
   Stack := TBBYamlWriterStack.Create;
 end;
 
@@ -189,7 +187,7 @@ begin
   begin
     var ActualComment := Comment;
     if Assigned(OnComment) then ActualComment := OnComment(Self, FullName, Comment);
-    if WriteComments and (ActualComment <> '') then WriteComment(Indent, ActualComment, true);
+    if (WritingFormat = TWritingFormat.Full) and (ActualComment <> '') then WriteComment(Indent, ActualComment, true);
     if Name <> '' then WriteLineRaw(Indent + Name + ':');
   end);
 
@@ -204,7 +202,7 @@ begin
 
   var ActualComment := IdComment;
   if Assigned(OnComment) then ActualComment := OnComment(Self, Stack.GetFullName(IdName), IdComment);
-  if WriteComments and (ActualComment <> '') then WriteComment(Stack.Indent, ActualComment, true);
+  if(WritingFormat = TWritingFormat.Full) and (ActualComment <> '') then WriteComment(Stack.Indent, ActualComment, true);
 
   WriteLineRaw(Stack.Indent + Stack.ArrIndent + IdName + ':' + IdValueEx);
   Stack.UsedArrIndent;
@@ -232,7 +230,7 @@ begin
     TYamlValueType.String: exit(Prefix + escape(jValue.AsString));
     TYamlValueType.Integer: exit(Prefix + IntToStr(jValue.AsInteger));
     TYamlValueType.Float: exit(Prefix + FloatToStr(jValue.AsFloat, InvariantCulture));
-    TYamlValueType.Empty: if (jValue.EmptyComment <> '') and WriteComments then exit ('#' + Prefix + jValue.EmptyComment) else exit('');
+    TYamlValueType.Empty: if (jValue.EmptyComment <> '') and (WritingFormat = TWritingFormat.Full) then exit ('#' + Prefix + jValue.EmptyComment) else exit('');
   end;
 
   IsValidValue := false;
@@ -266,6 +264,8 @@ begin
   end;
 
   Stack.Push(name, GetAddReplaceOverload(name), comment, Stack.Indent + SingleIndent, true);
+  if (WritingFormat <> TWritingFormat.Minimal) then WritePendingItems;
+
   for var i := 0 to value.ArrayCount - 1 do
   begin
     Stack.ResetArrIndent;
@@ -338,6 +338,13 @@ begin
 
 end;
 
+function TBBYamlWriter.IsEmpty(const jValue: TYamlValue): boolean;
+begin
+  if (jValue.ValueType = TYamlValueType.Empty) then exit(true);
+  if (jValue.ValueType = TYamlValueType.String) and (jValue.AsString = '') then exit(true);
+  Result := false;
+end;
+
 procedure TBBYamlWriter.WriteOneProperty(const Name, Comment: string; const Schema: TJSONObject; const ArrayIndex: integer);
 begin
     var FullName := Stack.GetFullName(Name);
@@ -346,8 +353,11 @@ begin
     var IsValue: boolean;
 
     jValue := AddExamples(jValue, Schema);
-
     var s := YamlToString(jValue, false, IsValue);
+    if (WritingFormat = TWritingFormat.Minimal) and IsEmpty(jValue) then
+    begin
+    end
+    else
     if IsValue then WritePair(GetAddReplaceOverload(Name), Comment, s)
     else if jValue.ValueType = TYamlValueType.Array then WriteArray(Name, Comment, jValue, Schema)
     else if jValue.ValueType = TYamlValueType.Object then
@@ -417,7 +427,7 @@ begin
   end;
   if Schema = nil then exit;
 
-  var Members := Schema.GetValue<TJSONObject>('properties', nil);
+  var Members := GetValue<TJSONObject>(Schema, 'properties', nil);
   if Members <> nil then
   begin
     for var Member in Members do
@@ -431,7 +441,7 @@ begin
     end;
   end;
 
-  var PatternMembers := Schema.GetValue<TJSONObject>('patternProperties', nil);
+  var PatternMembers := GetValue<TJSONObject>(Schema, 'patternProperties', nil);
   if PatternMembers <> nil then
   begin
     for var PatternMember in PatternMembers do

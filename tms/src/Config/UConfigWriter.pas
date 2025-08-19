@@ -246,7 +246,8 @@ begin
   if FullName = 'tms smart setup options:additional products folders:' then exit(GetAdditionalProductsFolders(Cfg.GetAdditionalProductsFolders));
 
   const ServersSection = 'tms smart setup options:servers:';
-  if FullName = ServersSection then exit(TYamlValue.MakeObject);
+  if FullName = ServersSection then
+  exit(TYamlValue.MakeObject);
   if FullName.StartsWith(ServersSection) then exit(GetServer(FullName.Substring(ServersSection.Length)));
 
   if FullName = 'tms smart setup options:git:' then exit(TYamlValue.MakeObject);
@@ -506,7 +507,7 @@ begin
   Cfg := aCfg;
   var SchemaStream := TResourceStream.Create(HInstance, 'TmsConfigSchema', RT_RCDATA);
   try
-    var BBWriter := TBBYamlWriter.Create(true, false);
+    var BBWriter := TBBYamlWriter.Create(TWritingFormat.Full);
     try
       BBWriter.OnMember := OnMember;
       BBWriter.OnComment := OnComment;
