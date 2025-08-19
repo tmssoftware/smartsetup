@@ -49,6 +49,10 @@ TConfigWriter = class
     function GetLastEntry(const FullName: string): string;
     function GetDefine(const CfgProduct: TProductConfigDefinition;
       const Define: string): TYamlValue;
+    function IsAddReplacePrefixedProperty(const FullName: string): boolean;
+    function GetAddReplacePrefix(const FullName: string): string;
+    function GetGlobalPropertyPrefix(const FullName: string): string;
+    function GetProductPropertyPrefix(const ProductCfg: TProductConfigDefinition; const FullName: string): string;
   public
     constructor Create(const aCmdFormat: boolean);
     procedure Save(const aCfg: TConfigDefinition; const FileName: string);
@@ -57,10 +61,13 @@ end;
 implementation
 uses UTmsBuildSystemUtils, Deget.IDETypes;
 
+const
+  GlobalPrefixedProperties: array[TGlobalPrefixedProperties] of string= ('excluded products', 'included products', 'additional products folders',
+     'servers', 'dcu megafolders');
+  ProductPrefixedProperties: array[TProductPrefixedProperties] of string= ('delphi versions', 'platforms', 'defines');
 
 constructor TConfigWriter.Create(const aCmdFormat: boolean);
 begin
-{$message warn 'add and replace array defines'}
 {$message warn 'config read including arrays'}
 
   CmdFormat := aCmdFormat;
@@ -187,8 +194,10 @@ end;
 
 function TConfigWriter.GetProductId(const FullName: string): string;
 begin
-  var Start := 'configuration for '.Length;
-  Result := FullName.Substring(Start, FullName.IndexOf(':') - Start).Trim;
+  var Start := 'configuration for ';
+  if not FullName.StartsWith(Start) then exit('');
+
+  Result := FullName.Substring(Start.Length, FullName.IndexOf(':') - Start.Length).Trim;
 end;
 
 function TConfigWriter.GetProductCfg(const aProductId: string): TProductConfigDefinition;
@@ -199,11 +208,19 @@ begin
   Result := Cfg.GetProduct(ProductId);
 end;
 
+function InsideSection(const FullName, s: string): boolean;
+begin
+  Result := FullName.StartsWith(s) and (Length(FullName) > Length(s));
+end;
 
 function TConfigWriter.OnComment(const Sender: TBBYamlWriter; const FullName,
   Comment: string): string;
 begin
-  if FullName.StartsWith('configuration for') 
+  //Comments that are still ok in the schema, but not important enough to make the config file bigger.
+  if InsideSection(FullName, 'tms smart setup options:servers:') then exit('');
+  if InsideSection(FullName, 'tms smart setup options:git:') then exit('');
+  if InsideSection(FullName, 'tms smart setup options:svn:') then exit('');
+  if FullName.StartsWith('configuration for')
     and FullName.Contains(':compiler paths:') 
     and not FullName.EndsWith(':compiler paths:') then exit('');
 
@@ -243,7 +260,8 @@ begin
   if FullName = 'tms smart setup options:dcu megafolders:' then exit(GetDcuMegafolders(Cfg.DcuMegafolders));
   if FullName.StartsWith('tms smart setup options:dcu megafolders:') then exit(GetMegafolderValue(ArrayIndex));
 
-  if FullName.StartsWith('configuration for ') then exit(OnProductMember(GetProductId(FullName), FullName, ArrayIndex)); 
+  var ProductName := GetProductId(FullName);
+  if ProductName <> '' then exit(OnProductMember(ProductName, FullName, ArrayIndex));
 
   raise Exception.Create('Unknown variable: ' + FullName);
 
@@ -386,6 +404,59 @@ begin
   Result := TYamlValue.MakeNull;
 end;
 
+function TConfigWriter.IsAddReplacePrefixedProperty(const FullName: string): boolean;
+begin
+  for var PrefixedProperty := Low(TGlobalPrefixedProperties) to High(TGlobalPrefixedProperties) do
+  begin
+    if FullName.EndsWith(':' + GlobalPrefixedProperties[PrefixedProperty] + ':') then exit(true);
+  end;
+  for var PrefixedProperty := Low(TProductPrefixedProperties) to High(TProductPrefixedProperties) do
+  begin
+    if FullName.EndsWith(':' + ProductPrefixedProperties[PrefixedProperty] + ':') then exit(true);
+  end;
+
+  Result := false;
+end;
+
+function TConfigWriter.GetGlobalPropertyPrefix(const FullName: string): string;
+begin
+  for var PrefixedProperty := Low(TGlobalPrefixedProperties) to High(TGlobalPrefixedProperties) do
+  begin
+    if FullName.EndsWith(':' + GlobalPrefixedProperties[PrefixedProperty] + ':') then
+    begin
+      var PropertyPrefix := Cfg.PrefixedProperties[PrefixedProperty];
+      exit (TArrayOverrideBehavior_ToStringPrefix(PropertyPrefix));
+    end;
+  end;
+
+  Result := '';
+end;
+
+function TConfigWriter.GetProductPropertyPrefix(const ProductCfg: TProductConfigDefinition; const FullName: string): string;
+begin
+  for var PrefixedProperty := Low(TProductPrefixedProperties) to High(TProductPrefixedProperties) do
+  begin
+    if FullName.EndsWith(':' + ProductPrefixedProperties[PrefixedProperty] + ':') then
+    begin
+      var PropertyPrefix := ProductCfg.PrefixedProperties[PrefixedProperty];
+      exit (TArrayOverrideBehavior_ToStringPrefix(PropertyPrefix));
+    end;
+  end;
+
+  Result := '';
+end;
+
+function TConfigWriter.GetAddReplacePrefix(const FullName: string): string;
+begin
+  var ProductName := GetProductId(FullName);
+  if ProductName <> '' then
+  begin
+    var ProductCfg := GetProductCfg(ProductName);
+    exit(GetProductPropertyPrefix(ProductCfg, FullName));
+  end;
+
+  Result := GetGlobalPropertyPrefix(FullName);
+end;
 
 function TConfigWriter.OnProductMember(const ProductId: string; const FullName: string; const ArrayIndex: integer): TYamlValue;
 begin
@@ -439,7 +510,9 @@ begin
     try
       BBWriter.OnMember := OnMember;
       BBWriter.OnComment := OnComment;
-      BBWriter.GetPatternMembers := GetPatternMembers;      
+      BBWriter.GetPatternMembers := GetPatternMembers;
+      BBWriter.IsAddReplacePrefixedProperty := IsAddReplacePrefixedProperty;
+      BBWriter.GetAddReplacePrefix := GetAddReplacePrefix;
       var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
       try
         var Schema := TJSONObject.ParseJSONValue(GetData(SchemaStream), true, true) as TJSONObject;

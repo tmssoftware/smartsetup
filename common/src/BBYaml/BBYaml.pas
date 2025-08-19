@@ -202,6 +202,7 @@ begin
 
   Result := Result.Trim(TrimWhitespace);
   if (Result = '') then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
+  Result := GetString(Result);
 
 end;
 

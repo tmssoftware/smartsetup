@@ -16,10 +16,13 @@ type
   TMemberAction = function(const Sender: TBBYamlWriter; const FullName: string; const ArrayIndex: integer): TYamlValue of object;
   TCommentAction = function(const Sender: TBBYamlWriter; const  FullName :string; const Comment: string): string of object;
   TGetPatternMembersAction = function(const Sender: TBBYamlWriter; const Id:string; const ArrayIndex: integer): TArray<TNameAndComment> of object;
+  TIsAddReplacePrefixedPropertyAction = function(const FullName: string): boolean of object;
+  TGetAddReplacePrefixAction = function(const FullName: string): string of object;
 
   TBBYamlWriterState = class
   public
     Name: string;
+    DisplayName: string;
     Comment: string;
     Indent: string;
     IsArray: boolean;
@@ -27,7 +30,7 @@ type
 
   public
     NameWritten: boolean;
-    constructor Create(const aName, aComment, aIndent: string; const aIsArray: boolean);
+    constructor Create(const aName, aDisplayName, aComment, aIndent: string; const aIsArray: boolean);
   end;
 
   TBBYamlWriterStack = class
@@ -43,7 +46,7 @@ type
     function GetFullName(const aName: string): string;
     procedure WriteAll(const NameWrite: TProc<string, string, string, string>);
 
-    procedure Push(const aName: string; const aComment: string; const aIndent: string; const aIsArray: boolean);
+    procedure Push(const aName, aDisplayName: string; const aComment: string; const aIndent: string; const aIsArray: boolean);
     procedure Pop;
 
     procedure ResetArrIndent;
@@ -73,6 +76,12 @@ type
     function AddExamples(const jValue: TYamlValue;
       const Schema: TJSONObject): TYamlValue;
     procedure WritePendingItems;
+    function IsAddReplaceOverload(const Name: string): boolean;
+    function GetValue<T>(const jVal: TJSONValue; const MemberName: string;
+      const DefaultValue: T; const RecursionLevel: integer = 0): T;
+    function GetJSONPath(const s: string): string;
+    function GetAddReplaceOverload(const Name: string): string;
+    function GetSingleJSONObject(const Obj: TJSONObject): string;
   var
     InvariantCulture : TFormatSettings;
     FWriteComments: boolean;
@@ -81,8 +90,11 @@ type
     FOnMember: TMemberAction;
     FOnComment: TCommentAction;
     FGetPatternMembers: TGetPatternMembersAction;
+    FIsAddReplacePrefixedProperty: TIsAddReplacePrefixedPropertyAction;
+    FGetAddReplacePrefix: TGetAddReplacePrefixAction;
     Writer: TTextWriter;
     Stack: TBBYamlWriterStack;
+    FullSchema: TJSONObject;
   public
     constructor Create(const aWriteComments, aOutputJSON: boolean);
     destructor Destroy; override;
@@ -93,10 +105,13 @@ type
     property OnMember: TMemberAction read FOnMember write FOnMember;
     property OnComment: TCommentAction read FOnComment write FOnComment;
     property GetPatternMembers: TGetPatternMembersAction read FGetPatternMembers write FGetPatternMembers;
+    property IsAddReplacePrefixedProperty: TIsAddReplacePrefixedPropertyAction read FIsAddReplacePrefixedProperty write FIsAddReplacePrefixedProperty;
+    property GetAddReplacePrefix: TGetAddReplacePrefixAction read FGetAddReplacePrefix write FGetAddReplacePrefix;
 
     procedure Save(const aWriter: TTextWriter; const Schema: TJSONObject; const SchemaURL, HeaderComment: string);
   end;
 implementation
+uses BBClasses;
 
 { TBBYamlWriter }
 
@@ -250,7 +265,7 @@ begin
     exit;
   end;
 
-  Stack.Push(name, comment, Stack.Indent + SingleIndent, true);
+  Stack.Push(name, GetAddReplaceOverload(name), comment, Stack.Indent + SingleIndent, true);
   for var i := 0 to value.ArrayCount - 1 do
   begin
     Stack.ResetArrIndent;
@@ -274,7 +289,7 @@ begin
     if ArrayMember.ValueType = TYamlValueType.Object then
     begin
       var ItemSchema: TJSONObject := nil;
-      if Schema <> nil then ItemSchema := Schema.GetValue('items') as TJSONObject;
+      if Schema <> nil then ItemSchema := GetValue<TJSONObject>(Schema, 'items', nil);
 
       WriteObject(ItemSchema, ArrayMember, i);
       continue;
@@ -287,12 +302,18 @@ begin
   Stack.Pop;
 end;
 
+function TBBYamlWriter.GetSingleJSONObject(const Obj: TJSONObject): string;
+begin
+  if Obj.Count <> 1 then exit('Unsupported object');
+  Result := Obj.Pairs[0].JsonString.GetValue<string> + ': ' +  Obj.Pairs[0].JsonValue.GetValue<string>;
+end;
+
 function TBBYamlWriter.AddExamples(const jValue: TYamlValue; const Schema: TJSONObject): TYamlValue;
 begin
   Result := jValue;
   if Schema = nil then exit;
 
-  var Examples := Schema.GetValue('examples');
+  var Examples := GetValue<TJSONArray>(Schema, 'examples', nil);
   if not Assigned(Examples) or not (Examples is TJSONArray) then exit;
 
   var ArrExamples := TJSONArray(Examples);
@@ -301,7 +322,19 @@ begin
 
   if (jValue.ValueType = TYamlValueType.String) and (jValue.AsString = '') then exit(TYamlValue.MakeEmpty(ArrExamples.Items[0].GetValue<string>));
 
+  if (jValue.ValueType = TYamlValueType.Array) and (jValue.ArrayCount = 0) then
+  begin
+    exit(TYamlValue.MakeArray(ArrExamples.Count,
+      function(i: integer): TYamlValue
+      begin
+        //only single objects or strings supported.
+        if ArrExamples[i] is TJSONObject then exit(TYamlValue.MakeEmpty(GetSingleJSONObject(ArrExamples[i] as TJSONObject)));
+        if ArrExamples[i] is TJSONString then exit(TYamlValue.MakeEmpty(ArrExamples[i].GetValue<string>));
+        Result := TYamlValue.MakeEmpty('example not supported');
 
+      end,
+      false));
+  end;
 
 end;
 
@@ -315,11 +348,11 @@ begin
     jValue := AddExamples(jValue, Schema);
 
     var s := YamlToString(jValue, false, IsValue);
-    if IsValue then WritePair(Name, Comment, s)
+    if IsValue then WritePair(GetAddReplaceOverload(Name), Comment, s)
     else if jValue.ValueType = TYamlValueType.Array then WriteArray(Name, Comment, jValue, Schema)
     else if jValue.ValueType = TYamlValueType.Object then
     begin
-      Stack.Push(name, comment, Stack.Indent + SingleIndent, false);
+      Stack.Push(name, GetAddReplaceOverload(name), comment, Stack.Indent + SingleIndent, false);
       WriteObject(Schema, jValue, -1);
       Stack.Pop;
     end
@@ -328,6 +361,47 @@ begin
     end
     else raise Exception.Create('Unexpected value for "' + FullName + '"');
 
+end;
+
+function TBBYamlWriter.IsAddReplaceOverload(const Name: string): boolean;
+begin
+  if not Assigned(IsAddReplacePrefixedProperty) then exit(false);
+
+  if Name.StartsWith(SectionReplacePrefix) then exit(IsAddReplacePrefixedProperty(Stack.GetFullName(Name.Substring(SectionReplacePrefix.Length))));
+  if Name.StartsWith(SectionAddPrefix) then exit(IsAddReplacePrefixedProperty(Stack.GetFullName(Name.Substring(SectionAddPrefix.Length))));
+  Result := false;
+end;
+
+function TBBYamlWriter.GetAddReplaceOverload(const Name: string): string;
+begin
+  if not Assigned(GetAddReplacePrefix) then exit(Name);
+  exit(GetAddReplacePrefix(Stack.GetFullName(Name)) + Name);
+end;
+
+function TBBYamlWriter.GetJSONPath(const s: string): string;
+begin
+  var Parts := s.Split(['/'], TStringSplitOptions.ExcludeEmpty);
+  Result := '';
+  for var Part in Parts do
+  begin
+    if Result <> '' then Result := Result + '.';
+    Result := Result + '' + Part + '';
+  end;
+end;
+
+function TBBYamlWriter.GetValue<T>(const jVal: TJSONValue; const MemberName: string; const DefaultValue: T; const RecursionLevel: integer): T;
+begin
+  if RecursionLevel > 30 then raise Exception.Create('Too many nested $ref in schema.');
+
+  if jVal.TryGetValue<T>(MemberName, Result) then exit;
+  var Path := '';
+  if jVal.TryGetValue<string>('$ref', Path) and (Path.StartsWith('#')) then
+  begin
+    var LinkedType := FullSchema.GetValue<TJSONObject>(GetJSONPath(Path.Substring(1)), nil);
+    if LinkedType <> nil then exit(GetValue<T>(LinkedType, MemberName, DefaultValue, RecursionLevel + 1));
+  end;
+
+  Result := DefaultValue;
 end;
 
 procedure TBBYamlWriter.WriteObject(const Schema: TJSONObject; const ObjectDef: TYamlValue; const ArrayIndex: integer);
@@ -348,9 +422,10 @@ begin
   begin
     for var Member in Members do
     begin
-      var jMemberDef := Member.JsonValue as TJSONObject;
       var Name := Member.JsonString.GetValue<string>;
-      var Comment := jMemberDef.GetValue<string>('description','');
+      if IsAddReplaceOverload(Name) then continue;
+      var jMemberDef := Member.JsonValue as TJSONObject;
+      var Comment := GetValue(jMemberDef, 'description','');
 
       WriteOneProperty(Name, Comment, jMemberDef, ArrayIndex);
     end;
@@ -387,6 +462,7 @@ procedure TBBYamlWriter.Save(const aWriter: TTextWriter;
   const Schema: TJSONObject; const SchemaURL, HeaderComment: string);
 begin
   Writer := aWriter;
+  FullSchema := Schema;
   var SchemaMeta :=  '# yaml-language-server: $schema=' + SchemaUrl;
   var Line := '# ' + StringOfChar('=', MaxLength(HeaderComment)) + '==';
   WriteLineRaw(Line);
@@ -407,9 +483,9 @@ begin
   FList.Delete(FList.Count - 1);
 end;
 
-procedure TBBYamlWriterStack.Push(const aName, aComment, aIndent: string; const aIsArray: boolean);
+procedure TBBYamlWriterStack.Push(const aName, aDisplayName, aComment, aIndent: string; const aIsArray: boolean);
 begin
-  FList.Add(TBBYamlWriterState.Create(aName.ToLowerInvariant, aComment, aIndent, aIsArray));
+  FList.Add(TBBYamlWriterState.Create(aName.ToLowerInvariant, aDisplayName.ToLowerInvariant, aComment, aIndent, aIsArray));
 end;
 
 function TBBYamlWriterStack.ArrIndent: string;
@@ -474,7 +550,7 @@ begin
   begin
     if (FList[i].Name <> '') then FullName := FullName + FList[i].Name + ':';
     if (FList[i].NameWritten) then continue;
-    NameWrite(PreviousIndent(i), FList[i].Name, FullName, FList[i].Comment);
+    NameWrite(PreviousIndent(i), FList[i].DisplayName, FullName, FList[i].Comment);
     FList[i].NameWritten := true;
   end;
 
@@ -482,9 +558,10 @@ end;
 
 { TBBYamlWriterState }
 
-constructor TBBYamlWriterState.Create(const aName, aComment, aIndent: string; const aIsArray: boolean);
+constructor TBBYamlWriterState.Create(const aName, aDisplayName, aComment, aIndent: string; const aIsArray: boolean);
 begin
   Name := aName;
+  DisplayName := aDisplayName;
   Comment := aComment;
   Indent := aIndent;
   IsArray := aIsArray;
