@@ -110,7 +110,7 @@
     },
     "serversObject": {
       "type": "object",
-      "description": "Specify which servers SmartSetup will connect to.\nWhen creating your own server, you also need to specify \"type\" (can be api, github)\nAnd the \"url\" where the server is.",
+      "description": "Specify which servers SmartSetup will connect to.\nWhen creating your own server, you also need to specify \"type\" (can be api, zipfile)\nAnd the \"url\" where the server is.",
       "properties": {
         "tms": {
           "type": "object",
@@ -144,8 +144,8 @@
           "properties": {
             "type": {
               "type": "string",
-              "description": "The type of server (e.g., api, github).",
-              "enum": ["api", "github"]
+              "description": "The type of server (e.g., api, zipfile).",
+              "enum": ["api", "zipfile"]
             },
             "url": {
               "type": "string",

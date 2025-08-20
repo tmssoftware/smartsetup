@@ -186,7 +186,7 @@ begin
   begin
     var ActualComment := Comment;
     if Assigned(OnComment) then ActualComment := OnComment(Self, FullName, Comment);
-    if (WritingFormat = TWritingFormat.Full) and (ActualComment <> '') then WriteComment(Indent, ActualComment, true);
+    if ((WritingFormat = TWritingFormat.Full) or (Indent = ''))and (ActualComment <> '') then WriteComment(Indent, ActualComment, true);
     if Name <> '' then WriteLineRaw(Indent + Name + ':');
   end);
 
