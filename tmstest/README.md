@@ -188,7 +188,7 @@ The following environment variables are set:
 The following functions are defined in util.modules.psm1:
   * **Invoke-WithExitCodeIgnored**: Allows you to run a command that will fail and not crash.
   * **tmscredentials**: runs tms credentials so you can access tms repos.
-  * **uninstall-and-check(products-remaining)**: uninstalls everything and checks that product-remaining products remain. Normally you will call this at the end of the script with products-remaining = 0.
+  * **uninstall_and_check(products-remaining)**: uninstalls everything and checks that product-remaining products remain. Normally you will call this at the end of the script with products-remaining = 0.
   * **compare-files**: compares 2 files and returns an error if not the same.
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.

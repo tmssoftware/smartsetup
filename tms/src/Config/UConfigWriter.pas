@@ -4,7 +4,7 @@ unit UConfigWriter;
 interface
 uses Classes, SysUtils, Util.Replacer, UConfigDefinition, Generics.Defaults,
      Generics.Collections, ULogger, Deget.CoreTypes, Megafolders.Definition, BBArrays, BBClasses,
-     BBYaml.Writer, Types, JSON, BBYaml.Types, UConfigKeys;
+     BBYaml.Writer, Types, JSON, BBYaml.Types, UConfigKeys, BBCmd;
 type
 TConfigWriter = class
   private
@@ -54,8 +54,9 @@ TConfigWriter = class
     function GetGlobalPropertyPrefix(const FullName: string): string;
     function GetProductPropertyPrefix(const ProductCfg: TProductConfigDefinition; const FullName: string): string;
   public
-    constructor Create(const aCmdFormat: boolean);
-    procedure Save(const aCfg: TConfigDefinition; const FileName: string);
+    constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
+    procedure Save(const FileName: string);
+    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string): string; static;
 end;
 
 implementation
@@ -66,10 +67,9 @@ const
      'servers', 'dcu megafolders');
   ProductPrefixedProperties: array[TProductPrefixedProperties] of string= ('delphi versions', 'platforms', 'defines');
 
-constructor TConfigWriter.Create(const aCmdFormat: boolean);
+constructor TConfigWriter.Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
 begin
-{$message warn 'config read including arrays'}
-
+  Cfg := aCfg;
   CmdFormat := aCmdFormat;
 end;
 
@@ -246,8 +246,7 @@ begin
   if FullName = 'tms smart setup options:additional products folders:' then exit(GetAdditionalProductsFolders(Cfg.GetAdditionalProductsFolders));
 
   const ServersSection = 'tms smart setup options:servers:';
-  if FullName = ServersSection then
-  exit(TYamlValue.MakeObject);
+  if FullName = ServersSection then exit(TYamlValue.MakeObject);
   if FullName.StartsWith(ServersSection) then exit(GetServer(FullName.Substring(ServersSection.Length)));
 
   if FullName = 'tms smart setup options:git:' then exit(TYamlValue.MakeObject);
@@ -264,7 +263,7 @@ begin
   var ProductName := GetProductId(FullName);
   if ProductName <> '' then exit(OnProductMember(ProductName, FullName, ArrayIndex));
 
-  raise Exception.Create('Unknown variable: ' + FullName);
+  raise Exception.Create('Unknown variable: "' + FullName + '"');
 
 end;
 
@@ -447,6 +446,7 @@ begin
   Result := '';
 end;
 
+
 function TConfigWriter.GetAddReplacePrefix(const FullName: string): string;
 begin
   var ProductName := GetProductId(FullName);
@@ -502,9 +502,8 @@ begin
   Result := TEncoding.UTF8.GetString(Buffer);
 end;
 
-procedure TConfigWriter.Save(const aCfg: TConfigDefinition; const FileName: string);
+procedure TConfigWriter.Save(const FileName: string);
 begin
-  Cfg := aCfg;
   var SchemaStream := TResourceStream.Create(HInstance, 'TmsConfigSchema', RT_RCDATA);
   try
     var BBWriter := TBBYamlWriter.Create(TWritingFormat.Full);
@@ -533,6 +532,30 @@ begin
 
   finally
     SchemaStream.Free;
+  end;
+end;
+
+class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string): string;
+begin
+  var Writer := TConfigWriter.Create(aCfg, true);
+  try
+    var PropertyName := TBBCmdReader.AdaptForCmd(aPropertyName, ':');
+    if not PropertyName.EndsWith(':') then PropertyName := PropertyName + ':';
+    var Value := Writer.OnMember(nil,  PropertyName, -1);
+    case Value.ValueType of
+      TYamlValueType.Object: raise Exception.Create('"' + aPropertyName + '" is the name of a class. Try asking for one of the members.');
+      TYamlValueType.Boolean: if Value.AsBoolean then exit('true') else exit('false');
+      TYamlValueType.String: exit(value.AsString);
+      TYamlValueType.Integer: exit(IntToStr(value.AsInteger));
+      TYamlValueType.Float: exit(FloatToStr(value.AsFloat, TFormatSettings.Invariant));
+      TYamlValueType.Array: exit(TBBYamlWriter.GetFlowArray(value));
+      TYamlValueType.Null: exit('');
+      TYamlValueType.Empty: exit('');
+    end;
+    raise Exception.Create('Internal error. Invalid YAML value type.');
+
+  finally
+    Writer.Free;
   end;
 end;
 

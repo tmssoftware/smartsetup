@@ -25,11 +25,11 @@ TBBCmdReader = class
     class procedure ParseParameter(const Parameter: string; const SectionSeparator: string; out Sections: TArray<string>; out Value: string);
     class procedure ProcessArray(const ArrayStr: string; const ArrayAction: TActionNameValue; const ErrorInfo: TErrorInfo);
     class procedure ProcessOneParameter(const Parameter, SectionSeparator: string; const MainSection: TSection);
-    class function AdaptForCmd(const s, SectionSeparator: string): string; static;
     class function IsSeparator(const Parameter: string; const Position: integer;
       const SectionSeparator: string): boolean; static;
   public
     class procedure ProcessCommandLine(const Parameters: array of string; const MainSection: TSection; const SectionSeparator: string);
+    class function AdaptForCmd(const s, SectionSeparator: string): string; static;
 end;
 
 implementation

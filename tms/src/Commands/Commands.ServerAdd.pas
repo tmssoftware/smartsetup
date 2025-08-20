@@ -18,12 +18,12 @@ var
 
 procedure RunServerAddCommand;
 begin
-  var ConfigWriter := TConfigWriter.Create(false);
+  var ConfigWriter := TConfigWriter.Create(Config, false);
   try
    Config.EnsureAllProducts;
    if Config.ServerConfig.FindServer(ServerName) >= 0 then raise Exception.Create('Server "' + ServerName + '" is already added in tms.config.yaml.');
    Config.ServerConfig.AddServer(TServerConfig.Create(ServerName, ServerType, ServerUrl, ServerEnabled));
-   ConfigWriter.Save(Config, ConfigFileName);
+   ConfigWriter.Save(ConfigFileName);
   finally
    ConfigWriter.Free;
   end;

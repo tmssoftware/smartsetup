@@ -32,7 +32,7 @@ if ($Result -ne $expectedResult) {
 }
 
 Set-Location -
-uninstall-and-check(1) #only if no errors. If there are errors, we leave it there for investigation.
+uninstall_and_check(1) #only if no errors. If there are errors, we leave it there for investigation.
 
 #check registry is the same as the one we used to install.
 

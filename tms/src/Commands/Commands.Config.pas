@@ -26,16 +26,16 @@ end;
 
 procedure CreateNewConfigFile;
 begin
-  var ConfigWriter := TConfigWriter.Create(false);
+  var DefaultConfig := CreateDefaultConfig;
   try
-   var DefaultConfig := CreateDefaultConfig;
-   try
-     ConfigWriter.Save(DefaultConfig, ConfigFileName);
-   finally
-     DefaultConfig.Free;
-   end;
+    var ConfigWriter := TConfigWriter.Create(DefaultConfig, false);
+    try
+      ConfigWriter.Save(ConfigFileName);
+    finally
+      ConfigWriter.Free;
+    end;
   finally
-   ConfigWriter.Free;
+    DefaultConfig.Free;
   end;
 end;
 

@@ -65,12 +65,11 @@ type
     procedure WriteLineRaw(const s: string);
     procedure WritePair(const IdName, IdComment, IdValue: string);
     procedure WriteComment(const Indent: string; const Comment: string; const Separate: boolean);
-    function Escape(const s: string): string;
-    function DoubleQuote(const s: string): string;
-    function SingleQuote(const s: string): string;
-    function GetFlowArray(const value: TYamlValue): string;
+    class function Escape(const s: string): string;
+    class function DoubleQuote(const s: string): string;
+    class function SingleQuote(const s: string): string;
     procedure WriteArray(const name, comment: string; const value: TYamlValue; const Schema: TJSONObject);
-    function YamlToString(const jValue: TYamlValue; const IsArray: boolean;
+    class function YamlToString(const WritingFormat: TWritingFormat; const jValue: TYamlValue; const IsArray: boolean;
       out IsValidValue: boolean): string;
     procedure WriteObject(const Schema: TJSONObject; const ObjectDef: TYamlValue; const ArrayIndex: integer);
     procedure WriteOneProperty(const Name, Comment: string; const Schema: TJSONObject; const ArrayIndex: integer);
@@ -85,7 +84,6 @@ type
     function GetSingleJSONObject(const Obj: TJSONObject): string;
     function IsEmpty(const jValue: TYamlValue): boolean;
   var
-    InvariantCulture : TFormatSettings;
     FWritingFormat: TWritingFormat;
     FOnMember: TMemberAction;
     FOnComment: TCommentAction;
@@ -107,6 +105,8 @@ type
     property IsAddReplacePrefixedProperty: TIsAddReplacePrefixedPropertyAction read FIsAddReplacePrefixedProperty write FIsAddReplacePrefixedProperty;
     property GetAddReplacePrefix: TGetAddReplacePrefixAction read FGetAddReplacePrefix write FGetAddReplacePrefix;
 
+    class function GetFlowArray(const value: TYamlValue): string; static;
+
     procedure Save(const aWriter: TTextWriter; const Schema: TJSONObject; const SchemaURL, HeaderComment: string);
   end;
 implementation
@@ -116,7 +116,6 @@ uses BBClasses;
 
 constructor TBBYamlWriter.Create(const aWritingFormat: TWritingFormat);
 begin
-  InvariantCulture := TFormatSettings.Create('en-US');
   FWritingFormat := aWritingFormat;
   Stack := TBBYamlWriterStack.Create;
 end;
@@ -127,12 +126,12 @@ begin
   inherited;
 end;
 
-function TBBYamlWriter.SingleQuote(const s: string): string;
+class function TBBYamlWriter.SingleQuote(const s: string): string;
 begin
   Result := '''' + s.Replace('''', '''''', [TReplaceFlag.rfReplaceAll]) + '''';
 end;
 
-function TBBYamlWriter.DoubleQuote(const s: string): string;
+class function TBBYamlWriter.DoubleQuote(const s: string): string;
 begin
   Result := '"' + s
              .Replace('\', '\\', [TReplaceFlag.rfReplaceAll])
@@ -143,7 +142,7 @@ begin
              + '"';
 end;
 
-function TBBYamlWriter.Escape(const s: string): string;
+class function TBBYamlWriter.Escape(const s: string): string;
 begin
   //https://blogs.perl.org/users/tinita/2018/03/strings-in-yaml---to-quote-or-not-to-quote.html
   if s.IndexOfAny([#9, #10, #13]) >= 0 then exit(DoubleQuote(s));
@@ -219,7 +218,7 @@ begin
 
 end;
 
-function TBBYamlWriter.YamlToString(const jValue: TYamlValue; const IsArray: boolean; out IsValidValue: boolean): string;
+class function TBBYamlWriter.YamlToString(const WritingFormat: TWritingFormat; const jValue: TYamlValue; const IsArray: boolean; out IsValidValue: boolean): string;
 begin
   var Prefix := '';
   if IsArray then Prefix := '- ';
@@ -227,9 +226,9 @@ begin
   IsValidValue := true;
   case jValue.ValueType of
     TYamlValueType.Boolean: if jValue.AsBoolean then exit(Prefix + 'true') else exit(Prefix + 'false');
-    TYamlValueType.String: exit(Prefix + escape(jValue.AsString));
+    TYamlValueType.String: exit(Prefix + Escape(jValue.AsString));
     TYamlValueType.Integer: exit(Prefix + IntToStr(jValue.AsInteger));
-    TYamlValueType.Float: exit(Prefix + FloatToStr(jValue.AsFloat, InvariantCulture));
+    TYamlValueType.Float: exit(Prefix + FloatToStr(jValue.AsFloat, TFormatSettings.Invariant));
     TYamlValueType.Empty: if (jValue.EmptyComment <> '') and (WritingFormat = TWritingFormat.Full) then exit ('#' + Prefix + jValue.EmptyComment) else exit('');
   end;
 
@@ -237,7 +236,7 @@ begin
 end;
 
 
-function TBBYamlWriter.GetFlowArray(const value: TYamlValue): string;
+class function TBBYamlWriter.GetFlowArray(const value: TYamlValue): string;
 begin
   Result := '';
   for var i := 0 to value.ArrayCount - 1 do
@@ -245,9 +244,9 @@ begin
     var Item := value.GetArrayItem(i);
     if Item.ValueType = TYamlValueType.Empty then continue;
 
-    if Length(Result) > 0 then Result := Result + ', ';
+    if Length(Result) > 0 then Result := Result + ',';
     var IsValid: boolean;
-    var s := YamlToString(Item, false, IsValid);
+    var s := YamlToString(TWritingFormat.Minimal, Item, false, IsValid);
     if not IsValid then raise Exception.Create('Invalid value for flow array.');
 
     Result := Result + s;
@@ -271,7 +270,7 @@ begin
     Stack.ResetArrIndent;
     var ArrayMember := value.GetArrayItem(i);
     var IsSimple: boolean;
-    var v := YamlToString(ArrayMember, true, IsSimple);
+    var v := YamlToString(WritingFormat, ArrayMember, true, IsSimple);
     if IsSimple then
     begin
       if (v <> '') then
@@ -353,7 +352,7 @@ begin
     var IsValue: boolean;
 
     jValue := AddExamples(jValue, Schema);
-    var s := YamlToString(jValue, false, IsValue);
+    var s := YamlToString(WritingFormat, jValue, false, IsValue);
     if (WritingFormat = TWritingFormat.Minimal) and IsEmpty(jValue) then
     begin
     end
@@ -495,7 +494,7 @@ end;
 
 procedure TBBYamlWriterStack.Push(const aName, aDisplayName, aComment, aIndent: string; const aIsArray: boolean);
 begin
-  FList.Add(TBBYamlWriterState.Create(aName.ToLowerInvariant, aDisplayName.ToLowerInvariant, aComment, aIndent, aIsArray));
+  FList.Add(TBBYamlWriterState.Create(aName, aDisplayName, aComment, aIndent, aIsArray));
 end;
 
 function TBBYamlWriterStack.ArrIndent: string;
@@ -544,7 +543,7 @@ end;
 
 function TBBYamlWriterStack.GetFullName(const aName: string): string;
 begin
-  Result := FullName + aName.ToLowerInvariant + ':';
+  Result := FullName + aName + ':';
 end;
 
 function TBBYamlWriterStack.PreviousIndent(const i: integer): string;

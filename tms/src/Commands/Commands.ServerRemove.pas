@@ -15,13 +15,13 @@ var
 
 procedure RunServerRemoveCommand;
 begin
-  var ConfigWriter := TConfigWriter.Create(false);
+  var ConfigWriter := TConfigWriter.Create(Config, false);
   try
    Config.EnsureAllProducts;
    var ServerIndex := Config.ServerConfig.FindServer(ServerName);
    if ServerIndex < 0 then raise Exception.Create('Server "' + ServerName + '" is not defined in tms.config.yaml.');
    Config.ServerConfig.RemoveServer(ServerIndex);
-   ConfigWriter.Save(Config, ConfigFileName);
+   ConfigWriter.Save(ConfigFileName);
   finally
    ConfigWriter.Free;
   end;

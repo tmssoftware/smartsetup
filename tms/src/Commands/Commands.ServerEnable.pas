@@ -16,7 +16,7 @@ var
 
 procedure RunServerEnableCommand;
 begin
-  var ConfigWriter := TConfigWriter.Create(false);
+  var ConfigWriter := TConfigWriter.Create(Config, false);
   try
    Config.EnsureAllProducts;
    var ServerIndex := Config.ServerConfig.FindServer(ServerName);
@@ -25,7 +25,7 @@ begin
      raise Exception.Create('Cannot find the server "' + ServerName + '" in tms.config.yaml.');
    end;
    Config.ServerConfig.SetInfo(ServerIndex, procedure(var Server: TServerConfig) begin Server.Enabled := ServerEnabled; end);
-   ConfigWriter.Save(Config, ConfigFileName);
+   ConfigWriter.Save(ConfigFileName);
   finally
    ConfigWriter.Free;
   end;

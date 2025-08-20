@@ -7,7 +7,7 @@
   "definitions": {
     "delphiVersionsObject": {
       "type": ["array", "null"],
-      "description": "List of Delphi versions to build for this product.\nIf empty, all installed Delphi versions will be built.\nSmart Setup will anyway avoid installing to a Delphi version\nif it is not installed in the machine",
+      "description": "The IDEs you want to build for and install to.\nIf empty or omitted, Smart Setup will build/install with all Delphi versions available in the machine.\nSmart Setup will anyway avoid installing to a Delphi version if it is not installed in the machine",
       "items": {
         "type": "string",
         "enum": [
@@ -98,7 +98,7 @@
     },
     "additionalProductsFoldersObject": {
       "type": ["array", "null"],
-      "description": "By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional \nroot folders here, so tms also looks for tmsbuild.yaml files in those folders.\n All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will be generated under the additional folders. This is useful if you want to use tms to build your own code.\nThe folders you add here must be in the same drive as the main root folder.",
+      "description": "By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional \nroot folders here, so tms also looks for tmsbuild.yaml files in those folders.\n All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will\nbe generated under the additional folders. This is useful if you want to use tms to build your own sources.\nThe folders you add here must be in the same drive as the main root folder.",
       "examples": [
         "c:\\MyProducts   #All folders containing tmsbuild.yaml files inside c:\\MyProducts will be added to the build.",
         "..\\..\\Other products  #Try to use relative folders if possible."
@@ -296,7 +296,7 @@
           "properties": {
             "verbosity": {
               "type": "string",
-              "description": "How much information to display.",
+              "description": "Can be 'trace', 'info', or 'error'. Trace shows all messages, info shows only important messages, and error shows only errors.",
               "enum": ["trace", "info", "error"]
             },
             "skip register": {
@@ -328,12 +328,12 @@
                   "type": "boolean"
                 }
               ],
-              "description": "if true the components will be compiled but not registered in the IDE.\nAlso the Windows PATH won't be modified when this setting is true.\nYou can use \"true\" or \"false\" here to skip all or none, and also an array like \"[All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]\" to be more specific about what you want to skip. For example: skip register: [StartMenu, Help] would skip registering the start menu and the help, but not the others.\nWhen specifically skipping parts, you might want to use negatives, like [All, -StartMenu, -Help] to skip all but start menu and help.",
+              "description": "if true the components will be compiled but not registered in the IDE.\nAlso the Windows PATH won't be modified when this setting is true.\nYou can use \"true\" or \"false\" here to skip all or none, and also an array like \"[All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]\" to be more specific about what you want to skip.\nFor example: skip register: [StartMenu, Help] would skip registering the start menu and the help, but not the others.\nWhen specifically skipping parts, you might want to use negatives, like [All, -StartMenu, -Help] to skip all but start menu and help.",
               "default": false
             },
             "dry run": {
               "type": "boolean",
-              "description": "if true, the setup will not make any changes to the system. This is useful for testing the configuration without applying it."
+              "description": "if true, smart setup will output the commands it wants to execute, but not execute anything."
             }
           },
           "additionalProperties": false
@@ -377,7 +377,7 @@
             },
             "modify sources": {
               "type": "boolean",
-              "description": "Smart setup by default won't modify any file in the sources folder./nIf you set this to true, it will modify and adapt files in the sources so when you compile them manually they behave similar to when you use Smart setup.",
+              "description": "Smart setup by default won't modify any file in the sources folder.\nIf you set this to true, it will modify and adapt files in the sources so when you compile them manually they behave similar to when you use Smart setup.",
               "default": false
             },
             "partial builds": {

@@ -12,10 +12,10 @@ uses UCommandLine, Commands.CommonOptions,
 
 procedure RunConfigWriteCommand;
 begin
-  var ConfigWriter := TConfigWriter.Create(false);
+  var ConfigWriter := TConfigWriter.Create(Config, false);
   try
    Config.EnsureAllProducts;
-   ConfigWriter.Save(Config, ConfigFileName);
+   ConfigWriter.Save(ConfigFileName);
   finally
    ConfigWriter.Free;
   end;

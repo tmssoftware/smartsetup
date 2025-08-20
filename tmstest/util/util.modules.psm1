@@ -16,7 +16,7 @@ function tmscredentials {
     tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
 }
 
-function uninstall-and-check {
+function uninstall_and_check {
     param([Parameter(Mandatory, Position=0)] [int] $expectedRemaining)
 
     tms uninstall *
