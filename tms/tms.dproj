@@ -417,6 +417,7 @@
         <DCCReference Include="..\common\src\BBYaml\BBArrays.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Writer.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Types.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBStrings.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

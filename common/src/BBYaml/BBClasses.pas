@@ -2,7 +2,7 @@ unit BBClasses;
 {$i ../tmscommon.inc}
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBArrays;
+uses Classes, SysUtils, Generics.Collections, BBArrays, BBStrings;
 
 const
   SectionAddPrefix = 'add ';
@@ -302,7 +302,7 @@ begin
 
   for var v0 in varr do
   begin
-    var v := v0.Trim;
+    var v := BBYamlUnescapeString(v0.Trim);
     if ArrActions <> nil then
     begin
       if not ArrActions.TryGetValue(v, Act) then raise Exception.Create('The value "' + v +'" in the array ' + s + ' is not a valid value. It must be one of [' + GetActions(ArrActions) + ']. ' + ErrorInfo.ToString );
@@ -388,5 +388,6 @@ begin
   end;
   raise Exception.Create('Invalid value for TArrayOverrideBehavior.');
 end;
+
 
 end.

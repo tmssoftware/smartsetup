@@ -16,7 +16,7 @@ unit BBCmd;
 
 
 interface
-uses BBClasses, Generics.Collections;
+uses BBClasses, Generics.Collections, BBStrings;
 
 type
 
@@ -68,7 +68,7 @@ begin
       if idx > 0 then
       begin
         ElementName := Value.Substring(0, idx).Trim;
-        ElementValue := Value.Substring(idx + 1).Trim;
+        ElementValue := BBYamlUnescapeString(Value.Substring(idx + 1).Trim).Trim;
       end;
 
 

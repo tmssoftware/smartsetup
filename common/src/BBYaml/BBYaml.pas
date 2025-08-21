@@ -14,7 +14,7 @@ unit BBYaml;
 // in text editors. It is enough for our needs, but I wouldn't use as a general YAML parser unless you can control the format.
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBClasses;
+uses Classes, SysUtils, Generics.Collections, BBClasses, BBStrings;
 type
 
 TBBYamlReader = class
@@ -84,9 +84,7 @@ private
 
   function RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
   procedure ParseColon(const Line: string; var Name, Value: string; const MustHaveValue, CanBeEmpty: boolean);
-    function GetString(const s: string): string;
-    function Escape(const s: string): string;
-    function GetKeyString(const s: string): string;
+  function GetKeyString(const s: string): string;
 
 public
   constructor Create(const FileName: string; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -202,7 +200,7 @@ begin
 
   Result := Result.Trim(TrimWhitespace);
   if (Result = '') then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
-  Result := GetString(Result);
+  Result := BBYamlUnescapeString(Result);
 
 end;
 
@@ -258,28 +256,10 @@ begin
   exit(Result.GotoChild(Name, ErrorInfo));
 end;
 
-function TBBYamlSectionProcessor.Escape(const s: string): string;
-begin
-  //Someday we can do a better parser here.
-  Result := s;
-  Result := Result.Replace('\t', #9, [rfReplaceAll]);
-  Result := Result.Replace('\n', #10, [rfReplaceAll]);
-  Result := Result.Replace('\r', #13, [rfReplaceAll]);
-  Result := Result.Replace('\\', '\', [rfReplaceAll]);
-  Result := Result.Replace('\"', '"', [rfReplaceAll]);
-end;
-
-function TBBYamlSectionProcessor.GetString(const s: string): string;
-begin
-  if s.StartsWith('''') and s.EndsWith('''') and (s.Length > 1) then exit(s.Substring(1, s.Length - 2).Replace('''''', '''', [rfReplaceAll]));
-  if s.StartsWith('"') and s.EndsWith('"') and (s.Length > 1) then exit(Escape(s.Substring(1, s.Length - 2)));
-  Result := s;
-end;
-
 function TBBYamlSectionProcessor.GetKeyString(const s: string): string;
 begin
-  if s.StartsWith('-') then exit('- ' + GetString(s.Substring(1).Trim(TrimWhiteSpace)));
-  Result := GetString(s);
+  if s.StartsWith('-') then exit('- ' + BBYamlUnescapeString(s.Substring(1).Trim(TrimWhiteSpace)));
+  Result := BBYamlUnescapeString(s);
 end;
 
 procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty: boolean);
@@ -289,7 +269,7 @@ begin
   idx := Line.IndexOf(':');
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
   Name := GetKeyString(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)));
-  Value := GetString(Line.Substring(idx + 1).Trim(TrimWhitespace));
+  Value := BBYamlUnescapeString(Line.Substring(idx + 1).Trim(TrimWhitespace));
   if CanBeEmpty then exit;
 
   if MustHaveValue and (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);

@@ -49,3 +49,21 @@ function compare-files {
         Write-Output "Files '$file1' and '$file2' match." -ForegroundColor Green
     }
 }
+
+filter Assert-ValueIs
+{
+    param([string]$expected)
+  $same = ($expected -eq $_)
+  if (!$same) { 
+    throw "'$_' is not equal to '$expected'"
+  }
+}
+
+filter Assert-ValueContains
+{
+    param([string]$expected)
+  $same = ($_.Contains($expected))
+  if (!$same) { 
+    throw "'$_' does not contain '$expected'"
+  }
+}

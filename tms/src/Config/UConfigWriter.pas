@@ -53,10 +53,12 @@ TConfigWriter = class
     function GetAddReplacePrefix(const FullName: string): string;
     function GetGlobalPropertyPrefix(const FullName: string): string;
     function GetProductPropertyPrefix(const ProductCfg: TProductConfigDefinition; const FullName: string): string;
+    procedure SaveToStream(const TextWriter: TTextWriter; const Filter: string; const WritingFormat: TWritingFormat;
+             const UseJson: boolean; const SchemaURL, HeaderContent: string);
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
     procedure Save(const FileName: string);
-    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string): string; static;
+    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson: boolean): string; static;
 end;
 
 implementation
@@ -141,7 +143,7 @@ end;
 function TConfigWriter.GetIncludedExcludedComponents(const Values: TEnumerable<string>; const AddExamples: boolean): TYamlValue;
 begin
   var ArrayResult := Values.ToArray;
-  if Length(ArrayResult) > 0 then
+  if (Length(ArrayResult) > 0) or (CmdFormat) then
   begin
     exit(TYamlValue.MakeArray(ArrayResult, BlockArray));
   end;
@@ -159,7 +161,7 @@ end;
 function TConfigWriter.GetAdditionalProductsFolders(const Values: TEnumerable<string>): TYamlValue;
 begin
   var ArrayResult := Values.ToArray;
-  if Length(ArrayResult) > 0 then
+  if (Length(ArrayResult) > 0) or CmdFormat then
   begin
     exit(TYamlValue.MakeArray(ArrayResult, BlockArray));
   end;
@@ -188,7 +190,7 @@ end;
 function TConfigWriter.GetDcuMegafolders(const Values: TMegafolderList): TYamlValue;
 begin
   Result := TYamlValue.MakeArray(Values.Count, 
-                function(i: integer): TYamlValue begin Result := TYamlValue.MakeObject; end, 
+                function(i: integer): TYamlValue begin Result := TYamlValue.MakeObject; end,
                 BlockArray);
 end;
 
@@ -216,6 +218,8 @@ end;
 function TConfigWriter.OnComment(const Sender: TBBYamlWriter; const FullName,
   Comment: string): string;
 begin
+  if CmdFormat then exit('');
+
   //Comments that are still ok in the schema, but not important enough to make the config file bigger.
   if InsideSection(FullName, 'tms smart setup options:servers:') then exit('');
   if InsideSection(FullName, 'tms smart setup options:git:') then exit('');
@@ -334,7 +338,7 @@ begin
   var Defines := CfgProduct.Defines;
   var YamlArray: TArray<TYamlValue> := nil;
   
-  if (Defines.Count > 0) then
+  if (Defines.Count > 0) or CmdFormat then
   begin
     var ArrResult := Defines.Keys.ToArray;
 
@@ -504,27 +508,36 @@ end;
 
 procedure TConfigWriter.Save(const FileName: string);
 begin
+  var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
+  try
+    SaveToStream(TextWriter, '', TWritingFormat.Full, false,
+      'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
+      'TMS Smart Setup configuration file'#10'Modify settings as needed.');
+  finally
+    TextWriter.Free;
+  end;
+end;
+
+procedure TConfigWriter.SaveToStream(const TextWriter: TTextWriter; const Filter: string;
+   const WritingFormat: TWritingFormat; const UseJson: boolean; const SchemaURL, HeaderContent: string);
+begin
   var SchemaStream := TResourceStream.Create(HInstance, 'TmsConfigSchema', RT_RCDATA);
   try
-    var BBWriter := TBBYamlWriter.Create(TWritingFormat.Full);
+    var BBWriter := TBBYamlWriter.Create(WritingFormat, Filter, UseJson);
     try
       BBWriter.OnMember := OnMember;
       BBWriter.OnComment := OnComment;
       BBWriter.GetPatternMembers := GetPatternMembers;
       BBWriter.IsAddReplacePrefixedProperty := IsAddReplacePrefixedProperty;
       BBWriter.GetAddReplacePrefix := GetAddReplacePrefix;
-      var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
+
+      var Schema := TJSONObject.ParseJSONValue(GetData(SchemaStream), true, true) as TJSONObject;
       try
-        var Schema := TJSONObject.ParseJSONValue(GetData(SchemaStream), true, true) as TJSONObject;
-        try
-          BBWriter.Save(TextWriter, Schema,
-            'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/dev/tms/example-config/tms.config.schema.json',
-            'TMS Smart Setup configuration file'#10'Modify settings as needed.');
-        finally
-          Schema.Free;
-        end;
+        BBWriter.Save(TextWriter, Schema,
+          SchemaURL,
+          HeaderContent);
       finally
-        TextWriter.Free;
+        Schema.Free;
       end;
     finally
       BBWriter.Free;
@@ -535,25 +548,21 @@ begin
   end;
 end;
 
-class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string): string;
+class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson: boolean): string;
 begin
   var Writer := TConfigWriter.Create(aCfg, true);
   try
     var PropertyName := TBBCmdReader.AdaptForCmd(aPropertyName, ':');
-    if not PropertyName.EndsWith(':') then PropertyName := PropertyName + ':';
-    var Value := Writer.OnMember(nil,  PropertyName, -1);
-    case Value.ValueType of
-      TYamlValueType.Object: raise Exception.Create('"' + aPropertyName + '" is the name of a class. Try asking for one of the members.');
-      TYamlValueType.Boolean: if Value.AsBoolean then exit('true') else exit('false');
-      TYamlValueType.String: exit(value.AsString);
-      TYamlValueType.Integer: exit(IntToStr(value.AsInteger));
-      TYamlValueType.Float: exit(FloatToStr(value.AsFloat, TFormatSettings.Invariant));
-      TYamlValueType.Array: exit(TBBYamlWriter.GetFlowArray(value));
-      TYamlValueType.Null: exit('');
-      TYamlValueType.Empty: exit('');
+    var StringWriter := TStringWriter.Create;
+    try
+      Writer.SaveToStream(StringWriter, PropertyName, TWritingFormat.NoComments, UseJson, '', '');
+      StringWriter.Flush;
+      Result := StringWriter.ToString;
+      if Result = '' then raise Exception.Create('Unknown property: "' + aPropertyName + '"');
+      Result := Result.Trim;
+    finally
+      StringWriter.Free;
     end;
-    raise Exception.Create('Internal error. Invalid YAML value type.');
-
   finally
     Writer.Free;
   end;

@@ -12,16 +12,12 @@ uses UCommandLine, Commands.CommonOptions,
 
 var
   VariableName: string;
+  UseJson: boolean;
 
 
 procedure RunConfigReadCommand;
 begin
-  if String.IsNullOrWhiteSpace(VariableName) then
-  begin
-    raise Exception.Create('There is no variable specified.');
-  end;
-
-  WriteLn(TConfigWriter.GetProperty(Config, VariableName));
+  WriteLn(TConfigWriter.GetProperty(Config, VariableName, UseJson));
 end;
 
 
@@ -39,7 +35,15 @@ begin
       VariableName := Value;
     end);
   option.AllowMultiple := False;
-  option.Required := True;
+  option.Required := false;
+
+  option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
+    procedure(const Value: Boolean)
+    begin
+      UseJson := Value;
+    end);
+  option.HasValue := False;
+
 
   AddCommand(cmd.Name, CommandGroups.Config, RunConfigReadCommand);
 end;
