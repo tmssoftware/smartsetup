@@ -39,7 +39,7 @@ begin
     MainSection.CreatedBy := 'Main: ' + Filename;
     if (TFile.Exists(Filename)) then TBBYamlReader.ProcessFile(Filename, MainSection, aStopAt, aIgnoreOtherFiles);
     MainSection.CreatedBy := 'Command line';
-    TBBCmdReader.ProcessCommandLine(CmdParameters, MainSection, ':');
+    TBBCmdReader.ProcessCommandLine(CmdParameters, MainSection, ':', false);
 
   finally
     MainSection.Free;

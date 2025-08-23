@@ -1,0 +1,114 @@
+{
+  "tms smart setup options":
+  {
+    "build cores": 4,
+    "alternate registry key": "myProduct",
+    "prevent sleep": false,
+    "versions to keep": 3,
+    "error if skipped": true,
+    "excluded products": ["tms-fnc","tms-fnc-cloud"],
+    "included products": ["tms-fnc-cloud"],
+    "additional products folders": ["..\\landgraf\\aws-sdk-delphi","..\\landgraf\\tms-biz","..\\tms\\delphi-graphql"],
+    "servers":
+    {
+      "tms":
+      {
+        "enabled": false
+      },
+      "community":
+      {
+        "enabled": true
+      }
+    },
+    "git":
+    {
+      "git location": "C:\\Program Files\\Git\\cmd\\git.exe",
+      "clone command": "clone --depth 1",
+      "pull command": "pull"
+    },
+    "svn":
+    {
+      "svn location": "C:\\Program Files\\TortoiseSVN\\bin\\svn.exe",
+      "checkout command": "checkout --depth immediates",
+      "update command": "update"
+    },
+    "dcu megafolders": [{"tms": "*.tms"},{"none": "test"},{"other": "*"},{"all": "p"}]
+  },
+  "configuration for all products":
+  {
+    "options":
+    {
+      "verbosity": "info",
+      "skip register": false,
+      "dry run": false
+    },
+    "delphi versions": ["delphi13"],
+    "platforms": ["win64xintel"],
+    "compilation options":
+    {
+      "debug dcus": true,
+      "defines": ["DEBUG"]
+    },
+    "advanced options":
+    {
+      "use symlinks": false,
+      "keep parallel folders": false,
+      "modify sources": false,
+      "partial builds": true,
+      "add source code to library path": true
+    },
+    "compiler paths":
+    {
+      "delphi11": "C:\\Program Files (x86)\\Embarcadero\\Studio\\22.0\\bin"
+    }
+  },
+  "configuration for test1":
+  {
+    "options":
+    {
+      "verbosity": "trace",
+      "skip register": true,
+      "dry run": true
+    },
+    "compilation options":
+    {
+      "debug dcus": false
+    },
+    "advanced options":
+    {
+      "use symlinks": true,
+      "keep parallel folders": true,
+      "modify sources": true,
+      "partial builds": true,
+      "add source code to library path": false
+    },
+    "compiler paths":
+    {
+      "delphi11": "C:\\Delphi11"
+    }
+  },
+  "configuration for test2":
+  {
+    "options":
+    {
+      "verbosity": "error",
+      "skip register": true,
+      "dry run": false
+    },
+    "delphi versions": ["delphixe","delphi12"],
+    "platforms": ["win32intel","win64intel","android64"],
+    "compilation options":
+    {
+      "debug dcus": true,
+      "defines": ["DEBUG","TEST"]
+    },
+    "advanced options":
+    {
+      "use symlinks": false,
+      "keep parallel folders": true,
+      "modify sources": false,
+      "partial builds": false,
+      "add source code to library path": false
+    }
+  }
+}

@@ -53,7 +53,7 @@ tms smart setup options:
     #- ..\..\Other products  #Try to use relative folders if possible.
 
   # Specify which servers SmartSetup will connect to.
-  # When creating your own server, you also need to specify "type" (can be api, github)
+  # When creating your own server, you also need to specify "type" (can be api, zipfile)
   # And the "url" where the server is.
   servers:
     tms:

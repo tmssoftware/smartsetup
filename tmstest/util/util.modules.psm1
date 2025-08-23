@@ -52,7 +52,8 @@ function compare-files {
 
 filter Assert-ValueIs
 {
-    param([string]$expected)
+  param([string]$expected)
+
   $same = ($expected -eq $_)
   if (!$same) { 
     throw "'$_' is not equal to '$expected'"
@@ -61,9 +62,10 @@ filter Assert-ValueIs
 
 filter Assert-ValueContains
 {
-    param([string]$expected)
-  $same = ($_.Contains($expected))
-  if (!$same) { 
+  param([string]$expected)
+  
+  $ok = ($_.Contains($expected))
+  if (!$ok) { 
     throw "'$_' does not contain '$expected'"
   }
 }

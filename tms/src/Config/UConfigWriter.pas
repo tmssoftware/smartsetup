@@ -27,7 +27,7 @@ TConfigWriter = class
     function GetMegafolderValue(const ArrayIndex: integer): TYamlValue;
     function GetProductConfigurations: TArray<TNameAndComment>;
     function GetProductComment(const Name: string): string;
-    function OnProductMember(const ProductId, FullName: string;
+    function OnProductMember(const Sender: TBBYamlWriter;const ProductId, FullName: string;
       const ArrayIndex: integer): TYamlValue;
     function GetProductId(const FullName: string): string;
     function GetProductCfg(const aProductId: string): TProductConfigDefinition;
@@ -55,6 +55,7 @@ TConfigWriter = class
     function GetProductPropertyPrefix(const ProductCfg: TProductConfigDefinition; const FullName: string): string;
     procedure SaveToStream(const TextWriter: TTextWriter; const Filter: string; const WritingFormat: TWritingFormat;
              const UseJson: boolean; const SchemaURL, HeaderContent: string);
+    class procedure CheckConfig(const aProperty: string); static;
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
     procedure Save(const FileName: string);
@@ -62,7 +63,7 @@ TConfigWriter = class
 end;
 
 implementation
-uses UTmsBuildSystemUtils, Deget.IDETypes;
+uses UTmsBuildSystemUtils, Deget.IDETypes, UConfigLoaderStateMachine;
 
 const
   GlobalPrefixedProperties: array[TGlobalPrefixedProperties] of string= ('excluded products', 'included products', 'additional products folders',
@@ -265,7 +266,7 @@ begin
   if FullName.StartsWith('tms smart setup options:dcu megafolders:') then exit(GetMegafolderValue(ArrayIndex));
 
   var ProductName := GetProductId(FullName);
-  if ProductName <> '' then exit(OnProductMember(ProductName, FullName, ArrayIndex));
+  if ProductName <> '' then exit(OnProductMember(Sender, ProductName, FullName, ArrayIndex));
 
   raise Exception.Create('Unknown variable: "' + FullName + '"');
 
@@ -463,10 +464,12 @@ begin
   Result := GetGlobalPropertyPrefix(FullName);
 end;
 
-function TConfigWriter.OnProductMember(const ProductId: string; const FullName: string; const ArrayIndex: integer): TYamlValue;
+function TConfigWriter.OnProductMember(const Sender: TBBYamlWriter; const ProductId: string; const FullName: string; const ArrayIndex: integer): TYamlValue;
 begin
   var CfgStart := 'configuration for ' + ProductId + ':'; 
   var CfgProduct := GetProductCfg(ProductId);
+  if not CfgProduct.IsGlobal then Sender.WritingFormat := TWritingFormat.Minimal;
+
   if FullName =  CfgStart then exit(TYamlValue.MakeObject);
 
   if FullName = CfgStart + 'options:' then exit(TYamlValue.MakeObject);
@@ -548,6 +551,23 @@ begin
   end;
 end;
 
+class procedure TConfigWriter.CheckConfig(const aProperty: string);
+begin
+  var CfgTest := TConfigDefinition.Create('');
+  try
+    var MainSection := TMainSectionConf.Create(CfgTest);
+    try
+      MainSection.CreatedBy := 'TestConfig';
+      TBBCmdReader.ProcessCommandLine([aProperty], MainSection, ':', true);
+
+    finally
+      MainSection.Free;
+    end;
+  finally
+    CfgTest.Free;
+  end;
+end;
+
 class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson: boolean): string;
 begin
   var Writer := TConfigWriter.Create(aCfg, true);
@@ -558,7 +578,10 @@ begin
       Writer.SaveToStream(StringWriter, PropertyName, TWritingFormat.NoComments, UseJson, '', '');
       StringWriter.Flush;
       Result := StringWriter.ToString;
-      if Result = '' then raise Exception.Create('Unknown property: "' + aPropertyName + '"');
+      if Result = '' then
+      begin
+        CheckConfig(aPropertyName)
+      end;
       Result := Result.Trim;
     finally
       StringWriter.Free;

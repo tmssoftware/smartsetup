@@ -71,6 +71,7 @@ type
   TBBYamlWriter = class
   private
     PendingLineFeed: boolean;
+    PendingComma: boolean;
     procedure CheckPendingLineFeed;
     procedure WriteJSONComma(var IsFirst: boolean);
     function ISJsonNull(const s: string): boolean;
@@ -79,7 +80,7 @@ type
     SingleIndent = '  ';
 
     procedure WriteRaw(const s: string);
-    procedure WriteLineRaw(const s: string);
+    function WriteLineRaw(const s: string): boolean;
     procedure WritePair(const IdName, IdComment, IdValue: string; var IsFirst: boolean);
     procedure WriteComment(const Indent: string; const Comment: string; const Separate: boolean);
     procedure WriteArray(const name, comment: string; const value: TYamlValue; const Schema: TJSONObject);
@@ -145,24 +146,28 @@ end;
 
 procedure TBBYamlWriter.CheckPendingLineFeed;
 begin
+  if PendingComma then Writer.Write(',');
+  PendingComma := false;
   if PendingLineFeed then Writer.WriteLine;
   PendingLineFeed := false;
 end;
 
 procedure TBBYamlWriter.WriteRaw(const s: string);
 begin
-  CheckPendingLineFeed;
   if not Stack.InsideFilter then exit;
+  CheckPendingLineFeed;
 
   Writer.Write(s);
 end;
 
-procedure TBBYamlWriter.WriteLineRaw(const s: string);
+function TBBYamlWriter.WriteLineRaw(const s: string): boolean;
 begin
-  CheckPendingLineFeed;
+  Result := false;
   if not Stack.InsideFilter then exit;
+  CheckPendingLineFeed;
 
   Writer.Write(s);
+  Result := true;
   if not Stack.InsideFlowArray then PendingLineFeed := true;
 end;
 
@@ -174,7 +179,7 @@ begin
     IsFirst := false;
   end else
   begin
-    if ToJSON then Writer.Write(',');
+    if ToJSON then PendingComma := true;
   end;
 end;
 
@@ -242,12 +247,11 @@ end;
 procedure TBBYamlWriter.CloseObject(const CollectionType: TYamlCollectionType);
 begin
   var Indent := Stack.PreviousIndent;
-
+  PendingComma := false;
   if ToJSON and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Indent + '}');
   if CollectionType = TYamlCollectionType.FlowArray then
   begin
-    WriteLineRaw(']');
-    PendingLineFeed := true;
+    if WriteLineRaw(']') then PendingLineFeed := true;
     Stack.FInsideFlowArray := false;
   end;
 end;
