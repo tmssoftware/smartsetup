@@ -4,7 +4,7 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
-## Version 2.
+## Version 2.1
 - **New** The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
 - **Improved** Rewritten config-read command can now return the full configuration as a JSON object, and it can return from the full configuration to some sections, to a specific property.
 

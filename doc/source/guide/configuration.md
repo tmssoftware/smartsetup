@@ -14,6 +14,10 @@ SmartSetup comes with no configuration file by default. To create it, you have t
 Here is how it looks in Visual Studio Code. 
 {{#image}}tms-config-yaml.png{{/image}}
 
+{{#Note}}
+We have a schema for the file available at https://github.com/tmssoftware/smartsetup/blob/main/tms/example-config/tms.config.schema.json Many modern editors, like Jetbrains IDEs, should be able to pick this schema automatically and provide autocompletion and error checking to the file. **To use this in Visual Studio Code, as seen in the screenshot, you need to install the [YAML](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) extension**
+{{/Note}}
+
 The file is self-commented, so you can find help about all the options just by reading inside. In this guide, we are just going to look over the most important settings you might want to change.
 
 {{#Important}}
