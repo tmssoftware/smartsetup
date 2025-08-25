@@ -4,11 +4,11 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
-## Version 2.1
+## Version 2.1 (August, 2025)
 - **New** The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
 - **Improved** Rewritten config-read command can now return the full configuration as a JSON object, and it can return from the full configuration to some sections, to a specific property.
 
-## Version 2.0
+## Version 2.0 (August, 2025)
 - **New**: [Smart Setup registry](https://github.com/tmssoftware/smartsetup-registry). This allows everyone to put new projects in Smart Setup.
 
 - **New**: Servers. You can now define multiple servers where SmartSetup will look for packages. A predefined "community" server comes built-in, and it is the registry mentioned above.
