@@ -89,6 +89,9 @@ foreach ($test in $tests) {
         Copy-Item -Path $test.Directory.FullName -Destination "$tmsTestRootDir\tmp-run\" -Recurse -Force -Exclude "test.*.ps1"
         Copy-Item -Path "$tmsTestRootDir\util\tms.starting.config.yaml" -Destination "$testDir\tms.config.yaml" -Force
 
+        $percent = ($index / $tests.Length) * 100
+        Write-Progress -Activity "Running tests" -Status "Test $($index) of $($tests.Length)." -PercentComplete $percent -CurrentOperation "$($test.Name)"
+
         Set-Location $testDir
         try {
             # Execute the test script
@@ -117,8 +120,6 @@ foreach ($test in $tests) {
         }
         finally {
             Set-Location -
-            $percent = ($index / $tests.Length) * 100
-            Write-Progress -Activity "Running tests" -Status "Test $($index) of $($tests.Length)." -PercentComplete $percent -CurrentOperation "$($test.Name)"
         }
         
     }

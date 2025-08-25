@@ -4,7 +4,7 @@ function Invoke-TmsTest {
     } else {
         Write-Error "TMS test directory not found: $tmsTestRootDir"
     }
-    & "$tmsTestRootDir\tmstest.ps1"
+    & "$tmsTestRootDir\tmstest.ps1" @args
 }
 
 set-alias test.setup "$tmsTestRootDir\util\util.setup.ps1"

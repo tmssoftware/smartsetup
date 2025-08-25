@@ -18,24 +18,14 @@ var
 
 procedure RunServerAddCommand;
 begin
-  var StandardConfigFileGlobal := TResourceStream.Create(HInstance, 'StandardConfigFileGlobal', RT_RCDATA);
+  var ConfigWriter := TConfigWriter.Create(Config, false);
   try
-    var StandardConfigFileProduct := TResourceStream.Create(HInstance, 'StandardConfigFileProduct', RT_RCDATA);
-    try
-       var ConfigWriter := TConfigWriter.Create(false);
-       try
-         Config.EnsureAllProducts;
-         if Config.ServerConfig.FindServer(ServerName) >= 0 then raise Exception.Create('Server "' + ServerName + '" is already added in tms.config.yaml.');
-         Config.ServerConfig.AddServer(TServerConfig.Create(ServerName, ServerType, ServerUrl, ServerEnabled));
-         ConfigWriter.Save(Config, StandardConfigFileGlobal, StandardConfigFileProduct, ConfigFileName);
-       finally
-         ConfigWriter.Free;
-       end;
-    finally
-      StandardConfigFileProduct.Free;
-    end;
+   Config.EnsureAllProducts;
+   if Config.ServerConfig.FindServer(ServerName) >= 0 then raise Exception.Create('Server "' + ServerName + '" is already added in tms.config.yaml.');
+   Config.ServerConfig.AddServer(TServerConfig.Create(ServerName, ServerType, ServerUrl, ServerEnabled));
+   ConfigWriter.Save(ConfigFileName);
   finally
-    StandardConfigFileGlobal.Free;
+   ConfigWriter.Free;
   end;
 end;
 

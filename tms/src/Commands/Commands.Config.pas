@@ -26,26 +26,16 @@ end;
 
 procedure CreateNewConfigFile;
 begin
-  var StandardConfigFileGlobal := TResourceStream.Create(HInstance, 'StandardConfigFileGlobal', RT_RCDATA);
+  var DefaultConfig := CreateDefaultConfig;
   try
-    var StandardConfigFileProduct := TResourceStream.Create(HInstance, 'StandardConfigFileProduct', RT_RCDATA);
+    var ConfigWriter := TConfigWriter.Create(DefaultConfig, false);
     try
-       var ConfigWriter := TConfigWriter.Create(false);
-       try
-         var DefaultConfig := CreateDefaultConfig;
-         try
-           ConfigWriter.Save(DefaultConfig, StandardConfigFileGlobal, StandardConfigFileProduct, ConfigFileName);
-         finally
-           DefaultConfig.Free;
-         end;
-       finally
-         ConfigWriter.Free;
-       end;
+      ConfigWriter.Save(ConfigFileName);
     finally
-      StandardConfigFileProduct.Free;
+      ConfigWriter.Free;
     end;
   finally
-    StandardConfigFileGlobal.Free;
+    DefaultConfig.Free;
   end;
 end;
 

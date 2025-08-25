@@ -35,6 +35,7 @@ type
     FFetched: Boolean;
     FProject: TProjectDefinition;
     FIDEStatusMap: TDictionary<TIDEName, TIDEStatus>;
+    procedure SetProject(const Value: TProjectDefinition);
   public
     constructor Create;
     destructor Destroy; override;
@@ -46,7 +47,7 @@ type
     property Channel: string read FChannel write FChannel;
     property Server: string read FServer write FServer;
     property Fetched: Boolean read FFetched write FFetched;
-    property Project: TProjectDefinition read FProject write FProject;
+    property Project: TProjectDefinition read FProject write SetProject;
   end;
 
   TStatusManager = class
@@ -211,6 +212,12 @@ begin
     Result := TIDEStatus.Create;
     FIDEStatusMap.Add(IDEName, Result);
   end;
+end;
+
+procedure TProductStatus.SetProject(const Value: TProjectDefinition);
+begin
+  FreeAndNil(FProject);
+  FProject := Value;
 end;
 
 { TIDEStatus }

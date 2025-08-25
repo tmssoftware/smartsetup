@@ -89,5 +89,5 @@ if ($results.Count -ne 2) {
     Write-Error "There should be 2 results, but there are $($results.Count)."
 }
 
-uninstall-and-check(0)
+uninstall_and_check(0)
 exit 0

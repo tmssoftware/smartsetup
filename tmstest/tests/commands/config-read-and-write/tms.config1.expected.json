@@ -1,0 +1,66 @@
+{
+  "tms smart setup options":
+  {
+    "build cores": 4,
+    "alternate registry key": "myProduct",
+    "prevent sleep": false,
+    "versions to keep": 3,
+    "error if skipped": true,
+    "excluded products": ["tms-fnc","tms-fnc-cloud"],
+    "included products": ["tms-fnc-cloud"],
+    "additional products folders": ["..\\landgraf\\aws-sdk-delphi","..\\landgraf\\tms-biz","..\\tms\\delphi-graphql"],
+    "servers":
+    {
+      "tms":
+      {
+        "enabled": false
+      },
+      "community":
+      {
+        "enabled": true
+      }
+    },
+    "git":
+    {
+      "git location": "C:\\Program Files\\Git\\cmd\\git.exe",
+      "clone command": "clone --depth 1",
+      "pull command": "pull"
+    },
+    "svn":
+    {
+      "svn location": "C:\\Program Files\\TortoiseSVN\\bin\\svn.exe",
+      "checkout command": "checkout --depth immediates",
+      "update command": "update"
+    },
+    "dcu megafolders": [{"tms": "*.tms"},{"none": "test"},{"other": "*"},{"all": "p"}]
+  },
+  "configuration for all products":
+  {
+    "options":
+    {
+      "verbosity": "info",
+      "skip register": false,
+      "dry run": false
+    },
+    "delphi versions": [],
+    "platforms": [],
+    "compilation options":
+    {
+      "debug dcus": true,
+      "defines": []
+    },
+    "advanced options":
+    {
+      "use symlinks": false,
+      "keep parallel folders": false,
+      "modify sources": false,
+      "partial builds": false,
+      "add source code to library path": false
+    },
+    "compiler paths":
+    {
+      "lazarus": null,
+      "delphi13": null
+    }
+  }
+}

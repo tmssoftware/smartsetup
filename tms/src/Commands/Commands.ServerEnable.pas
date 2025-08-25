@@ -16,28 +16,18 @@ var
 
 procedure RunServerEnableCommand;
 begin
-  var StandardConfigFileGlobal := TResourceStream.Create(HInstance, 'StandardConfigFileGlobal', RT_RCDATA);
+  var ConfigWriter := TConfigWriter.Create(Config, false);
   try
-    var StandardConfigFileProduct := TResourceStream.Create(HInstance, 'StandardConfigFileProduct', RT_RCDATA);
-    try
-       var ConfigWriter := TConfigWriter.Create(false);
-       try
-         Config.EnsureAllProducts;
-         var ServerIndex := Config.ServerConfig.FindServer(ServerName);
-         if ServerIndex < 0 then
-         begin
-           raise Exception.Create('Cannot find the server "' + ServerName + '" in tms.config.yaml.');
-         end;
-         Config.ServerConfig.SetInfo(ServerIndex, procedure(var Server: TServerConfig) begin Server.Enabled := ServerEnabled; end);
-         ConfigWriter.Save(Config, StandardConfigFileGlobal, StandardConfigFileProduct, ConfigFileName);
-       finally
-         ConfigWriter.Free;
-       end;
-    finally
-      StandardConfigFileProduct.Free;
-    end;
+   Config.EnsureAllProducts;
+   var ServerIndex := Config.ServerConfig.FindServer(ServerName);
+   if ServerIndex < 0 then
+   begin
+     raise Exception.Create('Cannot find the server "' + ServerName + '" in tms.config.yaml.');
+   end;
+   Config.ServerConfig.SetInfo(ServerIndex, procedure(var Server: TServerConfig) begin Server.Enabled := ServerEnabled; end);
+   ConfigWriter.Save(ConfigFileName);
   finally
-    StandardConfigFileGlobal.Free;
+   ConfigWriter.Free;
   end;
 end;
 

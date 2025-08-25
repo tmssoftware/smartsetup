@@ -2,9 +2,17 @@
 
 1. tmstest runs on PowerShell. If in linux, you need to install PowerShell for linux.
 2. For debugging, we recommend VSCode. Install the powershell extension.
-3. Setup the paths and aliases. You will have to do this from the **terminal** and from the **VSCode terminal**, since they load different user profiles.
+3. Install tools
+4. Setup the paths and aliases. You will have to do this from the **terminal** and from the **VSCode terminal**, since they load different user profiles.
 
-For step 3, go to the terminal you want to use (VSCode terminal or normal terminal) and type:
+for step 3, you currently need 
+  * https://github.com/ajv-validator/ajv-cli
+```shell
+npm install -g ajv-cli
+```
+
+
+For step 4, go to the terminal you want to use (VSCode terminal or normal terminal) and type:
 
 ```shell
 code $PROFILE
@@ -180,8 +188,9 @@ The following environment variables are set:
 The following functions are defined in util.modules.psm1:
   * **Invoke-WithExitCodeIgnored**: Allows you to run a command that will fail and not crash.
   * **tmscredentials**: runs tms credentials so you can access tms repos.
-  * **uninstall-and-check(products-remaining)**: uninstalls everything and checks that product-remaining products remain. Normally you will call this at the end of the script with products-remaining = 0.
-
+  * **uninstall_and_check(products-remaining)**: uninstalls everything and checks that product-remaining products remain. Normally you will call this at the end of the script with products-remaining = 0.
+  * **compare-files**: compares 2 files and returns an error if not the same.
+  * **Assert-ValueIs**: Asserts 2 values are the same. Must be used as a filter, like `command | Assert-ValueIs("0")`
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

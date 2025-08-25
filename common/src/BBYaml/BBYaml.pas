@@ -14,7 +14,7 @@ unit BBYaml;
 // in text editors. It is enough for our needs, but I wouldn't use as a general YAML parser unless you can control the format.
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBClasses;
+uses Classes, SysUtils, Generics.Collections, BBClasses, BBStrings;
 type
 
 TBBYamlReader = class
@@ -31,6 +31,7 @@ const
 
 
 implementation
+uses Math;
 
 { TNotLockingStreamReader }
 
@@ -83,9 +84,7 @@ private
 
   function RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
   procedure ParseColon(const Line: string; var Name, Value: string; const MustHaveValue, CanBeEmpty: boolean);
-    function GetString(const s: string): string;
-    function Escape(const s: string): string;
-    function GetKeyString(const s: string): string;
+  function GetKeyString(const s: string): string;
 
 public
   constructor Create(const FileName: string; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -201,6 +200,7 @@ begin
 
   Result := Result.Trim(TrimWhitespace);
   if (Result = '') then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
+  Result := BBYamlUnescapeString(Result);
 
 end;
 
@@ -256,28 +256,10 @@ begin
   exit(Result.GotoChild(Name, ErrorInfo));
 end;
 
-function TBBYamlSectionProcessor.Escape(const s: string): string;
-begin
-  //Someday we can do a better parser here.
-  Result := s;
-  Result := Result.Replace('\t', #9, [rfReplaceAll]);
-  Result := Result.Replace('\n', #10, [rfReplaceAll]);
-  Result := Result.Replace('\r', #13, [rfReplaceAll]);
-  Result := Result.Replace('\\', '\', [rfReplaceAll]);
-  Result := Result.Replace('\"', '"', [rfReplaceAll]);
-end;
-
-function TBBYamlSectionProcessor.GetString(const s: string): string;
-begin
-  if s.StartsWith('''') and s.EndsWith('''') and (s.Length > 1) then exit(s.Substring(1, s.Length - 2).Replace('''''', '''', [rfReplaceAll]));
-  if s.StartsWith('"') and s.EndsWith('"') and (s.Length > 1) then exit(Escape(s.Substring(1, s.Length - 2)));
-  Result := s;
-end;
-
 function TBBYamlSectionProcessor.GetKeyString(const s: string): string;
 begin
-  if s.StartsWith('-') then exit('- ' + GetString(s.Substring(1).Trim(TrimWhiteSpace)));
-  Result := GetString(s);
+  if s.StartsWith('-') then exit('- ' + BBYamlUnescapeString(s.Substring(1).Trim(TrimWhiteSpace)));
+  Result := BBYamlUnescapeString(s);
 end;
 
 procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty: boolean);
@@ -287,7 +269,7 @@ begin
   idx := Line.IndexOf(':');
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
   Name := GetKeyString(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)));
-  Value := GetString(Line.Substring(idx + 1).Trim(TrimWhitespace));
+  Value := BBYamlUnescapeString(Line.Substring(idx + 1).Trim(TrimWhitespace));
   if CanBeEmpty then exit;
 
   if MustHaveValue and (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
@@ -358,24 +340,21 @@ begin
 end;
 
 class function TBBYamlReader.UnescapeLine(const Line: string): string;
-var
-  idx: integer;
 begin
   Result := Line.Trim(TrimWhitespace);
-  idx := 0;
-  //If the line starts with #, it is always a comment. No escaping here, as in url##parameter.
-  if line.StartsWith('#') then exit('');
+  //If the line starts with #, it is always a comment.
+  if Result.StartsWith('#') then exit('');
 
-  //The only escape allowed is ## for #
-  while true do
-  begin
-    idx := Result.IndexOf('#', idx);
-    if idx < 0 then exit;
-    if idx + 1 >= Result.Length then exit (Result.Substring(0, Result.Length - 1));
-    if Result[idx + 2] <> '#' then exit (Result.Substring(0, idx));
-    Result := Result.Remove(Idx, 1);
-    inc(Idx);
-  end;
+  //If not, it has to have a space and a '#'
+  var idxSpace := Result.IndexOf(' #');
+  var idxTab :=  Result.IndexOf(#9 + '#');
+
+  var idx: integer;
+  if idxSpace < 0 then idx := idxTab else if idxTab < 0 then idx := idxSpace else idx := Min(idxSpace, idxTab);
+
+
+  if idx < 0 then exit;
+  Result := Result.Substring(0, idx).Trim(TrimWhiteSpace); //trim because it can have more spaces.
 end;
 
 { TFileErrorInfo }

@@ -7,10 +7,13 @@ uses Generics.Defaults, Generics.Collections, Masks, UMultiLogger, UConfigKeys,
      UConfigFolders, UOSFileLinks, Megafolders.Definition, BBArrays;
 
 type
-  TSkipRegisteringOptions = (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
+  TSkipRegisteringOptions =  (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
   TSkipRegisteringSet = set of TSkipRegisteringOptions;
 
 const
+  TSkipRegisteringOptionsExt_All = 'all';
+  TSkipRegisteringOptionsExt_True = 'true';
+  TSkipRegisteringOptionsExt_False = 'false';
   TSkipRegisteringName: array[TSkipRegisteringOptions] of string = (
   'packages', 'startmenu', 'help', 'windowspath', 'webcore', 'registry', 'filelinks'
   );
@@ -23,8 +26,9 @@ type
   TSkipRegistering = record
   private
     FOptions: TSkipRegisteringSet;
+    FOriginalOptions: string;
   public
-    constructor Create(const AOptions: TSkipRegisteringSet);
+    constructor Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
     function Packages: boolean;
     function StartMenu: boolean;
     function Help: boolean;
@@ -37,7 +41,7 @@ type
     class function None: TSkipRegistering; static;
   end;
 
-  TGlobalPrefixedProperties =(ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
+  TGlobalPrefixedProperties = (ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
                              Servers, DcuMegafolders);
   TGlobalPrefixedPropertiesArray = Array[TGlobalPrefixedProperties] of TArrayOverrideBehavior;
 
@@ -55,7 +59,7 @@ type
     FPlatformsModified: Boolean;
     FIdeNames: TIDENameSet;
     FIdeNamesModified: Boolean;
-    FDefines: TDictionary<string, boolean>;
+    FDefines: TOrderedDictionary<string, boolean>;
     FCreatedBy: String;
     FPrefixedProperties: TProductPrefixedPropertiesArray;
     function GetPrefixedProperties(
@@ -79,6 +83,10 @@ type
     function HasInt(const v: string): boolean;
     function HasString(const v: string): boolean;
 
+    procedure RemoveInt(const v: string);
+    procedure RemoveBool(const v: string);
+    procedure RemoveString(const v: string);
+
 
     procedure SetIDEName(const dv: TIDEName; const Include: boolean);
     procedure SetPlatform(const dp: TPlatform; const Include: boolean);
@@ -92,13 +100,13 @@ type
     procedure ClearDefines;
     property ProductId: string read FProductId;
 
-    property Defines: TDictionary<string, boolean> read FDefines;
+    property Defines: TOrderedDictionary<string, boolean> read FDefines;
 
     function ListDefines: string;
     property CreatedBy: string read FCreatedBy write FCreatedBy;
 
     property PrefixedProperties[index: TProductPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
-
+    function IsGlobal: boolean;
   end;
 
   TGitConfig = record
@@ -150,14 +158,15 @@ type
     procedure ClearServers;
     procedure RemoveServer(const index: integer);
     function ServerCount: integer;
-    function GetServer(const index: integer): TServerConfig;
+    function GetServer(const index: integer): TServerConfig; overload;
+    function GetServer(const name: string): TServerConfig; overload;
     procedure SetInfo(const index: integer; const Action: TVarProc<TServerConfig>);
 
     //Will return -1 if not found
     function FindServer(const Name: string): integer;
   end;
 
-  TProductConfigDefinitionDictionary = class(TObjectDictionary<string, TProductConfigDefinition>)
+  TProductConfigDefinitionDictionary = class(TObjectOrderedDictionary<string, TProductConfigDefinition>)
   public
     constructor Create;
     procedure BestMatch(const ProductId: string; const IfMatched: TFunc<TProductConfigDefinition, boolean>);
@@ -169,8 +178,8 @@ type
   private
     FRootFolder: string;
     FProducts: TProductConfigDefinitionDictionary;
-    ExcludedComponents, IncludedComponents: TDictionary<string, string>;
-    AdditionalProductsFolders: TDictionary<string, string>;
+    ExcludedComponents, IncludedComponents: TOrderedDictionary<string, string>;
+    AdditionalProductsFolders: TOrderedDictionary<string, string>;
     Namings: TNamingList;
     FBuildCores: integer;
     FPreventSleep: boolean;
@@ -240,6 +249,7 @@ type
 
     function Verbosity(const ProductId: String; DefaultVerbosity: TVerbosity): TVerbosity;
     function SkipRegistering(const ProductId: String; DefaultValue: integer): integer;
+    function SkipRegisteringExt(const ProductId: String; DefaultValue: string): string;
     function DryRun(const ProductId: String): boolean;
     function IsIncluded(const ProductId: String): boolean;
     function GetAllDefines(const ProductId: string): TArray<string>;
@@ -274,9 +284,9 @@ constructor TConfigDefinition.Create(const ARootFolder: string);
 begin
   FRootFolder := ARootFolder;
   FProducts := TProductConfigDefinitionDictionary.Create;
-  ExcludedComponents := TDictionary<string, string>.Create;
-  IncludedComponents := TDictionary<string, string>.Create;
-  AdditionalProductsFolders := TDictionary<string, string>.Create;
+  ExcludedComponents := TOrderedDictionary<string, string>.Create;
+  IncludedComponents := TOrderedDictionary<string, string>.Create;
+  AdditionalProductsFolders := TOrderedDictionary<string, string>.Create;
   FServerConfig := TServerConfigList.Create;
   Namings := TNamingList.Create;
   FBuildCores := 0; // make it parallel by default
@@ -637,6 +647,12 @@ begin
   Result := ReadIntProperty(ProductId, ConfigKeys.SkipRegister, DefaultValue);
 end;
 
+function TConfigDefinition.SkipRegisteringExt(const ProductId: String;
+  DefaultValue: string): string;
+begin
+  Result := ReadStringProperty(ProductId, ConfigKeys.SkipRegisterExt, DefaultValue);
+end;
+
 function TConfigDefinition.Match(const IdWithMask: string; const Projects: TDictionary<string, boolean>): boolean;
 begin
   for var p in Projects.Keys do if MatchesMask(p, IdWithMask) then exit(true);
@@ -647,7 +663,7 @@ procedure TConfigDefinition.Validate(const Projects: TDictionary<string, boolean
 begin
   for var p in Products.Values do
   begin
-    if p.ProductId = GlobalProductId then continue;
+    if p.IsGlobal then continue;
 
     if not Match(p.ProductId, Projects) then
     begin
@@ -813,6 +829,11 @@ begin
   IntProperties.AddOrSetValue(v, i);
 end;
 
+procedure TProductConfigDefinition.SetString(const v, i: string);
+begin
+  StringProperties.AddOrSetValue(v, i);
+end;
+
 function TProductConfigDefinition.GetBool(const v: string; const DefaultValue: boolean): boolean;
 begin
   if not BoolProperties.TryGetValue(v, Result) then exit(DefaultValue);
@@ -841,6 +862,26 @@ end;
 function TProductConfigDefinition.HasString(const v: string): boolean;
 begin
   Result := StringProperties.ContainsKey(v);
+end;
+
+procedure TProductConfigDefinition.RemoveBool(const v: string);
+begin
+  BoolProperties.Remove(v);
+end;
+
+procedure TProductConfigDefinition.RemoveInt(const v: string);
+begin
+  IntProperties.Remove(v);
+end;
+
+procedure TProductConfigDefinition.RemoveString(const v: string);
+begin
+  StringProperties.Remove(v);
+end;
+
+function TProductConfigDefinition.IsGlobal: boolean;
+begin
+  Result := ProductId = GlobalProductId;
 end;
 
 procedure TProductConfigDefinition.SetIDEName(const dv: TIDEName;
@@ -903,11 +944,6 @@ begin
   Result := FPrefixedProperties[index];
 end;
 
-procedure TProductConfigDefinition.SetString(const v, i: string);
-begin
-  StringProperties.AddOrSetValue(v, i);
-end;
-
 procedure TProductConfigDefinition.AddDefine(const def, LineInfo: string);
 begin
   Defines.Add(def, true);
@@ -925,7 +961,7 @@ begin
   StringProperties := TDictionary<string, string>.Create;
   BoolProperties := TDictionary<string, boolean>.Create;
   IntProperties := TDictionary<string, integer>.Create;
-  FDefines := TDictionary<string, boolean>.Create;
+  FDefines := TOrderedDictionary<string, boolean>.Create;
 end;
 
 destructor TProductConfigDefinition.Destroy;
@@ -946,9 +982,10 @@ end;
 
 { TSkipRegistering }
 
-constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet);
+constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
 begin
   FOptions := AOptions;
+  FOriginalOptions := aOriginalOptions;
 end;
 
 function TSkipRegistering.Help: boolean;
@@ -988,12 +1025,12 @@ end;
 
 class function TSkipRegistering.All: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
+  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)], TSkipRegisteringOptionsExt_True);
 end;
 
 class function TSkipRegistering.None: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([]);
+  Result := TSkipRegistering.Create([], TSkipRegisteringOptionsExt_False);
 end;
 
 { TServerConfigList }
@@ -1038,7 +1075,14 @@ end;
 
 function TServerConfigList.GetServer(const index: integer): TServerConfig;
 begin
+  if (Index < 0) or (Index >= Length(Servers)) then raise Exception.Create('Invalid index for server: ' + IntToStr(index));
+
   Result := Servers[index];
+end;
+
+function TServerConfigList.GetServer(const name: string): TServerConfig;
+begin
+  Result := GetServer(FindServer(name));
 end;
 
 function TServerConfigList.EnsureServer(const aName: string): integer;

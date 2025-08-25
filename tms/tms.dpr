@@ -196,7 +196,10 @@ uses
   UDelphi13Installer in 'src\Installers\UDelphi13Installer.pas',
   Megafolders.Definition in 'src\Megafolders\Megafolders.Definition.pas',
   Megafolders.Manager in 'src\Megafolders\Megafolders.Manager.pas',
-  BBArrays in '..\common\src\BBYaml\BBArrays.pas';
+  BBArrays in '..\common\src\BBYaml\BBArrays.pas',
+  BBYaml.Writer in '..\common\src\BBYaml\BBYaml.Writer.pas',
+  BBYaml.Types in '..\common\src\BBYaml\BBYaml.Types.pas',
+  BBStrings in '..\common\src\BBYaml\BBStrings.pas';
 
 begin
   try

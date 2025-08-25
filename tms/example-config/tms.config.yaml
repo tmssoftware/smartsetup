@@ -53,7 +53,7 @@ tms smart setup options:
 %additional-products-folders%
 
   # Specify which servers SmartSetup will connect to.
-  # When creating your own server, you also need to specify "protocol" (can be local, api, github)
+  # When creating your own server, you also need to specify "type" (can be api, github)
   # And the "url" where the server is.
   %servers-header%:
 %servers%
@@ -69,7 +69,7 @@ tms smart setup options:
     %git-pull-command-comment%pull command: %git-pull-command%
 
   svn:
-    # Location where to find svn.exe. If not specified, smart setup will search for the first git.exe available in the OS PATH.
+    # Location where to find svn.exe. If not specified, smart setup will search for the first svn.exe available in the OS PATH.
     %svn-svn-location-comment%svn location: %svn-svn-location%
 
     # Here you can specify extra parameters for the svn checkout call. If not specified, smart setup will do a plain checkout.

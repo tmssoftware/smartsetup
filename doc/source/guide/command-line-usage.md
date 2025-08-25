@@ -169,6 +169,7 @@ tms list-remote -json
 tms credentials -print -json
 tms info -json
 tms server-list -json
+tms config-read -json
 ```
 
 ### `-p` command, to pass a configuration to tms 
@@ -209,6 +210,8 @@ tms config-write -p:configuration-for-tms.flexcel.vcl:replace-platforms=[] -p:tm
 {{#Important}}
 `tms config-write` will reformat and remove all manually entered comments in tms.config.yaml. See [configuration](xref:SmartSetup.Configuration)
 {{/Important}}
+
+`tms config-read` can be called with a full path to a property, like `tms config-read "tms smart setup options:build cores"`, or it can be called with a partial path or even no path at all. If you call `tms config-read` alone, it will output the full configuration file to the screen. By default, this will be in YAML format, but you can call `tms config-read -json` to get a JSON object with all the configuration.
 
 ## Fixing problems
 To open a browser showing a complete log of the last command, you can type:

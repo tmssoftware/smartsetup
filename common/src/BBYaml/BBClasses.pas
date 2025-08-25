@@ -2,7 +2,7 @@ unit BBClasses;
 {$i ../tmscommon.inc}
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBArrays;
+uses Classes, SysUtils, Generics.Collections, BBArrays, BBStrings;
 
 const
   SectionAddPrefix = 'add ';
@@ -82,7 +82,6 @@ public
   procedure ThrowInvalidTag(const Name: string; const ErrorInfo: TErrorInfo);
   class procedure GetArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
 
-  function VarPrefix: string; virtual;
   function ExtraInfo: string; virtual;
 
   procedure LoadedState(const State: TArrayOverrideBehavior); virtual;
@@ -294,11 +293,6 @@ begin
   '". It must be one of [' + ListSectionsAndActions + ']. ' + ErrorInfo.ToString);
 end;
 
-function TSection.VarPrefix: string;
-begin
-  Result := '';
-end;
-
 class procedure TSection.GetArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
 var
   Act: TAction;
@@ -308,7 +302,7 @@ begin
 
   for var v0 in varr do
   begin
-    var v := v0.Trim;
+    var v := BBYamlUnescapeString(v0.Trim);
     if ArrActions <> nil then
     begin
       if not ArrActions.TryGetValue(v, Act) then raise Exception.Create('The value "' + v +'" in the array ' + s + ' is not a valid value. It must be one of [' + GetActions(ArrActions) + ']. ' + ErrorInfo.ToString );
@@ -394,5 +388,6 @@ begin
   end;
   raise Exception.Create('Invalid value for TArrayOverrideBehavior.');
 end;
+
 
 end.

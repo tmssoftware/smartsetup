@@ -19,5 +19,5 @@ if (-not ($results | Out-String) -like 'The product "*" requires the product "TM
     Write-Error "Unexpected error message when installing all: $results."
 }
 
-uninstall-and-check(0)
+uninstall_and_check(0)
 exit(0)

@@ -17,7 +17,7 @@ Here is how it looks in Visual Studio Code.
 The file is self-commented, so you can find help about all the options just by reading inside. In this guide, we are just going to look over the most important settings you might want to change.
 
 {{#Important}}
-**Do not store your own comments inside this configuration file. **
+**Do not store your own comments inside this configuration file.**
 Some commands like `tms server enable` or `tms config-write` will override the config file with a clean file (keeping your configuration). They will remove all your comments and reformat the file. GUI apps will also call those commands internally, so it is very likely that they will regenerate the config file.
 {{/Important}}
 

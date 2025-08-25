@@ -13,7 +13,9 @@ type
     ProductConfig: TProductConfigDefinition;
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
-
+    procedure SetBool(const Key, Value: string; const ErrorInfo: TErrorInfo);
+    procedure SetInt(const Key, Value: string; const ErrorInfo: TErrorInfo);
+    procedure SetString(const Key, Value: string; const ErrorInfo: TErrorInfo);
   end;
 
   TMainSectionConf = class(TSectionConf)
@@ -40,7 +42,7 @@ type
     class function SectionNameStatic: string; override;
 
     function GetVerbosity(const s: string; const ErrorInfo: TErrorInfo): TVerbosity;
-    function GetSkipRegistering(const s: string; const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
+    procedure GetSkipRegistering(const s: string; const ErrorInfo: TErrorInfo; out Skip: TSkipRegisteringSet; out SkipExt: string);
   end;
 
   TExcludedComponentsSectionConf = class(TSectionConf)
@@ -86,14 +88,12 @@ type
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
-    function VarPrefix: string; override;
   end;
 
   TSvnSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
-    function VarPrefix: string; override;
   end;
 
   TDelphiVersionsSectionConf = class(TSectionConf)
@@ -142,7 +142,6 @@ type
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
     class function SectionNameStatic: string; override;
-    function VarPrefix: string; override;
 
     function Capture(const dv: TIDEName): TAction;
   end;
@@ -187,6 +186,27 @@ begin
   inherited Create(aParent);
   Config := aConfig;
   ProductConfig := aProductConfig;
+end;
+
+procedure TSectionConf.SetBool(const Key, Value: string;
+  const ErrorInfo: TErrorInfo);
+begin
+  if Value = '' then ProductConfig.RemoveBool(Key)
+  else ProductConfig.SetBool(Key, GetBool(Value, ErrorInfo));
+end;
+
+procedure TSectionConf.SetInt(const Key, Value: string;
+  const ErrorInfo: TErrorInfo);
+begin
+  if Value = '' then ProductConfig.RemoveInt(Key)
+  else ProductConfig.SetInt(Key, GetInt(Value, ErrorInfo));
+end;
+
+procedure TSectionConf.SetString(const Key, Value: string;
+  const ErrorInfo: TErrorInfo);
+begin
+  if Value = '' then ProductConfig.RemoveString(Key)
+  else ProductConfig.SetString(Key, Value);
 end;
 
 { TMainSectionConf }
@@ -267,9 +287,27 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
 
   Actions := TListOfActions.Create;
-  s := 'verbosity'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetInt(ConfigKeys.Verbosity, Integer(GetVerbosity(value, ErrorInfo))); end);
-  s := 'dry run'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetBool(ConfigKeys.DryRun, GetBool(value, ErrorInfo)); end);
-  s := 'skip register'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetInt(ConfigKeys.SkipRegister, Byte(GetSkipRegistering(value, ErrorInfo))); end);
+  s := 'verbosity'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      if value = '' then ProductConfig.RemoveInt(ConfigKeys.Verbosity)
+      else ProductConfig.SetInt(ConfigKeys.Verbosity, Integer(GetVerbosity(value, ErrorInfo)));
+    end);
+  s := 'dry run'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin SetBool(ConfigKeys.DryRun, value, ErrorInfo); end);
+  s := 'skip register'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+     var Skip: TSkipRegisteringSet;
+     var SkipExt: string;
+     if value = '' then
+     begin
+       ProductConfig.RemoveInt(ConfigKeys.SkipRegister);
+       ProductConfig.RemoveString(ConfigKeys.SkipRegisterExt);
+     end else
+     begin
+       GetSkipRegistering(value, ErrorInfo,  Skip, SkipExt);
+       ProductConfig.SetInt(ConfigKeys.SkipRegister, Byte(Skip));
+       ProductConfig.SetString(ConfigKeys.SkipRegisterExt, SkipExt);
+     end;
+    end);
 end;
 
 function TOptionsSectionConf.GetVerbosity(const s: string;
@@ -298,26 +336,49 @@ begin
    raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks].'+ ErrorInfo.ToString);
 end;
 
-function TOptionsSectionConf.GetSkipRegistering(const s: string;
-  const ErrorInfo: TErrorInfo): TSkipRegisteringSet;
+procedure TOptionsSectionConf.GetSkipRegistering(const s: string;
+  const ErrorInfo: TErrorInfo; out Skip: TSkipRegisteringSet; out SkipExt: string);
 var
   s1: string;
 begin
  s1 := AnsiLowerCase(s);
- if (s1 = 'true') then exit([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
- if (s1 = 'false') then exit([]);
+ if (s1 = TSkipRegisteringOptionsExt_True) or (s1 = '') then
+ begin
+   Skip := [Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)];
+   SkipExt := TSkipRegisteringOptionsExt_True;
+   exit;
+ end;
+ if (s1 = TSkipRegisteringOptionsExt_False) then
+ begin
+   Skip := [];
+   SkipExt := TSkipRegisteringOptionsExt_False;
+   exit;
+ end;
+
  if not s1.StartsWith('[') or not s1.EndsWith(']') then
    raise Exception.Create('"' + s + '" is not a valid skip registering value. It must be "true", "false" or an array containing any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]. ' + ErrorInfo.ToString);
 
- Result := [];
+ Skip := [];
+ SkipExt := '';
  var Values := s1.Substring(1, s1.Length - 2).Split([','], TStringSplitOptions.ExcludeEmpty);
  for var Value in Values do
  begin
    var TrimValue := Value.Trim;
    if TrimValue.StartsWith('-')
-     then Result := Result - MatchSkipRegistering(TrimValue.Substring(1), ErrorInfo)
-     else Result := Result + MatchSkipRegistering(TrimValue, ErrorInfo);
+     then
+     begin
+       Skip := Skip - MatchSkipRegistering(TrimValue.Substring(1), ErrorInfo);
+       if SkipExt <> '' then SkipExt := SkipExt + ', ';
+       SkipExt := SkipExt + '-' + TrimValue.Substring(1).ToLowerInvariant;
+     end
+     else
+     begin
+       Skip := Skip + MatchSkipRegistering(TrimValue, ErrorInfo);
+       if SkipExt <> '' then SkipExt := SkipExt + ', ';
+       SkipExt := SkipExt + TrimValue.ToLowerInvariant;
+     end;
  end;
+ SkipExt := '[' + SkipExt + ']';
 
 
 end;
@@ -515,7 +576,7 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
 
   Actions := TListOfActions.Create;
-  s := 'debug dcus'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetBool(ConfigKeys.DebugDcus, GetBool(value, ErrorInfo)); end);
+  s := 'debug dcus'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin SetBool(ConfigKeys.DebugDcus, value, ErrorInfo); end);
 
   ChildSections.Add(TDefinesSectionConf.SectionNameStatic, TDefinesSectionConf.Create(Self, aConfig, ProductConfig));
 
@@ -538,7 +599,7 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
 
   Actions := TListOfActions.Create;
-  s := 'add source code to library path'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetBool(ConfigKeys.AddSourceCodeToLibraryPath, GetBool(value, ErrorInfo)); end);
+  s := 'add source code to library path'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin SetBool(ConfigKeys.AddSourceCodeToLibraryPath, value, ErrorInfo); end);
 end;
 
 class function TRegistrationSectionConf.SectionNameStatic: string;
@@ -555,11 +616,11 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
 
   Actions := TListOfActions.Create;
-  Actions.Add('use symlinks', procedure(value: string; ErrorInfo: TErrorInfo) begin  ProductConfig.SetBool(ConfigKeys.SymLinks, GetBool(value, ErrorInfo)) end);
-  Actions.Add('keep parallel folders', procedure(value: string; ErrorInfo: TErrorInfo) begin  ProductConfig.SetBool(ConfigKeys.KeepParallelFolders, GetBool(value, ErrorInfo)) end);
-  Actions.Add('modify sources', procedure(value: string; ErrorInfo: TErrorInfo) begin  ProductConfig.SetBool(ConfigKeys.ModifySources, GetBool(value, ErrorInfo)) end);
-  Actions.Add('partial builds', procedure(value: string; ErrorInfo: TErrorInfo) begin  ProductConfig.SetBool(ConfigKeys.PartialBuilds, GetBool(value, ErrorInfo)) end);
-  Actions.Add('add source code to library path', procedure(value: string; ErrorInfo: TErrorInfo) begin ProductConfig.SetBool(ConfigKeys.AddSourceCodeToLibraryPath, GetBool(value, ErrorInfo)); end);
+  Actions.Add('use symlinks', procedure(value: string; ErrorInfo: TErrorInfo) begin  SetBool(ConfigKeys.SymLinks, value, ErrorInfo) end);
+  Actions.Add('keep parallel folders', procedure(value: string; ErrorInfo: TErrorInfo) begin  SetBool(ConfigKeys.KeepParallelFolders, value, ErrorInfo) end);
+  Actions.Add('modify sources', procedure(value: string; ErrorInfo: TErrorInfo) begin  SetBool(ConfigKeys.ModifySources, value, ErrorInfo) end);
+  Actions.Add('partial builds', procedure(value: string; ErrorInfo: TErrorInfo) begin  SetBool(ConfigKeys.PartialBuilds, value, ErrorInfo) end);
+  Actions.Add('add source code to library path', procedure(value: string; ErrorInfo: TErrorInfo) begin SetBool(ConfigKeys.AddSourceCodeToLibraryPath, value, ErrorInfo); end);
 
 end;
 
@@ -573,7 +634,7 @@ function TCompilerPathSectionConf.Capture(const dv: TIDEName): TAction;
 begin
   Result := procedure(value: string; ErrorInfo: TErrorInfo)
     begin
-      ProductConfig.SetString(ConfigKeys.CompilerPath +  IDEId[dv], value);
+      SetString(ConfigKeys.CompilerPath +  IDEId[dv], value, ErrorInfo);
     end;
 
 end;
@@ -597,18 +658,13 @@ begin
   Result := 'compiler paths';
 end;
 
-function TCompilerPathSectionConf.VarPrefix: string;
-begin
-  Result := 'compiler-paths_';
-end;
-
 { TCompilerParametersSectionConf }
 
 function TCompilerParametersSectionConf.Capture(const dv: TIDEName): TAction;
 begin
   Result := procedure(value: string; ErrorInfo: TErrorInfo)
     begin
-      ProductConfig.SetString(ConfigKeys.CompilerParameters +  IDEId[dv], value);
+      SetString(ConfigKeys.CompilerParameters +  IDEId[dv], value, ErrorInfo);
     end;
 
 end;
@@ -825,11 +881,6 @@ begin
   Result := 'git';
 end;
 
-function TGitSectionConf.VarPrefix: string;
-begin
-  Result := 'git-';
-end;
-
 { TSvnSectionConf }
 
 constructor TSvnSectionConf.Create(const aParent: TSection;
@@ -848,11 +899,6 @@ end;
 class function TSvnSectionConf.SectionNameStatic: string;
 begin
   Result := 'svn';
-end;
-
-function TSvnSectionConf.VarPrefix: string;
-begin
-  Result := 'svn-';
 end;
 
 { TDcuMegafoldersSectionConf }

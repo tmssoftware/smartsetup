@@ -1,0 +1,192 @@
+# ====================================
+# TMS Smart Setup configuration file
+# Modify settings as needed.
+# ====================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json
+
+
+# General options that are not 'per product'.
+tms smart setup options:
+
+  # 0 means use the optimum for the cores in the machine (default). 1 means single core. 2 two cores and so on.
+  build cores: 0
+
+  # installs the component in an alternate place so you can have different components installed in the same Delphi.
+  # see https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
+  alternate registry key:
+
+  # prevents the machine from going to sleep while smart setup is running. Default is true.
+  # note that for this setting to work, "Allow applications to prevent automatic sleep (plugged in)" must be set
+  # to Enabled in the Group Policy Settings. See https://github.com/microsoft/PowerToys/issues/12326#issuecomment-1304934080
+  prevent sleep: true
+
+  # smart setup will delete the oldest downloaded versions when they reach this count. If you
+  # for example set this value to 4, smart setup will keep the last 4 versions of each product, and
+  # versions older than that will be deleted forever.
+  # A value of 0 means to delete all products after unzipped, including the current versions.
+  # A value of -1 means to keep all versions and never delete any.
+  versions to keep: -1
+
+  # The default behavior of smart setup is to skip Delphi versions and platforms that are not installed.
+  # this is normally what you want, so you don't have to manually specify in this file which platforms and Delphi versions
+  # to compile. You just leave it to compile all, and smart setup will skip what is not installed.
+  # but when running smart setup from a CI or other automated system, you might want to configure exactly what
+  # platforms and Delphi IDEs you want to build, and have smart setup return an error code instead of just skipping them.
+  # if you set this property true, smart setup will return an error value if it skips any Delphi version or platform.
+  error if skipped: false
+
+  # add to this list the products you don't want to be built/installed
+  excluded products:
+    #- tms.example1
+    #- tms.example2
+
+  # add to this list the products you want to be built/installed. If this list is empty, all products will be built/installed.
+  included products:
+
+  # By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional
+  # root folders here, so tms also looks for tmsbuild.yaml files in those folders.
+  # All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will
+  # be generated under the additional folders. This is useful if you want to use tms to build your own sources.
+  # The folders you add here must be in the same drive as the main root folder.
+  additional products folders:
+    #- c:\MyProducts   #All folders containing tmsbuild.yaml files inside c:\MyProducts will be added to the build.
+    #- ..\..\Other products  #Try to use relative folders if possible.
+
+  # Specify which servers SmartSetup will connect to.
+  # When creating your own server, you also need to specify "type" (can be api, zipfile)
+  # And the "url" where the server is.
+  servers:
+    tms:
+      enabled: true
+    community:
+      enabled: false
+
+  # Git client configuration.
+  git:
+    git location: #c:\git\bin\git.exe
+    clone command: #clone --branch my-branch --single-branch
+    pull command: #pull --ff-only
+
+  # Subversion (SVN) client configuration.
+  svn:
+    svn location:
+    checkout command:
+    update command:
+
+  # To enable megafolders, you need to be in dev-mode in Win10+.
+  # Megafolders use symlinks, so you need to be able to create them without admin rights.
+  # Write first the folder where the files will go, then the file mask to match those files.
+  # "none" is a special folder name that means the files matching the patterns won't be copied to the megafolder.
+  dcu megafolders:
+    #- tms: tms.*
+    #- none: biglib.*
+    #- other: *
+
+# Global configuration
+configuration for all products:
+
+  # general options for the product.
+  options:
+
+    # Can be 'trace', 'info', or 'error'. Trace shows all messages, info shows only important messages, and error shows only errors.
+    verbosity: info
+
+    # if true the components will be compiled but not registered in the IDE.
+    # Also the Windows PATH won't be modified when this setting is true.
+    # You can use "true" or "false" here to skip all or none, and also an array like "[All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks]" to be more specific about what you want to skip.
+    # For example: skip register: [StartMenu, Help] would skip registering the start menu and the help, but not the others.
+    # When specifically skipping parts, you might want to use negatives, like [All, -StartMenu, -Help] to skip all but start menu and help.
+    skip register: false
+
+    # if true, smart setup will output the commands it wants to execute, but not execute anything.
+    dry run: false
+
+  # The IDEs you want to build for and install to.
+  # If empty or omitted, Smart Setup will build/install with all Delphi versions available in the machine.
+  # Smart Setup will anyway avoid installing to a Delphi version if it is not installed in the machine
+  delphi versions:
+    #- lazarus
+    #- delphi6
+    #- delphi7
+    #- delphi2005
+    #- delphi2006
+    #- delphi2007
+    #- delphi2009
+    #- delphi2010
+    #- delphixe
+    #- delphixe2
+    #- delphixe3
+    #- delphixe4
+    #- delphixe5
+    #- delphixe6
+    #- delphixe7
+    #- delphixe8
+    #- delphiseattle
+    #- delphiberlin
+    #- delphitokyo
+    #- delphirio
+    #- delphisydney
+    #- delphi11
+    #- delphi12
+    #- delphi13
+
+  # List of platforms to build for this product. If empty, all installed platforms will be built.
+  # Smart Setup will anyway avoid building to a platform if it is not supported or property installed/configured.
+  platforms:
+    #- win32intel
+    #- win64intel
+    #- macos32intel
+    #- macos64intel
+    #- macos64arm
+    #- iossimulator
+    #- iosdevice32
+    #- iosdevice64
+    #- android32
+    #- android64
+    #- linux64
+    #- iossimulator64arm
+    #- win64xintel
+
+  # Compilation options for the product.
+  compilation options:
+
+    # Whether to build debug DCUs. Debug DCUs are useful for stepping into the component code, but they take more time to compile and double the used disk space.
+    debug dcus: true
+
+    # List of compiler defines to use for compiling. The defines here are added to the ones already defined before. To remove a define that is normally defined, set it to false, like for example " - DEBUG: false".
+    defines:
+      #- RTTI
+      #- USE_UNICODE
+
+  # for internal tmsbuild development. do not change.
+  advanced options:
+
+    # By setting this to true, smart setup will use symlinks instead of hard links. Symlinks require admin rights, unless your PC is in "dev mode".
+    # See https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/
+    use symlinks: false
+
+    # In order to build the projects, we copy them into a "parallel" temporary folder that is automatically deleted once the build is done.
+    # If you set this to true, the temporary parallel folders won't be deleted and you can examine what they have.
+    keep parallel folders: false
+
+    # Smart setup by default won't modify any file in the sources folder.
+    # If you set this to true, it will modify and adapt files in the sources so when you compile them manually they behave similar to when you use Smart setup.
+    modify sources: false
+
+    # When a product fails, by default Smart Setup tries to recompile all the packages in the product again.
+    # This is done for safety, and because building the full product is normally fast enough.
+    # If you enable partial builds, Smart setup will try to compile only those packages that were actually modified and those that depend on it. **This feature is highly experimental and not likely to work well**
+    partial builds: false
+
+    # if enabled, adds the source code paths to Delphi library path
+    # do not enable this option unless you really need it.
+    add source code to library path: false
+
+  # for Lazarus, the path where lazbuild.exe is located
+  # for Delphi, the path where bin\rsvars.bat is located.
+  # smart setup will find paths to Delphi automatically from registry keys,
+  # so this option is not needed unless you have a build machine you didn't install Delphi to,
+  # or you want to compile lazarus packages.
+  compiler paths:
+    lazarus: #c:\fpc\lazarus
+    delphi13: #c:\dev\Embarcadero\Studio\37.0
