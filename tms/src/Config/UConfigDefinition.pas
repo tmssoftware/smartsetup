@@ -83,6 +83,10 @@ type
     function HasInt(const v: string): boolean;
     function HasString(const v: string): boolean;
 
+    procedure RemoveInt(const v: string);
+    procedure RemoveBool(const v: string);
+    procedure RemoveString(const v: string);
+
 
     procedure SetIDEName(const dv: TIDEName; const Include: boolean);
     procedure SetPlatform(const dp: TPlatform; const Include: boolean);
@@ -825,6 +829,11 @@ begin
   IntProperties.AddOrSetValue(v, i);
 end;
 
+procedure TProductConfigDefinition.SetString(const v, i: string);
+begin
+  StringProperties.AddOrSetValue(v, i);
+end;
+
 function TProductConfigDefinition.GetBool(const v: string; const DefaultValue: boolean): boolean;
 begin
   if not BoolProperties.TryGetValue(v, Result) then exit(DefaultValue);
@@ -853,6 +862,21 @@ end;
 function TProductConfigDefinition.HasString(const v: string): boolean;
 begin
   Result := StringProperties.ContainsKey(v);
+end;
+
+procedure TProductConfigDefinition.RemoveBool(const v: string);
+begin
+  BoolProperties.Remove(v);
+end;
+
+procedure TProductConfigDefinition.RemoveInt(const v: string);
+begin
+  IntProperties.Remove(v);
+end;
+
+procedure TProductConfigDefinition.RemoveString(const v: string);
+begin
+  StringProperties.Remove(v);
 end;
 
 function TProductConfigDefinition.IsGlobal: boolean;
@@ -918,11 +942,6 @@ function TProductConfigDefinition.GetPrefixedProperties(
   index: TProductPrefixedProperties): TArrayOverrideBehavior;
 begin
   Result := FPrefixedProperties[index];
-end;
-
-procedure TProductConfigDefinition.SetString(const v, i: string);
-begin
-  StringProperties.AddOrSetValue(v, i);
 end;
 
 procedure TProductConfigDefinition.AddDefine(const def, LineInfo: string);

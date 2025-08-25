@@ -2,7 +2,7 @@
 # TMS Smart Setup configuration file
 # Modify settings as needed.
 # ====================================
-# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/dev/tms/example-config/tms.config.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json
 
 
 # General options that are not 'per product'.

@@ -16,14 +16,14 @@ unit BBCmd;
 
 
 interface
-uses BBClasses, Generics.Collections, BBStrings;
+uses Classes, SysUtils, BBClasses, Generics.Collections, BBStrings;
 
 type
 
 TBBCmdReader = class
   private
     class procedure ParseParameter(const Parameter: string; const SectionSeparator: string; out Sections: TArray<string>; out Value: string);
-    class procedure ProcessArray(const ArrayStr: string; const ArrayAction: TActionNameValue; const ErrorInfo: TErrorInfo);
+    class procedure ProcessArray(const ArrayStr: string; const ClearArray: TProc; const ArrayAction: TActionNameValue; const ErrorInfo: TErrorInfo);
     class procedure ProcessOneParameter(const Parameter, SectionSeparator: string; const MainSection: TSection; const OnlyValidate: boolean);
     class function IsSeparator(const Parameter: string; const Position: integer;
       const SectionSeparator: string): boolean; static;
@@ -33,8 +33,6 @@ TBBCmdReader = class
 end;
 
 implementation
-uses Classes, SysUtils;
-
 type
 
 TCMDErrorInfo = class(TErrorInfo)
@@ -56,9 +54,18 @@ begin
   end;
 end;
 
-class procedure TBBCmdReader.ProcessArray(const ArrayStr: string;
+class procedure TBBCmdReader.ProcessArray(const ArrayStr: string; const ClearArray: TProc;
   const ArrayAction: TActionNameValue; const ErrorInfo: TErrorInfo);
 begin
+  if ArrayStr.Trim = '' then
+  begin
+    if Assigned(ClearArray) then
+    begin
+      ClearArray;
+      exit;
+    end;
+  end;
+
   TSection.GetArray(ArrayStr.Trim, nil,
     procedure(Value: string; ErrorInfo: TErrorInfo)
     begin
@@ -164,18 +171,22 @@ begin
       Section := Section.GotoChild(ActionStr, ErrorInfo);
       if (Assigned(Section.ArrayMainAction)) then
       begin
-        if not OnlyValidate then ProcessArray(Value, Section.ArrayMainAction, ErrorInfo);
+        if not OnlyValidate then
+        begin
+          ProcessArray(Value, Section.ClearArrayValues, Section.ArrayMainAction, ErrorInfo);
+        end;
       end
       else if Section.ContainsArrays then
       begin
-        if not OnlyValidate then ProcessArray(value, procedure(N, V: string; ErrorInfo: TErrorInfo)
-        begin
-          if ((Section.Actions <> nil) and Section.Actions.TryGetValue(N, Action)) then
+        if not OnlyValidate then ProcessArray(value, Section.ClearArrayValues,
+          procedure(N, V: string; ErrorInfo: TErrorInfo)
           begin
-            Action(V, ErrorInfo);
-          end
-          else Section.ThrowInvalidTag(N, ErrorInfo);
-         end, ErrorInfo);
+            if ((Section.Actions <> nil) and Section.Actions.TryGetValue(N, Action)) then
+            begin
+              Action(V, ErrorInfo);
+            end
+            else Section.ThrowInvalidTag(N, ErrorInfo);
+           end, ErrorInfo);
       end
       else if not OnlyValidate then raise Exception.Create('Can''t access section: ' + ActionStr + ' from the command line. ' + ErrorInfo.ToString);
     end;

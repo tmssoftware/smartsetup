@@ -197,11 +197,10 @@ for ($i = 0; $i -lt $productArray.Count; $i++) {
 }
 Test-ValuesOk
 
-$productDelphiVersions = $("[delphi13]", "[]", "[delphixe,delphi12]")
+$productDelphiVersions = $("[delphi13]", "", "[delphixe,delphi12]")
 for ($i = 0; $i -lt $productArray.Count; $i++) {
     tms config-write -p:"configuration for $($productArray[$i]):delphi versions=$($productDelphiVersions[$i])"
 }
-$productDelphiVersions = $("[delphi13]", "", "[delphixe,delphi12]")
 Test-ValuesOk
 
 $productPlatforms = $("[win64xintel]", "[]", "[win32intel,win64intel,android64]")
