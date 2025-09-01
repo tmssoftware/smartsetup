@@ -1,0 +1,779 @@
+{
+  "$id": "https://github.com/tmssoftware/smartsetup/tree/main/tms/example-config/tmsbuild.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TMS Smart Setup Product Definition",
+  "description": "Enables syntax checking, autocompletion and validation for TMS Smart Setup product definition files.",
+  "type": "object",
+  "definitions": {
+    "delphiVersionsObject": {
+      "type": ["string", "null"],
+      "description": "The IDEs supported by the framework",
+      "enum": [
+        "lazarus",
+        "delphi6",
+        "delphi7",
+        "delphi2005",
+        "delphi2006",
+        "delphi2007",
+        "delphi2009",
+        "delphi2010",
+        "delphixe",
+        "delphixe2",
+        "delphixe3",
+        "delphixe4",
+        "delphixe5",
+        "delphixe6",
+        "delphixe7",
+        "delphixe8",
+        "delphiseattle",
+        "delphiberlin",
+        "delphitokyo",
+        "delphirio",
+        "delphisydney",
+        "delphi11",
+        "delphi12",
+        "delphi13"
+      ]
+    },
+    "platformsObject": {
+      "type": ["array", "null"],
+      "description": "The platforms supported by the framework",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "all",
+              "win32intel",
+              "win64intel",
+              "macos32intel",
+              "macos64intel",
+              "macos64arm",
+              "iossimulator",
+              "iosdevice32",
+              "iosdevice64",
+              "android32",
+              "android64",
+              "linux64",
+              "iossimulator64arm",
+              "win64xintel"
+            ],
+            "uniqueItems": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "win32intel": { "type": "boolean" },
+              "win64intel": { "type": "boolean" },
+              "macos32intel": { "type": "boolean" },
+              "macos64intel": { "type": "boolean" },
+              "macos64arm": { "type": "boolean" },
+              "iossimulator": { "type": "boolean" },
+              "iosdevice32": { "type": "boolean" },
+              "iosdevice64": { "type": "boolean" },
+              "android32": { "type": "boolean" },
+              "android64": { "type": "boolean" },
+              "linux64": { "type": "boolean" },
+              "iossimulator64arm": { "type": "boolean" },
+              "win64xintel": { "type": "boolean" }
+            },
+            "uniqueItems": true
+          }
+        ]
+      }
+    }
+  },
+
+  "properties": {
+    "minimum required tmsbuild version": {
+      "type": ["string", "number"],
+      "description": "Minimum version of SmartSetup that can use this file.",
+      "default": "2.1"
+    },
+    "application": {
+      "type": "object",
+      "description": "General information about the product.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the product."
+        },
+        "company name": {
+          "type": "string",
+          "description": "The name of the company that produces the product."
+        },
+        "copyright": {
+          "type": "string",
+          "description": "The copyright holder of the product."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL where the product can be downloaded."
+        },
+        "vcs protocol": {
+          "type": "string",
+          "description": "The protocol used for to download the product. By default it is git",
+          "enum": ["git", "svn", "zipfile"],
+          "default": "git"
+        },
+        "docs": {
+          "type": "string",
+          "description": "The documentation URL of the product."
+        },
+        "version file": {
+          "type": "string",
+          "description": "if this line is present, then version.txt must exist, it must have at least one line,\nand the line must be \"something: version\". like for example \"tms.example: 1.0.3\".\nThe text after \":\" will be used as version number to display along the name.",
+          "default": "version.txt"
+        }
+      },
+      "additionalProperties": false
+    },
+    "supported frameworks": {
+      "type": "object",
+      "description": "Frameworks are just a group of supported IDEs and platforms. You can define as much as you want with any name you desire, and then combine them to specify what platforms and IDEs the packages support.",
+      "patternProperties": {
+        "^.*$": {
+          "type": "object",
+          "description": "A framework definition.",
+          "properties": {
+            "ide since": {
+              "$ref": "#/definitions/delphiVersionsObject",
+              "description": "The minimum ide version that supports this framework."
+            },
+            "ide until": {
+              "$ref": "#/definitions/delphiVersionsObject",
+              "description": "The maximum ide version that supports this framework. If omitted, it means all newer versions are supported."
+            },
+            "platforms": {
+              "$ref": "#/definitions/platformsObject",
+              "description": "The platforms supported by this framework."
+            },
+            "c++ builder support": {
+              "type": "boolean",
+              "description": "Set to true if the framework supports C++ Builder.",
+              "default": false
+            },
+            "dependencies": {
+              "type": "array",
+              "description": "List of package IDs that are WEAK dependencies for this framework.\nwhen a dependency starts with ~, it means \"NOT\". That is, the framework will be active is the dependency is NOT installed.",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["ide since", "platforms"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "packages": {
+      "type": "array",
+      "description": "List of packages in the library. Each package must have a unique name, and must be listed only once.",
+      "items": {
+        "type": "object",
+        "description": "A package definition.",
+        "patternProperties": {
+          "^.*$": {
+            "type": "array",
+            "description": "The name of the package. Do not include the file extension.",
+            "items": {
+              "type": "string",
+              "description": "Frameworks that the package uses. You can use 'design' and 'runtime' in addition to the frameworks you defined above."
+            },
+            "uniqueItems": true
+          }
+        },
+        "uniqueItems": true,
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
+    "additionalProperties": false,
+    "package options": {
+      "type": "object",
+      "description": "The settings in the this section are only needed if the packages don't follow smartsetup conventions.",
+      "properties": {
+        "ignore dproj platforms": {
+          "type": "boolean",
+          "description": "By default, smartsetup double-checks that the dproj it is going to compile supports the platforms you specified above in the \"packages\" section.\nBut some packages might have wrong data in the dproj. If you set this to true, smartsetup will ignore whatever the dproj says and only use the info in \"packages\"."
+        },
+        "root package folder": {
+          "type": ["string", "null"],
+          "description": "This shouldn't be needed in general. Smartsetup will find your packages wherever they are.\nBut sometimes you might have the same packages in different unrelated folders (maybe some backup) and SmartSetup will get confused\nabout which ones it has to use. In this case, you can specify the relative path here where SmartSetup will start looking for packages"
+        },
+        "add libsuffix": {
+          "type": "boolean",
+          "description": "Use this *only* when you cannot change the packages. If possible, it is always better to modify the packages\nso they have a libsuffix. Otherwise, manual compilation of the packages will fail.",
+          "default": false
+        },
+        "package folders": {
+          "type": ["object", "null"],
+          "description": "Use this section only if you are not using the standard smartsetup folders for the packages.\nNote that if the same folder supports for example Delphi 11 and Delphi 12 (by using Libsuffix $(auto)), you can \nwrite the same folder for 11 and 12.\nYou can also use a + at the end of the IDE Name to specify that this applies to that Delphi version and all newer ones.\nWhen using + order is important. In the example above, the line with delphisydney+ affects all versions until delphi12 (sydney and 11).\nThe line delphi12+, being below delphisydney+ affects all delphi versions after 12, overriding the line delpihsydney+.\nIf you don't specify a name for a given version,  the standard packages will be assumed for that version.",
+          "properties": {
+            "lazarus": {
+              "type": "string",
+              "description": "The path to the lazarus package folder."
+            },
+            "delphi6": {
+              "type": "string",
+              "description": "The path to the delphi6 package folder."
+            },
+            "delphi7": {
+              "type": "string",
+              "description": "The path to the delphi7 package folder."
+            },
+            "delphi2005": {
+              "type": "string",
+              "description": "The path to the delphi2005 package folder."
+            },
+            "delphi2006": {
+              "type": "string",
+              "description": "The path to the delphi2006 package folder."
+            },
+            "delphi2007": {
+              "type": "string",
+              "description": "The path to the delphi2007 package folder."
+            },
+            "delphi2009": {
+              "type": "string",
+              "description": "The path to the delphi2009 package folder."
+            },
+            "delphi2010": {
+              "type": "string",
+              "description": "The path to the delphi2010 package folder."
+            },
+            "delphixe": {
+              "type": "string",
+              "description": "The path to the delphixe package folder."
+            },
+            "delphixe2": {
+              "type": "string",
+              "description": "The path to the delphixe2 package folder."
+            },
+            "delphixe3": {
+              "type": "string",
+              "description": "The path to the delphixe3 package folder."
+            },
+            "delphixe4": {
+              "type": "string",
+              "description": "The path to the delphixe4 package folder."
+            },
+            "delphixe5": {
+              "type": "string",
+              "description": "The path to the delphixe5 package folder."
+            },
+            "delphixe6": {
+              "type": "string",
+              "description": "The path to the delphixe6 package folder."
+            },
+            "delphixe7": {
+              "type": "string",
+              "description": "The path to the delphixe7 package folder."
+            },
+            "delphixe8": {
+              "type": "string",
+              "description": "The path to the delphixe8 package folder."
+            },
+            "delphiseattle": {
+              "type": "string",
+              "description": "The path to the delphiseattle package folder."
+            },
+            "delphiberlin": {
+              "type": "string",
+              "description": "The path to the delphiberlin package folder."
+            },
+            "delphitokyo": {
+              "type": "string",
+              "description": "The path to the delphitokyo package folder."
+            },
+            "delphirio": {
+              "type": "string",
+              "description": "The path to the delphirio package folder."
+            },
+            "delphisydney": {
+              "type": "string",
+              "description": "The path to the delphisydney package folder."
+            },
+            "delphisydney+": {
+              "type": "string",
+              "description": "The path to the delphisydney or newer package folder."
+            },
+            "delphi11": {
+              "type": "string",
+              "description": "The path to the delphi11 package folder."
+            },
+            "delphi11+": {
+              "type": "string",
+              "description": "The path to the delphi11 or newer package folder."
+            },
+            "delphi12": {
+              "type": "string",
+              "description": "The path to the delphi12 package folder."
+            },
+            "delphi12+": {
+              "type": "string",
+              "description": "The path to the delphi12 or newer package folder."
+            },
+            "delphi13": {
+              "type": "string",
+              "description": "The path to the delphi13 package folder."
+            },
+            "delphi13+": {
+              "type": "string",
+              "description": "The path to the delphi13 or newer package folder."
+            }
+          },
+          "additionalProperties": false
+        },
+        "lib suffixes": {
+          "type": ["object", "null"],
+          "description": "If the packages in the library use LIBSUFFIX different from the standard (270, 280, etc), you need to specify them here.\nIn most cases, you should just have standard LIBSUFIXes and do nothing here.\nThis setting applies to all packages in the library.",
+          "properties": {
+            "lazarus": {
+              "type": "string",
+              "description": "The libsuffix for lazarus."
+            },
+            "delphi6": {
+              "type": "string",
+              "description": "The libsuffix for delphi6."
+            },
+            "delphi7": {
+              "type": "string",
+              "description": "The libsuffix for delphi7."
+            },
+            "delphi2005": {
+              "type": "string",
+              "description": "The libsuffix for delphi2005."
+            },
+            "delphi2006": {
+              "type": "string",
+              "description": "The libsuffix for delphi2006."
+            },
+            "delphi2007": {
+              "type": "string",
+              "description": "The libsuffix for delphi2007."
+            },
+            "delphi2009": {
+              "type": "string",
+              "description": "The libsuffix for delphi2009."
+            },
+            "delphi2010": {
+              "type": "string",
+              "description": "The libsuffix for delphi2010."
+            },
+            "delphixe": {
+              "type": "string",
+              "description": "The libsuffix for delphixe."
+            },
+            "delphixe2": {
+              "type": "string",
+              "description": "The libsuffix for delphixe2."
+            },
+            "delphixe3": {
+              "type": "string",
+              "description": "The libsuffix for delphixe3."
+            },
+            "delphixe4": {
+              "type": "string",
+              "description": "The libsuffix for delphixe4."
+            },
+            "delphixe5": {
+              "type": "string",
+              "description": "The libsuffix for delphixe5."
+            },
+            "delphixe6": {
+              "type": "string",
+              "description": "The libsuffix for delphixe6."
+            },
+            "delphixe7": {
+              "type": "string",
+              "description": "The libsuffix for delphixe7."
+            },
+            "delphixe8": {
+              "type": "string",
+              "description": "The libsuffix for delphixe8."
+            },
+            "delphiseattle": {
+              "type": "string",
+              "description": "The libsuffix for delphiseattle."
+            },
+            "delphiberlin": {
+              "type": "string",
+              "description": "The libsuffix for delphiberlin."
+            },
+            "delphitokyo": {
+              "type": "string",
+              "description": "The libsuffix for delphitokyo."
+            },
+            "delphirio": {
+              "type": "string",
+              "description": "The libsuffix for delphirio."
+            },
+            "delphisydney": {
+              "type": "string",
+              "description": "The libsuffix for delphisydney."
+            },
+            "delphi11": {
+              "type": "string",
+              "description": "The libsuffix for delphi11."
+            },
+            "delphi12": {
+              "type": "string",
+              "description": "The libsuffix for delphi12."
+            },
+            "delphi13": {
+              "type": "string",
+              "description": "The libsuffix for delphi13."
+            }
+          },
+          "additionalProperties": false
+        },
+        "extra defines": {
+          "type": ["array", "null"],
+          "description": "Use this section if you require a different set of defines to compile from SmartSetup\nAvoid using this section whenever possible, the best is to modify the packages to have the correct includes",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "add": {
+                    "type": "string",
+                    "description": "Define to add."
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "remove": {
+                    "type": "string",
+                    "description": "Define to remove."
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "package definitions": {
+      "type": ["object", "null"],
+      "description": "Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.\nNote: This section must come after you have specified the \"packages\" section above.",
+      "patternProperties": {
+        "^.*$": {
+          "type": "object",
+          "properties": {
+            "framework type": {
+              "type": "string",
+              "enum": ["NONE", "FMX", "VCL"],
+              "description": "The framework type of the package."
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of the package as it will be saved."
+            },
+            "requires": {
+              "type": "string",
+              "description": "Write the dcp packages this package requires. don't include the dcp extension."
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "object",
+                    "properties": {
+                      "folder": {
+                        "type": "string"
+                      },
+                      "include folder mask": {
+                        "type": "string",
+                        "description": "For recursive includes. Separate masks with ;"
+                      },
+                      "exclude folder mask": {
+                        "type": "string",
+                        "description": "For recursive excludes. Separate masks with ;"
+                      },
+                      "include file mask": {
+                        "type": "string",
+                        "description": "Separate masks with ;"
+                      },
+                      "exclude file mask": {
+                        "type": "string",
+                        "description": "Separate masks with ;"
+                      },
+                      "recursive": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether to include subfolders."
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "additionalProperties": false
+      }
+    },
+    "exe options": {
+      "type": ["object", "null"],
+      "description": "Only applies to executables.",
+      "properties": {
+        "compile with": {
+          "type": "string",
+          "enum": ["latest", "earliest", "all"],
+          "description": "You might want to build an exe with just one delphi version, not all of them.\nThe possible values here are \"latest\" (use the latest delphi version supported and installed in the user's machine), \"earliest\" and \"all\" (compile in all delphi versions\nsupported in the user's machine). The default if omitted is \"all\"",
+          "default": "all"
+        },
+        "debug exes": {
+          "type": "boolean",
+          "description": "If false, do not generate debug version of the exes even if the user is building with debug dcus. Default is false",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "paths": {
+      "type": ["object", "null"],
+      "description": "Use this section only if you need to add extra paths to the library path, browsing path or dcu list.\nThese paths will be added to all delphi versions and all platforms.",
+      "properties": {
+        "extra library paths": {
+          "type": ["array", "null"],
+          "description": "Include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "extra browsing paths": {
+          "type": ["array", "null"],
+          "description": "Include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "extra debug dcu path": {
+          "type": ["array", "null"],
+          "description": "Include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "web core paths": {
+          "type": ["array", "null"],
+          "description": "paths to register in webcore.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "search paths to preserve": {
+          "type": ["array", "null"],
+          "description": "the paths below are pattern-matched with the existing library path (case insensitive), and they will be passed to the compiler if they match.\nSmart setup by default doesn't pass the library path in the user's machine to the compiler, to avoid errors due to broken\nlibrary paths. Use this only when you need some component like fmxlinux which is not a smart-setup dependency and not something that comes built-in in delphi.",
+          "items": {
+            "type": "string"
+          },
+          "examples": ["*fmxlinux*"],
+          "uniqueItems": true
+        },
+        "build-only library paths": {
+          "type": ["array", "null"],
+          "description": "this is similar to \"extra library paths\" above (and all the comments also apply here), but this path will only be added\nwhen compiling with msbuild. \"extra library paths\" will be added when compiling with msbuild, but also registered in Rad Studio. Entries here won't be registered.\nNormally you will use this entries to fix buggy packages that you can't modify. It shouldn't be needed in normal cases and correct packages.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "defines": {
+      "type": ["object", "null"],
+      "description": "This section allows the user to save the defines he specifies in tms.config.yaml into a file that your product can include.\nThis is not needed when compiling with smart setup, as the defines will be automatically included, but allows users to compile the packages from the IDE ad include the same defines as they used when compiling with Smart Setup.",
+      "properties": {
+        "defines filename": {
+          "type": "string",
+          "description": "If not empty, smart setup will create this file and overwrite any existing file. You can include this file from other include file."
+        },
+        "available defines": {
+          "type": ["array", "null"],
+          "description": "A list with the defines the user can write in the \"defines\" section of tmsbuild.config.yaml. that will affect this product.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "registry keys": {
+      "type": ["array", "null"],
+      "description": "Add entries to HKCU. For the values, you can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%.%alternate-registry-key% is what the \"alternate registry key\" used by delphi, as specified in tms.config.yaml.value type can be String or DWORD. If omitted it is String.For the Keys, you can use the variable %bds% to access the registry path for the BDS install.",
+      "items": {
+        "type": "object",
+        "patternProperties": {
+          "^.*$": {
+            "type": ["array", "null"],
+            "items": {
+              "type": ["object", "null"],
+              "properties": {
+                "value": {
+                  "type": ["object", "null"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the value to add. If empty, the default value will be used."
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["string", "dword"],
+                      "description": "The type of the value. Can be string or dword. If omitted, it is string."
+                    },
+                    "data": {
+                      "type": "string",
+                      "description": "The data of the value. You can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "uniqueItems": true
+          },
+          "additionalProperties": false
+        },
+        "uniqueItems": true
+      },
+      "uniqueItems": true
+    },
+    "help": {
+      "type": "object",
+      "description": "Register your help in Rad Studio.",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Must be a chm file that will be registered so you can press F1 in Delphi and get help. If you don't have a chm file comment this line."
+        }
+      },
+      "additionalProperties": false
+    },
+    "links": {
+      "description": "Create entries in the start menu.",
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "properties": {
+          "link": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["file"],
+                "default": "file",
+                "description": "Currently only 'file' is supported."
+              },
+              "name": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "working folder": {
+                "type": ["string", "null"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["link"],
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
+    "file links": {
+      "type": ["array", "null"],
+      "description": "Link files inside your bundle.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "link": {
+            "type": "object",
+            "properties": {
+              "file to link": {
+                "type": "string"
+              },
+              "link to folder": {
+                "type": ["string", "null"],
+                "description": "optional. If you don't specify it, it will link to bpl folder"
+              },
+              "os": {
+                "type": ["array", "null"],
+                "items": {
+                  "type": "string",
+                  "enum": ["windows", "linux", "mac"]
+                },
+                "uniqueItems": true,
+                "description": "can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["link"],
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
+    "other versions": {
+      "type": ["array", "null"],
+      "description": "For checking if older products installed with a different method exist.",
+      "items": {
+        "type": "object",
+        "description": "if the registry key exists, it means the product is already installed with other setup, and tms smart setup will refuse to run.",
+        "properties": {
+          "reg": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "dependencies": {
+      "type": ["array", "null"],
+      "description": "Write here the application ids for the *direct* dependencies.\nif \"A\" depends on \"B\" and \"B\" on \"C\", you can just write \"B\" as the \"A\" dependency.\nYou can also write \"C\" and it will still work, but it is not necessary. Only direct dependencies are needed.",
+      "items": {
+        "type": "object",
+        "patternProperties": {
+          "^.*$": {
+            "type": "string",
+            "description": "The ID and full name of the dependent product."
+          }
+        }
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}
