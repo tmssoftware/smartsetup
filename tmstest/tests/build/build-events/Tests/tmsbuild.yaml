@@ -1,0 +1,15 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: test.build.events
+  name: "Build Events"
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - build_events: [runtime, rtl]
+

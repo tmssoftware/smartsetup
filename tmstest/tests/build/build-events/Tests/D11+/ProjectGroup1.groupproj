@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{B9541EBD-B177-4119-BFF9-8CDBE0844855}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="build_events.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="build_events">
+        <MSBuild Projects="build_events.dproj"/>
+    </Target>
+    <Target Name="build_events:Clean">
+        <MSBuild Projects="build_events.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="build_events:Make">
+        <MSBuild Projects="build_events.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="build_events"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="build_events:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="build_events:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

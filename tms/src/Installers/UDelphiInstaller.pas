@@ -1154,7 +1154,7 @@ function ConvertPathToTarget(const SourceDir, TargetDir, FileName: string): stri
 begin
   if FileName.StartsWith('$')   //Some macro like $(BDS). Shouldn't be adapted.
     then exit(FileName);
-
+  exit(TPath.GetFullPath(TPath.Combine(SourceDir, FileName)));
   Result := ExtractRelativePath(
     IncludeTrailingPathDelimiter(TargetDir),
     TPath.GetFullPath(TPath.Combine(SourceDir, FileName)));
@@ -1236,6 +1236,20 @@ var
               if Defines<>'' then exit(Defines + ';' + PkgDefines);
               exit(PkgDefines);
             end;
+
+          if not BuildInfo.Project.BuildEvents then
+          begin
+            if (NodeName = '/#document/Project/PropertyGroup/PreBuildEvent/#text')
+            or (NodeName = '/#document/Project/PropertyGroup/PreLinkEvent/#text')
+            or (NodeName = '/#document/Project/PropertyGroup/PostBuildEvent/#text')
+            or (NodeName = '/#document/Project/PropertyGroup/PreBuildEvent/#cdata-section')
+            or (NodeName = '/#document/Project/PropertyGroup/PreLinkEvent/#cdata-section')
+            or (NodeName = '/#document/Project/PropertyGroup/PostBuildEvent/#cdata-section')
+              then
+              begin;
+                exit('');
+              end;
+          end;
 
           Result := NodeText;
         end,

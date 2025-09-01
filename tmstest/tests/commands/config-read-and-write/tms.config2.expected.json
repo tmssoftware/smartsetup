@@ -47,6 +47,7 @@
     "compilation options":
     {
       "debug dcus": true,
+      "run build events": false,
       "defines": ["DEBUG"]
     },
     "advanced options":

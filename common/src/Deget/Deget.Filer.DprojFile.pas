@@ -1766,6 +1766,7 @@ begin
   
   var NodeIsBase := ParentIsBase or PropGroupBase;
   if (Node.NodeType = TNodeType.ntText) and Assigned(NodeModifier) then Node.Text := NodeModifier(NodePath, Node.Text, ParentIsBase);
+  if (Node.NodeType = TNodeType.ntCData) and Assigned(NodeModifier) then Node.Text := NodeModifier(NodePath, Node.Text, ParentIsBase);
 
   for var i := 0 to Node.ChildNodes.Count - 1 do
   begin

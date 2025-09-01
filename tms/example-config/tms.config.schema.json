@@ -355,6 +355,11 @@
               "description": "Whether to build debug DCUs. Debug DCUs are useful for stepping into the component code, but they take more time to compile and double the used disk space.",
               "default": true
             },
+            "run build events": {
+              "type": "boolean",
+              "description": "Packages can have pre/post build events, which can be a security risk, so we disable them by default.\nIf you need to enable them for some project, create a `configuration for project` section and enable them for that project.",
+              "default": false
+            },
             "defines": { "$ref": "#/definitions/definesObject" },
             "add defines": { "$ref": "#/definitions/definesObject" },
             "replace defines": { "$ref": "#/definitions/definesObject" }

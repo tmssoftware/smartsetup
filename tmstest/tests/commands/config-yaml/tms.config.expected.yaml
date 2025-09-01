@@ -153,6 +153,10 @@ configuration for all products:
     # Whether to build debug DCUs. Debug DCUs are useful for stepping into the component code, but they take more time to compile and double the used disk space.
     debug dcus: true
 
+    # Packages can have pre/post build events, which can be a security risk, so we disable them by default.
+    # If you need to enable them for some project, create a `configuration for project` section and enable them for that project.
+    run build events: false
+
     # List of compiler defines to use for compiling. The defines here are added to the ones already defined before. To remove a define that is normally defined, set it to false, like for example " - DEBUG: false".
     defines:
       #- RTTI
