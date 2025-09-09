@@ -433,7 +433,13 @@ begin
     begin
       Result := Result + '$(BDSINCLUDE);';
       Result := Result + '$(BDSINCLUDE)\x86_64-w64-mingw32\c++\v1;';
-      Result := Result + '$(BDS)\lib\clang\15.0.7\include;';
+      if DelphiVersion <= delphi12 then
+      begin
+        Result := Result + '$(BDS)\lib\clang\15.0.7\include;';
+      end
+      else begin
+        Result := Result + '$(BDS)\lib\clang\20\include;';
+      end;
       Result := Result + '$(BDSINCLUDE)\x86_64-w64-mingw32;';
       Result := Result + '$(BDSINCLUDE)\windows\sdk;';
       Result := Result + '$(BDSINCLUDE)\windows\rtl;';
@@ -527,13 +533,17 @@ begin
   //there is a bug in 12.1 which causes thousands of errors if we include the files in the IncludePath:
   //https://embt.atlassian.net/servicedesk/customer/portal/1/RSS-697
   //so we will add them to the SystemIncludePath instead.
+  //But as the bug is no more in Delphi 13, we go back to IncludePath for it.
+  //The SystemIncludePath has to be constantly updated: for D12 it includes $(BDS)\lib\clang\15.0.7\include
+  //But fo D13 it is $(BDS)\lib\clang\20\include. So if we can avoid modifying it, better.
 
   ReadLibPathsFromBCProj(ProjectFileName, IDEName, CppProjectIncludePath, CppProjectLinkPath, ClassicCompiler);
   var Lsp := '';
-  if Settings.TargetPlatform.IDEInfo.IDEName < TIDEName.delphi12 then Lsp := LocalSearchPath;
+  if Settings.TargetPlatform.IDEInfo.IDEName <> TIDEName.delphi12 then Lsp := LocalSearchPath;
 
   Result := Result + ' /p:IncludePath=' + Quote( CppProjectIncludePath + Lsp);
-  if Settings.TargetPlatform.IDEInfo.IDEName >= TIDEName.delphi12 then
+
+  if Settings.TargetPlatform.IDEInfo.IDEName = TIDEName.delphi12 then
   begin
     Result := Result + ' /p:BCC_SystemIncludePath=' +
       Quote(LocalSearchPath + CppSystemIncludePath(Settings.TargetPlatform.IDEInfo.IDEName, Settings.TargetPlatform.PlatType, ClassicCompiler));

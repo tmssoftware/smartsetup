@@ -1,4 +1,4 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{99A64CD7-4C6B-47F6-B119-3A708E23C2E8}</ProjectGuid>
         <ProjectVersion>20.3</ProjectVersion>
@@ -157,7 +157,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Linux64)'!=''">
         <DCC_UsePackage>DataSnapServer;FlexCel_Report;TMSLogging;fmx;emshosting;DbxCommonDriver;bindengine;FireDACCommonODBC;emsclient;FireDACCommonDriver;aurelius;IndyProtocols;sparkle;sphinx;dbxcds;emsedge;FlexCel_Pdf;SKIA_FlexCel_Core;inetdb;FireDACSqliteDriver;DbxClientDriver;FireDACASADriver;soapmidas;TMSScripter;dbexpress;FireDACInfxDriver;inet;DataSnapCommon;dbrtl;FireDACOracleDriver;FlexCel_XlsAdapter;CustomIPTransport;FireDACMSSQLDriver;tmsbcl;DataSnapIndy10ServerTransport;DataSnapConnectors;FireDACMongoDBDriver;IndySystem;FireDACTDataDriver;FlexCel_Core;bindcomp;FireDACCommon;DataSnapServerMidas;FireDACODBCDriver;emsserverresource;FlexCel_Render;IndyCore;RESTBackendComponents;rtl;FireDACMySQLDriver;FireDACADSDriver;remotedb;RESTComponents;dsnapxml;DataSnapClient;DataSnapFireDAC;emsclientfiredac;FireDACPgDriver;FireDAC;xmlrtl;dsnap;xdata;CloudService;FireDACDb2Driver;DataSnapNativeClient;DatasnapConnectorsFreePascal;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
-        <Debugger_Launcher>/usr/bin/gnome-terminal -- "%debuggee%"</Debugger_Launcher>
+        <Debugger_Launcher>/usr/bin/gnome-terminal -- &quot;%debuggee%&quot;</Debugger_Launcher>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
     </PropertyGroup>
@@ -200,7 +200,7 @@
         <DCC_RangeChecking>true</DCC_RangeChecking>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Linux64)'!=''">
-        <Debugger_Launcher>/usr/bin/gnome-terminal -- "%debuggee%"</Debugger_Launcher>
+        <Debugger_Launcher>/usr/bin/gnome-terminal -- &quot;%debuggee%&quot;</Debugger_Launcher>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
@@ -208,8 +208,9 @@
         <Debugger_RunParams>list -json</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
-        <Debugger_RunParams>build</Debugger_RunParams>
-        <Debugger_CWD>E:\tms\tms-smartsetup</Debugger_CWD>
+        <Debugger_RunParams>build -full</Debugger_RunParams>
+        <Debugger_CWD>E:\tms\smartsetup\tmstest\tmp-run\build-events</Debugger_CWD>
+        <DCC_DebugDCUs>false</DCC_DebugDCUs>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -218,7 +219,7 @@
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Linux64)'!=''">
-        <Debugger_Launcher>/usr/bin/gnome-terminal -- "%debuggee%"</Debugger_Launcher>
+        <Debugger_Launcher>/usr/bin/gnome-terminal -- &quot;%debuggee%&quot;</Debugger_Launcher>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -440,6 +441,28 @@
                 <Source>
                     <Source Name="MainSource">tms.dpr</Source>
                 </Source>
+                <Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\FMX_FlexCel_Components_DESIGN290.bpl">FlexCel Visual Components for FireMonkey (Design)</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\FMX_FlexCel_Components290.bpl">FlexCel Visual Components for FireMonkey (Runtime)</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\FlexCel_Pdf290.bpl">FlexCel PDF Engine</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\FlexCel_Render290.bpl">FlexCel Rendering Engine</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\VCL_FlexCel_Components_DESIGN290.bpl">FlexCel Visual Components for VCL (Design)</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\VCL_FlexCel_Components290.bpl">FlexCel Visual Components for VCL (Runtime)</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dcltmsbcl290.bpl">TMS BIZ Core Library - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclsparkle290.bpl">TMS Sparkle - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclaurelius290.bpl">TMS Aurelius - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclTMSLogging290.bpl">TMS Logging - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclremotedb290.bpl">TMS RemoteDB - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclxdata290.bpl">TMS XData - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclsphinx290.bpl">TMS Sphinx - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclTMSScripter290.bpl">TMS Scripter - Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="R:\smart, setup\.tmssetup\build\bpl\Win32\dclTMSScripter_Memo290.bpl">TMS Scripter - Memo Design-Time Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k290.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp290.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp290.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="E:\tms\smartsetup\tmsgui\Win64\Debug\.tmssetup\build\bpl\Win32\DOSCommandDD290.bpl">File E:\tms\smartsetup\tmsgui\Win64\Debug\.tmssetup\build\bpl\Win32\DOSCommandDD290.bpl not found</Excluded_Packages>
+                </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="5">
                 <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">
