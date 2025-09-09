@@ -37,7 +37,7 @@ type
 
 const
     ValidIDEs = [Low(TIDEName)..High(TIDEName)];
-    DelphiIDENames = [TIDEName.delphi6..TIDEName.delphi12];
+    DelphiIDENames = [TIDEName.delphi6..TIDEName.delphi13];
 
 const
     IDEId: array[TIDEName] of string = (
