@@ -133,6 +133,7 @@ begin
 
      var HasALLUSERSPROFILE := false;
      var HasAPPDATA := false;
+     var HasLOCALAPPDATA := false;
      var HasSYSTEMROOT := false;
      var HasSYSTEMDRIVE := false;
      var HasTEMP := false;
@@ -145,6 +146,7 @@ begin
          var VariableName := e.Substring(0,idx).Trim;
          if (SameText(VariableName, 'ALLUSERSPROFILE')) then HasALLUSERSPROFILE := true;
          if (SameText(VariableName, 'APPDATA')) then HasAPPDATA := true;
+         if (SameText(VariableName, 'LOCALAPPDATA')) then HasLOCALAPPDATA := true;
          if (SameText(VariableName, 'SYSTEMROOT')) then HasSYSTEMROOT := true;
          if (SameText(VariableName, 'SYSTEMDRIVE')) then HasSYSTEMDRIVE := true;
          if (SameText(VariableName, 'TEMP')) then HasTEMP := true;
@@ -156,6 +158,7 @@ begin
 
      if not HasALLUSERSPROFILE then TmpEnv.Add('ALLUSERSPROFILE='  + GetEnvironmentVariable('ALLUSERSPROFILE')); //used for tmp
      if not HasAPPDATA then TmpEnv.Add('APPDATA='  + GetEnvironmentVariable('APPDATA'));
+     if not HasLOCALAPPDATA then TmpEnv.Add('LOCALAPPDATA='  + GetEnvironmentVariable('LOCALAPPDATA'));
      if not HasSYSTEMROOT then TmpEnv.Add('SYSTEMROOT='  + GetEnvironmentVariable('SYSTEMROOT'));
      if not HasSYSTEMDRIVE then TmpEnv.Add('SYSTEMDRIVE='  + GetEnvironmentVariable('SYSTEMDRIVE'));
      if not HasTEMP then TmpEnv.Add('TEMP='  + GetEnvironmentVariable('TEMP'));
