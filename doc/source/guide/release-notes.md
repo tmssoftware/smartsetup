@@ -4,6 +4,10 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
+## Version 2.2 (September, 2025)
+- **New** Delphi 13 official support.
+- **New** For security reasons, now SmartSetup won't run pre/post build events when installing. You can edit tms.config.yaml to allow pre/post build events for specific projects.
+
 ## Version 2.1 (August, 2025)
 - **New** The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
 - **Improved** Rewritten config-read command can now return the full configuration as a JSON object, and it can return from the full configuration to some sections, to a specific property.

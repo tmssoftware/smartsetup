@@ -73,10 +73,10 @@
         <SanitizedProjectName>tmsgui</SanitizedProjectName>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup GUI;FileVersion=2.1.0.0;InternalName=TMS Smart Setup GUI;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. gui;ProductName=TMS Smart Setup GUI;ProductVersion=2.1.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup GUI;FileVersion=2.2.0.0;InternalName=TMS Smart Setup GUI;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. gui;ProductName=TMS Smart Setup GUI;ProductVersion=2.2.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
         <VerInfo_Release>0</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_MinorVer>1</VerInfo_MinorVer>
+        <VerInfo_MinorVer>2</VerInfo_MinorVer>
         <VerInfo_MajorVer>2</VerInfo_MajorVer>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
