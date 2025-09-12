@@ -10,11 +10,11 @@ TMS Smart Setup is distributed and supported by [TMS Software](https://www.tmsso
 
 TMS Smart Setup installer is available in the link below.
 
-* [**TMS Smart Setup installer for Windows**](https://download.tmssoftware.com/business/smart-setup/tmssmartsetupinstall.zip)
+* [**TMS Smart Setup installer for Windows**](https://github.com/tmssoftware/smartsetup/releases/latest/download/tmssmartsetupinstall.zip)
 
 It's also 100% portable so you can simply download the portable zip file and decompress it in a folder you prefer;
 
-* [**TMS Smart Setup portable zip file**](https://download.tmssoftware.com/business/smart-setup/tmssmartsetup.zip)
+* [**TMS Smart Setup portable zip file**](https://github.com/tmssoftware/smartsetup/releases/latest/download/tmssmartsetup.zip)
 
 ## Installation
 
