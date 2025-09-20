@@ -165,7 +165,7 @@ begin
       if not MatchesOS(filelink.OS) then continue;
 
       var LinkToFile := GetLinkedFile(BuildInfo, filelink.FileToLink, filelink.LinkToFolder);
-      if not UninstallInfo.DryRun then CreateFileLink(Config.Folders.LockedFilesFolder, filelink.FileToLink, LinkToFile, Config.FileLinkType(BuildInfo.ProjectId));
+      if not UninstallInfo.DryRun then CreateFileLink(Config.Folders.LockedFilesFolder, filelink.FileToLink, LinkToFile, Config.FileLinkType(BuildInfo.ProjectId), Logger.TraceProc());
       Logger.Trace('Created file link: ' + filelink.FileToLink + ' -> ' + LinkToFile);
 
       JSONArray.Add(LinkToFile);

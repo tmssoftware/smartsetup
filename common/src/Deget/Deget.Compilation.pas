@@ -1405,7 +1405,7 @@ begin
       var DestFileName := TPath.Combine(DestFolder, RelPath);
       var FullDestFolderName := TPath.GetDirectoryName(DestFileName);
       if not TDirectory.Exists(FullDestFolderName) then TDirectory_CreateDirectory(FullDestFolderName);
-      CreateFileLink(Config.Folders.LockedFilesFolder, FileName, DestFileName, TFileLinkType.HardLink); //always use hardlinks here.
+      CreateFileLink(Config.Folders.LockedFilesFolder, FileName, DestFileName, TFileLinkType.HardLink, Logger.TraceProc()); //always use hardlinks here.
     end,
     true);
 

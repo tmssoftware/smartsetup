@@ -5,24 +5,23 @@ uses SysUtils;
 type
   TFileLinkType = (HardLink, SymLink);
 
-procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType); overload;
-procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType; var NeedsToRestartIDE: boolean); overload;
-procedure DoSymLink(const FileToLink, LinkToCreate: string; const LogSuccess: boolean = true);
+procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType; const LoggerTrace: TProc<string>); overload;
+procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType; const LoggerTrace: TProc<string>; var NeedsToRestartIDE: boolean); overload;
+procedure DoSymLink(const FileToLink, LinkToCreate: string; const LoggerTrace: TProc<string>; const LogSuccess: boolean = true);
 
 implementation
 uses IOUtils,
 {$IFDEF MSWINDOWS}
   Windows,
 {$ENDIF}
-  UMultiLogger,
   UTmsBuildSystemUtils;
 
-procedure DoHardLink(const FileToLink, LinkToCreate: string);
+procedure DoHardLink(const FileToLink, LinkToCreate: string; const LoggerTrace: TProc<string>);
 begin
 {$IFDEF MSWINDOWS}
   if CreateHardLink(PChar(LinkToCreate), PChar(FileToLink), nil) then
   begin
-    Logger.Trace(Format('Hard link created from "%s" to "%s"', [LinkToCreate, FileToLink]));
+    if Assigned(LoggerTrace) then LoggerTrace(Format('Hard link created from "%s" to "%s"', [LinkToCreate, FileToLink]));
     Exit;
   end;
 
@@ -82,11 +81,11 @@ end;
 
 end;
 
-procedure DoSymLink(const FileToLink, LinkToCreate: string; const LogSuccess: boolean = true);
+procedure DoSymLink(const FileToLink, LinkToCreate: string; const LoggerTrace: TProc<string>; const LogSuccess: boolean = true);
 begin
   if CreateSymLink(LinkToCreate, FileToLink) then
   begin
-    if LogSuccess then Logger.Trace(Format('Symlink created from "%s" to "%s"', [LinkToCreate, FileToLink]));
+    if LogSuccess and Assigned(LoggerTrace) then LoggerTrace(Format('Symlink created from "%s" to "%s"', [LinkToCreate, FileToLink]));
     Exit;
   end;
 
@@ -95,22 +94,26 @@ begin
     LinkToCreate, FileToLink, LastError, SysErrorMessage(LastError)]));
 end;
 
-procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType);
+procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType; const LoggerTrace: TProc<string>);
 begin
   var NeedsToRestartIDE := false;
-  CreateFileLink(LockedFilesFolder, FileToLink, LinkToCreate, LinkType, NeedsToRestartIDE)
+  CreateFileLink(LockedFilesFolder, FileToLink, LinkToCreate, LinkType, LoggerTrace, NeedsToRestartIDE)
 end;
 
-procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType; var NeedsToRestartIDE: boolean);
+procedure CreateFileLink(const LockedFilesFolder, FileToLink, LinkToCreate: string; const LinkType: TFileLinkType; const LoggerTrace: TProc<string>; var NeedsToRestartIDE: boolean);
 begin
   if TFile.Exists(LinkToCreate, false) then  //if we follow the symlink we wont delete it when the linked file doesn't exist.
-    DeleteFileOrMoveToLocked(LockedFilesFolder, LinkToCreate, false, procedure (s: string) begin Logger.Trace(s); end, NeedsToRestartIDE);
+    DeleteFileOrMoveToLocked(LockedFilesFolder, LinkToCreate, false,
+    procedure (s: string)
+    begin
+      if Assigned(LoggerTrace) then LoggerTrace(s);
+    end, NeedsToRestartIDE);
 
   TDirectory_CreateDirectory(TPath.GetDirectoryName(LinkToCreate));
 
   case LinkType of
-    HardLink: DoHardLink(FileToLink, LinkToCreate);
-    SymLink: DoSymLink(FileToLink, LinkToCreate);
+    HardLink: DoHardLink(FileToLink, LinkToCreate, LoggerTrace);
+    SymLink: DoSymLink(FileToLink, LinkToCreate, LoggerTrace);
   end;
 
 end;

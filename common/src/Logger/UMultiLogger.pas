@@ -22,6 +22,8 @@ type
     procedure Message(const MessageKind: TLogMessageKind; const Message: string; const Process: boolean = false);
     procedure Progress(const Message: string; const Progress: TProductProgressInfo);
 
+    function TraceProc: TProc<string>;
+
     //Use the 2 methods below to group operations in the log. You can for example put all the build actions in a group.
     //MessageType: Type of message you are grouping. Except for summary and basicinfo, they all behave the same.
     //MessageLabel: Caption for the group.
@@ -247,6 +249,11 @@ begin
 end;
 
 
+
+function TMultiLogger.TraceProc: TProc<string>;
+begin
+  Result := procedure(s: string) begin Logger.Trace(s); end;
+end;
 
 procedure TMultiLogger.Message(const MessageKind: TLogMessageKind; const Message: string; const Process: boolean = false);
 begin

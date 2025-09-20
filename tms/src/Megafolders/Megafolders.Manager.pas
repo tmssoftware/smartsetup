@@ -129,7 +129,7 @@ class procedure TMegafolderManager.UpdateFile(const Source, Target: string; var 
 begin
   //Those are symlinks, so if they exist they will be updated when you recompile. No need to recreate them (which would be slower).
   if FileExists(Target, false) then exit;
-  DoSymLink(Source, Target, false);
+  DoSymLink(Source, Target, nil, false);
   Inc(Count);
 end;
 

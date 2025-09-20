@@ -256,7 +256,7 @@ begin
     begin
       DeleteFileOrMoveToLocked(UninstallInfo.LockedFilesFolder ,
         PackageInfo.BinaryTempPackageFileName(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig),
-        UninstallInfo.DryRun, procedure (s: string) begin Logger.Trace(s); end, DummyNeedsToRestartIDE);
+        UninstallInfo.DryRun, Logger.TraceProc(), DummyNeedsToRestartIDE);
     end;
     if DummyNeedsToRestartIDE and not BuildInfo.Project.Project.IsExe then NeedsToRestartIDE := true;
 
@@ -455,7 +455,7 @@ begin
     if (JValue <> nil) and (JValue is TJSONArray) then
       for var Item in TJSONArray(JValue) do
       begin
-        DeleteFileOrMoveToLocked(UninstallInfo.LockedFilesFolder, Item.Value, UninstallInfo.DryRun, procedure (s: string) begin Logger.Trace(s); end, NeedsToRestartIDE);
+        DeleteFileOrMoveToLocked(UninstallInfo.LockedFilesFolder, Item.Value, UninstallInfo.DryRun, Logger.TraceProc(), NeedsToRestartIDE);
         FoldersToRemove := FoldersToRemove + [TPath.GetDirectoryName(Item.Value)];
       end;
 
@@ -488,7 +488,7 @@ end;
 procedure TDelphiInstaller.LinkPackageFile(const ProductId, LinkedFileName, BinaryPackageFileName: string; PackUninstall: TJSONObject);
 begin
   CreateFileLink(Config.Folders.LockedFilesFolder, BinaryPackageFileName, LinkedFileName,
-    Config.FileLinkType(ProductId), NeedsToRestartIDE);
+    Config.FileLinkType(ProductId), Logger.TraceProc(), NeedsToRestartIDE);
 end;
 
 function TDelphiInstaller.ConsolidatePackages(BuildInfo: TFullBuildInfo; PlatformInfo: IDelphiPlatformInfo; const InMegafolder: boolean): TPackagesConsolidation;
