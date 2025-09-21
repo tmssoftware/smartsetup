@@ -73,6 +73,25 @@ begin
   Result := nil;
 end;
 
+function IsLinkedFolder(const Folder: string): boolean;
+begin
+  Result := TFile.Exists(Folder, false);
+end;
+
+procedure DeleteFolderWithoutFollowingSymlinks(const LockFolder, Folder: string);
+begin
+  if IsLinkedFolder(Folder) then
+  begin
+    DeleteFileOrMoveToLocked(LockFolder, Folder);
+  end
+  else
+  begin
+    SysUtils.RemoveDir(Folder);
+  end;
+  if TDirectory.Exists(Folder) then raise Exception.Create('Cannot delete folder "' + Folder + '". ' + SysErrorMessage(GetLastError));
+
+end;
+
 procedure TryDeleteFileAndRemoveParentFolderIfEmpty(const LockFolder, FileName: string);
 begin
   // This is not atomic, so someone could delete the file
@@ -98,7 +117,7 @@ begin
   begin
     try
       repeat
-        if (F.Attr and faDirectory <> 0) then
+        if (F.Attr and faDirectory <> 0) and not IsLinkedFolder(TPath.Combine(Folder, F.Name)) then
         begin
           if Recursive and (F.Name <> '.') and (F.Name <> '..') then
           begin
@@ -117,8 +136,7 @@ begin
   end;
   if Folder <> RootFolder then
   begin
-    SysUtils.RemoveDir(Folder);
-    if TDirectory.Exists(Folder) then raise Exception.Create('Cannot delete folder "' + Folder + '". ' + SysErrorMessage(GetLastError));
+    DeleteFolderWithoutFollowingSymlinks(LockFolder, Folder);
   end;
 end;
 
