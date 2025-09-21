@@ -10,7 +10,7 @@ uses
   Bcl.Json, Bcl.Json.Classes, Bcl.Json.Serializer, Bcl.Json.Writer,
   atscripter, VCL.ScripterInit, uSystemLibrary,
   Spring.Container,
-  HashObj, MiscObj,
+  HashObj, MiscObj, CryptoConst,
   VCL.TMSFNCUtils;
 
 
@@ -66,7 +66,7 @@ begin
 
     var coffee64 := TTMSFNCUtils.Encode64(coffee);
     var sha2:= TSHA2Hash.Create;
-    sha2.HashSizeBits:= 256;
+    sha2.HashSize:= THashSize.hsha256;
     sha2.OutputFormat:= hexa;
     sha2.Unicode:= noUni;
     var hash:= sha2.Hash(coffee64);
