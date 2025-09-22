@@ -20,7 +20,7 @@ If you want to publish your product there, you need to follow the steps:
 
   If your forked server is, for example, at https://github.com/your_name/smartsetup-registry, then issue the command:
   ```shell
-  tms server-add test git https://github.com/your_name/smartsetup-registry
+  tms server-add test zipfile https://github.com/your_name/smartsetup-registry/archive/refs/heads/main.zip
   ```
 
   6. Disable the community server: `tms server-enable community false`
