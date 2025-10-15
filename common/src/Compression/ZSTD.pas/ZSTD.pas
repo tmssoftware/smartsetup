@@ -654,13 +654,17 @@ end;
 
 function TZSTDCompressStream.Seek(const AOffset: Int64; AOrigin: TSeekOrigin): Int64;
 begin
+{$IF CompilerVersion < 37}
   Result := 0; // Make compiler happy;
+{$IFEND}
   RaiseLastOSError(ERROR_INVALID_FUNCTION);
 end;
 
 function TZSTDCompressStream.Read(var ABuffer; ACount: Longint): Longint;
 begin
+{$IF CompilerVersion < 37}
   Result := 0; // Make compiler happy;
+{$IFEND}
   RaiseLastOSError(ERROR_INVALID_FUNCTION);
 end;
 
@@ -762,7 +766,9 @@ var
 begin
   if (AOrigin <> soCurrent) or (AOffset < 0) then
     begin
+{$IF CompilerVersion < 37}
       Result := 0; // Make compiler happy;
+{$IFEND}
       RaiseLastOSError(ERROR_INVALID_FUNCTION);
     end
   else
@@ -919,7 +925,9 @@ end;
 
 function TZSTDDecompressStream.Write(const ABuffer; ACount: Longint): Longint;
 begin
+{$IF CompilerVersion < 37}
   Result := 0; // Make compiler happy;
+{$IFEND}
   RaiseLastOSError(ERROR_INVALID_FUNCTION);
 end;
 
