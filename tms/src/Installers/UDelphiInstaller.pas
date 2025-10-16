@@ -885,7 +885,7 @@ begin
   try
     SetupResinator(ResinatorPath, TempPath);
   except
-    Logger.Trace('Error runnig resinator');
+    Logger.Trace('Error running resinator.');
     HasErrors := true;
     //ignore the error and keep trying other delphis.
   end;
