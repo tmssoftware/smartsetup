@@ -4,6 +4,9 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
+## Version 2.3 (October, 2025)
+ - **Fixed** `error :  failed to find / extract cached MinGW includes: PathAlreadyExists` could happen when trying to compile in a newly installed Delphi 13
+
 ## Version 2.2 (September, 2025)
 - **New** Delphi 13 official support.
 - **New** For security reasons, now SmartSetup won't run pre/post build events when installing. You can edit tms.config.yaml to allow pre/post build events for specific projects.
