@@ -105,10 +105,10 @@
         <SanitizedProjectName>tms</SanitizedProjectName>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup;FileVersion=2.2.0.0;InternalName=TMS Smart Setup;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. cmd;ProductName=TMS Smart Setup;ProductVersion=2.2.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup;FileVersion=2.3.0.0;InternalName=TMS Smart Setup;LegalCopyright=(c) 2023 - 2025 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. cmd;ProductName=TMS Smart Setup;ProductVersion=2.3.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
         <VerInfo_Release>0</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_MinorVer>2</VerInfo_MinorVer>
+        <VerInfo_MinorVer>3</VerInfo_MinorVer>
         <VerInfo_MajorVer>2</VerInfo_MajorVer>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
