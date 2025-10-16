@@ -71,6 +71,7 @@ const
   Mutex_WebCore = 'Global\tms-smart-setup-B2ACE533-D1C4-4C4E-8317-139704056F97';
   Mutex_IDEPath = 'Global\tms-smart-setup-472A3236-3A5A-4EF4-BE4A-E384EB628945';
   Mutex_PathOverride = 'Global\tms-smart-setup-0BBA6135-F93A-46A3-A4CC-A343999140E4';
+  Mutex_Resinator = 'Global\tms-smart-setup-8D4F142B-5E21-4155-877D-79C18132A14B';
 
 type
   //Remember to never remove a platform, even if

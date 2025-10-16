@@ -105,6 +105,9 @@ type
     // Returns the full file name of bds.exe file
     function BdsFile: string;
 
+    // Location of resinator.exe
+    function ResinatorFile: string;
+
     procedure ForceIDEUpdate;
 
     function GetEnvVarOverrides: TArray<TEnvVar>;

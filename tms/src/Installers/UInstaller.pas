@@ -34,6 +34,7 @@ type
       const BuildConfig: TBuildConfig;
       const UsedDcuMegafolders: TUsedMegafolders); virtual; abstract;
 
+    procedure SetupIDE(const IDEName: TIDEName; var HasErrors: boolean); virtual; abstract;
 
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); virtual; abstract;
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); virtual; abstract;

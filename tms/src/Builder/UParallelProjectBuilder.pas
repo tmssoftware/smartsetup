@@ -36,6 +36,9 @@ type
       const IDE: TIDEName; const Platform: TPlatform;
       out UnsupportedDependency: string): boolean;
     procedure SyncMegafolders(const BuildInfo: TBuildInfo);
+    procedure SetupIDE(const BuildInfo: TBuildInfo);
+    function GetBuildIDEs(
+      const ProjectsToBuild: TObjectList<TProjectBuildInfo>): TIDENameSet;
   public
     constructor Create(const aConfig: TConfigDefinition; const aFileHasher: TFileHasher);
     destructor Destroy; override;
@@ -109,6 +112,44 @@ begin
 
 end;
 
+function TParallelProjectBuilder.GetBuildIDEs(const ProjectsToBuild: TObjectList<TProjectBuildInfo>): TIDENameSet;
+begin
+  Result := [];
+  for var BuildProject in ProjectsToBuild do
+  begin
+    for var IDEInfo in BuildProject.IDEsBuildInfo do
+    begin
+      Result := Result + [IDEInfo.Name];
+    end;
+  end;
+
+
+end;
+
+procedure TParallelProjectBuilder.SetupIDE(const BuildInfo: TBuildInfo);
+begin
+  // reverse order, because higher IDEs can have higher versions of windows headers.
+  // In resinator, the check is:
+  // if (existing_ver >= include_ver) return std...
+  // So if say d14 gets v3, then d13 (v2) will use it. If we did it in ascending order, d13 would install
+  // v2, then d14 v3.
+
+  Logger.StartSection(TMessageType.SetupIDE, 'Setting up IDEs');
+  var HasErrors := false;
+  try
+    var BuildIDEs := GetBuildIDEs(BuildInfo.ProjectsToBuild);
+    for var IDEName := High(TIDEName) downto TIDEName.delphi13 do
+    begin
+      if not (IDEName in BuildIDEs) then continue;
+
+      var Installer := TInstallerFactory.GetInstaller(IDEName);
+      Installer.SetupIDE(IDEName, HasErrors);
+    end;
+  finally
+    Logger.FinishSection(TMessageType.SetupIDE, HasErrors);
+  end;
+end;
+
 procedure TParallelProjectBuilder.Build(BuildInfo: TBuildInfo);
 begin
   ResolveDependencies(BuildInfo, ParallelProjects);
@@ -133,6 +174,8 @@ begin
         end;
       end;
     end;
+
+    SetupIDE(BuildInfo);
 
     ShowProcessedPackagesProgress := true;
     try

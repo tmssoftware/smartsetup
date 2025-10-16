@@ -35,6 +35,8 @@ type
       const UsedDcuMegafolders: TUsedMegafolders); override;
 
 
+    procedure SetupIDE(const IDEName: TIDEName; var HasErrors: boolean); override;
+
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); override;
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
@@ -142,6 +144,11 @@ end;
 procedure TLazarusInstaller.RegisterMegafolders(
   const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo);
 begin
+end;
+
+procedure TLazarusInstaller.SetupIDE(const IDEName: TIDEName; var HasErrors: boolean);
+begin
+  //Nothing for lazarus
 end;
 
 function TLazarusInstaller.SupportsCppBuilder(

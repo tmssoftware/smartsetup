@@ -74,6 +74,9 @@ type
       const BuildConfig: TBuildConfig;
       const UsedDcuMegafolders: TUsedMegafolders); override;
 
+    procedure SetupIDE(const IDEName: TIDEName; var HasErrors: boolean); override;
+
+
     procedure CreateTempProjects(const BuildInfo: TFullBuildInfo); override;
     procedure MoveDataFromTempProjects(const BuildInfo: TFullBuildInfo; const UsedDcuMegafolders: TUsedMegafolders); override;
     procedure RemoveTempProjects(const BuildInfo: TFullBuildInfo); override;
@@ -146,7 +149,7 @@ type
 implementation
 {$IFDEF MSWINDOWS}
 uses
-  Deget.DelphiInfo, Deget.IDEUtils, Deget.FileUtils, Deget.RCFileFormat,
+  Deget.DelphiInfo, Deget.IDEUtils, Deget.FileUtils, Deget.RCFileFormat, UConfigKeys,
   Deget.Filer.DprojFile, Deget.Filer.DpkFile, Deget.Filer.DprFile, UIDEUtils,
   Deget.Filer.ProjectFactory, UEnvironmentPath, Megafolders.Manager,
   UWindowsPath, UTmsBuildSystemUtils, Commands.GlobalConfig, Deget.ResFile, Threading, UOSFileLinks,
@@ -860,6 +863,34 @@ begin
 
     UpdatePackageSource(OrigPackage, PackageInfo.UnexpandedOutputDir, BuildInfo.IDE.Name);
   end;
+end;
+
+procedure TDelphiInstaller.SetupIDE(const IDEName: TIDEName; var HasErrors: boolean);
+begin
+{$IFDEF MSWINDOWS}
+  if IDEName < TIDEName.delphi13 then exit;
+
+  var IDEInfo: IDelphiIDEInfo := TDelphiIDEInfo.Create(IDEName, Config.AlternateRegistryKey, Config.CompilerPath(GlobalProductId, IDEName));
+  var ResinatorPath := IDEInfo.ResinatorFile;
+  if not TFile.Exists(ResinatorPath) then
+  begin
+    Logger.Trace('Resinator for ' + IDEId[IDEName] +' not found at ' + ResinatorPath);
+    HasErrors := true;
+    exit;
+  end;
+
+
+  Logger.Trace('Ensuring resinator for ' + IDEId[IDEName] +' has the needed headers: ' + ResinatorPath);
+  var TempPath := Config.Folders.CompileTempFolder;
+  try
+    SetupResinator(ResinatorPath, TempPath);
+  except
+    Logger.Trace('Error runnig resinator');
+    HasErrors := true;
+    //ignore the error and keep trying other delphis.
+  end;
+
+{$ENDIF}
 end;
 
 function TDelphiInstaller.SupportsCppBuilder(

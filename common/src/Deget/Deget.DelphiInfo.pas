@@ -164,9 +164,15 @@ type
     // Returns the full file name of Bds.exe file
     function BdsFile: string;
 
+    // Location of resinator.exe
+    function ResinatorFile: string;
+
+
     // Returns Delphi bin directory
     // Example: "C:\Program Files (x86)\Embarcadero\Studio\15.0\bin"
     function BinDir: string;
+
+    function Bin64Dir: string;
 
     // Retrieves the BDSCOMMONDIR for the specified IDE
     // If user has overriden it in Delphi IDE, it will return the overriden value (from registry)
@@ -322,6 +328,11 @@ begin
   Result := TPath.Combine(RootDir, 'bin');
 end;
 
+function TDelphiIDEInfo.Bin64Dir: string;
+begin
+  Result := TPath.Combine(RootDir, 'bin64');
+end;
+
 constructor TDelphiIDEInfo.Create(const AIDEName: TIDEName; const ARegistryName: string = ''; const ACompilerPath: string = '');
 begin
   FIDEName := AIDEName;
@@ -352,6 +363,11 @@ end;
 function TDelphiIDEInfo.BdsFile: string;
 begin
   Result := TPath.Combine(BinDir, 'bds.exe');
+end;
+
+function TDelphiIDEInfo.ResinatorFile: string;
+begin
+  Result := TPath.Combine(Bin64Dir, 'resinator.exe');
 end;
 
 function TDelphiIDEInfo.IDEName: TIDEName;

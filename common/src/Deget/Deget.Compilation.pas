@@ -209,9 +209,12 @@ procedure DelphiCompile(const ProjectFile: string; IDEName: TIDEName; Settings: 
 function CreateDegetPackageCompilationSettings(BuildInfo: TProjectBuildInfo; PlatformInfo: IDelphiPlatformInfo;
   PackageInfo: IDelphiPackageInfo; IDEName: TIDEName; const BuildConfig: string; CBuilder: boolean): TCompilationSettings;
 
+procedure SetupResinator(const ResinatorPath, TempPath: string);
+
 implementation
 
 uses
+  SyncObjs,
   System.SysUtils, System.IOUtils,
   System.StrUtils, Generics.Collections,
   Deget.FileUtils,
@@ -1423,6 +1426,28 @@ begin
 {$ELSE}
   Result := true;
 {$ENDIF}
+end;
+
+procedure SetupResinator(const ResinatorPath, TempPath: string);
+begin
+  //force resinator to extract the windows headers to the folder %localappdata%\temp if needed.
+  //This has a global lock because the folder is shared by everyone.
+  //See https://github.com/tmssoftware/smartsetup-registry/issues/5
+  var Lock := TMutex.Create(nil, false, Mutex_Resinator);
+  try
+    Lock.Acquire;
+    try
+      TDirectory_CreateDirectory(TempPath);
+      TFile.WriteAllText(TPath.Combine(TempPath, 'resource_empty.rc'), '');
+      var ResinatorCommand := '"' + ResinatorPath + '" -v resource_empty.rc -foresource_empty.res';
+      ExecuteCommand(ResinatorCommand, TempPath);
+    finally
+      Lock.Release;
+    end;
+  finally
+    Lock.Free;
+  end;
+
 end;
 
 {$ELSE}
