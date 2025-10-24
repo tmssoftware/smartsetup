@@ -9,6 +9,7 @@ uses
   Commands.Update,
   Commands.List,
   Commands.ListRemote,
+  Commands.VersionsRemote,
   Commands.Credentials,
   Commands.Config,
   Commands.ConfigWrite,
@@ -76,6 +77,7 @@ begin
 
   RegisterListCommand;
   RegisterListRemoteCommand;
+  RegisterVersionsRemoteCommand;
   RegisterInfoCommand;
 
   RegisterCredentialsCommand;

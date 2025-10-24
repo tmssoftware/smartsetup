@@ -199,7 +199,8 @@ uses
   BBArrays in '..\common\src\BBYaml\BBArrays.pas',
   BBYaml.Writer in '..\common\src\BBYaml\BBYaml.Writer.pas',
   BBYaml.Types in '..\common\src\BBYaml\BBYaml.Types.pas',
-  BBStrings in '..\common\src\BBYaml\BBStrings.pas';
+  BBStrings in '..\common\src\BBYaml\BBStrings.pas',
+  Commands.VersionsRemote in 'src\Commands\Commands.VersionsRemote.pas';
 
 begin
   try

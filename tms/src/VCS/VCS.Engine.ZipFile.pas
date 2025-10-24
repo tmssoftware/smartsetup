@@ -12,6 +12,7 @@ type
     procedure Clone(const  aCloneFolder, aURL: string);
     procedure Pull(const aFolder: string);
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
+    function GetVersionNames(const aURL: string): TArray<string>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
   end;
 
@@ -124,6 +125,11 @@ begin
   finally
     DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, ZipFileName);
   end;
+end;
+
+function TZipFileEngine.GetVersionNames(const aURL: string): TArray<string>;
+begin
+  raise Exception.Create('GetVersionNames not supported in ZIPFILE protocol.');
 end;
 
 procedure TZipFileEngine.Pull(const aFolder: string);
