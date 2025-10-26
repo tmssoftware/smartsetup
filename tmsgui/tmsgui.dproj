@@ -148,16 +148,21 @@
             <Form>CredentialsForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="src\Forms.Config.Servers.pas">
-            <Form>ServerConfigForm</Form>
-        </DCCReference>
-        <DCCReference Include="src\UConfigInfo.pas"/>
-        <DCCReference Include="src\Forms.Config.pas">
-            <Form>ConfigForm</Form>
+        <DCCReference Include="src\UCommonTypes.pas"/>
+        <DCCReference Include="src\Forms.VersionPicker.pas">
+            <Form>VersionPickerForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="src\Forms.Start.pas">
             <Form>StartForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="src\Forms.Config.Servers.pas">
+            <Form>ServerConfigForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="src\Forms.Config.pas">
+            <Form>ConfigForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <RcItem Include="tmsgui.ico">

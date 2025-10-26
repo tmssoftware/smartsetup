@@ -16,10 +16,11 @@ uses
   Deget.CoreTypes in '..\common\src\Deget\Deget.CoreTypes.pas',
   GUI.Environment in 'src\GUI.Environment.pas',
   Forms.Credentials in 'src\Forms.Credentials.pas' {CredentialsForm},
+  UCommonTypes in 'src\UCommonTypes.pas',
+  Forms.VersionPicker in 'src\Forms.VersionPicker.pas' {VersionPickerForm},
+  Forms.Start in 'src\Forms.Start.pas' {StartForm},
   Forms.Config.Servers in 'src\Forms.Config.Servers.pas' {ServerConfigForm},
-  UConfigInfo in 'src\UConfigInfo.pas',
-  Forms.Config in 'src\Forms.Config.pas' {ConfigForm},
-  Forms.Start in 'src\Forms.Start.pas' {StartForm};
+  Forms.Config in 'src\Forms.Config.pas' {ConfigForm};
 
 {$R *.res}
 

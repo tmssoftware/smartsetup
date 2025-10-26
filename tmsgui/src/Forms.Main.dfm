@@ -224,7 +224,7 @@ object MainForm: TMainForm
           end
         end
       end
-      object TabSheet1: TTabSheet
+      object tsOutput: TTabSheet
         Caption = 'Output'
         ImageIndex = 2
         object OutputMemo: TMemo
@@ -355,6 +355,12 @@ object MainForm: TMainForm
   object ActionList1: TActionList
     Left = 240
     Top = 96
+    object acInstallVersion: TAction
+      Category = 'Menus'
+      Caption = 'Install ver&sion...'
+      OnExecute = acInstallVersionExecute
+      OnUpdate = acInstallVersionUpdate
+    end
     object acInstall: TAction
       Category = 'Commands'
       Caption = '&Install'
@@ -441,6 +447,9 @@ object MainForm: TMainForm
   object pmProducts: TPopupMenu
     Left = 344
     Top = 96
+    object Installversion1: TMenuItem
+      Action = acInstallVersion
+    end
     object Openversionhistory1: TMenuItem
       Action = acVersionHistory
     end

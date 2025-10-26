@@ -6,7 +6,7 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
-  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UConfigInfo;
+  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -156,6 +156,9 @@ type
     procedure ExecuteInstall(ProgressCallback: TProductProgressProc);
     procedure ExecuteUninstall(ProgressCallback: TProgressProc);
 
+    // Execute install explicitly passing the product ids to be installed
+    procedure ExecuteInstallProducts(const ProductIds: TArray<string>; ProgressCallback: TProductProgressProc);
+
     // Execute self-update command and fires RelaunchCallback if a new update is available and downloaded
     procedure ExecuteSelfUpdate(ProgressCallback: TProgressProc; RelaunchCallback: TProc);
 
@@ -189,6 +192,9 @@ type
     procedure RemoveServerConfigItem(const Name: string);
     procedure AddServerConfigItem(Item: TServerConfigItem);
     procedure EnableServerConfigItem(const Name: string; Enabled: Boolean);
+
+    // functions to manipulate version information about products
+    procedure GetProductVersions(const ProductId: string; Versions: TVersionInfoList);
 
     // Additional check to see if a TGUIProduct instance is valid, i.e., was not deleted
     function IsValidProduct(Product: TGUIProduct): Boolean;
@@ -678,6 +684,12 @@ end;
 
 procedure TGUIEnvironment.ExecuteInstall(ProgressCallback: TProductProgressProc);
 begin
+  ExecuteInstallProducts(SelectedProductIds, ProgressCallback);
+end;
+
+procedure TGUIEnvironment.ExecuteInstallProducts(const ProductIds: TArray<string>;
+  ProgressCallback: TProductProgressProc);
+begin
   RunAsync<TTmsInstallRunner>(
     procedure(Runner: TTmsInstallRunner)
     begin
@@ -688,7 +700,7 @@ begin
       end;
 
       Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.ProductIds.AddStrings(SelectedProductIds);
+      Runner.ProductIds.AddStrings(ProductIds);
       Runner.OnProgress :=
         procedure(const Info: TProgressInfo)
         begin
@@ -839,6 +851,15 @@ begin
       end);
   end;
   Result := FInfo;
+end;
+
+procedure TGUIEnvironment.GetProductVersions(const ProductId: string; Versions: TVersionInfoList);
+begin
+  RunSync<TTmsVersionsRemoteRunner>(
+    procedure(Runner: TTmsVersionsRemoteRunner)
+    begin
+      Runner.RunVersionsRemote(ProductId, Versions);
+    end);
 end;
 
 procedure TGUIEnvironment.GetServerConfigItems(Items: TServerConfigItems);

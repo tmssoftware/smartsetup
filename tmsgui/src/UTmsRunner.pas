@@ -5,7 +5,7 @@ interface
 uses
 //  WinApi.Windows,
   System.SysUtils, System.Classes, System.IOUtils, System.JSON, Deget.CommandLine, UProductInfo, UMultiLogger, Deget.Version,
-  UConfigInfo;
+  UCommonTypes;
 
 type
   TProgressInfo = record
@@ -190,12 +190,18 @@ type
     procedure RunServerRemove(const Name: string);
   end;
 
+  TTmsVersionsRemoteRunner = class(TTmsRunner)
+  public
+    procedure RunVersionsRemote(const ProductId: string; Items: TVersionInfoList);
+  end;
+
   ETmsRunner = class(Exception)
   end;
 
 implementation
 
 uses
+  System.DateUtils,
   Deget.CoreTypes;
 
 { TTmsRunner }
@@ -598,7 +604,7 @@ begin
   if ProductProgress then
     Command := Command + ' -display-options:product-progress';
 
-  RunCommand(AddRepo(Command));
+  RunCommand(Command);
 end;
 
 { TTmsInstallRunner }
@@ -718,6 +724,35 @@ procedure TTmsServerRemoveRunner.RunServerRemove(const Name: string);
 begin
   var Command := Format('server-remove %s', [Name]);
   Run(Command);
+end;
+
+{ TTmsVersionsRemoteRunner }
+
+procedure TTmsVersionsRemoteRunner.RunVersionsRemote(const ProductId: string; Items: TVersionInfoList);
+begin
+  var Command := Format('versions-remote %s -json', [ProductId]);
+  Run(AddRepo(Command));
+
+  // parse response
+  if not (JsonOutput is TJSONObject) then
+    raise ETmsRunner.Create('Could not parse versions-remote result as JSON object');
+
+  Items.Clear;
+  var Json := TJSONObject(JsonOutput);
+  for var Pair in Json do
+  begin
+    var Item := TVersionInfo.Create;
+    Items.Add(Item);
+    Item.Version := Pair.JsonString.Value;
+
+    if not (Pair.JsonValue is TJSONObject) then
+      raise ETmsRunner.CreateFmt('Could not parse version "%s" as JSON object from versions-remote command', [Item.Version]);
+    var JsonItem := TJSONObject(Pair.JsonValue);
+
+    var LocalReleaseDate: TDateTime;
+    if TryISO8601ToDate(JsonItem.GetValue<string>('release_date', ''), LocalReleaseDate, False) then
+      Item.ReleaseDate := LocalReleaseDate;
+  end;
 end;
 
 end.

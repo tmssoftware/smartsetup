@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus,
-  Forms.Config, UConfigInfo, Forms.Start;
+  Forms.Config, UCommonTypes, Forms.Start;
 
 type
   TMainForm = class(TForm)
@@ -35,7 +35,7 @@ type
     Button2: TButton;
     Button3: TButton;
     Button4: TButton;
-    TabSheet1: TTabSheet;
+    tsOutput: TTabSheet;
     OutputMemo: TMemo;
     mmLogDetails: TMemo;
     LogPanel: TPanel;
@@ -56,6 +56,8 @@ type
     lbServer: TLabel;
     acSearchFocus: TAction;
     btCredentials: TButton;
+    acInstallVersion: TAction;
+    Installversion1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -89,6 +91,8 @@ type
     procedure edSearchChange(Sender: TObject);
     procedure acSearchFocusExecute(Sender: TObject);
     procedure cbServerChange(Sender: TObject);
+    procedure acInstallVersionUpdate(Sender: TObject);
+    procedure acInstallVersionExecute(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -127,7 +131,8 @@ var
 implementation
 
 uses
-  Winapi.ShellAPI, Winapi.CommCtrl;
+  Winapi.ShellAPI, Winapi.CommCtrl,
+  Forms.VersionPicker;
 
 {$R *.dfm}
 
@@ -203,6 +208,27 @@ begin
   acInstall.Enabled := GUI.CanInstallSelected;
 end;
 
+procedure TMainForm.acInstallVersionExecute(Sender: TObject);
+begin
+  var Product := ProductFromItem(lvProducts.Selected);
+
+  var Versions := TVersionInfoList.Create;
+  try
+    GUI.GetProductVersions(Product.Id, Versions);
+    var VersionToInstall := TVersionPickerForm.Execute(Product.DisplayName, Versions);
+    var InstallId := Format('%s:%s', [Product.Id, VersionToInstall]);
+    GUI.ExecuteInstallProducts([InstallId], ProductProgressEvent);
+  finally
+    Versions.Free;
+  end;
+end;
+
+procedure TMainForm.acInstallVersionUpdate(Sender: TObject);
+begin
+  var Product := ProductFromItem(lvProducts.Selected);
+  TAction(Sender).Enabled := (Product <> nil) and GUI.CanInstallSelected;
+end;
+
 procedure TMainForm.acPartialBuildExecute(Sender: TObject);
 begin
   GUI.ExecutePartialBuild(ProductProgressEvent);
@@ -268,7 +294,7 @@ end;
 procedure TMainForm.acVersionHistoryUpdate(Sender: TObject);
 begin
   var Product := ProductFromItem(lvProducts.Selected);
-  acVersionHistory.Enabled := GetVersionHistoryUrl(Product) <> '';
+  TAction(Sender).Enabled := GetVersionHistoryUrl(Product) <> '';
 end;
 
 procedure TMainForm.cbServerChange(Sender: TObject);
@@ -517,6 +543,8 @@ procedure TMainForm.lvProductsCustomDrawItem(Sender: TCustomListView; Item: TLis
   var DefaultDraw: Boolean);
 begin
   var Product := ProductFromItem(Item);
+  if Product = nil then Exit; // it might happen eventually, still don't know why
+  
   if Product.Status <> TProductStatus.Installed then
     Sender.Canvas.Font.Style := Sender.Canvas.Font.Style + [fsItalic];
   if Product.IsOutdated then

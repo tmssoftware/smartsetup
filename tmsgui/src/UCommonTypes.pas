@@ -1,4 +1,4 @@
-unit UConfigInfo;
+unit UCommonTypes;
 
 interface
 
@@ -28,6 +28,18 @@ type
     constructor Create;
     destructor Destroy; override;
     property Servers: TServerConfigItems read FServers;
+  end;
+
+  TVersionInfo = class
+  private
+    FVersion: string;
+    FReleaseDate: TDateTime;
+  public
+    property Version: string read FVersion write FVersion;
+    property ReleaseDate: TDateTime read FReleaseDate write FReleaseDate;
+  end;
+
+  TVersionInfoList = class(TObjectList<TVersionInfo>)
   end;
 
 implementation
