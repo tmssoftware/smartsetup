@@ -191,17 +191,18 @@ end;
 
 function CombinePath(const RootPath, RelPath: string): string;
 begin
+  var FullRootPath := TPath.GetFullPath(RootPath);
   var PathFixed := RelPath.Replace('\', PathDelim).Replace('/', PathDelim);
 
-  Result := TPath.GetFullPath(TPath.Combine(RootPath, PathFixed));
+  Result := TPath.GetFullPath(TPath.Combine(FullRootPath, PathFixed));
 
   //we need some care here to avoid some malicious config file writing anywhere in the disk.
   //we could be passed something like folder/../../../something.pas and rewriting stuff they shouldn't.
   //that's the reason also why we don't try to create folders at all. the folder must exist.
 
-  if not (Result.StartsWith(RootPath)) then
+  if not (Result.StartsWith(FullRootPath)) then
   begin
-    raise Exception.Create('The path for the file: "' + Result + '" is not valid. It must point to a file inside the project folder.');
+    raise Exception.Create('The path for the file: "' + Result + '" is not valid. It must point to a file inside the project folder. (' + FullRootPath +')');
   end;
 
 end;
