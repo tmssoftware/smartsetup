@@ -95,6 +95,9 @@ type
     // Example: "C:\Program Files (x86)\Embarcadero\Studio\15.0"
     function RootDir: string;
 
+    //True if we aren't reading the compiler paths from the registry.
+    function HasCustomCompilerPaths: boolean;
+
     // Returns the full file name of dcc32.exe file
     // Example: "C:\Program Files (x86)\Embarcadero\Studio\15.0\bin\dcc32.exe"
     function Dcc32File: string;

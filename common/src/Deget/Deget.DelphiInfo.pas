@@ -115,6 +115,7 @@ type
   strict private
     FIDEName: TIDEName;
     FRootDir: string;
+    FHasCustomCompilerPaths: boolean;
     FRootRegistryKey: string;
     function IsAndroidSDKInstalled: boolean;
     function IsAndroid64SDKInstalled: boolean;
@@ -149,6 +150,9 @@ type
     // Returns the location of Delphi Root Directory (install directory)
     // Example: "C:\Program Files (x86)\Embarcadero\Studio\15.0"
     function RootDir: string;
+
+    //True if we aren't reading the compiler paths from the registry.
+    function HasCustomCompilerPaths: boolean;
 
     // Returns the full file name of rsvars.bat file
     // Example: "C:\Program Files (x86)\Embarcadero\Studio\15.0\bin\rsvars.bat"
@@ -343,10 +347,12 @@ begin
     FRootRegistryKey := StringReplace(FRootRegistryKey, 'BDS', ARegistryName, []);
   end;
 
-  if ACompilerPath <> '' then
+  FHasCustomCompilerPaths := ACompilerPath <> '';
+  if FHasCustomCompilerPaths then
     FRootDir := ACompilerPath
   else
     RegQueryStringValue(BaseKey, 'rootdir', FRootDir);
+
   FRootDir := ExcludeTrailingPathDelimiter(FRootDir);
 end;
 
@@ -608,6 +614,11 @@ end;
 function TDelphiIDEInfo.RootDir: string;
 begin
   Result := FRootDir;
+end;
+
+function TDelphiIDEInfo.HasCustomCompilerPaths: Boolean;
+begin
+  Result := FHasCustomCompilerPaths;
 end;
 
 function TDelphiIDEInfo.RsvarsFile: string;
