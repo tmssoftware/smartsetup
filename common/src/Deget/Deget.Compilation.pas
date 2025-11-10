@@ -39,6 +39,7 @@ type
     FWarningsAsErrors: Nullable<boolean>;
     FTargetConfig: Nullable<string>;
     function GetPathsToPreserve(const Pattern: string): string;
+    function GetLibraryPath: string;
   public
     property BuildMode: TBuildMode read FBuildMode write FBuildMode;
     property TargetPlatform: IDelphiPlatformInfo read FTargetPlatform write FTargetPlatform;
@@ -1313,12 +1314,32 @@ begin
 end;
 
 { TCompilationSettings }
+
+function TCompilationSettings.GetLibraryPath: string;
+begin
+  var IDEInfo := TargetPlatform.IDEInfo;
+  var ThirdPartyPathsFile := TPath.Combine(IDEInfo.RootDir, 'third-party', 'third-party-paths.txt');
+  if IDEInfo.HasCustomCompilerPaths and TFile.Exists(ThirdPartyPathsFile) then
+  begin
+    Result := '';
+    var Paths := TFile.ReadAllLines(ThirdPartyPathsFile);
+    for var Path in Paths do
+    begin
+      Result := Result + TPath.Combine(IDEInfo.RootDir, 'third-party', Path) +';';
+    end;
+  end
+  else
+  begin
+    Result := TargetPlatform.GetIDEPath(TDelphiPathType.ptLibraryPath);
+  end;
+end;
+
 function TCompilationSettings.GetPathsToPreserve(
   const Pattern: string): string;
 begin
   var NewPaths := TList<string>.Create;
   try
-    var ExistingLibraryPaths := TargetPlatform.GetIDEPath(TDelphiPathType.ptLibraryPath);
+    var ExistingLibraryPaths := GetLibraryPath;
     var SplitPaths := ExistingLibraryPaths.Split([';']);
     for var Path in SplitPaths do
     begin
