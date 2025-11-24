@@ -130,8 +130,15 @@ const
 function TryGetIDEName(const value: string; var IDEName: TIDEName): Boolean;
 function GetIDEName(const value: string): TIDEName;
 function GetPlatformName(const value: string): TPlatform;
+function StrToIDEName(const Value: string; ValidIDEs: TIDENameSet = ValidIDEs): TIDEName;
+function StrToIDENameSet(const Value: string; ValidIDEs: TIDENameSet = ValidIDEs): TIDENameSet;
+function StrToDelphiIDEName(const Value: string): TIDEName;
+function StrToDelphiIDENameSet(const Value: string): TIDENameSet;
 
 implementation
+
+uses
+  StrUtils, SysUtils;
 
 function TryGetIDEName(const value: string; var IDEName: TIDEName): Boolean;
 begin
@@ -157,6 +164,54 @@ begin
     if PlatformId[plat] = value then exit(plat);
   end;
   Result := TPlatform(-1);
+end;
+
+function StrToDelphiIDEName(const Value: string): TIDEName;
+begin
+  Result := StrToIDEName(Value, DelphiIDENames);
+end;
+
+function StrToDelphiIDENameSet(const Value: string): TIDENameSet;
+begin
+  Result := StrToIDENameSet(Value, DelphiIDENames);
+end;
+
+function StrToIDEName(const Value: string; ValidIDEs: TIDENameSet = ValidIDEs): TIDEName;
+begin
+  if not TryGetIDEName(Value, Result) then
+    raise Exception.CreateFmt('Unknown IDE: %s', [Value]);
+  if not (Result in ValidIDEs) then
+    raise Exception.CreateFmt('Invalid IDE: %s', [Value]);
+end;
+
+function StrToIDENameRange(const Value: string; ValidIDEs: TIDENameSet = ValidIDEs): TIDENameSet;
+begin
+  Result := [];
+  var IDENames := SplitString(Value, '-');
+  case Length(IDENames) of
+    1: Result := Result + [StrToIDEName(Value, ValidIDEs)];
+    2:
+      begin
+        var LowIDE := Low(TIDEName);
+        var HighIDE := High(TIDEName);
+        if IDENames[0] <> '' then
+          LowIDE := StrToIDEName(IDENames[0], ValidIDEs);
+        if IDENames[1] <> '' then
+          HighIDE := StrToIDEName(IDENames[1], ValidIDEs);
+        for var IDEName := LowIDE to HighIDE do
+          if IDEName in ValidIDEs then
+            Result := Result + [IDEName];
+      end;
+  else
+    raise Exception.Create('Invalid syntax for IDE range: ' + Value);
+  end;
+end;
+
+function StrToIDENameSet(const Value: string; ValidIDEs: TIDENameSet = ValidIDEs): TIDENameSet;
+begin
+  Result := [];
+  for var IDERange in SplitString(Value, ',') do
+    Result := Result + StrToIDENameRange(IDERange, ValidIDEs);
 end;
 
 end.
