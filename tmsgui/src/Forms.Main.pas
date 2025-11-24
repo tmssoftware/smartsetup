@@ -216,8 +216,11 @@ begin
   try
     GUI.GetProductVersions(Product.Id, Versions);
     var VersionToInstall := TVersionPickerForm.Execute(Product.DisplayName, Versions);
-    var InstallId := Format('%s:%s', [Product.Id, VersionToInstall]);
-    GUI.ExecuteInstallProducts([InstallId], ProductProgressEvent);
+    if VersionToInstall <> '' then
+    begin
+      var InstallId := Format('%s:%s', [Product.Id, VersionToInstall]);
+      GUI.ExecuteInstallProducts([InstallId], ProductProgressEvent);
+    end;
   finally
     Versions.Free;
   end;
