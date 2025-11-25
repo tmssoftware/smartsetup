@@ -9,7 +9,9 @@ type
   private
     procedure RemoveTopEmptyFolder(const DestFolder: string);
   public
-    procedure Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+    procedure Clone(const aCloneFolder, aURL, aVersion: string);
+    procedure AfterClone(const aRootFolder, aCloneFolder: string);
+
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
     function GetVersionNames(const aURL: string): TArray<string>;
@@ -24,7 +26,12 @@ uses
 
 { TZipFileEngine }
 
-procedure TZipFileEngine.Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+procedure TZipFileEngine.AfterClone(const aRootFolder, aCloneFolder: string);
+begin
+
+end;
+
+procedure TZipFileEngine.Clone(const aCloneFolder, aURL, aVersion: string);
 begin
   raise Exception.Create('Clone not supported in ZIPFILE protocol.');
 end;

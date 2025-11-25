@@ -67,8 +67,9 @@ begin
   end;
 
   try
-    Engine.Clone(TempProductFolder, TempProductFolder, Product.Product.Url, Product.Version);
+    Engine.Clone(TempProductFolder, Product.Product.Url, Product.Version);
     RenameAndCheckFolder(TempProductFolder, ProductFolder);
+    Engine.AfterClone(ProductFolderRoot, ProductFolder);
   except
     DeleteFolder(TempProductFolder);
     raise;

@@ -17,10 +17,12 @@ type
 
     property SvnCommandLine: string read FSvnCommandLine;
     property CloneCommand: string read FCloneCommand;
+    procedure AfterClone(const aRootFolder, aCloneFolder: string);
+
     property PullCommand: string read FPullCommand;
     function GetVersionNames(const aURL: string): TArray<string>;
 
-    procedure Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+    procedure Clone(const aCloneFolder, aURL, aVersion: string);
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
   end;
@@ -67,7 +69,12 @@ begin
   raise Exception.Create('GetVersionNames not supported in SVN protocol.');
 end;
 
-procedure TSvnEngine.Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+procedure TSvnEngine.AfterClone(const aRootFolder, aCloneFolder: string);
+begin
+
+end;
+
+procedure TSvnEngine.Clone(const aCloneFolder, aURL, aVersion: string);
 begin
   if aVersion <> '' then raise Exception.Create('Versioning not supported in SVN protocol.');
 

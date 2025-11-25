@@ -26,7 +26,9 @@ type
     property CloneCommand: string read FCloneCommand;
     property PullCommand: string read FPullCommand;
 
-    procedure Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+    procedure Clone(const aCloneFolder, aURL, aVersion: string);
+    procedure AfterClone(const aRootFolder, aCloneFolder: string);
+
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     function GetVersionNames(const aURL: string): TArray<string>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
@@ -150,7 +152,7 @@ begin
 end;
 
 
-procedure TGitEngine.Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+procedure TGitEngine.Clone(const aCloneFolder, aURL, aVersion: string);
 begin
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
@@ -160,9 +162,15 @@ begin
   if not ExecuteCommand(FullCommand, CloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
     then raise Exception.Create('Error cloning "' + aUrl + '" into ' + CloneFolder);
 
-  SaveCurrentBranch(aRootFolder, aCloneFolder);
+  SaveCurrentBranch(aCloneFolder, aCloneFolder);
   CheckoutVersion(CloneFolder, aVersion, true);
 end;
+
+procedure TGitEngine.AfterClone(const aRootFolder, aCloneFolder: string);
+begin
+  RenameAndCheck(TPath.Combine(aCloneFolder, GitDefaultBranchFile), TPath.Combine(aRootFolder, GitDefaultBranchFile));
+end;
+
 
 procedure TGitEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
