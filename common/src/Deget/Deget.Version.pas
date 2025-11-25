@@ -26,6 +26,7 @@ type
     function ToString: string;
     function Normalized: string;
     class function Make(const AMajor, AMinor, ARelease, ABuild: Integer): TVersion; static;
+    class function TryFromString(const S: string; var Version: TVersion): Boolean; static;
     procedure FromString(const S: string);
     function IsNull: boolean;
     procedure Clear;
@@ -34,6 +35,28 @@ type
     property Release: integer index 2 read GetNumber write SetNumber;
     property Build: integer index 3 read GetNumber write SetNumber;
     property Numbers[I: integer]: integer read GetNumber write SetNumber; default;
+  end;
+
+  TLenientVersion = record
+  strict private
+    FValue: string;
+    class function ValidVersion(const Lenient: TLenientVersion; var Version: TVersion): Boolean; static;
+  public
+    class operator Implicit(Value: string): TLenientVersion;
+    class operator Implicit(Value: TLenientVersion): string;
+    class operator Equal(Left, Right: TLenientVersion): Boolean;
+    class operator NotEqual(Left, Right: TLenientVersion): Boolean;
+
+    class operator GreaterThan(Left, Right: TLenientVersion): Boolean;
+    class operator GreaterThanOrEqual(Left, Right: TLenientVersion): Boolean;
+
+    class operator LessThan(Left, Right: TLenientVersion): Boolean;
+    class operator LessThanOrEqual(Left, Right: TLenientVersion): Boolean;
+  public
+    function ToString: string;
+    function Normalized: string;
+    function IsNull: Boolean;
+    procedure Clear;
   end;
 
 implementation
@@ -57,27 +80,9 @@ begin
 end;
 
 procedure TVersion.FromString(const S: string);
-var
-  StrNumber: string;
-  Digit: integer;
-  I: integer;
-  Temp: TVersionNumbers;
 begin
-  // quick and dirty
-  I := 0;
-  for StrNumber in SplitString(S, '.') do
-  begin
-    if not TryStrToInt(StrNumber, Digit) or (I > 3) then
-      raise EConvertError.CreateFmt('''%s'' is not a valid version number', [S]);
-    Temp[I] := Digit;
-    Inc(I);
-  end;
-  while I <= 3 do
-  begin
-    Temp[I] := 0;
-    Inc(I);
-  end;
-  FNumbers := Temp;
+  if not TryFromString(S, Self) then
+    raise EConvertError.CreateFmt('''%s'' is not a valid version number', [S]);
 end;
 
 function TVersion.GetNumber(I: integer): integer;
@@ -173,6 +178,128 @@ begin
   else
   if FNumbers[2] <> 0 then
     Result := Result + '.' + IntToStr(FNumbers[2]);
+end;
+
+class function TVersion.TryFromString(const S: string; var Version: TVersion): Boolean;
+var
+  StrNumber: string;
+  Digit: integer;
+  I: integer;
+  Temp: TVersionNumbers;
+begin
+  // quick and dirty
+  I := 0;
+  for StrNumber in SplitString(S, '.') do
+  begin
+    if not TryStrToInt(StrNumber, Digit) or (I > 3) then
+      Exit(False);
+    Temp[I] := Digit;
+    Inc(I);
+  end;
+  while I <= 3 do
+  begin
+    Temp[I] := 0;
+    Inc(I);
+  end;
+  Version.FNumbers := Temp;
+  Result := True;
+end;
+
+{ TLenientVersion }
+
+procedure TLenientVersion.Clear;
+begin
+  FValue := '';
+end;
+
+class operator TLenientVersion.Equal(Left, Right: TLenientVersion): Boolean;
+var
+  LeftVersion, RightVersion: TVersion;
+begin
+  if ValidVersion(Left, LeftVersion) and ValidVersion(Right, RightVersion) then
+    Result := LeftVersion = RightVersion
+  else
+    Result := CompareText(Left.FValue, Right.FValue) = 0;
+end;
+
+class operator TLenientVersion.GreaterThan(Left, Right: TLenientVersion): Boolean;
+var
+  LeftVersion, RightVersion: TVersion;
+begin
+  if ValidVersion(Left, LeftVersion) and ValidVersion(Right, RightVersion) then
+    Result := LeftVersion > RightVersion
+  else
+    Result := CompareText(Left.FValue, Right.FValue) > 0;
+end;
+
+class operator TLenientVersion.GreaterThanOrEqual(Left, Right: TLenientVersion): Boolean;
+var
+  LeftVersion, RightVersion: TVersion;
+begin
+  if ValidVersion(Left, LeftVersion) and ValidVersion(Right, RightVersion) then
+    Result := LeftVersion >= RightVersion
+  else
+    Result := CompareText(Left.FValue, Right.FValue) >= 0;
+end;
+
+class operator TLenientVersion.Implicit(Value: TLenientVersion): string;
+begin
+  Result := Value.FValue;
+end;
+
+class operator TLenientVersion.Implicit(Value: string): TLenientVersion;
+begin
+  Result.FValue := Value;
+end;
+
+function TLenientVersion.IsNull: Boolean;
+var
+  Version: TVersion;
+begin
+  if ValidVersion(FValue, Version) then
+    Result := Version.IsNull
+  else
+    Result := FValue = '';
+end;
+
+class operator TLenientVersion.LessThan(Left, Right: TLenientVersion): Boolean;
+begin
+  Result := Right > Left;
+end;
+
+class operator TLenientVersion.LessThanOrEqual(Left, Right: TLenientVersion): Boolean;
+begin
+  Result := Right >= Left;
+end;
+
+function TLenientVersion.Normalized: string;
+var
+  Version: TVersion;
+begin
+  if ValidVersion(FValue, Version) then
+    Result := Version.Normalized
+  else
+    Result := FValue;
+end;
+
+class operator TLenientVersion.NotEqual(Left, Right: TLenientVersion): Boolean;
+begin
+  Result := not (Left = Right);
+end;
+
+function TLenientVersion.ToString: string;
+var
+  Version: TVersion;
+begin
+  if ValidVersion(FValue, Version) then
+    Result := Version.ToString
+  else
+    Result := FValue;
+end;
+
+class function TLenientVersion.ValidVersion(const Lenient: TLenientVersion; var Version: TVersion): Boolean;
+begin
+  Result := TVersion.TryFromString(Lenient.FValue, Version);
 end;
 
 end.

@@ -38,8 +38,8 @@ type
   TGUIProduct = class
   private
     FId: string;
-    FLocalVersion: TVersion;
-    FRemoteVersion: TVersion;
+    FLocalVersion: TLenientVersion;
+    FRemoteVersion: TLenientVersion;
     FName: string;
     FStatus: TProductStatus;
     FHasFetchInfo: Boolean;
@@ -50,8 +50,8 @@ type
     function DisplayName: string;
     property Id: string read FId write FId;
     property Name: string read FName write FName;
-    property LocalVersion: TVersion read FLocalVersion write FLocalVersion;
-    property RemoteVersion: TVersion read FRemoteVersion write FRemoteVersion;
+    property LocalVersion: TLenientVersion read FLocalVersion write FLocalVersion;
+    property RemoteVersion: TLenientVersion read FRemoteVersion write FRemoteVersion;
     property Status: TProductStatus read FStatus write FStatus;
     property HasFetchInfo: Boolean read FHasFetchInfo write FHasFetchInfo;
     property VendorId: string read FVendorId write FVendorId;

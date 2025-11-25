@@ -31,7 +31,7 @@ type
     FChannel: string;
     FLocal: Boolean;
     FIDEInfoMap: TDictionary<TIDEName, TProductIDEInfo>;
-    FVersion: TVersion;
+    FVersion: TLenientVersion;
     FVendorId: string;
     FServer: string;
   public
@@ -41,7 +41,7 @@ type
     function HasIDEInfo: Boolean;
     property Id: string read FId write FId;
     property Name: string read FName write FName;
-    property Version: TVersion read FVersion write FVersion;
+    property Version: TLenientVersion read FVersion write FVersion;
     property Channel: string read FChannel write FChannel;
     property Local: Boolean read FLocal write FLocal;
     property VendorId: string read FVendorId write FVendorId;

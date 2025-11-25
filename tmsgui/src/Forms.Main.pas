@@ -99,7 +99,7 @@ type
     SortColumn: Integer;
     SortDescending: Boolean;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
-    function CompareVersion(const Version1, Version2: TVersion): Integer;
+    function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
     function FormatLogMessage(const Item: TGUILogItem): string;
     function FindProductItem(const ProductId: string): TListItem;
     procedure ShowInfo;
@@ -328,7 +328,7 @@ begin
   Result := StatusValue[Status1] - StatusValue[Status2];
 end;
 
-function TMainForm.CompareVersion(const Version1, Version2: TVersion): Integer;
+function TMainForm.CompareVersion(const Version1, Version2: TLenientVersion): Integer;
 begin
   if Version1 < Version2 then
     Result := -1
