@@ -18,11 +18,16 @@ tms build #this will also build testapp.
 
 tms update
 
+Write-Output "Now compiling the app and checking the result."
 $expectedResult = "1DC22C912262B3FDA386381714E4674E240860FB66DD5A70307F800CFA4A6B6F"
 $Result = & .\testapp\Win32\Release\testapp.exe
 if ($Result -ne $expectedResult) {
     Write-Error "Install everything failed: Result was '$Result' and should have been '$expectedResult'."
+} else {
+    Write-Output "testapp.exe worked."
 }
+
+Write-Output "Now testing with msbuild.exe"
 
 Set-Location testapp-no-tmsbuild
 msbuild

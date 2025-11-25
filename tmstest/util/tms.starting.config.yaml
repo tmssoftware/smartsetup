@@ -46,7 +46,7 @@ configuration for all products:
     skip register: true
   delphi versions:
     - delphi12
-    #- delphi13
+    - delphi13
 
   # specify the platforms you want to be built/installed.
   # if this option is omitted, it will try to build for all platforms supported by the IDE.
