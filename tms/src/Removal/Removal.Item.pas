@@ -16,7 +16,7 @@ type
   private
     FProductId: string;
     FProductPath: string;
-    FVersion: TVersion;
+    FVersion: TLenientVersion;
     FDependenciesProcessed: Boolean;
     FDependents: TList<string>;
     FStatus: TRemovalStatus;
@@ -26,7 +26,7 @@ type
     property DependenciesProcessed: Boolean read FDependenciesProcessed write FDependenciesProcessed;
     property ProductId: string read FProductId;
     property ProductPath: string read FProductPath;
-    property Version: TVersion read FVersion;
+    property Version: TLenientVersion read FVersion;
     property Dependents: TList<string> read FDependents;
     property Status: TRemovalStatus read FStatus write FStatus;
   end;
@@ -74,7 +74,7 @@ end;
 function TRemovalItems.Find(const ProductId, Version: string): TRemovalItem;
 begin
   for var Item in Self do
-    if (Item.ProductId = ProductId) and (Item.Version = TVersion(Version)) then
+    if (Item.ProductId = ProductId) and (Item.Version = TLenientVersion(Version)) then
        Exit(Item);
   Result := nil;
 end;

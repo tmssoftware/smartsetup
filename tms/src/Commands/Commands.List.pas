@@ -27,7 +27,7 @@ begin
       var Item := TJSONObject.Create;
       Root.AddPair(Product.Id, Item);
 
-      Item.AddPair('version', TVersion(Product.Version).Normalized);
+      Item.AddPair('version', TLenientVersion(Product.Version).Normalized);
       Item.AddPair('name', Product.Name);
       Item.AddPair('server', Product.Server);
       if Product.Channel <> '' then

@@ -29,7 +29,7 @@ type
   private
     FId: string;
     FName: string;
-    FVersion: TVersion;
+    FVersion: TLenientVersion;
     FChannel: string;
     FServer: string;
     FFetched: Boolean;
@@ -43,7 +43,7 @@ type
     function IDEStatus(const IDEName: TIDEName): TIDEStatus;
     property Id: string read FId write FId;
     property Name: string read FName write FName;
-    property Version: TVersion read FVersion write FVersion;
+    property Version: TLenientVersion read FVersion write FVersion;
     property Channel: string read FChannel write FChannel;
     property Server: string read FServer write FServer;
     property Fetched: Boolean read FFetched write FFetched;
@@ -111,7 +111,10 @@ begin
 
       // override properties, use data from tmsbuild.yaml instead of fetch.info.txt
       Product.Name := Proj.Application.Name;
-      Product.Version := Proj.Application.Version;
+
+      //Prefer the info in fetch.info.txt for products that come from github. Those will have likely the tmsbuild.yaml version empty or wrong.
+      //We could also check if Proj.Application.Version = '' then... but the version in tmsbuild.yaml won't be at the commit level. Lots of commits would have the same version.
+      if Product.Version = '' then Product.Version := Proj.Application.Version;
 
       Product.Project := Projs.All.Extract(Proj);
     end;

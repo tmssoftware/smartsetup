@@ -50,7 +50,7 @@ begin
       var Item := TJSONObject.Create;
       Root.AddPair(Product.Id, Item);
 
-      Item.AddPair('version', TVersion(Product.Version).Normalized);
+      Item.AddPair('version', TLenientVersion(Product.Version).Normalized);
       Item.AddPair('name', Product.Name);
       if Product.LicenseStatus <> TLicenseStatus.none then
          Item.AddPair('license_status', LicenseStatusStr[Product.LicenseStatus]);
