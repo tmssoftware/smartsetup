@@ -420,6 +420,7 @@
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Types.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBStrings.pas"/>
         <DCCReference Include="src\Commands\Commands.VersionsRemote.pas"/>
+        <DCCReference Include="src\Fetching\Fetching.ProductVersion.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

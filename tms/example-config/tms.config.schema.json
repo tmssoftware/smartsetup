@@ -252,7 +252,7 @@
             "pull command": {
               "type": ["string", "null"],
               "description": "Here you can specify extra parameters for the git pull call. If not specified, smart setup will do a plain pull.",
-              "examples": ["pull --ff-only"]
+              "examples": ["pull --all --ff-only"]
             }
           },
           "additionalProperties": false

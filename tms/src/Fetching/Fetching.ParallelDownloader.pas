@@ -137,12 +137,21 @@ begin
   TDirectory_CreateDirectory(Folders.DownloadsFolder);
   
   var FileNames := TDirectory.GetFiles(Folders.DownloadsFolder, FetchItem.UniqueName + '.*');
+  var DownloadInfo: TDownloadInfo;
+  var HasDownloadInfo := false;
+  if FetchItem.FileHash = '' then
+  begin
+    DownloadInfo := Repo.GetDownloadInfo(FetchItem.ProductId, FetchItem.Version);
+    FetchItem.FileHash := DownloadInfo.FileHash;
+    HasDownloadInfo := true;
+  end;
+
   var ExistingFileName := GetBestFileName(FileNames, FetchItem.FileHash);
   
   var DownloadFormat := TDownloadFormat.Unknown;
   if ExistingFileName = '' then
   begin
-    var DownloadInfo := Repo.GetDownloadInfo(FetchItem.ProductId, FetchItem.Version);
+    if not HasDownloadInfo then DownloadInfo := Repo.GetDownloadInfo(FetchItem.ProductId, FetchItem.Version);
     ExistingFileName := DownloadFile(DownloadInfo, CombinePath(Folders.DownloadsFolder, FetchItem.UniqueName), DownloadFormat);
   end
   else

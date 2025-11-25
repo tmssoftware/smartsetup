@@ -9,7 +9,7 @@ type
   TVCSFetchStatus = (Ok, Error);
   TVCSFetchStatusSet = set of TVCSFetchStatus;
 
-procedure LogVCSFetchSummary(const Products: TList<TRegisteredProduct>; const Status: TArray<TVCSFetchStatus>);
+procedure LogVCSFetchSummary(const Products: TList<TRegisteredVersionedProduct>; const Status: TArray<TVCSFetchStatus>);
 procedure AddToVCSFetchLogSummary(const Verbosity: TVerbosity; const msg: string);
 
 implementation
@@ -34,18 +34,18 @@ begin
   ExtraMessages := ExtraMessages + [NewMsg];
 end;
 
-function LogItems(const Products: TList<TRegisteredProduct>; const Status: TArray<TVCSFetchStatus>; const TargetStatus: TVCSFetchStatusSet; const Suffix: string): Boolean;
+function LogItems(const Products: TList<TRegisteredVersionedProduct>; const Status: TArray<TVCSFetchStatus>; const TargetStatus: TVCSFetchStatusSet; const Suffix: string): Boolean;
 begin
   Result := False;
   for var i := 0 to Products.Count - 1 do
     if (Status[i] in TargetStatus) then
     begin
       Result := True;
-      Logger.Info(Format('  - %s %s', [Products[i].ProductId, Suffix]));
+      Logger.Info(Format('  - %s %s', [Products[i].ProductIdAndVersion, Suffix]));
     end;
 end;
 
-procedure LogVCSFetchSummary(const Products: TList<TRegisteredProduct>; const Status: TArray<TVCSFetchStatus>);
+procedure LogVCSFetchSummary(const Products: TList<TRegisteredVersionedProduct>; const Status: TArray<TVCSFetchStatus>);
 begin
   Logger.StartSection(TMessageType.Summary, 'Repository Summary');
   Logger.Info('=== Repository Summary ===');

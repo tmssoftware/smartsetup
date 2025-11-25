@@ -167,10 +167,10 @@ begin
       begin
         if BuildProject.Skipped.Empty then
         begin
-          Logger.Info('Skipping ' + BuildProject.Project.Application.NameAndVersion + '. There is nothing to build from configuration.');
+          Logger.Info('Skipping ' + BuildProject.Project.Application.NameAndVersion + '. It doesn''t support any of the IDEs or platforms where we are installing.');
         end else
         begin
-          Logger.Info('Skipping ' + BuildProject.Project.Application.NameAndVersion + '. This component has not been modified.');
+          Logger.Info('Skipping ' + BuildProject.Project.Application.NameAndVersion + '. This product has not been modified.');
         end;
       end;
     end;

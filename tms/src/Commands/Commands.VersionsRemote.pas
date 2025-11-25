@@ -10,7 +10,7 @@ procedure RegisterVersionsRemoteCommand;
 implementation
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
-  UJsonPrinter, UConfigDefinition, VCS.Registry, VCS.CoreTypes, VCS.Engine.Factory;
+  UJsonPrinter, UConfigDefinition, VCS.Registry, VCS.CoreTypes, VCS.Engine.Factory, Fetching.ProductVersion;
 
 var
   EnableLog: Boolean = False;
@@ -81,24 +81,22 @@ begin
 end;
 
 function AddZipFileVersions(const ListedVersions: TList<TOutputVersion>): Boolean;
-var
-  Products: TList<TRegisteredProduct>;
 begin
-  Products := TList<TRegisteredProduct>.Create;
+  var Products := TObjectList<TRegisteredVersionedProduct>.Create;
   try
-    RegisteredVCSRepos('').GetProducts(ProductId, Products, nil);
+    RegisteredVCSRepos('').GetProducts(TProductVersion.Create(ProductId, ''), Products, nil, nil);
     Result := Products.Count > 0;
     if not Result then Exit;
 
     var Product := Products[0];
 
-    // only retrieve versiosn for git repositories. If not git, just return an empty version list,
+    // only retrieve versions for git repositories. If not git, just return an empty version list,
     // but no errors since the product was found.
-    if Product.Protocol <> TVCSProtocol.Git then Exit;
+    if Product.Product.Protocol <> TVCSProtocol.Git then Exit;
 
     // Find versions for git repo.
-    var Engine := TVCSFactory.Instance.GetEngine(Product.Protocol);
-    for var VersionName in Engine.GetVersionNames(Product.Url) do
+    var Engine := TVCSFactory.Instance.GetEngine(Product.Product.Protocol);
+    for var VersionName in Engine.GetVersionNames(Product.Product.Url) do
       ListedVersions.Add(TOutputVersion.Create(VersionName, TLicenseStatus.licensed, 0, ''));
   finally
     Products.Free;

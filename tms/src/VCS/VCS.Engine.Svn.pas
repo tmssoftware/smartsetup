@@ -20,9 +20,9 @@ type
     property PullCommand: string read FPullCommand;
     function GetVersionNames(const aURL: string): TArray<string>;
 
-    procedure Clone(const  aCloneFolder, aURL: string);
-    procedure Pull(const aFolder: string);
-    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
+    procedure Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+    procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
+    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
   end;
 
 implementation
@@ -57,7 +57,7 @@ begin
   Result := FindExeInPath(Path, SvnExe);
 end;
 
-function TSvnEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
+function TSvnEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
 begin
   Result := false;
 end;
@@ -67,8 +67,10 @@ begin
   raise Exception.Create('GetVersionNames not supported in SVN protocol.');
 end;
 
-procedure TSvnEngine.Clone(const aCloneFolder, aURL: string);
+procedure TSvnEngine.Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
 begin
+  if aVersion <> '' then raise Exception.Create('Versioning not supported in SVN protocol.');
+
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
   var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + CloneCommand + ' "' + aURL + '" "' + CloneFolder + '"';
@@ -78,13 +80,15 @@ begin
     then raise Exception.Create('Error doing svn checkout from "' + aUrl + '" into ' + aCloneFolder);
 end;
 
-procedure TSvnEngine.Pull(const aFolder: string);
+procedure TSvnEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
+  if aVersion <> '' then raise Exception.Create('Versioning not supported in SVN protocol.');
+
   var Output := '';
-  var Folder := TPath.GetFullPath(aFolder);
+  var Folder := TPath.GetFullPath(aGitFolder);
   var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + PullCommand;
   if not ExecuteCommand(FullCommand, Folder, Output)
-    then raise Exception.Create('Error doing svn update in "' + aFolder + '"');
+    then raise Exception.Create('Error doing svn update in "' + aGitFolder + '"');
 end;
 
 end.

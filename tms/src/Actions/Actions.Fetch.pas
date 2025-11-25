@@ -7,10 +7,9 @@ interface
 type
   TFetchMode = (OnlyInstalled, DownloadNew);
 
-procedure ExecuteFetchAction(AProductIds: TArray<string>; FetchMode: TFetchMode);
+procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
 
 implementation
-
 uses
   System.SysUtils,
   System.StrUtils,
@@ -22,6 +21,7 @@ uses
   Fetching.Summary,
   Commands.Logging,
   UConfigDefinition,
+  Fetching.ProductVersion,
   VCS.Manager;
 
 function FindApiServer: TServerConfig;
@@ -40,12 +40,13 @@ begin
   Result := Config.ServerConfig.GetServer(ServerIndex);
 end;
 
-procedure ExecuteFetchAction(AProductIds: TArray<string>; FetchMode: TFetchMode);
+procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
 begin
   var ApiServer := FindApiServer;
+  var ProductVersions := ParseVersions(AProductIdsAndVersions);
   var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, false);
   try
-    var VCSProducts := TVCSManager.Fetch(AProductIds, FetchMode = TFetchMode.OnlyInstalled);
+    var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled);
     try
       if Repo <> nil then
       begin
@@ -57,7 +58,7 @@ begin
               begin
                 Logger.StartSection(TMessageType.Update, 'Updating installed products');
                 try
-                  Manager.UpdateInstalled(AProductIds);
+                  Manager.UpdateInstalled(ProductVersions);
                 finally
                   Logger.FinishSection(TMessageType.Update, false);
                 end;
@@ -67,7 +68,7 @@ begin
                 { TFetchMode.DownloadNew: }
                 Logger.StartSection(TMessageType.Update, 'Updating selected products');
                 try
-                  Manager.UpdateSelected(AProductIds);
+                    Manager.UpdateSelected(ProductVersions);
                 finally
                   Logger.FinishSection(TMessageType.Update, false);
                 end;

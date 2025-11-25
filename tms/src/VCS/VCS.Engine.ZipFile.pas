@@ -9,11 +9,11 @@ type
   private
     procedure RemoveTopEmptyFolder(const DestFolder: string);
   public
-    procedure Clone(const  aCloneFolder, aURL: string);
-    procedure Pull(const aFolder: string);
+    procedure Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
+    procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
     function GetVersionNames(const aURL: string): TArray<string>;
-    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
+    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
   end;
 
 
@@ -24,7 +24,7 @@ uses
 
 { TZipFileEngine }
 
-procedure TZipFileEngine.Clone(const aCloneFolder, aURL: string);
+procedure TZipFileEngine.Clone(const aRootFolder, aCloneFolder, aURL, aVersion: string);
 begin
   raise Exception.Create('Clone not supported in ZIPFILE protocol.');
 end;
@@ -99,8 +99,10 @@ begin
 
 end;
 
-function TZipFileEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
+function TZipFileEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
 begin
+  if aVersion <> '' then raise Exception.Create('Versioning not supported in ZIPFILE protocol.');
+
   Result := true;
   var TempGUIDProductFolder := TPath.Combine(Config.Folders.VCSTempFolder, GuidToStringN(TGUID.NewGuid));
   TDirectory_CreateDirectory(TempGUIDProductFolder);
@@ -132,7 +134,7 @@ begin
   raise Exception.Create('GetVersionNames not supported in ZIPFILE protocol.');
 end;
 
-procedure TZipFileEngine.Pull(const aFolder: string);
+procedure TZipFileEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
   raise Exception.Create('Pull not supported in ZIPFILE protocol.');
 end;

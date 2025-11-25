@@ -3,7 +3,7 @@ unit Actions.Build;
 interface
 
 procedure ExecuteBuildAction(FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
-procedure ExecuteBuildAction(ProductIds: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
+procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
 procedure RemoveFromWindowsPathIfNoProducts; overload;
 
 implementation
@@ -12,7 +12,7 @@ uses
   System.SysUtils, System.Diagnostics, System.Threading, System.IOUtils, ULogger, UMultiLogger, UFileHasher, UInsomnia,
   UConfigKeys, UProjectAnalyzer, Commands.GlobalConfig, Commands.Termination, UProjectList, UProjectLoader,
   UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface, UConfigDefinition,
-  UParallelProjectBuilder, UWindowsPath, UEnvironmentPath,
+  UParallelProjectBuilder, UWindowsPath, UEnvironmentPath, Fetching.ProductVersion,
   {$IFDEF MSWINDOWS}
   Windows, Messages,
   {$ENDIF}
@@ -49,14 +49,17 @@ begin
   Result := TParallelProjectBuilder.Create(Config, FileHasher);
 end;
 
-procedure ExecuteBuildAction(ProductIds: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
+procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
 begin
+  var ProductIds := ParseVersions(ProductIdsAndVersions);
   if Length(ProductIds) > 0 then
   begin
     Config.ClearExcludedComponents;
     Config.ClearIncludedComponents;
     for var ProductId in ProductIds do
-      Config.AddIncludedComponent(ProductId, '');
+    begin
+      Config.AddIncludedComponent(ProductId.IdMask, '');
+    end;
   end;
   ExecuteBuildAction(FullBuild, OnlyUnregister);
 end;
