@@ -98,7 +98,7 @@
     },
     "additionalProductsFoldersObject": {
       "type": ["array", "null"],
-      "description": "By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional \nroot folders here, so tms also looks for tmsbuild.yaml files in those folders.\n All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will\nbe generated under the additional folders. This is useful if you want to use tms to build your own sources.\nThe folders you add here must be in the same drive as the main root folder.",
+      "description": "By default, tms looks for tmsbuild.yaml in folders under the folder where this file is. But you can add additional \nroot folders here, so tms also looks for tmsbuild.yaml files in those folders.\n All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will\nbe generated under the additional folders. This is useful if you want to use tms to build your own sources.\nThe folders you add here must be in the same drive as the main root folder.\nYou can also use wildcards (* or ?) here to add multiple folders with a single entry.\nFor example: c:\\MyProducts\\*\\demo\\source would match MyProducts\\product1\\demo\\source, MyProducts\\product2\\demo\\source, etc.",
       "examples": [
         "c:\\MyProducts   #All folders containing tmsbuild.yaml files inside c:\\MyProducts will be added to the build.",
         "..\\..\\Other products  #Try to use relative folders if possible."
