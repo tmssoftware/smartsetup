@@ -37,6 +37,9 @@ function FolderIsOutside(const Folder: string; const RootFolders: TArray<string>
 
 function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;
 
+function TPath_IsPathRooted(const s: string): boolean;
+
+
 type
   TUTF8NoBOMEncoding = class(TUTF8Encoding)
   private
@@ -71,6 +74,17 @@ end;
 function TUTF8NoBOMEncoding.GetPreamble: TBytes;
 begin
   Result := nil;
+end;
+
+function RemoveWildcards(const s: string): string;
+begin
+  Result := s.Replace('*', '_').Replace('?', '_');
+end;
+
+function TPath_IsPathRooted(const s: string): boolean;
+begin
+  //IsPathRooted complains if there are wildcards.
+  Result := TPath.IsPathRooted(RemoveWildcards(s));
 end;
 
 function IsLinkedFolder(const Folder: string): boolean;
