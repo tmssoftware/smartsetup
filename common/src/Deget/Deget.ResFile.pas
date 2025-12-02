@@ -9,7 +9,8 @@ uses Classes, SysUtils, IOUtils, Deget.CommandLine, ULogger, UMultiLogger;
 
 function Escape(const s: string): string;
 begin
-  Result := StringReplace(s, '"', '\"', [TReplaceFlag.rfReplaceAll]);
+  Result := StringReplace(s, '\', '\\', [TReplaceFlag.rfReplaceAll]);
+  Result := StringReplace(Result, '"', '\"', [TReplaceFlag.rfReplaceAll]);
 end;
 
 procedure CreateResFile(const FileName: string; const Application: TApplicationDefinition; const BRCC32Path: string);
