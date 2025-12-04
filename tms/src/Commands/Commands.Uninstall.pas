@@ -41,6 +41,8 @@ begin
         try
           for var Item in Manager.RemovalItems do
           begin
+            if Item.Status <> TRemovalStatus.Flagged then continue;
+            
             var ProductFolder := Item.ProductPath;
             if ProductFolder <> '' then Deleter.AddFolder(ProductFolder);
           end;
@@ -56,8 +58,6 @@ begin
           if Item.ProductPath <> '' then ActualProductIds := ActualProductIds + [Item.ProductId];
           case Item.Status of
             TRemovalStatus.Failed:
-              // this line should never be executed, actually, because if there are items failed, an exception will be
-              // raised in Manager.ProcessSelected call.
               Logger.Info(Format('%s -> FAILED', [Item.ProductId]));
           else
             Logger.Info(Format('%s -> REMOVED', [Item.ProductId]));
