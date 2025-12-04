@@ -65,8 +65,8 @@ begin
     var coffee := CoffeeMaker.MakeCoffee(FunctionValue);
 
     var coffee64 := TTMSFNCUtils.Encode64(coffee);
-    var sha2:= TSHA2Hash.Create;
-    sha2.HashSize:= THashSize.hsha256;
+    var sha2:= TSHA2Hash.Create(nil);
+    sha2.HashSize:= THashSize.hs256;
     sha2.OutputFormat:= hexa;
     sha2.Unicode:= noUni;
     var hash:= sha2.Hash(coffee64);

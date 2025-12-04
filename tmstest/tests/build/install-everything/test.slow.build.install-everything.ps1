@@ -10,6 +10,8 @@ Copy-Item -Path testapp -Destination testapp-no-tmsbuild -Exclude tmsbuild.yaml 
 
 tmscredentials
 tms server-enable community
+tms config-write -p:"configuration for all products:options:skip register=false" #we want to check also if components are registered correctly. We will run msbuild directly later.
+tms config-write -p:"tms smart setup options:error if skipped=false"
 
 tms fetch *   #do not install, so we can build with the testapp at the same time and see deps work fine.
 tms fetch  tms.flexcel.vcl tms.biz.aurelius tms.vcl.crypto sglienke.spring4d tms.biz.scripter tms.fnc.core
@@ -30,7 +32,7 @@ if ($Result -ne $expectedResult) {
 Write-Output "Now testing with msbuild.exe"
 
 Set-Location testapp-no-tmsbuild
-msbuild
+msbuild #defined in util.set_starting_config_yaml.ps1
 $Result = & .\Win32\Debug\testapp.exe
 if ($Result -ne $expectedResult) {
     Write-Error "Install everything failed at msbuild: Result was '$Result' and should have been '$expectedResult'."
