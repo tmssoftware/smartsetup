@@ -90,6 +90,15 @@ begin
   exit(false);
 end;
 
+function AddExe(const Path, App: string): string;
+begin
+  {$IFDEF MSWINDOWS}
+    exit(TPath.Combine(Path, App + '.exe'));
+  {$ELSE}
+    exit(TPath.Combine(Path, App));
+  {$ENDIF}
+
+end;
 
 function GetCompilerPathAndExecutable(const ProductId: string; const dv: TIDEName; const Config: TConfigDefinition): string;
 begin
@@ -97,11 +106,8 @@ begin
   if Result = '' then exit;
 
   if dv = TIDEName.lazarus then
-  {$IFDEF MSWINDOWS}
-    exit(TPath.Combine(Result, 'lazbuild.exe'));
-  {$ELSE}
-    exit(TPath.Combine(Result, 'lazbuild'));
-  {$ENDIF}
+    exit(AddExe(Result, 'lazbuild'));
+
 
   if dv <= TIDEName.delphi2010 then exit(TPath.Combine(Result, TPath.Combine('bin', 'dcc32.exe')));
 

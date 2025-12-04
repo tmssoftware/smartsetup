@@ -115,6 +115,7 @@ const
         'iossimulator64arm',
         'win64xintel'
     );
+
 type
 {$SCOPEDENUMS ON}
   TBuildConfig = (Debug, Release);
@@ -127,6 +128,7 @@ const
   BuildConfigs: array[TBuildConfig] of string = ('Debug', 'Release');
   BinprojExtension = '.binproj';
 
+function PlatformMacroString(const IDEName: TIDEName; const PlatType: TPlatform): string;
 function TryGetIDEName(const value: string; var IDEName: TIDEName): Boolean;
 function GetIDEName(const value: string): TIDEName;
 function GetPlatformName(const value: string): TPlatform;
@@ -139,6 +141,18 @@ implementation
 
 uses
   StrUtils, SysUtils;
+
+function PlatformMacroString(const IDEName: TIDEName; const PlatType: TPlatform): string;
+const
+    PlatformMacroValueStr: array[TPlatform] of string =
+    ('Win32', 'Win64', 'OSX32', 'OSX64', 'OSXARM64', 'iOSSimulator', 'iOSDevice32', 'iOSDevice64',
+     'Android', 'Android64', 'Linux64', 'iOSSimARM64', 'Win64x');
+begin
+  Result := PlatformMacroValueStr[PlatType];
+  if (PlatType = TPlatform.iOSDevice32) and (IDEName <= delphixe7) then
+    Result := 'iOSDevice';
+
+end;
 
 function TryGetIDEName(const value: string; var IDEName: TIDEName): Boolean;
 begin

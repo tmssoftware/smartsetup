@@ -856,14 +856,8 @@ begin
 end;
 
 function TDelphiIDEPlatformInfo.PlatformId: string;
-const
-  PlatformNames: array[TPlatform] of string =
-    ('Win32', 'Win64', 'OSX32', 'OSX64', 'OSXARM64', 'iOSSimulator', 'iOSDevice32', 'iOSDevice64',
-     'Android', 'Android64', 'Linux64', 'iOSSimARM64', 'Win64x');
 begin
-  Result := PlatformNames[PlatType];
-  if (PlatType = TPlatform.iOSDevice32) and (IDEName <= delphixe7) then
-    Result := 'iOSDevice';
+  Result := PlatformMacroString(IDEName, PlatType);
 end;
 
 function TDelphiIDEPlatformInfo.PlatformMacroValue: string;
