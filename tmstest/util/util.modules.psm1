@@ -6,6 +6,10 @@ function Invoke-WithExitCodeIgnored {
     & $ScriptBlock
   } catch {
  }
+ if ($global:LASTEXITCODE -eq 0) {
+    throw "The command was expected to fail, but it succeeded."
+    }
+ $global:LASTEXITCODE = 0
 }
 
 function tmscredentials {
