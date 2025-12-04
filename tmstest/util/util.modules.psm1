@@ -12,6 +12,15 @@ function Invoke-WithExitCodeIgnored {
  $global:LASTEXITCODE = 0
 }
 
+function bds {
+    param(
+        [Parameter(Mandatory, Position=0)] [string] $ProjectFile,
+        [Parameter(Mandatory = $false, Position=1)] [string[]] $RegistryKey = ""
+    )
+
+    Start-Process -FilePath $Env:TMS_BDS -ArgumentList @("-ns", "-r$RegistryKey", "-b", $ProjectFile) -NoNewWindow -Wait
+}
+
 function tmscredentials {
     if (-not $env:TMSTEST_CODE -or -not $env:TMSTEST_EMAIL) {
         Write-Error "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
