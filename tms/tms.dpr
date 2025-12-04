@@ -200,8 +200,6 @@ uses
   BBYaml.Writer in '..\common\src\BBYaml\BBYaml.Writer.pas',
   BBYaml.Types in '..\common\src\BBYaml\BBYaml.Types.pas',
   BBStrings in '..\common\src\BBYaml\BBStrings.pas',
-  Commands.VersionsRemote in 'src\Commands\Commands.VersionsRemote.pas',
-  Fetching.ProductVersion in 'src\Fetching\Fetching.ProductVersion.pas';
   Deget.Compilation.Delphi in '..\common\src\Deget\Deget.Compilation.Delphi.pas',
   Deget.Compilation.Precompiled in '..\common\src\Deget\Deget.Compilation.Precompiled.pas',
   Deget.Compilation.Lazarus in '..\common\src\Deget\Deget.Compilation.Lazarus.pas',
