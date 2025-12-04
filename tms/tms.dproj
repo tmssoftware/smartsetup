@@ -419,13 +419,13 @@
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Writer.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Types.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBStrings.pas"/>
-        <DCCReference Include="src\Commands\Commands.VersionsRemote.pas"/>
         <DCCReference Include="..\common\src\Deget\Deget.Compilation.Delphi.pas"/>
         <DCCReference Include="..\common\src\Deget\Deget.Compilation.Precompiled.pas"/>
-        <DCCReference Include="..\common\src\Deget\Deget.Compilation.WebCore.pas"/>
         <DCCReference Include="..\common\src\Deget\Deget.Compilation.Lazarus.pas"/>
         <DCCReference Include="..\common\src\Deget\Deget.Compilation.DelphiSelector.pas"/>
         <DCCReference Include="src\Fetching\Fetching.ProductVersion.pas"/>
+        <DCCReference Include="src\Commands\Commands.VersionsRemote.pas"/>
+        <DCCReference Include="src\Core\UDelayedErrors.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">
@@ -448,7 +448,6 @@
                 <Source>
                     <Source Name="MainSource">tms.dpr</Source>
                 </Source>
-                
             </Delphi.Personality>
             <Deployment Version="5">
                 <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">

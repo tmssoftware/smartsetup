@@ -34,6 +34,7 @@ type
   TRemovalItems = class(TObjectList<TRemovalItem>)
   public
     function ContainsStatus(Status: TRemovalStatus): Boolean;
+    function GetProductsWithStatus(Status: TRemovalStatus): string;
     function Contains(const ProductId, Version: string): Boolean;
     function Find(const ProductId, Version: string): TRemovalItem;
   end;
@@ -77,6 +78,17 @@ begin
     if (Item.ProductId = ProductId) and (Item.Version = TLenientVersion(Version)) then
        Exit(Item);
   Result := nil;
+end;
+
+function TRemovalItems.GetProductsWithStatus(Status: TRemovalStatus): string;
+begin
+  Result := '';
+  for var Item in Self do
+    if Item.Status = Status then
+    begin
+      if Result <> '' then Result := Result + ', ';
+      Result := Result + Item.ProductId;
+    end;
 end;
 
 end.

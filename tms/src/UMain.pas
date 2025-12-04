@@ -32,7 +32,7 @@ implementation
 
 uses
   System.SysUtils, System.IOUtils, UCommandLine, Commands.Logging, Commands.GlobalConfig, UConfigDefinition,
-  UMultiLogger, UConsoleLogger, ULogger, UTmsBuildSystemUtils, Deget.CoreTypes, UConfigKeys, Diagnostics;
+  UMultiLogger, UConsoleLogger, ULogger, UTmsBuildSystemUtils, Deget.CoreTypes, UConfigKeys, Diagnostics, UDelayedErrors;
 
 procedure Cleanup;
 begin
@@ -116,6 +116,17 @@ begin
     end);
 end;
 
+procedure LogDelayedErrors;
+begin
+  if (DelayedErrors = nil) or (DelayedErrors.Count = 0) then exit;
+  Logger.Error('');
+  for var Error in DelayedErrors do
+  begin
+    Logger.Error('Error: ' + Error);
+  end;
+  ExitCode := 1;
+end;
+
 procedure Run;
 begin
 {$IFDEF DEBUG}
@@ -128,6 +139,7 @@ begin
       Logger.Verbosity := TVerbosity.info;
       try
         Start;
+        LogDelayedErrors;
       except
         on E: Exception do
         begin

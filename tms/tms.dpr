@@ -205,7 +205,8 @@ uses
   Deget.Compilation.Lazarus in '..\common\src\Deget\Deget.Compilation.Lazarus.pas',
   Deget.Compilation.DelphiSelector in '..\common\src\Deget\Deget.Compilation.DelphiSelector.pas',
   Fetching.ProductVersion in 'src\Fetching\Fetching.ProductVersion.pas',
-  Commands.VersionsRemote in 'src\Commands\Commands.VersionsRemote.pas';
+  Commands.VersionsRemote in 'src\Commands\Commands.VersionsRemote.pas',
+  UDelayedErrors in 'src\Core\UDelayedErrors.pas';
 
 begin
   try

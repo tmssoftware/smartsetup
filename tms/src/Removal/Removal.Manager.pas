@@ -47,7 +47,7 @@ type
 implementation
 
 uses
-  System.Masks, UTmsBuildSystemUtils, UProjectLoader, UProjectList;
+  System.Masks, UTmsBuildSystemUtils, UProjectLoader, UProjectList, UDelayedErrors;
 
 { TRemovalManager }
 
@@ -245,9 +245,9 @@ begin
   if not FForce then
     CheckDependents;
 
-  // Stop execution if something failed
-//  if RemovalItems.ContainsStatus(TRemovalStatus.Failed) then
-//    raise Exception.Create('Uninstall failed');
+  var Failed := RemovalItems.GetProductsWithStatus(TRemovalStatus.Failed);
+  if Failed <> '' then
+    DelayedErrors.Add('Uninstall failed: ' + Failed);
 end;
 
 end.
