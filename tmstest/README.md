@@ -191,6 +191,7 @@ The following functions are defined in util.modules.psm1:
   * **uninstall_and_check(products-remaining)**: uninstalls everything and checks that product-remaining products remain. Normally you will call this at the end of the script with products-remaining = 0.
   * **compare-files**: compares 2 files and returns an error if not the same.
   * **Assert-ValueIs**: Asserts 2 values are the same. Must be used as a filter, like `command | Assert-ValueIs("0")`
+  * **Test-Result**: Checks if the result from a call contains some string
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

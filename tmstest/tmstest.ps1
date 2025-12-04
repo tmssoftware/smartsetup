@@ -44,7 +44,6 @@ if ($null -eq $tests -or $tests.Count -eq 0) {
 try {
 Remove-Item -Path "HKCU:\Software\Embarcadero\tmstest" -Recurse -Force
 } catch {
-    Write-Output "No previous installation registry key found."
 }
 
 $successfulTests = @()

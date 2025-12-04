@@ -12,6 +12,20 @@ function Invoke-WithExitCodeIgnored {
  $global:LASTEXITCODE = 0
 }
 
+function Test-Result {
+    param(
+        [string[]]$CommandResult,
+        [string]$Message
+    )
+    
+    foreach ($line in $CommandResult) {   
+        if ($line -like $Message) {
+            return $true
+        }
+    }
+    return $false
+}
+
 function bds {
     param(
         [Parameter(Mandatory, Position=0)] [string] $ProjectFile,
