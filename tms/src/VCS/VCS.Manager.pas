@@ -198,6 +198,8 @@ begin
     end;
 
     Logger.FinishSection(TMessageType.VCSFetch, HasErrors(Status));
+    if HasErrors(Status) then raise Exception.Create('Errors downloading products from version control.');
+
   finally
     Logger.StopSpinner;
   end;
