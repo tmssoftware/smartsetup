@@ -48,39 +48,36 @@ begin
   try
     var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled);
     try
-      if Repo <> nil then
-      begin
-        var Manager := TFetchManager.Create(Config.Folders, Repo, VCSProducts);
+      var Manager := TFetchManager.Create(Config.Folders, Repo, VCSProducts);
+      try
         try
-          try
-            case FetchMode of
-              TFetchMode.OnlyInstalled:
-              begin
-                Logger.StartSection(TMessageType.Update, 'Updating installed products');
-                try
-                  Manager.UpdateInstalled(ProductVersions);
-                finally
-                  Logger.FinishSection(TMessageType.Update, false);
-                end;
-              end
-            else
-              begin
-                { TFetchMode.DownloadNew: }
-                Logger.StartSection(TMessageType.Update, 'Updating selected products');
-                try
-                    Manager.UpdateSelected(ProductVersions);
-                finally
-                  Logger.FinishSection(TMessageType.Update, false);
-                end;
+          case FetchMode of
+            TFetchMode.OnlyInstalled:
+            begin
+              Logger.StartSection(TMessageType.Update, 'Updating installed products');
+              try
+                Manager.UpdateInstalled(ProductVersions);
+              finally
+                Logger.FinishSection(TMessageType.Update, false);
+              end;
+            end
+          else
+            begin
+              { TFetchMode.DownloadNew: }
+              Logger.StartSection(TMessageType.Update, 'Updating selected products');
+              try
+                  Manager.UpdateSelected(ProductVersions);
+              finally
+                Logger.FinishSection(TMessageType.Update, false);
               end;
             end;
-
-          finally
-            LogFetchSummary(Manager.FetchItems);
           end;
+
         finally
-          Manager.Free;
+          LogFetchSummary(Manager.FetchItems);
         end;
+      finally
+        Manager.Free;
       end;
     finally
       VCSProducts.Free;

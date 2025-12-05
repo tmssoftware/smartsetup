@@ -106,47 +106,55 @@ end;
 
 procedure TFetchManager.AddMatchedItems(const ProductVersion: TProductVersion);
 begin
+  if Repo = nil then
+  begin
+    Logger.Trace('Skipping API server because it isn''t enabled or there are no credentials.');
+  end;
   Logger.Trace('Looking up products matching ' + ProductVersion.IdMask + ' with version "' + ProductVersion.Version + '"');
   var Found := False;
-  for var RepoProduct in Repo.Products do
-    if Config.IsIncluded(RepoProduct.Id, ProductVersion.IdMask) then
-    begin
-      // Ignore products that are not licensed unless the ProductIdMask is exactly the product name
-      // (meaning it was explicitly provided by the user or from the list of installed products
-      if (RepoProduct.LicenseStatus in [TLicenseStatus.none]) and (ProductVersion.IdMask <> RepoProduct.Id) then
-        Continue;
 
-      // Ignore products that were not released yet
-      if RepoProduct.LatestVersion = nil then
+  if Repo <> nil then
+  begin
+    for var RepoProduct in Repo.Products do
+      if Config.IsIncluded(RepoProduct.Id, ProductVersion.IdMask) then
       begin
-        Logger.Trace(Format('Ignoring %s - no version available', [RepoProduct.Id]));
-        Continue;
-      end;
+        // Ignore products that are not licensed unless the ProductIdMask is exactly the product name
+        // (meaning it was explicitly provided by the user or from the list of installed products
+        if (RepoProduct.LicenseStatus in [TLicenseStatus.none]) and (ProductVersion.IdMask <> RepoProduct.Id) then
+          Continue;
 
-      Found := True;
-      var VersionToInstall := ProductVersion.Version;
-      if VersionToInstall = '' then VersionToInstall := RepoProduct.LatestVersion.Version;
+        // Ignore products that were not released yet
+        if RepoProduct.LatestVersion = nil then
+        begin
+          Logger.Trace(Format('Ignoring %s - no version available', [RepoProduct.Id]));
+          Continue;
+        end;
 
-      if ContainsItem(RepoProduct.Id, VersionToInstall) then
+        Found := True;
+        var VersionToInstall := ProductVersion.Version;
+        if VersionToInstall = '' then VersionToInstall := RepoProduct.LatestVersion.Version;
+
+        if ContainsItem(RepoProduct.Id, VersionToInstall) then
+        begin
+          Logger.Trace(Format('Ignoring %s:%s because it was already added', [RepoProduct.Id, VersionToInstall]));
+          Continue;
+        end;
+
+        var Item := TFetchItem.Create(RepoProduct.Id, VersionToInstall, Repo.Server);
+        FFetchItems.Add(Item);
+        Item.Internal := RepoProduct.Internal;
+
+        //We only have the FileHash of the latest version. If we aren't installing that, we will just leave it empty, and calculate it at download time.
+        if VersionToInstall = RepoProduct.LatestVersion.Version then Item.FileHash := RepoProduct.LatestVersion.FileHash;
+        if RepoProduct.Id = TRepositoryManager.TMSSetupProductId then
+          Item.SkipExtraction := True;
+        Logger.Info(Format('Found %s in repository', [RepoProduct.Id]));
+      end else
       begin
-        Logger.Trace(Format('Ignoring %s:%s because it was already added', [RepoProduct.Id, VersionToInstall]));
-        Continue;
+        if Config.IsExcluded(RepoProduct.Id) then Logger.Trace('Ignoring ' + RepoProduct.Id + ' because it is in the "excluded products" section of tms.config.yaml');
+
       end;
-
-      var Item := TFetchItem.Create(RepoProduct.Id, VersionToInstall, Repo.Server);
-      FFetchItems.Add(Item);
-      Item.Internal := RepoProduct.Internal;
-
-      //We only have the FileHash of the latest version. If we aren't installing that, we will just leave it empty, and calculate it at download time.
-      if VersionToInstall = RepoProduct.LatestVersion.Version then Item.FileHash := RepoProduct.LatestVersion.FileHash;
-      if RepoProduct.Id = TRepositoryManager.TMSSetupProductId then
-        Item.SkipExtraction := True;
-      Logger.Info(Format('Found %s in repository', [RepoProduct.Id]));
-    end else
-    begin
-      if Config.IsExcluded(RepoProduct.Id) then Logger.Trace('Ignoring ' + RepoProduct.Id + ' because it is in the "excluded products" section of tms.config.yaml');
-
-    end;
+  end;
 
   if not Found and (ProductVersion.IdMask <> TRepositoryManager.TMSSetupProductId) and not FAlreadyHandledProducts.Contains(ProductVersion.IdMask) then
   begin
@@ -155,7 +163,9 @@ begin
 
     if FIgnoreMissing then
     begin
-      var Item := TFetchItem.Create(ProductVersion.IdMask, ProductVersion.Version, Repo.Server);
+      var RepoServer := '';
+      if Repo <> nil then RepoServer := Repo.Server;
+      var Item := TFetchItem.Create(ProductVersion.IdMask, ProductVersion.Version, RepoServer);
       FFetchItems.Add(Item);
       Item.Status := TFetchStatus.Failed;
       Logger.Error(ErrorMessage);
