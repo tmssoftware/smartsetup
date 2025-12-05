@@ -47,7 +47,7 @@ type
 implementation
 
 uses
-  System.Masks, UTmsBuildSystemUtils, UProjectLoader, UProjectList, UDelayedErrors;
+  System.Masks, UTmsBuildSystemUtils, UProjectLoader, UProjectList, UDelayedErrors, Commands.GlobalConfig;
 
 { TRemovalManager }
 
@@ -76,7 +76,7 @@ begin
     GetAllProducts(FRootFolders, TmpInstalledProducts);
     for var Product in TmpInstalledProducts do
     begin
-      if MatchesMask(Product.ProductId, ProductIdMask) then exit (true);
+      if Config.IsIncluded(Product.ProductId, ProductIdMask) then exit (true);
     end;
   finally
     TmpInstalledProducts.Free;
@@ -89,7 +89,7 @@ begin
   Logger.Trace('Looking up products matching ' + ProductIdMask);
   var Found := False;
   for var InstalledProduct in InstalledProducts do
-    if MatchesMask(InstalledProduct.ProductId, ProductIdMask) then
+    if Config.IsIncluded(InstalledProduct.ProductId, ProductIdMask) then
     begin
       Found := True;
       if RemovalItems.Contains(InstalledProduct.ProductId, InstalledProduct.Version) then

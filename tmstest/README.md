@@ -192,6 +192,8 @@ The following functions are defined in util.modules.psm1:
   * **compare-files**: compares 2 files and returns an error if not the same.
   * **Assert-ValueIs**: Asserts 2 values are the same. Must be used as a filter, like `command | Assert-ValueIs("0")`
   * **Test-Result**: Checks if the result from a call contains some string
+  * **Test-BuildResultCounts**: Checks the ok, not modified and ignored results from a build command.
+  * **Test-FetchResultCounts**: Checks if the fetch summary is as expected.
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

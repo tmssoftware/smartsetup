@@ -74,7 +74,7 @@ begin
   Logger.Trace('Looking up installed products matching ' + ProductVersion.IdMask);
   var Found := False;
   for var InstalledProduct in InstalledProducts do
-    if MatchesMask(InstalledProduct.ProductId, ProductVersion.IdMask) then
+    if Config.IsIncluded(InstalledProduct.ProductId, ProductVersion.IdMask) then
     begin
       Found := True;
       var ExistingProduct: TProductVersion;
@@ -89,11 +89,17 @@ begin
         Matched.Add(InstalledProduct.ProductId, ProductVersion);
       end;
       Logger.Trace(Format('Product %s:%s to be analyzed', [InstalledProduct.ProductId, InstalledProduct.Version]));
+    end else
+    begin
+      if Config.IsExcluded(InstalledProduct.ProductId) then Logger.Trace('Ignoring ' + InstalledProduct.ProductId + ' because it is in the "excluded products" section of tms.config.yaml');
+
     end;
 
   if not Found and not FAlreadyHandledProducts.Contains(ProductVersion.IdMask) then
   begin
     var ErrorMessage := Format('Could not find any products matching %s', [ProductVersion.IdMask]);
+    if Config.IsExcluded(ProductVersion.IdMask) then ErrorMessage := Format('The product %s is excluded in the section "excluded products" from tms.config.yaml.', [ProductVersion.IdMask]);
+
     raise Exception.Create(ErrorMessage);
   end;
 end;
@@ -103,7 +109,7 @@ begin
   Logger.Trace('Looking up products matching ' + ProductVersion.IdMask + ' with version "' + ProductVersion.Version + '"');
   var Found := False;
   for var RepoProduct in Repo.Products do
-    if MatchesMask(RepoProduct.Id, ProductVersion.IdMask) then
+    if Config.IsIncluded(RepoProduct.Id, ProductVersion.IdMask) then
     begin
       // Ignore products that are not licensed unless the ProductIdMask is exactly the product name
       // (meaning it was explicitly provided by the user or from the list of installed products
@@ -136,11 +142,17 @@ begin
       if RepoProduct.Id = TRepositoryManager.TMSSetupProductId then
         Item.SkipExtraction := True;
       Logger.Info(Format('Found %s in repository', [RepoProduct.Id]));
+    end else
+    begin
+      if Config.IsExcluded(RepoProduct.Id) then Logger.Trace('Ignoring ' + RepoProduct.Id + ' because it is in the "excluded products" section of tms.config.yaml');
+
     end;
 
   if not Found and (ProductVersion.IdMask <> TRepositoryManager.TMSSetupProductId) and not FAlreadyHandledProducts.Contains(ProductVersion.IdMask) then
   begin
     var ErrorMessage := Format('Could not find any products matching %s', [ProductVersion.IdMask]);
+    if Config.IsExcluded(ProductVersion.IdMask) then ErrorMessage := Format('The product %s is excluded in the section "excluded products" from tms.config.yaml.', [ProductVersion.IdMask]);
+
     if FIgnoreMissing then
     begin
       var Item := TFetchItem.Create(ProductVersion.IdMask, ProductVersion.Version, Repo.Server);
@@ -264,7 +276,7 @@ begin
 
       // if no productid mask was provided, then add all
       if (Length(ProductVersions) = 0) and (InstalledProducts.Count > 0) then
-        AddMatchedInstalledProducts(TProductVersion.Create('*', ''), MatchedProducts);
+        AddMatchedInstalledProducts(TProductVersion.Create('', ''), MatchedProducts);
 
       ProductsToUpdate := nil; SetLength(ProductsToUpdate, MatchedProducts.Count);
       var i := 0;

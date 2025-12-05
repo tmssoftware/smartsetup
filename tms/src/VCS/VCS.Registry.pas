@@ -163,7 +163,9 @@ begin
   Result := false;
   for var ProductId in FProducts do
   begin
-    if MatchesMask(ProductId.Key, ProductVersion.IdMask) then
+      if Config.IsExcluded(ProductId.Key) then Logger.Trace('Ignoring ' + ProductId.Key + ' because it is in the "excluded products" section of tms.config.yaml');
+
+    if Config.IsIncluded(ProductId.Key, ProductVersion.IdMask) then
     begin
       if (InstalledProducts = nil) or (InstalledProducts.Contains(ProductId.Key)) then
       begin

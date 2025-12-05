@@ -12,6 +12,141 @@ function Invoke-WithExitCodeIgnored {
  $global:LASTEXITCODE = 0
 }
 
+# pass negative values to not check for that count.
+function Test-BuildResultCounts {
+    param (
+        [Parameter(Mandatory)]
+        [array]$BuildResult,
+        [Parameter(Mandatory)]
+        [int]$expectedNotModifiedCount,
+        [Parameter(Mandatory)]
+        [int]$expectedIgnoreCount,    
+        [Parameter(Mandatory)]
+        [int]$expectedOkCount    
+    )
+    
+    $ignoreCount = 0
+    $notModifiedCount = 0
+    $okCount = 0
+
+    $SummaryReached = $false
+    
+    foreach ($line in $BuildResult) {
+        if ($line -like "*=== Build Summary ===*") {
+            $SummaryReached = $true
+            continue
+        }
+        if (-not $SummaryReached) {
+            continue
+        }
+
+        if ($line.Trim().EndsWith("]")) {
+            break
+        }
+        if ($line -like "*-> IGNORED*") {
+            $ignoreCount++
+        }
+        if ($line -like "*-> NOT MODIFIED*") {
+            $notModifiedCount++
+        }
+        if ($line -like "*-> OK*") {
+            $okCount++
+        }
+    }
+    if ($expectedIgnoreCount -ge 0 -and $ignoreCount -ne $expectedIgnoreCount) {
+        throw "There should be $expectedIgnoreCount lines with '-> IGNORED' in the build output, but there are $ignoreCount."
+    }
+    if ($expectedNotModifiedCount -ge 0 -and $notModifiedCount -ne $expectedNotModifiedCount) {
+        throw "There should be $expectedNotModifiedCount lines with '-> NOT MODIFIED' in the build output, but there are $notModifiedCount."
+    }
+    if ($expectedOkCount -ge 0 -and $okCount -ne $expectedOkCount) {
+        throw "There should be $expectedOkCount lines with '-> OK' in the build output, but there are $okCount."
+    }
+    
+    
+}
+
+function Test-FetchResultCounts {
+    param (
+        [Parameter(Mandatory)]
+        [array]$FetchResult,
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [array]$expectedLines  
+    )
+    
+    $SummaryReached = $false
+    $TotalLines = 0
+    foreach ($line in $FetchResult) {
+        if ($line -like "*=== Fetch Summary ===*") {
+            $SummaryReached = $true
+            continue
+        }
+        if (-not $SummaryReached) {
+            continue
+        }
+
+        if ($line.Trim().EndsWith("]")) {
+            break
+        }
+        $TotalLines++
+        $found = $false
+        foreach ($expectedLine in $expectedLines) {
+            if ($line -like $expectedLine) {
+                $found = $true
+                break
+            }
+        }
+        if (-not $found) {
+            throw "The line '$line' was not expected in the fetch output. $($FetchResult)"
+        }   
+    }
+    if ($TotalLines -ne $expectedLines.Count) {
+        throw "There should be $($expectedLines.Count) lines in the fetch output, but there are $TotalLines."
+    }
+    
+}
+
+function Test-RepoFetchResultCounts {
+    param (
+        [Parameter(Mandatory)]
+        [array]$FetchResult,
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [array]$expectedLines  
+    )
+    
+    $SummaryReached = $false
+    $TotalLines = 0
+    foreach ($line in $FetchResult) {
+        if ($line -like "*=== Repository Summary ===*") {
+            $SummaryReached = $true
+            continue
+        }
+        if (-not $SummaryReached) {
+            continue
+        }
+
+        if ($line.Trim().EndsWith("]")) {
+            break
+        }
+        $TotalLines++
+        $found = $false
+        foreach ($expectedLine in $expectedLines) {
+            if ($line -like $expectedLine) {
+                $found = $true
+                break
+            }
+        }
+        if (-not $found) {
+            throw "The line '$line' was not expected in the fetch output: $($FetchResult)"
+        }   
+    }
+    if ($TotalLines -ne $expectedLines.Count) {
+        throw "There should be $($expectedLines.Count) lines in the fetch output, but there are $TotalLines."
+    }
+    
+}
 function Test-Result {
     param(
         [string[]]$CommandResult,

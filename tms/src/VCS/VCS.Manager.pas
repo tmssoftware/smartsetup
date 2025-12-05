@@ -231,39 +231,44 @@ class function TVCSManager.Fetch(const AProductVersions: TArray<TProductVersion>
   const OnlyInstalled: boolean): THashSet<string>;
 begin
   Result := THashSet<string>.Create;
-  var ProductsToProcess := TObjectList<TRegisteredVersionedProduct>.Create;
   try
-    var ProductsToProcessDict := TDictionary<string, string>.Create;
+    var ProductsToProcess := TObjectList<TRegisteredVersionedProduct>.Create;
     try
-      var InstalledProducts: THashSet<string> := nil;
+      var ProductsToProcessDict := TDictionary<string, string>.Create;
       try
-        if OnlyInstalled then InstalledProducts := GetInstalledProducts;
+        var InstalledProducts: THashSet<string> := nil;
+        try
+          if OnlyInstalled then InstalledProducts := GetInstalledProducts;
 
-        if (Length(AProductVersions) = 0) and (OnlyInstalled) then
-        begin
-          RegisteredVCSRepos.GetProducts(TProductVersion.Create('*', ''), ProductsToProcess, ProductsToProcessDict, InstalledProducts);
-        end
-        else begin
-          for var ProductVersion in AProductVersions do
+          if (Length(AProductVersions) = 0) and (OnlyInstalled) then
           begin
-            if RegisteredVCSRepos.GetProducts(ProductVersion, ProductsToProcess, ProductsToProcessDict, InstalledProducts) then Result.Add(ProductVersion.IdMask);
+            RegisteredVCSRepos.GetProducts(TProductVersion.Create('', ''), ProductsToProcess, ProductsToProcessDict, InstalledProducts);
+          end
+          else begin
+            for var ProductVersion in AProductVersions do
+            begin
+              if RegisteredVCSRepos.GetProducts(ProductVersion, ProductsToProcess, ProductsToProcessDict, InstalledProducts) then Result.Add(ProductVersion.IdMask);
+            end;
           end;
+        finally
+          InstalledProducts.Free;
         end;
+
+        //We added all IDS, but they could have wildcards, like tms.biz.*.
+        //We need both those with wildcards (to know later if a command like install tms.biz.* installed anything)
+        //But also the real products, to handle dependencies.
+        for var Prod in ProductsToProcess do Result.Add(Prod.Product.ProductId);
+
+        DoFetch(ProductsToProcess);
       finally
-        InstalledProducts.Free;
+        ProductsToProcessDict.Free;
       end;
-
-      //We added all IDS, but they could have wildcards, like tms.biz.*.
-      //We need both those with wildcards (to know later if a command like install tms.biz.* installed anything)
-      //But also the real products, to handle dependencies.
-      for var Prod in ProductsToProcess do Result.Add(Prod.Product.ProductId);
-
-      DoFetch(ProductsToProcess);
     finally
-      ProductsToProcessDict.Free;
+       ProductsToProcess.Free;
     end;
-  finally
-     ProductsToProcess.Free;
+  except
+    Result.Free;
+    raise;
   end;
 end;
 

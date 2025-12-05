@@ -251,7 +251,9 @@ type
     function SkipRegistering(const ProductId: String; DefaultValue: integer): integer;
     function SkipRegisteringExt(const ProductId: String; DefaultValue: string): string;
     function DryRun(const ProductId: String): boolean;
-    function IsIncluded(const ProductId: String): boolean;
+    function IsExcluded(const ProductId: String): boolean;
+    function IsIncluded(const ProductId: String): boolean; overload;
+    function IsIncluded(const ProductId, Mask: String): boolean; overload;
     function GetAllDefines(const ProductId: string): TArray<string>;
     function GetDefinesOnlyForProject(const ProductId: string): TArray<string>;
 
@@ -501,10 +503,18 @@ begin
 
 end;
 
-function TConfigDefinition.IsIncluded(const ProductId: String): boolean;
+function TConfigDefinition.IsExcluded(const ProductId: String): boolean;
 begin
   for var ExcludedId in ExcludedComponents.Keys do
     if MatchesMask(ProductId, ExcludedId) then
+      Exit(True);
+
+  Exit(False);
+ end;
+
+function TConfigDefinition.IsIncluded(const ProductId: String): boolean;
+begin
+  if IsExcluded(ProductId) then
       Exit(False);
 
   if IncludedComponents.Count = 0 then
@@ -514,6 +524,19 @@ begin
   for var IncludedId in IncludedComponents.Keys do
     if MatchesMask(ProductId, IncludedId) then
       Exit(True);
+end;
+
+function TConfigDefinition.IsIncluded(const ProductId, Mask: String): boolean;
+begin
+  //For tms update, we will come with an empty mask here if the user didn't set one (just run "tms update")
+  //We will then use the included products.
+  if Mask = '' then exit(IsIncluded(ProductId));
+
+  if not MatchesMask(ProductId, Mask) then exit(false);
+  if IsExcluded(ProductId) then Exit(False);
+
+  //We don't check included products when using masks
+   Exit(true);
 end;
 
 procedure TConfigDefinition.ClearAdditionalProductsFolders;

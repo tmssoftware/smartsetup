@@ -48,6 +48,8 @@ tms smart setup options:
   # All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will
   # be generated under the additional folders. This is useful if you want to use tms to build your own sources.
   # The folders you add here must be in the same drive as the main root folder.
+  # You can also use wildcards (* or ?) here to add multiple folders with a single entry.
+  # For example: c:\MyProducts\*\demo\source would match MyProducts\product1\demo\source, MyProducts\product2\demo\source, etc.
   additional products folders:
     #- c:\MyProducts   #All folders containing tmsbuild.yaml files inside c:\MyProducts will be added to the build.
     #- ..\..\Other products  #Try to use relative folders if possible.
@@ -65,7 +67,7 @@ tms smart setup options:
   git:
     git location: #c:\git\bin\git.exe
     clone command: #clone --branch my-branch --single-branch
-    pull command: #pull --ff-only
+    pull command: #pull --all --ff-only
 
   # Subversion (SVN) client configuration.
   svn:

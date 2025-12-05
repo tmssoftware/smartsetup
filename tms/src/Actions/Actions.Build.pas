@@ -54,7 +54,8 @@ begin
   var ProductIds := ParseVersions(ProductIdsAndVersions);
   if Length(ProductIds) > 0 then
   begin
-    Config.ClearExcludedComponents;
+    //Do not clear Excluded, only included.
+    //Config.ClearExcludedComponents;
     Config.ClearIncludedComponents;
     for var ProductId in ProductIds do
     begin
