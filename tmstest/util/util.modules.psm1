@@ -7,7 +7,7 @@ function Invoke-WithExitCodeIgnored {
   } catch {
  }
  if ($global:LASTEXITCODE -eq 0) {
-    throw "The command was expected to fail, but it succeeded."
+    throw "The command '$ScriptBlock' was expected to fail, but it succeeded."
     }
  $global:LASTEXITCODE = 0
 }
