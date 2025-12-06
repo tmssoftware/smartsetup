@@ -23,14 +23,13 @@ type
     FAlreadyHandledProducts: THashSet<string>;
     procedure AddMatchedItems(const ProductVersion: TProductVersion);
     procedure AddMatchedInstalledProducts(const ProductVersion: TProductVersion; Matched: TDictionary<string, TProductVersion>);
-    function FindItem(const ProductId, Version: string): TFetchItem;
-    function ContainsItem(const ProductId, Version: string): Boolean;
+    function FindItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): TFetchItem;
+    function ContainsItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): Boolean;
     function FindInstalledProduct(Item: TFetchItem): TFetchInfoFile;
     procedure FlagOutdatedItems;
     procedure DownloadOutdated;
     procedure ProcessDependencies;
     function GetProductDependencies(const ProductId: string): TArray<string>;
-    procedure CheckDuplicatedItems;
   protected
     procedure UpdateItems;
     property Repo: TRepositoryManager read FRepo;
@@ -64,9 +63,8 @@ begin
     begin
       Item.DependenciesProcessed := True;
       var Dependencies := GetProductDependencies(Item.ProductId);
-      {$message warn 'review'}
       for var Dependency in Dependencies do
-        AddMatchedItems(TProductVersion.Create(Dependency, ''));
+        AddMatchedItems(TProductVersion.Create(Dependency, '*'));
     end;
 end;
 
@@ -133,15 +131,15 @@ begin
 
         Found := True;
         var VersionToInstall := ProductVersion.Version;
-        if VersionToInstall = '' then VersionToInstall := RepoProduct.LatestVersion.Version;
+        if (VersionToInstall = '') or (VersionToInstall = '*') then VersionToInstall := RepoProduct.LatestVersion.Version;
 
-        if ContainsItem(RepoProduct.Id, VersionToInstall) then
+        if ContainsItem(RepoProduct.Id, VersionToInstall, ProductVersion.Version = '*', false) then
         begin
           Logger.Trace(Format('Ignoring %s:%s because it was already added', [RepoProduct.Id, VersionToInstall]));
           Continue;
         end;
 
-        var Item := TFetchItem.Create(RepoProduct.Id, VersionToInstall, Repo.Server);
+        var Item := TFetchItem.Create(RepoProduct.Id, VersionToInstall, Repo.Server, ProductVersion.Version = '*');
         FFetchItems.Add(Item);
         Item.Internal := RepoProduct.Internal;
 
@@ -166,7 +164,7 @@ begin
     begin
       var RepoServer := '';
       if Repo <> nil then RepoServer := Repo.Server;
-      var Item := TFetchItem.Create(ProductVersion.IdMask, ProductVersion.Version, RepoServer);
+      var Item := TFetchItem.Create(ProductVersion.IdMask, ProductVersion.Version, RepoServer, false);
       FFetchItems.Add(Item);
       Item.Status := TFetchStatus.Failed;
       Logger.Error(ErrorMessage);
@@ -176,9 +174,9 @@ begin
   end;
 end;
 
-function TFetchManager.ContainsItem(const ProductId, Version: string): Boolean;
+function TFetchManager.ContainsItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): Boolean;
 begin
-  Result := FindItem(ProductId, Version) <> nil;
+  Result := FindItem(ProductId, Version, CanBeAnyVersion, AllowDuplicates) <> nil;
 end;
 
 constructor TFetchManager.Create(AFolders: IBuildFolders; ARepo: TRepositoryManager; AAlreadyHandledProducts: THashSet<string>);
@@ -215,11 +213,26 @@ begin
   Result := nil;
 end;
 
-function TFetchManager.FindItem(const ProductId, Version: string): TFetchItem;
+function TFetchManager.FindItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): TFetchItem;
 begin
   for var Item in FetchItems do
-    if (Item.ProductId = ProductId) and (Item.Version = Version) then
+    if (Item.ProductId = ProductId) then
+    begin
+      if CanBeAnyVersion then Exit(Item);
+      if Item.CanBeAnyVersion then
+      begin
+        Item.CanBeAnyVersion := false;
+        Exit(Item);
+      end;
+
+      if (Item.Version = Version) then
        Exit(Item);
+
+      if not AllowDuplicates then
+      begin
+        raise Exception.Create('The product ' + Item.ProductId +' was requested to be installed in versions "' + Version + '" and "' + Item.Version + '" at the same time.');
+      end;
+    end;
   Result := nil;
 end;
 
@@ -328,29 +341,6 @@ begin
   end;
 end;
 
-procedure TFetchManager.CheckDuplicatedItems;
-begin
-  var Matched := TDictionary<string, TProductVersion>.Create;
-  try
-    for var Item in FetchItems do
-    begin
-      var ExistingProduct: TProductVersion;
-      if (Matched.TryGetValue(Item.ProductId, ExistingProduct)) then
-      begin
-        if (ExistingProduct.Version <> Item.Version) then
-        begin
-          raise Exception.Create('The product ' + Item.ProductId +' was requested to be installed in versions "' + ExistingProduct.Version + '" and "' + Item.Version + '" at the same time.');
-        end;
-      end else
-      begin
-        Matched.Add(Item.ProductId, TProductVersion.Create(Item.ProductId, Item.Version));
-      end;
-    end;
-  finally
-    Matched.Free;
-  end;
-end;
-
 procedure TFetchManager.FlagOutdatedItems;
 begin
   // First, check which items must be downloaded or are already downloaded
@@ -383,7 +373,6 @@ begin
       Logger.Trace(Format('%s skipped, local version is already in the correct version', [Item.ProductId]));
     end;
 
-    CheckDuplicatedItems;
 end;
 
 function TFetchManager.GetProductDependencies(const ProductId: string): TArray<string>;
