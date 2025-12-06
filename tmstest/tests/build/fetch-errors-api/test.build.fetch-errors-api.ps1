@@ -13,37 +13,32 @@ if ($installed.Count -ne 0) {
     Write-Error "No products should have been installed, but $($installed.Count) were."
 }
 
-# Create a download folder
-tms install tms.vcl.crypto
-
 # Change the Download folder to be readonly so fetch fails.
 $downloadFolder = "./Downloads"
 #get the full path
+
+# Create the download folder if it does not exist
+if (-not (Test-Path -Path $downloadFolder)) {
+    New-Item -Path $downloadFolder -ItemType Directory | Out-Null
+}
 $downloadFolder = (Get-Item -Path $downloadFolder).FullName
 
-if (-not (Test-Path -Path $downloadFolder)) {
-    Write-Error "Download folder $downloadFolder does not exist."
+#Change the ACL permissions for Authenticated Users to deny write
+$acl = Get-Acl -Path $downloadFolder
+$accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("Authenticated Users", "Write", "Deny")
+$acl.AddAccessRule($accessRule)
+Set-Acl -Path $downloadFolder -AclObject $acl
+
+$buildResult2 = ""
+try {
+    $buildResult2 = Invoke-WithExitCodeIgnored { tms install tms.vcl.crypto }
+}
+finally {    
+    # make the files writable again for cleanup
+    $acl.RemoveAccessRule($accessRule)
+    Set-Acl -Path $downloadFolder -AclObject $acl
 }
 
-# replace all files in the download folder by zero-byte files to simulate a corrupted download
-Get-ChildItem -Path $downloadFolder -Recurse | ForEach-Object {
-    if (-not ($_.PSIsContainer)) {
-        Set-Content -Path $_.FullName -Value $null
-        #make it readonly
-        Set-ItemProperty -Path $_.FullName -Name IsReadOnly -Value $true
-    }
-}
-
-$buildResult2 = Invoke-WithExitCodeIgnored{ tms install tms.vcl.crypto }
-
-# make the files writable again for cleanup
-Get-ChildItem -Path $downloadFolder -Recurse | ForEach-Object {
-    if (-not ($_.PSIsContainer)) {
-        Set-ItemProperty -Path $_.FullName -Name IsReadOnly -Value $false
-    }
-}
-
-$testOk2 = Test-Result -CommandResult $buildResult2 -Message "*Error: Could not fetch tms.vcl.crypto*"  
-if (-not ($testOk2)) {
-    Write-Error "The error message should mention 'Error: Could not fetch tms.vcl.crypto'. Actual message: $($buildResult2)"
-}
+Test-FetchResultCounts -FetchResult $buildResult2 -ExpectedLines @(
+    "*- tms.vcl.crypto -> FAILED*"
+)
