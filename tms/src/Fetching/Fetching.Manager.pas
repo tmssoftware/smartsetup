@@ -30,6 +30,7 @@ type
     procedure DownloadOutdated;
     procedure ProcessDependencies;
     function GetProductDependencies(const ProductId: string): TArray<string>;
+    procedure CheckDuplicatedItems;
   protected
     procedure UpdateItems;
     property Repo: TRepositoryManager read FRepo;
@@ -327,6 +328,29 @@ begin
   end;
 end;
 
+procedure TFetchManager.CheckDuplicatedItems;
+begin
+  var Matched := TDictionary<string, TProductVersion>.Create;
+  try
+    for var Item in FetchItems do
+    begin
+      var ExistingProduct: TProductVersion;
+      if (Matched.TryGetValue(Item.ProductId, ExistingProduct)) then
+      begin
+        if (ExistingProduct.Version <> Item.Version) then
+        begin
+          raise Exception.Create('The product ' + Item.ProductId +' was requested to be installed in versions "' + ExistingProduct.Version + '" and "' + Item.Version + '" at the same time.');
+        end;
+      end else
+      begin
+        Matched.Add(Item.ProductId, TProductVersion.Create(Item.ProductId, Item.Version));
+      end;
+    end;
+  finally
+    Matched.Free;
+  end;
+end;
+
 procedure TFetchManager.FlagOutdatedItems;
 begin
   // First, check which items must be downloaded or are already downloaded
@@ -358,6 +382,8 @@ begin
       Item.Status := TFetchStatus.SkippedUpToDate;
       Logger.Trace(Format('%s skipped, local version is already in the correct version', [Item.ProductId]));
     end;
+
+    CheckDuplicatedItems;
 end;
 
 function TFetchManager.GetProductDependencies(const ProductId: string): TArray<string>;
