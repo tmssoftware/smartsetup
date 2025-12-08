@@ -61,7 +61,7 @@ Those folders might also have log files from smartsetup, if they run some smarts
 ```
 tmstest build
 ```
-this will run all tests that have `build` inside their name. We search for `test.*{parameter}*.tms` so in this case, this will run all tests matching `test.*build*.ps1`.
+this will run all tests that have `build` inside their name. We search for `test.*{parameter}*.ps1` so in this case, this will run all tests matching `test.*build*.ps1`.
 
 > [!NOTE]
 > Don't run the tests directly, by executing them in the command line. They will refuse to run, because they need to be run outside the `tests` folder. Otherwise they would create their temporary files in the wrong place. To run them manually, call `tmstest name-of-the-test` instead. `tmstest` will basically copy the folder to tmp-run, and run it there.
@@ -72,6 +72,19 @@ tmstest -skip-slow
 tmstest build -skip-slow
 ```
 Will skip all slow tests.
+
+### Testing working folder
+
+Normal tests run in the default smartsetup configuration where the default folder is the same folder where tms.config.yaml is.
+There are some specific tests for changing the working folder, but they are few. To run all the tests using a working folder
+based on %temp%,call
+
+```
+tmstest -working-folder
+```
+
+> [!NOTE]
+> To test better, you would need %temp% to be located in a different drive from the tests. You can do so by setting `$env:TEMP=z:\mytests`
 
 ### Debugging from the console
 

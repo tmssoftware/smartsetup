@@ -176,7 +176,9 @@ type
 
   TConfigDefinition = class
   private
-    FRootFolder: string;
+    FConfigFolder: string;
+    FWorkingFolder: string;
+    FWorkingFolderUsed: boolean;
     FProducts: TProductConfigDefinitionDictionary;
     ExcludedComponents, IncludedComponents: TOrderedDictionary<string, string>;
     AdditionalProductsFolders: TOrderedDictionary<string, string>;
@@ -205,10 +207,9 @@ type
     procedure SetPrefixedProperties(index: TGlobalPrefixedProperties;
       const Value: TArrayOverrideBehavior);
   public
-    constructor Create(const ARootFolder: string);
+    constructor Create(const AConfigFolder: string);
     destructor Destroy; override;
     function Folders: IBuildFolders;
-//    property FullPath: string read FFullPath;
 
     function GetProduct(ProductId: string): TProductConfigDefinition;
 
@@ -247,6 +248,9 @@ type
 
     property Products: TProductConfigDefinitionDictionary read FProducts;
 
+    function GetWorkingFolder(const WithDefault: boolean): string;
+    procedure SetWorkingFolder(const value: string);
+
     function Verbosity(const ProductId: String; DefaultVerbosity: TVerbosity): TVerbosity;
     function SkipRegistering(const ProductId: String; DefaultValue: integer): integer;
     function SkipRegisteringExt(const ProductId: String; DefaultValue: string): string;
@@ -282,9 +286,9 @@ uses IOUtils, UTmsBuildSystemUtils;
 
 { TConfigDefinition }
 
-constructor TConfigDefinition.Create(const ARootFolder: string);
+constructor TConfigDefinition.Create(const AConfigFolder: string);
 begin
-  FRootFolder := ARootFolder;
+  FConfigFolder := AConfigFolder;
   FProducts := TProductConfigDefinitionDictionary.Create;
   ExcludedComponents := TOrderedDictionary<string, string>.Create;
   IncludedComponents := TOrderedDictionary<string, string>.Create;
@@ -323,7 +327,7 @@ end;
 
 function TConfigDefinition.Folders: IBuildFolders;
 begin
-  Result := TBuildFolders.Create(FRootFolder);
+  Result := TBuildFolders.Create(GetWorkingFolder(true));
 end;
 
 function TConfigDefinition.AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;
@@ -438,15 +442,11 @@ end;
 
 function TConfigDefinition.GetAllRootFolders: TArray<string>;
 begin
-  if AdditionalProductsFolders.Keys.Count = 0 then //Optimization for most common case.
-  begin
-    Result := [Folders.RootFolder];
-    exit;
-  end;
-
   var ResultList := TList<string>.Create;
   try
     ResultList.Add(Folders.RootFolder);
+    if Folders.RootFolder <> FConfigFolder then ResultList.Add(FConfigFolder);
+
     for var root in AdditionalProductsFolders do
     begin
       AddPathsWithWildcards(ResultList, TPath.GetFullPath(TPath.Combine(Folders.RootFolder, root.Key)), root.Value,
@@ -680,6 +680,20 @@ function TConfigDefinition.Match(const IdWithMask: string; const Projects: TDict
 begin
   for var p in Projects.Keys do if MatchesMask(p, IdWithMask) then exit(true);
   Result := false;
+end;
+
+function TConfigDefinition.GetWorkingFolder(const WithDefault: boolean): string;
+begin
+  FWorkingFolderUsed := true;
+  if (FWorkingFolder.Trim = '') and WithDefault then exit(FConfigFolder);
+  Result := FWorkingFolder;
+end;
+
+procedure TConfigDefinition.SetWorkingFolder(const value: string);
+begin
+  //Make sure we don't try to change MetaDataFolders after we read the value.
+  if FWorkingFolderUsed then raise Exception.Create('Internal error: Attempting to modify MetaData folders after they have been used.');
+  FWorkingFolder := value;
 end;
 
 procedure TConfigDefinition.Validate(const Projects: TDictionary<string, boolean>);

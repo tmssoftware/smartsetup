@@ -15,6 +15,11 @@ tms smart setup options:
   # see https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
   alternate registry key:
 
+  # folder where smart setup will store the products along with its metadata, like downloaded files, unzipped files, logs, etc.
+  # if empty (the default), all folders will be created where this tms.config.yaml file is located.
+  # this folder can be located in a different disk than this configuration file.
+  working folder: #..\..\components
+
   # prevents the machine from going to sleep while smart setup is running. Default is true.
   # note that for this setting to work, "Allow applications to prevent automatic sleep (plugged in)" must be set
   # to Enabled in the Group Policy Settings. See https://github.com/microsoft/PowerToys/issues/12326#issuecomment-1304934080

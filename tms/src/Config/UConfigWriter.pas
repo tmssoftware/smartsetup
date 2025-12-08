@@ -241,6 +241,7 @@ begin
   if FullName = 'tms smart setup options:' then exit(TYamlValue.MakeObject);
   if FullName = 'tms smart setup options:build cores:' then exit(Cfg.BuildCores);
   if FullName = 'tms smart setup options:alternate registry key:' then exit(Cfg.AlternateRegistryKey);
+  if FullName = 'tms smart setup options:working folder:' then exit(Cfg.GetWorkingFolder(false));
   if FullName = 'tms smart setup options:prevent sleep:' then exit(Cfg.PreventSleep);
   if FullName = 'tms smart setup options:versions to keep:' then exit(Cfg.MaxVersionsPerProduct);
   if FullName = 'tms smart setup options:error if skipped:' then exit(Cfg.ErrorIfSkipped);

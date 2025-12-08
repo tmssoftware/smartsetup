@@ -742,6 +742,7 @@ begin
   Actions := TListOfActions.Create;
   Actions.Add('build cores', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.BuildCores := GetInt(value, ErrorInfo) end);
   Actions.Add('alternate registry key', procedure(value: string; ErrorInfo: TErrorInfo) begin Config.AlternateRegistryKey := value; end);
+  Actions.Add('working folder', procedure(value: string; ErrorInfo: TErrorInfo) begin Config.SetWorkingFolder(value); end);
   Actions.Add('prevent sleep', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.PreventSleep := GetBoolEx(value, ErrorInfo) end);
   Actions.Add('versions to keep', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.MaxVersionsPerProduct := GetInt(value, ErrorInfo) end);
   Actions.Add('error if skipped', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.ErrorIfSkipped := GetBool(value, ErrorInfo) end);

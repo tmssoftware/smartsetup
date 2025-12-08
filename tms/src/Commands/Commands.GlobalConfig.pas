@@ -7,6 +7,7 @@ uses
 
 function Config: TConfigDefinition;
 function ConfigNoCheck: TConfigDefinition;
+function ConfigHasBeenLoaded: boolean;
 procedure SetConfigFileName(const FileName: string);
 procedure AddConfigParameter(const Parameter: string);
 function ConfigFileName: string;
@@ -60,6 +61,7 @@ begin
   if TFile.Exists(ConfigFileName) then
     Exit(True);
 
+  //If the config file doesn't exist, then there is no working folder and we can search in the folder where configfilename is.
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
   Result := TDirectory.Exists(Folders.MetaFolder);
 end;
@@ -80,6 +82,11 @@ begin
 
   end;
   Result :=_Config;
+end;
+
+function ConfigHasBeenLoaded: boolean;
+begin
+  Result := _Config <> nil;
 end;
 
 function ConfigNoCheck: TConfigDefinition;

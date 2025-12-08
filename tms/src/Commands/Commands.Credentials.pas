@@ -149,7 +149,7 @@ procedure RunCredentialsCommand;
 begin
   CheckAppAlreadyRunning;
 
-  var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
+  var Folders: IBuildFolders := ConfigNoCheck.Folders;
 
   var IsEmpty := true;
   var Data := TJSONObject.Create;

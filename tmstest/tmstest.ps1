@@ -5,7 +5,9 @@ param(
     [Alias("skip-slow")]    
     [switch]$skipSlow = $false,
     [Alias("failed")]
-    [switch]$openFailedFiles = $false
+    [switch]$openFailedFiles = $false,
+    [Alias("working-folder")]
+    [switch]$useWorkingFolder = $false # uses a working folder based on temp. If temp is in a different drive, it will be a better test.
 )
 . $PSScriptRoot/util/util.errors.ps1
 
@@ -17,6 +19,15 @@ if (! $env:TMSTEST_CODE -or ! $env:TMSTEST_EMAIL) {
     Write-Error "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
 }
 . $PSScriptRoot/util/util.set_tmstest_util.ps1
+
+$Global:tmsUseWorkingFolder = $useWorkingFolder
+$workFolder = Join-Path -Path $env:TEMP -ChildPath "tmstest-tmp"
+if (Test-Path -Path $workFolder) {
+    # Clean up any previous temp folder
+    $workFolder = Join-Path -Path $env:TEMP -ChildPath "tmstest-tmp"
+    tmsutil delete-folder -keep-root-folder -folder:$workFolder | Out-Null
+}
+
 
 $testsToRun = $testsToRunParam
 

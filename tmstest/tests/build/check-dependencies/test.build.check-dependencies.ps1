@@ -5,7 +5,13 @@
 tmscredentials
 tms install tms.biz.echo
 
-Remove-Item -Recurse -Force ".\Products\tms.biz.aurelius"
+
+$aureliusPath = ".\Products\tms.biz.aurelius"
+# Only join if $Global:tmsWorkingFolder is set, otherwise powershell complains
+if ($Global:tmsWorkingFolder) {
+    $aureliusPath = (Join-Path -Path $Global:tmsWorkingFolder -ChildPath $aureliusPath)
+}
+Remove-Item -Recurse -Force $aureliusPath
 
 $results = Invoke-WithExitCodeIgnored{tms build tms.biz.echo} 
 

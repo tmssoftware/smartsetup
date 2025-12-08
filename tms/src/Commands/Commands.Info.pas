@@ -19,8 +19,8 @@ var
 function HasCredentials: Boolean;
 begin
   Result := false;
-  var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
-  for var i := 0 to ConfigNoCheck.ServerConfig.ServerCount - 1 do
+  var Folders := ConfigNoCheck.Folders;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
   begin
     var Server := Config.ServerConfig.GetServer(i);
 
@@ -49,7 +49,7 @@ begin
   try
     Json.AddPair('tms version', TMSVersion);
     Json.AddPair('tms location', ParamStr(0));
-    Json.AddPair('working folder', TPath.GetDirectoryName(ConfigFileName));
+    Json.AddPair('working folder', ConfigNoCheck.Folders.RootFolder);
     Json.AddPair('folder initialized', IsValidTMSSetupFolder);
     Json.AddPair('has credentials', HasCredentials);
     if TFile.Exists(ConfigFileName) then

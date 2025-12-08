@@ -24,3 +24,19 @@ if ($resolvedItemPath -ne $resolvedTestsFolder) {
 . $PSScriptRoot/util.set_starting_config_yaml.ps1
 
 Import-Module -Name $PSScriptRoot/util.modules.psm1 -Force
+
+# set variable to the current folder name
+$location = Get-Location
+$folderName = Split-Path -Path $location.Path -Leaf
+
+
+$Global:tmsWorkingFolder = ""
+if ($Global:tmsUseWorkingFolder) {
+    # if tms.config.yaml doesn't exist, do not create it
+    if (Test-Path -Path (Join-Path -Path (Get-Location) -ChildPath "tms.config.yaml")) {
+        $Global:tmsWorkingFolder = Join-Path -Path $env:TEMP -ChildPath "tmstest-tmp" -AdditionalChildPath "$($folderName)"
+        tms config-write -p:"tms smart setup options:working folder=$Global:tmsWorkingFolder"
+        Write-Host "Set working folder to: $Global:tmsWorkingFolder"
+    }
+}
+

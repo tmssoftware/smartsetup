@@ -3,6 +3,7 @@ tms config -reset -print
 
 $buildCores = 0
 $altRegistryKey = ""
+$workingFolder = ""
 $preventSleep = "true"
 $versionsToKeep = "-1"
 $errorIfSkipped = "false"
@@ -52,6 +53,7 @@ function Test-JSON() {
 function Test-ValuesOk() {
     tms config-read "tms smart setup options:build cores" | Assert-ValueIs $buildCores
     tms config-read "tms smart setup options:alternate registry key" | Assert-ValueIs $altRegistryKey
+    tms config-read "tms smart setup options:working folder" | Assert-ValueIs $workingFolder
     tms config-read "tms smart setup options:prevent sleep" | Assert-ValueIs $preventSleep
     tms config-read "tms smart setup options:versions to keep" | Assert-ValueIs $versionsToKeep
     tms config-read "tms smart setup options:error if skipped" | Assert-ValueIs $errorIfSkipped
@@ -93,6 +95,10 @@ Test-ValuesOk
 
 $altRegistryKey = "myProduct"
 tms config-write -p:"tms smart setup options:alternate registry key=$altRegistryKey"
+Test-ValuesOk
+
+$workingFolder = "WorkingFolder"
+tms config-write -p:"tms smart setup options:working folder=$workingFolder"
 Test-ValuesOk
 
 $preventSleep = "false"

@@ -13,3 +13,16 @@ if ($info."folder initialized") {
 if ($info."has credentials") {
     Write-Error "Test failed: Folder should not have credentials."
 }
+
+tmscredentials
+
+tms info
+$info = tms info -json | ConvertFrom-Json
+
+if (-not $info."folder initialized") {
+    Write-Error "Test failed: Folder should be initialized."
+}
+
+if (-not $info."has credentials") {
+    Write-Error "Test failed: Folder should have credentials."
+}

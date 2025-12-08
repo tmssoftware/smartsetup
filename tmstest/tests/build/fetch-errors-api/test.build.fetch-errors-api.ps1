@@ -15,6 +15,11 @@ if ($installed.Count -ne 0) {
 
 # Change the Download folder to be readonly so fetch fails.
 $downloadFolder = "./Downloads"
+# Only join if $Global:tmsWorkingFolder is set, otherwise powershell complains
+if ($Global:tmsWorkingFolder) {
+    $downloadFolder = (Join-Path -Path $Global:tmsWorkingFolder -ChildPath $downloadFolder)
+}
+
 #get the full path
 
 # Create the download folder if it does not exist

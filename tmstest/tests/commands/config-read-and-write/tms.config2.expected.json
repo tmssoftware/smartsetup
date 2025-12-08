@@ -3,6 +3,7 @@
   {
     "build cores": 4,
     "alternate registry key": "myProduct",
+    "working folder": "WorkingFolder",
     "prevent sleep": false,
     "versions to keep": 3,
     "error if skipped": true,
