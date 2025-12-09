@@ -1,0 +1,17 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmstest.f
+  name: "F"
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - tmstest_f: [runtime, rtl]
+
+
+

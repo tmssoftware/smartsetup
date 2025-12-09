@@ -57,6 +57,8 @@ Remove-Item -Path "HKCU:\Software\Embarcadero\tmstest" -Recurse -Force
 } catch {
 }
 
+& $tmsTestRootDir/util/util.create_test_repositories.ps1
+
 $successfulTests = @()
 $failedTests = @()
 $skippedTests = @()
@@ -86,6 +88,7 @@ foreach ($test in $tests) {
             if (Test-Path -Path $logPath) {
                 $opened++
                 Start-Process -FilePath $logPath
+                Start-Process -FilePath $testDir
             }
         }
         else {
