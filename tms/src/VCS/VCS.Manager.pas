@@ -21,6 +21,12 @@ type
     class function GetInstalledProducts: THashSet<string>; static;
     class procedure AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct); static;
     class function FindTmsBuildYaml(const ProductFolder: string): string; static;
+    class function ProcessDependencies(
+      const ProductsToProcess: TObjectList<TRegisteredVersionedProduct>;
+      const ProductsToProcessDict: TDictionary<string, string>;
+      const AlreadyProcessed, InstalledProducts: THashSet<string>): boolean; static;
+    class procedure GetDependencies(
+      const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>); static;
   public
     class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
 
@@ -122,7 +128,9 @@ begin
     //If something fails in DoFetchProduct, then `tms uninstall` will never get rid of it, since tmsfetch.info is missing.
     //But, if we do it in that order, and DoFetchProduct fails, you will end up with an empty folder with just tmsfetch.info inside.
     //So instead, we ensure DoFetchProduct either returns a full thing, or nothing. Then we save tmsfetch.info only if DoFetchFolder succeeded.
-    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, Product.Version, Product.Product.Server);
+    var ProductVersion := Product.Version; if ProductVersion = '*' then ProductVersion := '';
+                                           
+    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, ProductVersion, Product.Product.Server);
     AddPredefinedData(ProductFolder, Product.Product);
     begin
 
@@ -226,6 +234,32 @@ begin
   end;
 end;
 
+class procedure TVCSManager.GetDependencies(const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>);
+begin
+  Dependencies.Clear;
+  if not TDirectory.Exists(Config.Folders.ProductsFolder) then exit;
+
+  for var Product in Products do
+  begin
+    var ProductId := Product.Product.ProductId;
+    var Folder := CombinePath(Config.Folders.ProductsFolder, ProductId);
+    var YamlFolder := TProjectLoader.GetProjectDefinition(Folder);
+    if YamlFolder = '' then continue;
+    var def := TProjectLoader.LoadProjectDefinition(YamlFolder);
+    try
+      for var Dependency in def.Dependencies do
+      begin
+        if AlreadyProcessed.Contains(Dependency.Id) then continue;
+        AlreadyProcessed.Add(Dependency.Id);
+        Logger.Trace(Format('%s depends on %s, added to processing queue', [ProductId, Dependency.Id]));
+        Dependencies.Add(Dependency.Id);
+      end;
+    finally
+      def.Free;
+    end;
+  end;
+end;
+
 
 class function TVCSManager.Fetch(const AProductVersions: TArray<TProductVersion>;
   const OnlyInstalled: boolean): THashSet<string>;
@@ -250,16 +284,18 @@ begin
               if RegisteredVCSRepos.GetProducts(ProductVersion, ProductsToProcess, ProductsToProcessDict, InstalledProducts) then Result.Add(ProductVersion.IdMask);
             end;
           end;
+
+          //We added all IDS, but they could have wildcards, like tms.biz.*.
+          //We need both those with wildcards (to know later if a command like install tms.biz.* installed anything)
+          //But also the real products, to handle dependencies.
+          for var Prod in ProductsToProcess do Result.Add(Prod.Product.ProductId);
+
+          DoFetch(ProductsToProcess);
+
+          while ProcessDependencies(ProductsToProcess, ProductsToProcessDict, Result, InstalledProducts) do;
         finally
           InstalledProducts.Free;
         end;
-
-        //We added all IDS, but they could have wildcards, like tms.biz.*.
-        //We need both those with wildcards (to know later if a command like install tms.biz.* installed anything)
-        //But also the real products, to handle dependencies.
-        for var Prod in ProductsToProcess do Result.Add(Prod.Product.ProductId);
-
-        DoFetch(ProductsToProcess);
       finally
         ProductsToProcessDict.Free;
       end;
@@ -270,6 +306,31 @@ begin
     Result.Free;
     raise;
   end;
+end;
+
+class function TVCSManager.ProcessDependencies(const ProductsToProcess: TObjectList<TRegisteredVersionedProduct>; const ProductsToProcessDict: TDictionary<string, string>; const AlreadyProcessed, InstalledProducts: THashSet<string>): boolean;
+begin
+  var Dependencies := THashSet<string>.Create;
+  try
+    GetDependencies(ProductsToProcess, AlreadyProcessed, Dependencies);
+    ProductsToProcess.Clear;
+
+    //If in an update, we could check that we the dependency is in installedproducts
+    //But then, and update that added a new dependency wouldn't add it and the compile would break.
+    //So we pass nil to the last parameter.
+    for var Dependency in Dependencies do
+    begin
+      RegisteredVCSRepos.GetProducts(TProductVersion.Create(Dependency, '*'), ProductsToProcess, ProductsToProcessDict, nil);
+    end;
+  finally
+    Dependencies.Free;
+  end;
+
+
+  if ProductsToProcess.Count = 0 then exit(false);
+
+  DoFetch(ProductsToProcess);
+  Result := true;
 end;
 
 end.

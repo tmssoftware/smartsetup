@@ -136,7 +136,7 @@ end;
 
 procedure TGitEngine.CheckoutVersion(const aCloneFolder, aVersion: string; const Detach: boolean);
 begin
-  if aVersion.Trim = '' then exit;
+  if (aVersion.Trim = '') or (aVersion.Trim = '*') then exit;
 
   //git clean removes untracked files. It removes tmsbuild.yaml too if not in the repo, and tmsfetch.info.
   //git reset --hard removes tracked files, leaves untracked.

@@ -51,7 +51,7 @@ type
     FVersion: string;
   public
     property Product: TRegisteredProduct read FProduct;
-    property Version: string read FVersion;
+    property Version: string read FVersion write FVersion;
 
     constructor Create(const aProduct: TRegisteredProduct; const aVersion: string);
     destructor Destroy; override;
@@ -68,6 +68,9 @@ type
     procedure LoadPreregisteredProducts(const aServerName: string);
     procedure LoadOnePreregisteredProduct(const FileName, Text, Server: string);
     procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
+    procedure ChangeVersion(
+      const List: TObjectList<TRegisteredVersionedProduct>; const ProductId,
+      NewVersion: string);
   public
     constructor Create(aServerName: string);
     destructor Destroy; override;
@@ -158,6 +161,15 @@ begin
   inherited;
 end;
 
+procedure TProductRegistry.ChangeVersion(const List: TObjectList<TRegisteredVersionedProduct>; const ProductId: string; const NewVersion: string);
+begin
+  for var Product in List do
+  begin
+    if Product.FProduct.ProductId = ProductId then Product.Version := NewVersion;
+
+  end;
+end;
+
 function TProductRegistry.GetProducts(const ProductVersion: TProductVersion; const List: TObjectList<TRegisteredVersionedProduct>; const ListDict: TDictionary<string, string>; const InstalledProducts: THashSet<string>): boolean;
 begin
   Result := false;
@@ -174,7 +186,9 @@ begin
         begin
           if ExistingVersion <> ProductVersion.Version then
           begin
-            raise Exception.Create('The product ' + ProductId.Value.ProductId +' was requested to be installed in versions "' + ExistingVersion + '" and "' + ProductVersion.Version + '" at the same time.');
+            if ExistingVersion = '*' then ChangeVersion(List, ProductId.Value.ProductId, ProductVersion.Version)
+            else if ProductVersion.Version = '*' then begin end
+            else raise Exception.Create('The product ' + ProductId.Value.ProductId +' was requested to be installed in versions "' + ExistingVersion + '" and "' + ProductVersion.Version + '" at the same time.');
           end;
         end else
         begin
