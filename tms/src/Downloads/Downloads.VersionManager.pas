@@ -10,7 +10,8 @@ uses SysUtils, Generics.Defaults, Generics.Collections, Commands.GlobalConfig,
 {$IFDEF POSIX}
   Posix.UniStd, Posix.Stdio,
 {$ENDIF}
-Deget.Version, IOUtils, UMultiLogger, Math, UTmsBuildSystemUtils;
+Deget.Version, IOUtils, UMultiLogger, Math, UTmsBuildSystemUtils,
+Fetching.InstallInfo, Fetching.InfoFile, Fetching.FetchItem, UGenericDecompressor;
 
 type
 TProductInfo = record
@@ -19,6 +20,7 @@ TProductInfo = record
 
   constructor Create(const aFileName: string; const aVersion: TVersion);
 end;
+
 TProductInfoList = TList<TProductInfo>;
 TAllProductsInfo = TObjectDictionary<string, TProductInfoList>;
 
@@ -39,7 +41,17 @@ end;
 function ExtractProduct(const FileName: string): string;
 begin
   var OnlyFileName := TPath.GetFileNameWithoutExtension(FileName);
-  Result := OnlyFileName.Substring(0, OnlyFileName.LastIndexOf('_'));
+  Result := OnlyFileName.Substring(0, OnlyFileName.LastIndexOf('_production_'));
+end;
+
+function GetFetchFileName(const ProductId: string; const Version: TVersion): string;
+begin
+  var FetchItem := TFetchItem.Create(ProductId, Version, '', true);
+  try
+    Result := FetchItem.UniqueName;
+  finally
+    FetchItem.Free;
+  end;
 end;
 
 
@@ -81,14 +93,43 @@ begin
   end;
 end;
 
-procedure SortVersions(const Product: TProductInfoList);
+function GetFetchDictionary: TDictionary<string, TVersion>;
 begin
+  Result := TDictionary<string, TVersion>.Create;
+  var InstalledProducts := TObjectList<TFetchInfoFile>.Create;
+  try
+    GetFetchedProducts(Config.Folders.ProductsFolder, InstalledProducts);
+    for var Product in InstalledProducts do
+    begin
+      var Version: TVersion;
+      if TVersion.TryFromString(Product.Version, Version) then
+      begin
+        Result.Add(Product.ProductId, Version);
+      end;
+    end;
+  finally
+    InstalledProducts.Free;
+  end;
+end;
+
+function GetInstalledVersion(const InstalledProducts: TDictionary<string, TVersion>; const ProductId: string): TVersion;
+begin
+  if InstalledProducts.TryGetValue(ProductId, Result) then exit;
+  Result := TVersion.Make(-1, -1, -1, -1);
+end;
+
+procedure SortVersions(const InstalledVersion: TVersion; const Product: TProductInfoList);
+begin
+  //Put the installed version first so we keep that one in CurrentDownloads.
   Product.Sort(
   TComparer<TProductInfo>.Construct(
     function (const a, b: TProductInfo): integer
     begin
-      if a.Version < b.Version then exit(1);
-      if a.Version > b.Version then exit(-1);
+      if (a.Version = b.Version) then exit(0);
+      if (a.Version = InstalledVersion) then exit(-1);
+      if (b.Version = InstalledVersion) then exit(1);
+      if (a.Version < b.Version) then exit(1);
+      if (a.Version > b.Version) then exit(-1);
       exit(0);
     end)
   );
@@ -125,9 +166,9 @@ begin
 
 end;
 
-procedure MoveOrDeleteOlder(const Product: TProductInfoList; const DeleteInsteadOfMoving: boolean; const Keep: integer);
+procedure MoveOrDeleteOlder(const InstalledVersion: TVersion; const Product: TProductInfoList; const DeleteInsteadOfMoving: boolean; const Keep: integer);
 begin
-  SortVersions(Product);
+  SortVersions(InstalledVersion, Product);
   for var i := Math.Max(0, Keep) to Product.Count - 1 do
   begin
     if DeleteInsteadOfMoving then
@@ -140,7 +181,7 @@ begin
   end;
 end;
 
-procedure MoveFromCurrentToOld(const MaxVersionsPerProduct: integer);
+procedure MoveFromCurrentToOld(const InstalledProducts: TDictionary<string, TVersion>; const MaxVersionsPerProduct: integer);
 begin
   var Keep := 1;
   if (MaxVersionsPerProduct = 0) then Keep := 0;
@@ -149,23 +190,43 @@ begin
 
   var Current := GetProducts(Config.Folders.DownloadsFolder);
   try
-    for var Product in Current.Values do
+    for var Product in Current do
     begin
-      if Product.Count > 0 then MoveOrDeleteOlder(Product, DeleteInsteadOfMoving, Keep);
+      if Product.Value.Count > 0 then MoveOrDeleteOlder(GetInstalledVersion(InstalledProducts, Product.Key), Product.Value, DeleteInsteadOfMoving, Keep);
     end;
   finally
     Current.Free;
   end;
 end;
 
+procedure MoveFromOldBackToCurrent(const InstalledProducts: TDictionary<string, TVersion>);
+begin
+  for var Product in InstalledProducts do
+  begin
+    var FileName := GetFetchFileName(Product.Key, Product.Value);
+    if (FileName <> '') then
+    begin
+      var OldFileName := TPath.Combine(Config.Folders.OldDownloadsFolder, FileName);
+      for var DownloadFormat := Low(TDownloadFormat) to High(TDownloadFormat) do
+      begin
+        if TFile.Exists(OldFileName + DownloadFormatExtension[DownloadFormat]) then
+        begin
+          MoveFileAndLog(OldFileName + DownloadFormatExtension[DownloadFormat], Config.Folders.DownloadsFolder);
+        end;
+      end;
+    end;
 
-procedure DeleteFromOld(const MaxVersionsPerProduct: integer);
+  end;
+end;
+
+
+procedure DeleteFromOld(const InstalledProducts: TDictionary<string, TVersion>; const MaxVersionsPerProduct: integer);
 begin
  var Old := GetProducts(Config.Folders.OldDownloadsFolder);
  try
-   for var Product in Old.Values do
+   for var Product in Old do
    begin
-     if Product.Count > MaxVersionsPerProduct - 1 then MoveOrDeleteOlder(Product, true, MaxVersionsPerProduct - 1);
+     if Product.Value.Count > MaxVersionsPerProduct - 1 then MoveOrDeleteOlder(GetInstalledVersion(InstalledProducts, Product.Key), Product.Value, true, MaxVersionsPerProduct - 1);
    end;
  finally
    Old.Free;
@@ -175,11 +236,16 @@ end;
 procedure RotateDownloads(const MaxVersionsPerProduct: integer);
 begin
  Logger.Info('Cleaning up downloaded files...');
- MoveFromCurrentToOld(MaxVersionsPerProduct);
-
- if MaxVersionsPerProduct >= 0 then  //negative means keep everything.
- begin
-   DeleteFromOld(MaxVersionsPerProduct);
+ var InstalledProducts := GetFetchDictionary;
+ try
+   MoveFromOldBackToCurrent(InstalledProducts);
+   MoveFromCurrentToOld(InstalledProducts, MaxVersionsPerProduct);
+   if MaxVersionsPerProduct >= 0 then  //negative means keep everything.
+   begin
+   DeleteFromOld(InstalledProducts, MaxVersionsPerProduct);
+   end;
+ finally
+   InstalledProducts.Free;
  end;
 
  Logger.Info('Finished cleaning up downloaded files.')

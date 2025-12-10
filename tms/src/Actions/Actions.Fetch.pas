@@ -22,7 +22,7 @@ uses
   Commands.Logging,
   UConfigDefinition,
   Fetching.ProductVersion,
-  VCS.Manager;
+  VCS.Manager, Downloads.VersionManager;
 
 function FindApiServer: TServerConfig;
 begin
@@ -85,6 +85,9 @@ begin
   finally
     Repo.Free;
   end;
+
+  RotateDownloads(Config.MaxVersionsPerProduct);
+
 end;
 
 end.

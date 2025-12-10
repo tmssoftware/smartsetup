@@ -4,6 +4,9 @@ interface
 uses Classes, SysUtils, Decompressor.ZSTD, Zip;
 type
   TDownloadFormat = (Unknown, Zip, Zstd);
+ const
+  DownloadFormatExtension: Array[TDownloadFormat] of string =('', '.zip', '.tar.zst');
+ type
 
   TBundleDecompressor = class
   private

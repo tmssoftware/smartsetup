@@ -8,7 +8,7 @@ implementation
 
 uses
   System.StrUtils, UCommandLine, Commands.CommonOptions, Commands.Logging, Actions.Fetch,
-  Actions.Build, Commands.GlobalConfig, Downloads.VersionManager;
+  Actions.Build, Commands.GlobalConfig;
 
 var
   NoBuild: Boolean = False;
@@ -21,8 +21,6 @@ begin
     ExecuteFetchAction(ProductIds, TFetchMode.OnlyInstalled)
   else
     ExecuteFetchAction(ProductIds, TFetchMode.DownloadNew);
-
-  RotateDownloads(Config.MaxVersionsPerProduct);
 end;
 
 procedure RegisterFetchCommand;
