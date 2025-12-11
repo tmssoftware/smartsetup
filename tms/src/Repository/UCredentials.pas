@@ -51,7 +51,7 @@ function CreateCredentialsManager(const CredentialsFile: string; Options: TFetch
 implementation
 
 uses
-  System.Net.HttpClient, System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth;
+  System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth;
 
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions): TCredentialsManager;
 begin

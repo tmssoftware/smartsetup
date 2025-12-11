@@ -426,6 +426,9 @@
         <DCCReference Include="src\Fetching\Fetching.ProductVersion.pas"/>
         <DCCReference Include="src\Commands\Commands.VersionsRemote.pas"/>
         <DCCReference Include="src\Core\UDelayedErrors.pas"/>
+        <DCCReference Include="src\Testing\Testing.Globals.pas"/>
+        <DCCReference Include="src\Testing\Testing.CommandLineOptions.pas"/>
+        <DCCReference Include="src\Fetching\Fetching.OfflineHTTPClient.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

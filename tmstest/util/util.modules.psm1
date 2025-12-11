@@ -12,6 +12,32 @@ function Invoke-WithExitCodeIgnored {
  $global:LASTEXITCODE = 0
 }
 
+function Test-CommandFails {
+    param(
+        [Parameter(Mandatory, Position=0)] [scriptblock] $ScriptBlock,
+        [Parameter(Mandatory, Position=1)] [string] $Message,
+        [Parameter(Position=2)] [string] $ExtraInfo = ""
+    )
+    $opResult = Invoke-WithExitCodeIgnored $ScriptBlock
+    $testOk = Test-Result -CommandResult $opResult -Message $Message  
+    if (-not ($testOk)) {   
+        throw "$($ExtraInfo): The error message should mention '$($Message)'.'. Actual message: $($opResult)"
+    }
+}
+
+function Test-CommandOk {
+    param(
+        [Parameter(Mandatory, Position=0)] [scriptblock] $ScriptBlock,
+        [Parameter(Mandatory, Position=1)] [string] $Message,
+        [Parameter(Position=2)] [string] $ExtraInfo = ""
+    )
+    $opResult = & $ScriptBlock
+    $testOk = Test-Result -CommandResult $opResult -Message $Message  
+    if (-not ($testOk)) {   
+        throw "$($ExtraInfo): The message should mention '$($Message)'.'. Actual message: $($opResult)"
+    }
+}
+
 # pass negative values to not check for that count.
 function Test-BuildResultCounts {
     param (

@@ -28,7 +28,7 @@ type
   end;
 
 implementation
-uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils;
+uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils, Testing.Globals;
 
 { TSvnEngine }
 
@@ -76,6 +76,10 @@ end;
 
 procedure TSvnEngine.Clone(const aCloneFolder, aURL, aVersion: string);
 begin
+{$IFDEF DEBUG}
+  TestParameters.CheckOffline('TSvnEngine.Clone');
+{$ENDIF}
+
   if aVersion <> '' then raise Exception.Create('Versioning not supported in SVN protocol.');
 
   var Output := '';
@@ -90,6 +94,9 @@ end;
 procedure TSvnEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
   if aVersion <> '' then raise Exception.Create('Versioning not supported in SVN protocol.');
+{$IFDEF DEBUG}
+  TestParameters.CheckOffline('TSvnEngine.Pull');
+{$ENDIF}
 
   var Output := '';
   var Folder := TPath.GetFullPath(aGitFolder);

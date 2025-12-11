@@ -9,7 +9,8 @@ uses
   WinApi.Windows,
 {$ENDIF}
   System.SysUtils, System.Threading, System.DateUtils, UAppTerminated, URepositoryManager,
-  Fetching.ParallelProjectInfo, Fetching.InfoFile, Fetching.FetchItem, Fetching.InstallInfo, UConfigFolders, UGenericDecompressor;
+  Fetching.ParallelProjectInfo, Fetching.InfoFile, Fetching.FetchItem, Fetching.InstallInfo,
+  UConfigFolders, UGenericDecompressor;
 
 type
   TParallelDownloader = class
@@ -34,7 +35,7 @@ type
 
 implementation
 uses
-  ULogger, UMultiLogger, System.Zip, System.Net.HttpClient, System.Generics.Collections, UTmsBuildSystemUtils,
+  ULogger, UMultiLogger, System.Zip, Fetching.OfflineHTTPClient, System.Generics.Collections, UTmsBuildSystemUtils,
   System.Classes, System.IOUtils, UHasher,
 {$IFDEF POSIX}
   Posix.UniStd, Posix.Stdio,
@@ -193,7 +194,7 @@ begin
   Result := '';
   var Aborted := False;
   var AddedSteps := 0;
-  var Client: THTTPClient := THTTPClient.Create;
+  var Client: TOfflineHTTPClient := TOfflineHTTPClient.Create;
   try
     // set receive data callback
     begin

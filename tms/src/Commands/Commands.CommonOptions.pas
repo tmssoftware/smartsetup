@@ -29,7 +29,8 @@ type
 implementation
 
 uses
-  Commands.Logging, Commands.GlobalConfig, UMultiLogger, IOUTils, UTmsBuildSystemUtils;
+  Commands.Logging, Commands.GlobalConfig, UMultiLogger, IOUTils,
+  UTmsBuildSystemUtils, Testing.CommandLineOptions;
 
 procedure CheckAppAlreadyRunning;
 begin
@@ -149,6 +150,9 @@ begin
       AddConfigParameter(Value);
     end);
 
+  {$IFDEF DEBUG}
+  RegisterTestingOptions;
+  {$ENDIF}
 
   // default command
   AddCommand('', RunDefaultCommand);

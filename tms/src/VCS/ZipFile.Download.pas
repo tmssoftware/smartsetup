@@ -7,7 +7,7 @@ uses ULogger,
   {$ELSE}
     Posix.Stdio,
   {$ENDIF}
-  System.Net.HttpClient;
+  Fetching.OfflineHTTPClient;
 type
   TDownloadLogger = reference to procedure(const Verbosity: TVerbosity; const msg: string);
 
@@ -92,7 +92,7 @@ begin
 
   Result := s.Substring(FileProtocol.Length);
   if (Result.Length > 3)
-    and (Result[1] = '/') and Character.IsLetter(Result[2]) and (Result[3] = ':') and (Result[4] = '/')
+    and (Result[1] = '/') and (Result[2]).IsLetter and (Result[3] = ':') and (Result[4] = '/')
     then Result := Result.Substring(1);
 
 end;
@@ -109,7 +109,7 @@ end;
 //Code is from TParallelDownloader.DownloadFile. We could unify it, but for now I prefer to evolve it separately.
 class procedure ZipDownloader.GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
 begin
-  var Client: THTTPClient := THTTPClient.Create;
+  var Client: TOfflineHTTPClient := TOfflineHTTPClient.Create;
   try
     var Aborted := false;
     TDirectory_CreateDirectory(TPath.GetDirectoryName(FileNameOnDisk));

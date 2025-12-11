@@ -35,7 +35,7 @@ type
   end;
 
 implementation
-uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils;
+uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils, Testing.Globals;
 
 { TGitEngine }
 
@@ -74,6 +74,9 @@ end;
 
 function TGitEngine.GetVersionNames(const aURL: string): TArray<string>;
 begin
+{$IFDEF DEBUG}
+  TestParameters.CheckOffline('TGitEngine.GetVersionNames');
+{$ENDIF}
   var Output := '';
   var FullCommand := '"' + GitCommandLine + '" ls-remote --tags ' + aUrl;
   if not ExecuteCommand(FullCommand, '', Output, ['GIT_TERMINAL_PROMPT=0'])
@@ -154,6 +157,9 @@ end;
 
 procedure TGitEngine.Clone(const aCloneFolder, aURL, aVersion: string);
 begin
+{$IFDEF DEBUG}
+  TestParameters.CheckOffline('TGitEngine.Clone');
+{$ENDIF}
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
   var FullCommand := '"' + GitCommandLine + '" ' + CloneCommand + ' "' + aURL + '" "' + CloneFolder + '"';
@@ -174,6 +180,9 @@ end;
 
 procedure TGitEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
+{$IFDEF DEBUG}
+  TestParameters.CheckOffline('TGitEngine.Pull');
+{$ENDIF}
   var Output := '';
   var GitFolder := TPath.GetFullPath(aGitFolder);
   AttachHead(TPath.GetFullPath(aRootFolder), GitFolder);

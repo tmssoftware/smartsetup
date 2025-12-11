@@ -206,7 +206,10 @@ uses
   Deget.Compilation.DelphiSelector in '..\common\src\Deget\Deget.Compilation.DelphiSelector.pas',
   Fetching.ProductVersion in 'src\Fetching\Fetching.ProductVersion.pas',
   Commands.VersionsRemote in 'src\Commands\Commands.VersionsRemote.pas',
-  UDelayedErrors in 'src\Core\UDelayedErrors.pas';
+  UDelayedErrors in 'src\Core\UDelayedErrors.pas',
+  Testing.Globals in 'src\Testing\Testing.Globals.pas',
+  Testing.CommandLineOptions in 'src\Testing\Testing.CommandLineOptions.pas',
+  Fetching.OfflineHTTPClient in 'src\Fetching\Fetching.OfflineHTTPClient.pas';
 
 begin
   try

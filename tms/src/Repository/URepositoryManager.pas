@@ -5,7 +5,7 @@ unit URepositoryManager;
 interface
 
 uses
-  System.Generics.Collections, System.SysUtils, System.Net.HttpClient, Fetching.Options, UCredentials,
+  System.Generics.Collections, System.SysUtils, Fetching.OfflineHTTPClient, Fetching.Options, UCredentials,
   System.JSON, System.JSON.Serializers, System.JSON.Readers, System.JSON.Converters, System.JSON.Types;
 
 type
@@ -79,7 +79,7 @@ type
     TMSSetupProductId = 'tms.smartsetup.macos';
   {$ENDIF}
   private
-    FClient: THTTPClient;
+    FClient: TOfflineHTTPClient;
     FAccessToken: string;
     FUrl: string;
     FServer: string;
@@ -214,7 +214,7 @@ end;
 constructor TRepositoryManager.Create;
 begin
   inherited;
-  FClient := THTTPClient.Create;
+  FClient := TOfflineHTTPClient.Create;
   FProducts := TObjectList<TRepositoryProduct>.Create;
 end;
 
