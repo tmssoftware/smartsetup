@@ -9,11 +9,6 @@ $versions = tms versions-remote tms.flexcel.vcl -json | ConvertFrom-Json
  
 $sortedVersions = $versions.psobject.Properties.Name | Sort-Object {[version]$_}
 
-$installResult = Invoke-WithExitCodeIgnored{tms install tms.flexcel.vcl:$($sortedVersions[-1]) tms.flexcel.vcl:$($sortedVersions[-2])}
-$testOk = Test-Result -CommandResult $installResult -Message "*was requested to be installed in versions*"
-
-if (-not ($testOk)) {
-    Write-Error "The error message should mention 'was requested to be installed in versions'. Actual message: $($installResult)"
-}
+Test-CommandFails { tms install tms.flexcel.vcl:$($sortedVersions[-1]) tms.flexcel.vcl:$($sortedVersions[-2]) } "*was requested to be installed in versions*"
 
 Write-Output "ok." 

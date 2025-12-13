@@ -9,11 +9,6 @@ $versions = tms versions-remote vsoft.cancellationtoken -json | ConvertFrom-Json
  
 $sortedVersions = $versions.psobject.Properties.Name | Sort-Object {[version]$_.substring(1)}
 
-$installResult = Invoke-WithExitCodeIgnored{tms install vsoft.cancellationtoken:$($sortedVersions[-1]) vsoft.cancellationtoken:$($sortedVersions[-2])}
-$testOk = Test-Result -CommandResult $installResult -Message "*was requested to be installed in versions*"
-
-if (-not ($testOk)) {
-    Write-Error "The error message should mention 'was requested to be installed in versions'. Actual message: $($installResult)"
-}
+Test-CommandFails { tms install vsoft.cancellationtoken:$($sortedVersions[-1]) vsoft.cancellationtoken:$($sortedVersions[-2]) } "*was requested to be installed in versions*"
 
 Write-Output "ok." 

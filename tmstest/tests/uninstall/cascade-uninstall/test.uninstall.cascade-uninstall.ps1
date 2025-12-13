@@ -12,11 +12,7 @@ if ($remaining.Count -ne 0) {
 
 tms install tms.biz.sparkle
 tms install tms.biz.aurelius
-$uninstallResult = Invoke-WithExitCodeIgnored{ tms uninstall tms.biz.aurelius -cascade }
-$testOk = Test-Result -CommandResult $uninstallResult -Message "*Error: Uninstall failed: tms.biz.bcl*"
-if (-not ($testOk)) {
-    Write-Error "tms.biz.bcl should remain installed. Actual message: $($uninstallResult)"
-}
+Test-CommandFails { tms uninstall tms.biz.aurelius -cascade } "*Error: Uninstall failed: tms.biz.bcl*"
 
 
 $remaining = tms list -json | ConvertFrom-Json -AsHashtable

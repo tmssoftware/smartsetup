@@ -29,11 +29,7 @@ if ($installedAfterUninstall2.Count -ne 0) {
 # we exclude bcl, so it will fail to install aurelius, which depends on it.
 tms config-write -p:"tms smart setup options:excluded products=[vsoft.messaging,tms.biz.echo,tms.biz.bcl]" 
 
-$installResult = Invoke-WithExitCodeIgnored{ tms install vsoft.* tms.biz.*  }
-$testOk = Test-Result -CommandResult $installResult -Message "*Error: The product tms.biz.bcl is excluded in the section ""excluded products"" from tms.config.yaml.*"  
-if (-not ($testOk)) {   
-    Write-Error "The error message should mention 'Error: The product tms.biz.bcl is excluded in the section ""excluded products"" from tms.config.yaml.'. Actual message: $($installResult)"
-}
+Test-CommandFails { tms install vsoft.* tms.biz.* } "*Error: The product tms.biz.bcl is excluded in the section ""excluded products"" from tms.config.yaml.*"
 
 # Actually the products will show as installed, even if it crashed during fetch.
 # list -detailed shows if it is really installed and where (d11, d12), but we just won't check that here.
@@ -54,11 +50,7 @@ if ($installed.Count -ne $allCount - 2) {
     Write-Error "$($allCount - 2) products should have been installed, but $($installed.Count) were."
 }
 
-$installResult = Invoke-WithExitCodeIgnored{ tms install vsoft.messaging }
-$testOk = Test-Result -CommandResult $installResult -Message "*Error: The product vsoft.messaging is excluded in the section ""excluded products"" from tms.config.yaml.*"  
-if (-not ($testOk)) {   
-    Write-Error "The error message should mention 'Error: The product vsoft.messaging is excluded in the section ""excluded products"" from tms.config.yaml.'. Actual message: $($installResult)"
-}
+Test-CommandFails { tms install vsoft.messaging } "*Error: The product vsoft.messaging is excluded in the section ""excluded products"" from tms.config.yaml.*"
 
 # check tms build. tms build is the only command that can be called alone without product names (you can do tms build, but not tms install)
 # so tms build is the only one that should use included products. All the others replace included products with their command line arguments. 

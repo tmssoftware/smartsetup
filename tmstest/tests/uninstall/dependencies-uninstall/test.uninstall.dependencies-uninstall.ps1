@@ -7,12 +7,7 @@ tmscredentials
 tms install tms.fnc.chart tms.fnc.uipack
 
 
-$uninstallResult = Invoke-WithExitCodeIgnored{tms uninstall tms.fnc.core tms.fnc.uipack}
-$testOk = Test-Result -CommandResult $uninstallResult -Message "*Error: Uninstall failed: tms.fnc.core"
-
-if (-not ($testOk)) {
-    Write-Error "The uninstall of tms.fnc.core should have failed due to it depending on tms.fnc.chart. Actual message: $($uninstallResult)"
-}
+Test-CommandFails { tms uninstall tms.fnc.core tms.fnc.uipack } "*Error: Uninstall failed: tms.fnc.core*"
 
 $remaining = tms list -json | ConvertFrom-Json -AsHashtable
 if (-not $remaining.ContainsKey("tms.fnc.core")) {

@@ -7,11 +7,7 @@ function Test-UnknownProductError {
         [string] $Case
     )
     $ProductId = "potato.salad"
-    $installResult = Invoke-WithExitCodeIgnored{ tms install $ProductId }
-    $testOk = Test-Result -CommandResult $installResult -Message "*Error: Could not find any products matching $ProductId*"  
-    if (-not ($testOk)) {   
-        throw "Case $($Case): The error message should mention 'Error: Could not find any products matching $ProductId'.'. Actual message: $($installResult)"
-    }
+    Test-CommandFails { tms install $ProductId } "*Error: Could not find any products matching $ProductId*" "Case $Case"
 }
 
 Test-UnknownProductError "none"
