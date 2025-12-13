@@ -68,7 +68,7 @@ class function TFetchInfoFile.FromFile(const FileName: string): TFetchInfoFile;
 begin
   Result := TFetchInfoFile.Create;
   try
-    var Lines := TFile.ReadAllLines(FileName);
+    var Lines := TFile.ReadAllLines(FileName, TUTF8NoBOMEncoding.Instance);
     for var line in Lines do
     begin
       if line.Trim.StartsWith(InfoProduct + ':') then Result.ProductId := line.Trim.Substring(Length(InfoProduct + ':')).Trim;
@@ -91,7 +91,7 @@ end;
 class procedure TFetchInfoFile.SaveInFolder(const Folder, ProductId, Version, Server: string; const Pinned: boolean);
 begin
   TDirectory_CreateDirectory(Folder);
-  var sw := TStreamWriter.Create(CombinePath(Folder, TFetchInfoFile.FileName));
+  var sw := TStreamWriter.Create(CombinePath(Folder, TFetchInfoFile.FileName), false, TUTF8NoBOMEncoding.Instance);
   try
     sw.WriteLine(InfoProduct + ': ' + ProductId);
     sw.WriteLine(InfoVersion + ': ' + Version);
