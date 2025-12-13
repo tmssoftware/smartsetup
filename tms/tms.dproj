@@ -429,6 +429,7 @@
         <DCCReference Include="src\Testing\Testing.Globals.pas"/>
         <DCCReference Include="src\Testing\Testing.CommandLineOptions.pas"/>
         <DCCReference Include="src\Fetching\Fetching.OfflineHTTPClient.pas"/>
+        <DCCReference Include="src\Commands\Commands.Pin.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

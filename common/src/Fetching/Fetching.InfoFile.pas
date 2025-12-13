@@ -12,15 +12,17 @@ type
     InfoVersion = 'version';
     InfoChannel = 'channel';
     InfoServer = 'server';
+    InfoPinned = 'pinned';
   private
     FProductId: string;
     FProductPath: string;
     FVersion: string;
     FChannel: string;
     FServer: string;
+    FPinned: boolean;
   public
     constructor Create; overload;
-    constructor Create(const aProductId, aProductPath, aVersion, aChannel, aServer: string); overload;
+    constructor Create(const aProductId, aProductPath, aVersion, aChannel, aServer: string; const aPinned: boolean); overload;
 
     function DisplayName: string;
 
@@ -29,9 +31,10 @@ type
     property Version: string read FVersion write FVersion;
     property Channel: string read FChannel write FChannel;
     property Server: string read FServer write FServer;
+    property Pinned: boolean read FPinned write FPinned;
   public
     class function FromFile(const FileName: string): TFetchInfoFile;
-    class procedure SaveInFolder(const Folder, ProductId, Version, Server: string);
+    class procedure SaveInFolder(const Folder, ProductId, Version, Server: string; const Pinned: boolean);
   end;
 
 implementation
@@ -39,13 +42,14 @@ uses IOUtils, UTmsBuildSystemUtils;
 
 { TFetchInfoFile }
 
-constructor TFetchInfoFile.Create(const aProductId, aProductPath, aVersion, aChannel, aServer: string);
+constructor TFetchInfoFile.Create(const aProductId, aProductPath, aVersion, aChannel, aServer: string; const aPinned: boolean);
 begin
   FProductId := aProductId;
   FProductPath := aProductPath;
   FVersion := aVersion;
   FChannel := aChannel;
   FServer := aServer;
+  FPinned := aPinned;
 end;
 
 constructor TFetchInfoFile.Create;
@@ -71,6 +75,7 @@ begin
       if line.Trim.StartsWith(InfoVersion + ':') then Result.Version := line.Trim.Substring(Length(InfoVersion + ':')).Trim;
       if line.Trim.StartsWith(InfoServer + ':') then Result.Server := line.Trim.Substring(Length(InfoServer + ':')).Trim;
       if line.Trim.StartsWith(InfoChannel + ':') then Result.Channel := line.Trim.Substring(Length(InfoChannel + ':')).Trim;
+      if line.Trim.StartsWith(InfoPinned + ':') then Result.Pinned := StrToBool(line.Trim.Substring(Length(InfoPinned + ':')).Trim);
     end;
     Result.ProductPath := TPath.GetDirectoryName(FileName);
 
@@ -83,7 +88,7 @@ begin
   end;
 end;
 
-class procedure TFetchInfoFile.SaveInFolder(const Folder, ProductId, Version, Server: string);
+class procedure TFetchInfoFile.SaveInFolder(const Folder, ProductId, Version, Server: string; const Pinned: boolean);
 begin
   TDirectory_CreateDirectory(Folder);
   var sw := TStreamWriter.Create(CombinePath(Folder, TFetchInfoFile.FileName));
@@ -91,6 +96,7 @@ begin
     sw.WriteLine(InfoProduct + ': ' + ProductId);
     sw.WriteLine(InfoVersion + ': ' + Version);
     sw.WriteLine(InfoServer + ': ' + Server);
+    sw.WriteLine(InfoPinned + ': ' + BoolToStr(Pinned, false));
   finally
     sw.Free;
   end;

@@ -32,6 +32,7 @@ type
     FVersion: TLenientVersion;
     FChannel: string;
     FServer: string;
+    FPinned: boolean;
     FFetched: Boolean;
     FProject: TProjectDefinition;
     FIDEStatusMap: TDictionary<TIDEName, TIDEStatus>;
@@ -46,6 +47,7 @@ type
     property Version: TLenientVersion read FVersion write FVersion;
     property Channel: string read FChannel write FChannel;
     property Server: string read FServer write FServer;
+    property Pinned: boolean read FPinned write FPinned;
     property Fetched: Boolean read FFetched write FFetched;
     property Project: TProjectDefinition read FProject write SetProject;
   end;
@@ -137,6 +139,7 @@ begin
       Product.Version := Item.Version;
       Product.Channel := Item.Channel;
       Product.Server := Item.Server;
+      Product.Pinned := Item.Pinned;
       Product.Fetched := True;
     end;
   finally

@@ -61,7 +61,7 @@ begin
       var ProjectFolder := TPath.GetDirectoryName(Project.FullPath);
       if TPath.GetDirectoryName(ProjectFolder) = '' then continue; //Don't remove projects at the root of a drive.
 
-      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, Project.Application.Version, 'unknown', ''));
+      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, Project.Application.Version, 'unknown', '', false));
     end;
   finally
     Projects.Free;

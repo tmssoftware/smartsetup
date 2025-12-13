@@ -12,6 +12,7 @@ type
     Downloaded,   // product has been downloaded and extacted. Final status.
     SkippedUpToDate,      // product is already updated to the latest version, no need to download. Final status.
     SkippedManualVersionExists, // skipped because there is a local non-managed version, which we never want to overwrite.
+    SkippedPinned, //Skipped because it is pinned.
     Failed       // something failed during download. Final status.
   );
   TFetchStatusSet = set of TFetchStatus;

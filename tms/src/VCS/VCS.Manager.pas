@@ -115,6 +115,12 @@ end;
 class function TVCSManager.FetchProduct(const Product: TRegisteredVersionedProduct): TVCSFetchStatus;
 begin
   Result := TVCSFetchStatus.Ok;
+  if (Product.Pinned) then
+  begin
+    Logger.Info('Skipping ' + Product.Product.ProductId + ' because it is pinned.');
+    exit;
+  end;
+
   Logger.StartSection(TMessageType.VCSFetch, Product.ProductIdAndVersion + ' from ' + Product.Product.ProtocolString);
   try
     CheckAppTerminated;
@@ -129,8 +135,9 @@ begin
     //But, if we do it in that order, and DoFetchProduct fails, you will end up with an empty folder with just tmsfetch.info inside.
     //So instead, we ensure DoFetchProduct either returns a full thing, or nothing. Then we save tmsfetch.info only if DoFetchFolder succeeded.
     var ProductVersion := Product.Version; if ProductVersion = '*' then ProductVersion := '';
-                                           
-    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, ProductVersion, Product.Product.Server);
+
+    //When we fetch a new product, pinned is false
+    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, ProductVersion, Product.Product.Server, false);
     AddPredefinedData(ProductFolder, Product.Product);
     begin
 

@@ -3,7 +3,7 @@ unit VCS.Registry;
 
 interface
 uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes,
-  UProjectDefinition, UConfigDefinition, Fetching.ProductVersion;
+  UProjectDefinition, UConfigDefinition, Fetching.ProductVersion, Fetching.InstallInfo, Fetching.InfoFile;
 type
   //In the future, we might add more stuff to the registry, like an image or path files.
   //That data would go inside this record.
@@ -49,11 +49,13 @@ type
   private
     FProduct: TRegisteredProduct;
     FVersion: string;
+    FPinned: boolean;
   public
     property Product: TRegisteredProduct read FProduct;
     property Version: string read FVersion write FVersion;
+    property Pinned: boolean read FPinned write FPinned;
 
-    constructor Create(const aProduct: TRegisteredProduct; const aVersion: string);
+    constructor Create(const aProduct: TRegisteredProduct; const aVersion: string; const aPinned: boolean);
     destructor Destroy; override;
     function Equals(ProductB: TObject): boolean; override;
 
@@ -64,6 +66,7 @@ type
   TProductRegistry = class
   private
     FProducts: TObjectDictionary<string, TRegisteredProduct>;
+    FPinned: THashSet<string>;
     function GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText: string): TRegisteredProduct;
     procedure LoadPreregisteredProducts(const aServerName: string);
     procedure LoadOnePreregisteredProduct(const FileName, Text, Server: string);
@@ -152,11 +155,13 @@ end;
 constructor TProductRegistry.Create(aServerName: string);
 begin
   FProducts := TObjectDictionary<string, TRegisteredProduct>.Create([doOwnsValues], TIStringComparer.Ordinal);
+  FPinned := THashSet<string>.Create;
   Load(aServerName);
 end;
 
 destructor TProductRegistry.Destroy;
 begin
+  FPinned.Free;
   FProducts.Free;
   inherited;
 end;
@@ -175,7 +180,7 @@ begin
   Result := false;
   for var ProductId in FProducts do
   begin
-      if Config.IsExcluded(ProductId.Key) then Logger.Trace('Ignoring ' + ProductId.Key + ' because it is in the "excluded products" section of tms.config.yaml');
+    if Config.IsExcluded(ProductId.Key) then Logger.Trace('Ignoring ' + ProductId.Key + ' because it is in the "excluded products" section of tms.config.yaml');
 
     if Config.IsIncluded(ProductId.Key, ProductVersion.IdMask) then
     begin
@@ -192,7 +197,7 @@ begin
           end;
         end else
         begin
-          List.Add(TRegisteredVersionedProduct.Create(ProductId.Value, ProductVersion.Version));
+          List.Add(TRegisteredVersionedProduct.Create(ProductId.Value, ProductVersion.Version, FPinned.Contains(ProductId.Key)));
           if ListDict <> nil then ListDict.Add(ProductId.Value.ProductId, ProductVersion.Version);
           Result := true;
         end;
@@ -274,6 +279,12 @@ procedure TProductRegistry.Load(const aServerName: string);
 begin
   FProducts.Clear;
   LoadPreregisteredProducts(aServerName);
+  FPinned.Clear;
+  GetFetchedProducts(Config.Folders.ProductsFolder, FPinned,
+    function(item: TFetchInfoFile): boolean
+    begin
+      Result := item.Pinned;
+    end);
 end;
 
 { TPredefinedData }
@@ -296,10 +307,11 @@ end;
 { TRegisteredVersionedProduct }
 
 constructor TRegisteredVersionedProduct.Create(
-  const aProduct: TRegisteredProduct; const aVersion: string);
+  const aProduct: TRegisteredProduct; const aVersion: string; const aPinned: boolean);
 begin
   FProduct := aProduct;
   FVersion := aVersion;
+  FPinned := aPinned;
 end;
 
 destructor TRegisteredVersionedProduct.Destroy;

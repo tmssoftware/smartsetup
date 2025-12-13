@@ -1,4 +1,6 @@
 $BaseDelphiVersion = "37.0" #Delphi 13. Update someday for Delphi 14.
+$PreviousDelphiVersionId = "delphi12"
+
 
 $BDS_ROOT_DIR = Get-ItemProperty -Path "HKCU:\Software\Embarcadero\BDS\$($BaseDelphiVersion)"
 

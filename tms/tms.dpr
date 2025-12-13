@@ -209,7 +209,8 @@ uses
   UDelayedErrors in 'src\Core\UDelayedErrors.pas',
   Testing.Globals in 'src\Testing\Testing.Globals.pas',
   Testing.CommandLineOptions in 'src\Testing\Testing.CommandLineOptions.pas',
-  Fetching.OfflineHTTPClient in 'src\Fetching\Fetching.OfflineHTTPClient.pas';
+  Fetching.OfflineHTTPClient in 'src\Fetching\Fetching.OfflineHTTPClient.pas',
+  Commands.Pin in 'src\Commands\Commands.Pin.pas';
 
 begin
   try

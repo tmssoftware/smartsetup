@@ -117,7 +117,8 @@ end;
 
 procedure TParallelDownloader.CreateInstallInfoFile(const Folder: string; const FetchItem: TFetchItem);
 begin
-  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, FetchItem.Version, FetchItem.Server);
+  //pinned must be false when downloading new products
+  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, FetchItem.Version, FetchItem.Server, false);
 end;
 
 function TParallelDownloader.FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;

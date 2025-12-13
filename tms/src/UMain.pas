@@ -24,7 +24,8 @@ uses
   Commands.Info,
   Commands.Doctor,
   Commands.LogView,
-  Commands.Uncompress;
+  Commands.Uncompress,
+  Commands.Pin;
 
 procedure Run;
 
@@ -74,6 +75,8 @@ begin
   RegisterFetchCommand;
   RegisterBuildCommand;
   RegisterUninstallCommand;
+  RegisterPinCommand;
+  RegisterUnpinCommand;
 
   RegisterListCommand;
   RegisterListRemoteCommand;

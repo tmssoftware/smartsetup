@@ -21,6 +21,7 @@ type
     FAllInstalledProductsIncludingManual: THashSet<string>;
     FIgnoreMissing: Boolean;
     FAlreadyHandledProducts: THashSet<string>;
+    FPinned: THashSet<string>;
     procedure AddMatchedItems(const ProductVersion: TProductVersion);
     procedure AddMatchedInstalledProducts(const ProductVersion: TProductVersion; Matched: TDictionary<string, TProductVersion>);
     function FindItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): TFetchItem;
@@ -30,6 +31,7 @@ type
     procedure DownloadOutdated;
     procedure ProcessDependencies;
     function GetProductDependencies(const ProductId: string): TArray<string>;
+    function GetPinned: THashSet<string>;
   protected
     procedure UpdateItems;
     property Repo: TRepositoryManager read FRepo;
@@ -43,6 +45,7 @@ type
     procedure UpdateInstalled(const ProductVersions: TArray<TProductVersion>);
 
     property AlreadyHandledProducts: THashSet<string> read FAlreadyHandledProducts;
+    property Pinned: THashSet<string> read GetPinned;
   end;
 
   EFetchException = class(Exception)
@@ -130,6 +133,7 @@ begin
         end;
 
         Found := True;
+
         var VersionToInstall := ProductVersion.Version;
         if (VersionToInstall = '') or (VersionToInstall = '*') then VersionToInstall := RepoProduct.LatestVersion.Version;
 
@@ -192,6 +196,7 @@ begin
   FFetchItems.Free;
   FInstalledProducts.Free;
   FAllInstalledProductsIncludingManual.Free;
+  FPinned.Free;
   inherited;
 end;
 
@@ -345,6 +350,14 @@ procedure TFetchManager.FlagOutdatedItems;
 begin
   // First, check which items must be downloaded or are already downloaded
   for var Item in FetchItems do
+  begin
+    if Pinned.Contains(Item.ProductId) then
+    begin
+      Item.Status := TFetchStatus.SkippedPinned;
+      Logger.Info('Skipped ' + Item.ProductId + ' because it is pinned');
+      continue;
+    end;
+
     if Item.Status = TFetchStatus.Unprocessed then
     begin
       var Installed := FindInstalledProduct(Item);
@@ -372,7 +385,19 @@ begin
       Item.Status := TFetchStatus.SkippedUpToDate;
       Logger.Trace(Format('%s skipped, local version is already in the correct version', [Item.ProductId]));
     end;
+  end;
+end;
 
+function TFetchManager.GetPinned: THashSet<string>;
+begin
+  if FPinned <> nil then exit(FPinned);
+  FPinned := THashSet<string>.Create;
+  GetFetchedProducts(Config.Folders.ProductsFolder, FPinned,
+    function(item: TFetchInfoFile): boolean
+    begin
+      Result := item.Pinned;
+    end);
+  Result := FPinned;
 end;
 
 function TFetchManager.GetProductDependencies(const ProductId: string): TArray<string>;
