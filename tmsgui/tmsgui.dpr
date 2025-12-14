@@ -20,7 +20,10 @@ uses
   Forms.VersionPicker in 'src\Forms.VersionPicker.pas' {VersionPickerForm},
   Forms.Start in 'src\Forms.Start.pas' {StartForm},
   Forms.Config.Servers in 'src\Forms.Config.Servers.pas' {ServerConfigForm},
-  Forms.Config in 'src\Forms.Config.pas' {ConfigForm};
+  Forms.Config in 'src\Forms.Config.pas' {ConfigForm},
+  Vcl.Themes,
+  Vcl.Styles,
+  UTheming in 'src\UTheming.pas';
 
 {$R *.res}
 
@@ -30,6 +33,7 @@ begin
 {$ENDIF}
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
+  ApplyThemeFromWindows;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

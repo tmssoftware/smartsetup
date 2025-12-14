@@ -98,6 +98,7 @@ type
     Relaunch: Boolean;
     SortColumn: Integer;
     SortDescending: Boolean;
+    procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
     function FormatLogMessage(const Item: TGUILogItem): string;
@@ -132,6 +133,7 @@ implementation
 
 uses
   Winapi.ShellAPI, Winapi.CommCtrl,
+  UTheming,
   Forms.VersionPicker;
 
 {$R *.dfm}
@@ -669,6 +671,13 @@ begin
         Item.fmt := Item.fmt or HDF_SORTUP;
     Header_SetItem(Header, I, Item);
   end;
+end;
+
+procedure TMainForm.WMSettingChange(var Msg: TWMSettingChange);
+begin
+  inherited;
+  if SameText('ImmersiveColorSet', String(Msg.Section)) then
+    ApplyThemeFromWindows;
 end;
 
 function TMainForm.ProductFromItem(Item: TListItem): TGUIProduct;
