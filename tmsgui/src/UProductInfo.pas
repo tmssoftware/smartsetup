@@ -34,6 +34,7 @@ type
     FVersion: TLenientVersion;
     FVendorId: string;
     FServer: string;
+    FPinned: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -46,6 +47,7 @@ type
     property Local: Boolean read FLocal write FLocal;
     property VendorId: string read FVendorId write FVendorId;
     property Server: string read FServer write FServer;
+    property Pinned: Boolean read FPinned write FPinned;
   end;
 
   TProductInfoList = class(TObjectList<TProductInfo>)

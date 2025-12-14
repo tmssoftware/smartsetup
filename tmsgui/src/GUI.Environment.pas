@@ -45,6 +45,7 @@ type
     FHasFetchInfo: Boolean;
     FVendorId: string;
     FServer: string;
+    FIsPinned: Boolean;
   public
     function IsOutdated: Boolean;
     function DisplayName: string;
@@ -56,6 +57,7 @@ type
     property HasFetchInfo: Boolean read FHasFetchInfo write FHasFetchInfo;
     property VendorId: string read FVendorId write FVendorId;
     property Server: string read FServer write FServer;
+    property IsPinned: Boolean read FIsPinned write FIsPinned;
   end;
 
   TGUIProductList = class(TObjectList<TGUIProduct>)
@@ -455,6 +457,7 @@ begin
       GUIProduct.Status := TProductStatus.Available;
     GUIProduct.HasFetchInfo := not Product.Local;
     GUIProduct.Server := Product.Server;
+    GUIProduct.IsPinned := Product.Pinned;
   end;
 
   for var Product in Remote do

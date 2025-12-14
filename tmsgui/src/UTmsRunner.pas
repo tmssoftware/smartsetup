@@ -390,6 +390,7 @@ begin
     Product.Version := JsonProduct.GetValue<string>('version', '');
     Product.Channel := JsonProduct.GetValue<string>('channel', '');
     Product.Local := JsonProduct.GetValue<Boolean>('local', False);
+    Product.Pinned := JsonProduct.GetValue<Boolean>('pinned', False);
     var JsonIDEs: TJSONObject;
     if JsonProduct.TryGetValue('ides', JsonIDEs) then
       for var IDEPair in JsonIDEs do

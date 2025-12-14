@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
-  GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus,
+  GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
   Forms.Config, UCommonTypes, Forms.Start;
 
 type
@@ -79,8 +79,6 @@ type
     procedure acUninstallExecute(Sender: TObject);
     procedure acConfigureUpdate(Sender: TObject);
     procedure acConfigureExecute(Sender: TObject);
-    procedure lvProductsCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState;
-      var DefaultDraw: Boolean);
     procedure lbLogItemsClick(Sender: TObject);
     procedure acVersionHistoryUpdate(Sender: TObject);
     procedure acVersionHistoryExecute(Sender: TObject);
@@ -93,14 +91,18 @@ type
     procedure cbServerChange(Sender: TObject);
     procedure acInstallVersionUpdate(Sender: TObject);
     procedure acInstallVersionExecute(Sender: TObject);
+    procedure lvProductsInfoTip(Sender: TObject; Item: TListItem; var InfoTip: string);
+    procedure lvProductsMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
     SortColumn: Integer;
     SortDescending: Boolean;
+    OverCaption: Boolean;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
+    function CompareIcons(const Product1, Product2: TGUIProduct): Integer;
     function FormatLogMessage(const Item: TGUILogItem): string;
     function FindProductItem(const ProductId: string): TListItem;
     procedure ShowInfo;
@@ -319,6 +321,25 @@ begin
     end);
 end;
 
+function TMainForm.CompareIcons(const Product1, Product2: TGUIProduct): Integer;
+
+  function CompareBool(B1, B2: Boolean): Integer;
+  begin
+    if B1 and not B2 then
+      Result := -1
+    else
+    if B2 and not B1 then
+      Result := 1
+    else
+      Result := 0;
+  end;
+
+begin
+  Result := CompareBool(Product1.IsOutdated, Product2.IsOutdated);
+  if Result = 0 then
+    Result := CompareBool(Product1.IsPinned, Product2.IsPinned);
+end;
+
 function TMainForm.CompareStatus(const Status1, Status2: TProductStatus): Integer;
 const
   StatusValue: array[TProductStatus] of Integer = (
@@ -528,11 +549,12 @@ begin
   begin
     // Review this in case we allow columns to be moved
     case SortColumn of
-      0: Compare := CompareText(Product1.Id, Product2.Id);
-      1: Compare := CompareText(Product1.Name, Product2.Name);
-      2: Compare := CompareVersion(Product1.LocalVersion, Product2.LocalVersion);
-      3: Compare := CompareVersion(Product1.RemoteVersion, Product2.RemoteVersion);
-      4: Compare := CompareStatus(Product1.Status, Product2.Status);
+      0: Compare := CompareIcons(Product1, Product2);
+      1: Compare := CompareText(Product1.Id, Product2.Id);
+      2: Compare := CompareText(Product1.Name, Product2.Name);
+      3: Compare := CompareVersion(Product1.LocalVersion, Product2.LocalVersion);
+      4: Compare := CompareVersion(Product1.RemoteVersion, Product2.RemoteVersion);
+      5: Compare := CompareStatus(Product1.Status, Product2.Status);
     end;
 
     // add produt id as secondary comparison
@@ -544,16 +566,34 @@ begin
     Compare := -Compare;
 end;
 
-procedure TMainForm.lvProductsCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState;
-  var DefaultDraw: Boolean);
+procedure TMainForm.lvProductsInfoTip(Sender: TObject; Item: TListItem; var InfoTip: string);
 begin
+  InfoTip := '';
   var Product := ProductFromItem(Item);
-  if Product = nil then Exit; // it might happen eventually, still don't know why
-  
-  if Product.Status <> TProductStatus.Installed then
-    Sender.Canvas.Font.Style := Sender.Canvas.Font.Style + [fsItalic];
+  if Product = nil then Exit;
+  if not OverCaption then Exit;
+
   if Product.IsOutdated then
-    Sender.Canvas.Font.Style := Sender.Canvas.Font.Style + [fsBold];
+    InfoTip := InfoTip + 'New version available';
+  if Product.IsPinned then
+  begin
+    if InfoTip <> '' then InfoTip := InfoTip + sLineBreak;
+    InfoTip := InfoTip + 'Pinned version';
+  end;
+end;
+
+procedure TMainForm.lvProductsMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+begin
+  var Item := lvProducts.GetItemAt(X, Y);
+  if Item = nil then
+  begin
+    OverCaption := False;
+    Exit;
+  end;
+
+  // drLabel = rectangle for the first column (caption)
+  var R := Item.DisplayRect(drLabel);
+  OverCaption := PtInRect(R, Point(X, Y));
 end;
 
 procedure TMainForm.NewVersionDetectedEvent;
@@ -707,6 +747,8 @@ end;
 
 procedure TMainForm.ProductsUpdatedEvent(Products: TGUIProductList);
 const
+  PinnedChar = #$D83D#$DCCC;
+  OutdatedChar = #$D83D#$DD52;
   StatusToStr: array[TProductStatus] of string = ('not installed', 'available', 'installed');
 begin
   lvProducts.Items.BeginUpdate;
@@ -715,7 +757,15 @@ begin
     for var Product in Products do
     begin
       var Item := lvProducts.Items.Add;
-      Item.Caption := Product.Id;
+
+      var Icons := '';
+      if Product.IsOutdated then
+        Icons := Icons + OutdatedChar;
+      if Product.IsPinned then
+        Icons := Icons + PinnedChar;
+      Item.Caption := Icons;
+
+      Item.SubItems.Add(Product.Id);
       Item.SubItems.Add(Product.Name);
       Item.SubItems.Add(Product.LocalVersion.ToString);
       Item.SubItems.Add(Product.RemoteVersion.ToString);
