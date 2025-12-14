@@ -32,12 +32,12 @@ begin
       begin
         if Product.Pinned = Pin then
         begin
-          if Pin then Logger.Info('Skipped ' + ' ' + Product.ProductId + ' because it was already pinned.')
-          else Logger.Info('Skipped ' + ' ' + Product.ProductId + ' because it was already unpinned.');
+          if Pin then Logger.Trace('Skipped ' + ' ' + Product.ProductId + ' because it was already pinned.')
+          else Logger.Trace('Skipped ' + ' ' + Product.ProductId + ' because it was already unpinned.');
         end else
         begin
-          if Pin then Logger.Info('Pinned ' + Product.ProductId + ' to version ' + Product.Version)
-          else Logger.Info('Unpinned ' + Product.ProductId);
+          if Pin then Logger.Trace('Pinned ' + Product.ProductId + ' to version ' + Product.Version)
+          else Logger.Trace('Unpinned ' + Product.ProductId);
           TFetchInfoFile.SaveInFolder(Product.ProductPath, Product.ProductId, Product.Version, Product.Server, Pin);
           inc(Count);
         end;
@@ -48,8 +48,8 @@ begin
     InstalledProducts.Free;
   end;
 
-  if Pin then Logger.Info('Pinned ' + IntToStr(Count) + ' products')
-  else Logger.Info('Unpinned ' + IntToStr(Count) + ' products');
+  if Pin then Logger.Trace('Pinned ' + IntToStr(Count) + ' products')
+  else Logger.Trace('Unpinned ' + IntToStr(Count) + ' products');
 end;
 
 procedure RunPinCommand;
