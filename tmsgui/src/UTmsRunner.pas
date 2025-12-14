@@ -195,6 +195,16 @@ type
     procedure RunVersionsRemote(const ProductId: string; Items: TVersionInfoList);
   end;
 
+  TTmsPinRunner = class(TTmsRunner)
+  public
+    procedure RunPin(const ProductIds: TArray<string>);
+  end;
+
+  TTmsUnpinRunner = class(TTmsRunner)
+  public
+    procedure RunUnpin(const ProductIds: TArray<string>);
+  end;
+
   ETmsRunner = class(Exception)
   end;
 
@@ -754,6 +764,24 @@ begin
     if TryISO8601ToDate(JsonItem.GetValue<string>('release_date', ''), LocalReleaseDate, False) then
       Item.ReleaseDate := LocalReleaseDate;
   end;
+end;
+
+{ TTmsPinRunner }
+
+procedure TTmsPinRunner.RunPin(const ProductIds: TArray<string>);
+begin
+  var Command := 'pin';
+  Command := Command + ' ' + String.Join(' ', ProductIds);
+  Run(Command);
+end;
+
+{ TTmsUnpinRunner }
+
+procedure TTmsUnpinRunner.RunUnpin(const ProductIds: TArray<string>);
+begin
+  var Command := 'unpin';
+  Command := Command + ' ' + String.Join(' ', ProductIds);
+  Run(Command);
 end;
 
 end.

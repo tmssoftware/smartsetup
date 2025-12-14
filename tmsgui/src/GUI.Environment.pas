@@ -164,6 +164,10 @@ type
     // Execute self-update command and fires RelaunchCallback if a new update is available and downloaded
     procedure ExecuteSelfUpdate(ProgressCallback: TProgressProc; RelaunchCallback: TProc);
 
+    // Execute pin/unpin operations on selected products
+    procedure ExecutePinSelected;
+    procedure ExecuteUnpinSelected;
+
     // Updates the credentials
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
     procedure ExecuteRequestCredentials;
@@ -183,6 +187,8 @@ type
     function CanApplyFilter: Boolean;
     function CanRequestCredentials: Boolean;
     function CanConfigure: Boolean;
+    function CanPinSelected: Boolean;
+    function CanUnpinSelected: Boolean;
 
     // Functions to read/write configuration parameters
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -386,6 +392,16 @@ begin
 //  end;
 end;
 
+function TGUIEnvironment.CanPinSelected: Boolean;
+begin
+  if IsRunning then Exit(False);
+  UpdateSelectedProducts;
+  Result := False;
+  for var Product in FSelected do
+    if not Product.IsPinned then
+      Exit(True);
+end;
+
 function TGUIEnvironment.CanRequestCredentials: Boolean;
 begin
   if IsRunning then Exit(False);
@@ -406,6 +422,16 @@ begin
       Result := True
     else
       Exit(False);
+end;
+
+function TGUIEnvironment.CanUnpinSelected: Boolean;
+begin
+  if IsRunning then Exit(False);
+  UpdateSelectedProducts;
+  Result := False;
+  for var Product in FSelected do
+    if Product.IsPinned then
+      Exit(True);
 end;
 
 function TGUIEnvironment.ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -738,6 +764,16 @@ begin
   ExecuteBuild(False, ProgressCallback);
 end;
 
+procedure TGUIEnvironment.ExecutePinSelected;
+begin
+  RunSync<TTmsPinRunner>(
+    procedure(Runner: TTmsPinRunner)
+    begin
+      Runner.RunPin(SelectedProductIds)
+    end);
+  RefreshFetchedProducts(FProductFilter);
+end;
+
 procedure TGUIEnvironment.ExecuteUninstall(ProgressCallback: TProgressProc);
 begin
   RunAsync<TTmsUninstallRunner>(
@@ -767,6 +803,16 @@ begin
 
       RefreshFetchedProducts(FProductFilter);
     end);
+end;
+
+procedure TGUIEnvironment.ExecuteUnpinSelected;
+begin
+  RunSync<TTmsUnpinRunner>(
+    procedure(Runner: TTmsUnpinRunner)
+    begin
+      Runner.RunUnpin(SelectedProductIds)
+    end);
+  RefreshFetchedProducts(FProductFilter);
 end;
 
 procedure TGUIEnvironment.RunnerOutputEvent(const S: string);

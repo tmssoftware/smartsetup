@@ -58,6 +58,10 @@ type
     btCredentials: TButton;
     acInstallVersion: TAction;
     Installversion1: TMenuItem;
+    acPin: TAction;
+    acUnpin: TAction;
+    Pinversion1: TMenuItem;
+    Unpinversion1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -93,6 +97,10 @@ type
     procedure acInstallVersionExecute(Sender: TObject);
     procedure lvProductsInfoTip(Sender: TObject; Item: TListItem; var InfoTip: string);
     procedure lvProductsMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure acUnpinUpdate(Sender: TObject);
+    procedure acPinUpdate(Sender: TObject);
+    procedure acUnpinExecute(Sender: TObject);
+    procedure acPinExecute(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -246,6 +254,16 @@ begin
   acPartialBuild.Enabled := GUI.CanBuild;
 end;
 
+procedure TMainForm.acPinExecute(Sender: TObject);
+begin
+  GUI.ExecutePinSelected;
+end;
+
+procedure TMainForm.acPinUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := GUI.CanPinSelected;
+end;
+
 procedure TMainForm.acSettingsExecute(Sender: TObject);
 begin
   var ConfigInfo := TConfigInfo.Create;
@@ -287,6 +305,16 @@ end;
 procedure TMainForm.acUninstallUpdate(Sender: TObject);
 begin
   acUninstall.Enabled := GUI.CanUninstallSelected;
+end;
+
+procedure TMainForm.acUnpinExecute(Sender: TObject);
+begin
+  GUI.ExecuteUnpinSelected;
+end;
+
+procedure TMainForm.acUnpinUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := GUI.CanUnpinSelected;
 end;
 
 procedure TMainForm.acVersionHistoryExecute(Sender: TObject);

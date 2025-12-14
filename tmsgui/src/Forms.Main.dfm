@@ -438,6 +438,18 @@ object MainForm: TMainForm
       ShortCut = 16453
       OnExecute = acSearchFocusExecute
     end
+    object acPin: TAction
+      Category = 'Menus'
+      Caption = 'Pin version'
+      OnExecute = acPinExecute
+      OnUpdate = acPinUpdate
+    end
+    object acUnpin: TAction
+      Category = 'Menus'
+      Caption = 'Unpin version'
+      OnExecute = acUnpinExecute
+      OnUpdate = acUnpinUpdate
+    end
   end
   object BuildMenu: TPopupMenu
     Left = 848
@@ -457,6 +469,12 @@ object MainForm: TMainForm
     end
     object Openversionhistory1: TMenuItem
       Action = acVersionHistory
+    end
+    object Pinversion1: TMenuItem
+      Action = acPin
+    end
+    object Unpinversion1: TMenuItem
+      Action = acUnpin
     end
   end
 end
