@@ -6,7 +6,9 @@ tmscredentials
 tms server-enable community
 
 # first install all to see what is there.
-tms install vsoft.* tms.biz.*
+tms install vsoft.* 
+$vsoftCount = (tms list -json | ConvertFrom-Json -AsHashtable).Count
+tms install tms.biz.*
 
 $installed = tms list -json | ConvertFrom-Json -AsHashtable
 $allCount = $installed.Count
@@ -71,7 +73,8 @@ if (-not ($testOk)) {
 # finally, if we call tms build with a product name, included products should be ignored.
 
 $BuildResult = tms build tms.biz.bcl
-Test-BuildResultCounts -BuildResult $BuildResult -expectedNotModifiedCount ($installedCountNow - 4) -expectedIgnoreCount 4 -expectedOkCount 0
+$modified = $vsoftCount  - 1 + 2 # vsoft - vsoft.commandline + tms.biz.logging + tms.biz.scripter
+Test-BuildResultCounts -BuildResult $BuildResult -expectedNotModifiedCount ($installedCountNow - $modified) -expectedIgnoreCount $modified -expectedOkCount 0
 
 # finally let's test update
 tms config-write -p:"tms smart setup options:excluded products=[vsoft.commandline]" 
@@ -134,7 +137,8 @@ Test-BuildResultCounts -BuildResult $BuildResult -expectedNotModifiedCount ($ins
 
 Test-RepoFetchResultCounts -FetchResult $BuildResult -expectedLines @(
     "*- vsoft.commandline -> OK*",
-    "*- vsoft.cancellationtoken -> OK*")
+    "*- vsoft.cancellationtoken -> OK*",
+    "*- vsoft.yaml -> OK*")
 
 Test-FetchResultCounts -FetchResult $BuildResult -expectedLines @(
     "*- tms.biz.sphinx -> SKIPPED (Up to date)*",
