@@ -43,7 +43,7 @@ if ($list["tms.biz.bcl"].version -ne $secondLastBclVersion) {
     throw "tms.biz.bcl should be version $secondLastBclVersion, but it is $($list["tms.biz.bcl"].version)."
 }
 
-$pin = tms pin *
+$pin = tms pin * -verbose
 $testOk = Test-Result -CommandResult $pin -Message "*Pinned tms.biz.aurelius to version $($secondLastVersionPretty)*" "tms pin"
 if (-not ($testOk)) {
     Write-Error "The pin command did not report pinning tms.biz.aurelius to version $secondLastVersionPretty. Actual message: $($pin)"
@@ -112,7 +112,7 @@ if ($list["tmstest.a"].version -ne "v1.0.0") {
     throw "tmstest.a should be version v1.0.0, but it is $($list["tmstest.a"].version)."
 }
 
-$pin = tms pin tmstest.c
+$pin = tms pin tmstest.c -verbose
 $testOk = Test-Result -CommandResult $pin -Message "*Pinned tmstest.c to version v1.0.0*" "tms pin tmstest.c"
 if (-not ($testOk)) {
     Write-Error "The pin command did not report pinning tmstest.c to version v1.0.0. Actual message: $($pin)"
