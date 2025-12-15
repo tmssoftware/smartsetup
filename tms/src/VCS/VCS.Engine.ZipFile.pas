@@ -16,6 +16,7 @@ type
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
     function GetVersionNames(const aURL: string): TArray<string>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
+    function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
   end;
 
 
@@ -34,6 +35,12 @@ end;
 procedure TZipFileEngine.Clone(const aCloneFolder, aURL, aVersion: string);
 begin
   raise Exception.Create('Clone not supported in ZIPFILE protocol.');
+end;
+
+function TZipFileEngine.FileIsVersioned(const aFileName,
+  aWorkingFolder: string): boolean;
+begin
+  Result := TFile.Exists(aFileName);
 end;
 
 //This method is to handle a case where the product is all put inside a folder.

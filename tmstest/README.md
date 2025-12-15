@@ -214,3 +214,4 @@ A starting tms.config.yaml is provided automatically to all `tms` calls, so you 
 A command `tmstest_util` is provided that can be called from the scripts, to add specific delphi-only functionality we want to test, or stuff that is done simpler/faster in delphi. Currently tmstest_util has the commands:
   *  **delete-folder**: Deletes a folder, or moves the files to the locked folder if not possible.
   *  **clean-locked**: Deletes the locked folder.
+  *  **summary-to-json**: Converts the build summary to json so it can be analyzed.

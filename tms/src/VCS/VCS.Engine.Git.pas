@@ -32,6 +32,8 @@ type
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     function GetVersionNames(const aURL: string): TArray<string>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
+    function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
+
   end;
 
 implementation
@@ -49,6 +51,16 @@ begin
   if aCloneCommand.Trim = '' then FCloneCommand := 'clone' else FCloneCommand := aCloneCommand;
   if aPullCommand.Trim = '' then FPullCommand := 'pull --all' else FPullCommand := aPullCommand;
 
+end;
+
+function TGitEngine.FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
+begin
+  var Output := '';
+  var FullCommand := '"' + GitCommandLine + '" ls-files "' + aFileName + '"';
+  if not ExecuteCommand(FullCommand, TPath.GetFullPath(aWorkingFolder), Output, ['GIT_TERMINAL_PROMPT=0'])
+    then raise Exception.Create('Error in git command: ' + FullCommand);
+
+  Result := Output <> '';
 end;
 
 function TGitEngine.GetEnvCommandLine: string;

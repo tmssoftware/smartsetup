@@ -50,6 +50,29 @@ foreach ($tmsbuildFile in $tmsbuildFiles) {
     Set-Content -Path $tmsbuildFile -Value $newContent
 }
 
+# create a zip file with all the tmsbuild.yaml files inside their corresponding product folder
+$zipFilePath = Join-Path -Path $tmsTestRootDir\tmp-run -ChildPath "test-repos" -AdditionalChildPath "tmsbuild_test_repos.zip"
+if (Test-Path -Path $zipFilePath) {
+    Remove-Item -Path $zipFilePath -Force
+}
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [System.IO.Compression.ZipFile]::Open($zipFilePath, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    $yamlFiles = Get-ChildItem -Path $testReposTarget -Filter 'tmsbuild.yaml' -Recurse -File
+    foreach ($file in $yamlFiles) {
+        # keep folder structure relative to $testReposTarget inside the zip
+        $relative = $file.FullName.Substring($testReposTarget.Length).TrimStart('\','/')
+        $entryName = $relative.Replace('\','/')
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $entryName) | Out-Null
+    }
+} finally {
+    $zip.Dispose()
+}
+
+#remove tmsbuild.yaml from folders "E-F" and "F" to test tmsbuild.yaml hosted only in the server.
+Remove-Item -Path (Join-Path -Path $testReposTarget -ChildPath "E-F\tmsbuild.yaml") -Force
+Remove-Item -Path (Join-Path -Path $testReposTarget -ChildPath "F\tmsbuild.yaml") -Force
+
 # loop over all products in the folder and create git repos for each one
 $productFolders = Get-ChildItem -Path $testReposTarget -Directory
 foreach ($productFolder in $productFolders) {
@@ -83,23 +106,5 @@ foreach ($productFolder in $productFolders) {
     git tag v1.1.0
 }
 
-# create a zip file with all the tmsbuild.yaml files inside their corresponding product folder
-$zipFilePath = Join-Path -Path $tmsTestRootDir\tmp-run -ChildPath "test-repos" -AdditionalChildPath "tmsbuild_test_repos.zip"
-if (Test-Path -Path $zipFilePath) {
-    Remove-Item -Path $zipFilePath -Force
-}
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = [System.IO.Compression.ZipFile]::Open($zipFilePath, [System.IO.Compression.ZipArchiveMode]::Create)
-try {
-    $yamlFiles = Get-ChildItem -Path $testReposTarget -Filter 'tmsbuild.yaml' -Recurse -File
-    foreach ($file in $yamlFiles) {
-        # keep folder structure relative to $testReposTarget inside the zip
-        $relative = $file.FullName.Substring($testReposTarget.Length).TrimStart('\','/')
-        $entryName = $relative.Replace('\','/')
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $entryName) | Out-Null
-    }
-} finally {
-    $zip.Dispose()
-}
 Write-Output "Test repositories created at: $testReposTarget"
 Write-Output "Zip file created at: $zipFilePath"

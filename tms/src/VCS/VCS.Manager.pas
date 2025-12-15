@@ -20,7 +20,7 @@ type
     class function HasErrors(const Status: TArray<TVCSFetchStatus>): boolean; static;
     class function GetInstalledProducts: THashSet<string>; static;
     class procedure AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct); static;
-    class function FindTmsBuildYaml(const ProductFolder: string): string; static;
+    class function FindTmsBuildYaml(const ProductFolder: string; const Protocol: TVCSProtocol): string; static;
     class function ProcessDependencies(
       const ProductsToProcess: TObjectList<TRegisteredVersionedProduct>;
       const ProductsToProcessDict: TDictionary<string, string>;
@@ -82,15 +82,20 @@ begin
   end;
 end;
 
-class function TVCSManager.FindTmsBuildYaml(const ProductFolder: string): string;
+class function TVCSManager.FindTmsBuildYaml(const ProductFolder: string; const Protocol: TVCSProtocol): string;
 begin
   var Folder := ProductFolder;
   while True do
   begin
-    var tmsbuild_yaml := TPath.Combine(Folder, TProjectLoader.TMSBuildDefinitionFile);
+    var tmsbuild_yaml := TPath.GetFullPath(TPath.Combine(Folder, TProjectLoader.TMSBuildDefinitionFile));
     //We give priority to the yaml that is in the product repo.
     //If the yaml exists in both the repo and the registry, we will use the repo.
-    if TFile.Exists(tmsbuild_yaml) then exit('');
+    if TFile.Exists(tmsbuild_yaml) then
+    begin
+      var Engine := TVCSFactory.Instance.GetEngine(Protocol);
+      if Engine.FileIsVersioned(tmsbuild_yaml, TPath.GetDirectoryName(tmsbuild_yaml)) then exit('');
+      exit(tmsbuild_yaml); //if the file exists, but it is not in version control, it was likely an older version we installed last time.
+    end;
 
     //If it is a single folder, we assume the product is actually inside that single folder.
     //To be more strict, we could check for a single folder and no files, but we might have some files in there
@@ -105,9 +110,14 @@ class procedure TVCSManager.AddPredefinedData(const ProductFolder: string; const
 begin
   if Product.PredefinedData.Tmsbuild_Yaml.Trim <> '' then
   begin
-    var tmsbuild_yaml := FindTmsBuildYaml(ProductFolder);
-    if tmsbuild_yaml = '' then exit;
+    var tmsbuild_yaml := FindTmsBuildYaml(ProductFolder, Product.Protocol);
+    if tmsbuild_yaml = '' then
+    begin
+      Logger.Trace('Kept existing tmsbuild.yaml in the repo');
+      exit;
+    end;
 
+    Logger.Trace('Using tmsbuild.yaml from server');
     TFile.WriteAllText(tmsbuild_yaml, Product.PredefinedData.Tmsbuild_Yaml);
   end;
 end;

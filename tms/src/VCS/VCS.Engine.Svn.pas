@@ -25,6 +25,8 @@ type
     procedure Clone(const aCloneFolder, aURL, aVersion: string);
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
+    function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
+
   end;
 
 implementation
@@ -41,6 +43,19 @@ begin
 
   if aCloneCommand.Trim = '' then FCloneCommand := 'checkout' else FCloneCommand := aCloneCommand;
   if aPullCommand.Trim = '' then FPullCommand := 'update' else FPullCommand := aPullCommand;
+end;
+
+function TSvnEngine.FileIsVersioned(const aFileName,
+  aWorkingFolder: string): boolean;
+begin
+  if not TFile.Exists(aFileName) then exit(false); //svn status will return empty, not ? if the file doesn't exist.
+
+  var Output := '';
+  var Folder := TPath.GetFullPath(aWorkingFolder);
+  var FullCommand := '"' + SvnCommandLine + '" --non-interactive status "' + aFileName + '"';
+  if not ExecuteCommand(FullCommand, Folder, Output)
+    then raise Exception.Create('Error doing svn status in "' + aFileName + '"');
+  Result := not Output.Trim.StartsWith('?');
 end;
 
 function TSvnEngine.GetEnvCommandLine: string;

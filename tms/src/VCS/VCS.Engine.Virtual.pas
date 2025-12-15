@@ -9,6 +9,7 @@ type
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;  //If this is implemented, then clone and push aren't used.
     function GetVersionNames(const aURL: string): TArray<string>;
+    function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
   end;
 
 implementation
