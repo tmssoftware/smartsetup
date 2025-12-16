@@ -35,7 +35,7 @@ begin
   if (';' + PathOverride + ';').ToUpperInvariant.Contains(';$(PATH);') then
     exit;
 
-  Fixes.Add(TFix.Create('The override for PATH in ' + IDEId[IDEInfo.IDEName] + ': "' +
+  Fixes.Add(TFix.Create(TFixType.YesNo, 'The override for PATH in ' + IDEId[IDEInfo.IDEName] + ': "' +
     PathOverride + '" lacks an entry for $(PATH).', 'Add it?',
     procedure
     begin

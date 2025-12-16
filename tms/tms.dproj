@@ -430,6 +430,9 @@
         <DCCReference Include="src\Testing\Testing.CommandLineOptions.pas"/>
         <DCCReference Include="src\Fetching\Fetching.OfflineHTTPClient.pas"/>
         <DCCReference Include="src\Commands\Commands.Pin.pas"/>
+        <DCCReference Include="src\Doctor\Doctor.DuplicatedBplCheck.pas"/>
+        <DCCReference Include="..\common\src\System\UDllBitness.pas"/>
+        <DCCReference Include="..\common\src\System\UFileProperties.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

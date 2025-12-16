@@ -20,19 +20,24 @@ public
 
 end;
 
+TFixType = (YesNo, Numeric);
 TFix = class
 private
+  FFixType: TFixType;
   FMessage: string;
   FAction: string;
-  FApply: boolean;
+  FApply: integer; //0 means do not apply. 1 or more mean apply.
   FFix: TProc;
+  FNumericQuestions: TArray<string>;  //Applies only if FixType is numeric.
 public
+  property FixType: TFixType read FFixType;
   property Message: string read FMessage;
   property Action: string read FAction;
-  property Apply: boolean read FApply write FApply;
+  property Apply: integer read FApply write FApply;
   property Fix: TProc read FFix;
+  property NumericQuestions: TArray<string> read FNumericQuestions;
 
-  constructor Create(const aMessage, aAction: string; const aFix: TProc);
+  constructor Create(const aFixType: TFixType; const aMessage, aAction: string; const aFix: TProc; const aNumericQuestions: TArray<string> = nil);
 end;
 
 TCheck = class
@@ -81,7 +86,7 @@ begin
 
   for var f in Fixes do
   begin
-    if f.Apply and (Assigned(f.Fix)) then
+    if (f.Apply > 0) and (Assigned(f.Fix)) then
     begin
       f.Fix();
       Inc(FFixesApplied);
@@ -107,12 +112,14 @@ end;
 
 { TFix }
 
-constructor TFix.Create(const aMessage, aAction: string; const aFix: TProc);
+constructor TFix.Create(const aFixType: TFixType; const aMessage, aAction: string; const aFix: TProc; const aNumericQuestions: TArray<string> = nil);
 begin
+  FFixType := aFixType;
   FMessage := aMessage;
   FAction := aAction;
-  FApply := false;
+  FApply := 0;
   FFix := aFix;
+  FNumericQuestions := aNumericQuestions;
 end;
 
 { TUndoInfo }

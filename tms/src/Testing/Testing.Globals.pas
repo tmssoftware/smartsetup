@@ -7,6 +7,7 @@ type
   TTestParameters = class
   public
     Offline: boolean;
+    FolderForCompanyName: string;
 
     procedure CheckOffline(const Method: string);
   end;

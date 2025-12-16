@@ -16,6 +16,10 @@ uses
   System.Types,
   Deget.CoreTypes,
   Commands.Logging,
+{$IFDEF DEBUG}
+  Testing.Globals,
+  Doctor.DuplicatedBplCheck,
+{$ENDIF}
   Doctor.Run;
 var
   FixParam: boolean;
@@ -24,6 +28,14 @@ var
 procedure RunDoctorCommand;
 begin
   InitFolderBasedCommand;
+{$IFDEF DEBUG}
+  if TestParameters.FolderForCompanyName <> '' then
+  begin
+    TDuplicatedBplCheck.TestCompanyName(TestParameters.FolderForCompanyName);
+    exit;
+  end;
+
+{$ENDIF}
   var Doctor := TDoctor.Create(TIDEName.delphi12, Config.AlternateRegistryKey);
   try
     Doctor.RunAllChecks(FixParam, ConfirmParam);

@@ -10,6 +10,8 @@ function AddToWindowsPath(path: string): boolean;
 function RemoveFromWindowsPathWithChildren(path: string): TArray<string>;
 
 function FindExeInPath(const Path: string; const ExeName: string): string;
+function ExpandWindowsPath(const Path: string): string;
+
 
 implementation
 {$IFDEF MSWINDOWS}
@@ -277,8 +279,18 @@ begin
 
 
   end;
-
 end;
+
+function ExpandWindowsPath(const Path: string): string;
+const
+  MAXSIZE = 32768;
+begin
+  Result := '';
+  SetLength(Result, MAXSIZE);
+  var ResultLength := ExpandEnvironmentStrings(PCHAR(Path), @Result[1], Length(Result));
+  SetLength(Result, ResultLength - 1);
+end;
+
 {$ELSE}
 uses Classes, SysUtils, StrUtils, SyncObjs, IOUtils;
 
@@ -328,6 +340,12 @@ begin
 
   end;
 end;
+
+function ExpandWindowsPath(const Path: string): string;
+begin
+  Result := Path;
+end;
+
 
 {$ENDIF}
 end.

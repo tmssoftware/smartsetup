@@ -22,6 +22,13 @@ begin
   option.HasValue := False;
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<string>(
+    'test-company-names', '', 'Causes doctor to check if the dcus in the folder have the correct company name.',
+    procedure(const Value: String)
+    begin
+      TestParameters.FolderForCompanyName := Value
+    end);
+
 end;
 
 {$ENDIF}
