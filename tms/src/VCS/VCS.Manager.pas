@@ -29,6 +29,7 @@ type
       const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>); static;
   public
     class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
+    class function GetProductFolder(const ProductId: string): string; static;
 
   end;
 
@@ -120,6 +121,12 @@ begin
     Logger.Trace('Using tmsbuild.yaml from server');
     TFile.WriteAllText(tmsbuild_yaml, Product.PredefinedData.Tmsbuild_Yaml);
   end;
+end;
+
+class function TVCSManager.GetProductFolder(const ProductId: string): string;
+begin
+  var ProductFolderRoot := TPath.Combine(Config.Folders.ProductsFolder, ProductId);
+   Result := TPath.Combine(ProductFolderRoot, 'src');
 end;
 
 class function TVCSManager.FetchProduct(const Product: TRegisteredVersionedProduct): TVCSFetchStatus;

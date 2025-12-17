@@ -30,14 +30,15 @@ type
     procedure AfterClone(const aRootFolder, aCloneFolder: string);
 
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
-    function GetVersionNames(const aURL: string): TArray<string>;
+    function GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 
   end;
 
 implementation
-uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils, Testing.Globals;
+uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils,
+     DateUtils, Testing.Globals;
 
 { TGitEngine }
 
@@ -84,40 +85,71 @@ begin
   Result := false;
 end;
 
-function TGitEngine.GetVersionNames(const aURL: string): TArray<string>;
+function TGitEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
+var
+  FullCommand: string;
 begin
 {$IFDEF DEBUG}
   TestParameters.CheckOffline('TGitEngine.GetVersionNames');
 {$ENDIF}
   var Output := '';
-  var FullCommand := '"' + GitCommandLine + '" ls-remote --tags ' + aUrl;
-  if not ExecuteCommand(FullCommand, '', Output, ['GIT_TERMINAL_PROMPT=0'])
+
+  var WorkingFolder := '';
+  if TDirectory.Exists(aExistingRepoFolder) then
+  begin
+    FullCommand := '"' + GitCommandLine + '" fetch --all';
+    if ExecuteCommand(FullCommand, aExistingRepoFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
+      then WorkingFolder := aExistingRepoFolder;
+  end;
+
+  if WorkingFolder = '' then
+  begin
+    WorkingFolder := aTempFolder;
+    if TDirectory.Exists(aTempFolder) then DeleteFolderMovingToLocked(aLockedFolder, aTempFolder, true, false);
+    TDirectory.CreateDirectory(aTempFolder);
+
+    FullCommand := '"' + GitCommandLine + '" clone --bare --filter=tree:0 ' + ' "' + aURL + '" "' + WorkingFolder + '"';
+    if not ExecuteCommand(FullCommand, WorkingFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
+      then raise Exception.Create('Error in git command: ' + FullCommand);
+  end;
+
+  //See https://stackoverflow.com/a/57901182
+  FullCommand := '"' + GitCommandLine + '" tag -l --format="%(refname:short)%09%(if)%(committerdate:iso-strict)%(then)%(committerdate:iso-strict)%(else)%(*committerdate:iso-strict)%(end)"';
+  if not ExecuteCommand(FullCommand, WorkingFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
     then raise Exception.Create('Error in git command: ' + FullCommand);
 
-  // parse result
-  var Tags := TStringList.Create;
+  var Lines := Output.Split([#10]);
+  var LineCount := Length(Lines);
+  while (LineCount > 0) and (Lines[LineCount - 1].Trim = '') do dec(LineCount);
+                            
+
+  SetLength(Result, LineCount);
+  for var i := Low(Result) to High(Result) do
+  begin
+    var idx := Lines[i].IndexOf(#9);
+    if idx < 0 then raise Exception.Create('Internal error: Line "' + '" doesn''t have a separator.');
+
+    Result[i].Version := Lines[i].Substring(0, idx).Trim;
+    Result[i].Date := ISO8601ToDate(Lines[i].Substring(idx).Trim);
+  end;
+
+  var DateComparer: IComparer<TVersionAndDate> := TDelegatedComparer<TVersionAndDate>.Create(
+    function(const Left, Right: TVersionAndDate): integer
+    begin
+      if Left.Date < Right.Date then
+        Result := 1
+      else if Left.Date > Right.Date then
+        Result := -1
+      else
+        Result := 0;
+    end);
+
+  TArray.Sort<TVersionAndDate>(Result, DateComparer);
+
   try
-    var Lines := TStringList.Create;
-    try
-      Lines.Text := Output;
-      for var Line in Lines do
-      begin
-        var P := Pos('refs/tags/', Line);
-        var Tag := Copy(Line, P + Length('refs/tags/'));
-        if Tag.EndsWith('^{}') then
-          Tag := Copy(Tag, 1, Length(Tag) - 3);
-        if Tags.IndexOf(Tag) = -1 then
-          Tags.Add(Tag);
-      end;
-    finally
-      Lines.Free;
-    end;
-    Tags.Sort;
-    SetLength(Result, Tags.Count);
-    for var I := 0 to Tags.Count - 1 do
-      Result[I] := Tags[Tags.Count - 1 - I];
-  finally
-    Tags.Free;
+    if TDirectory.Exists(aTempFolder) then DeleteFolderMovingToLocked(aLockedFolder, aTempFolder, true, false);
+  except
+    //ignore errors in the exception. This temp folder will be cleaned up next time you run tms anyway.
   end;
 end;
 

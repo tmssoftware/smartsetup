@@ -20,7 +20,7 @@ type
     procedure AfterClone(const aRootFolder, aCloneFolder: string);
 
     property PullCommand: string read FPullCommand;
-    function GetVersionNames(const aURL: string): TArray<string>;
+    function GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
 
     procedure Clone(const aCloneFolder, aURL, aVersion: string);
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
@@ -79,7 +79,7 @@ begin
   Result := false;
 end;
 
-function TSvnEngine.GetVersionNames(const aURL: string): TArray<string>;
+function TSvnEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
 begin
   raise Exception.Create('GetVersionNames not supported in SVN protocol.');
 end;

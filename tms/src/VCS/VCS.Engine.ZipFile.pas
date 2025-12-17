@@ -14,7 +14,7 @@ type
 
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
-    function GetVersionNames(const aURL: string): TArray<string>;
+    function GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
   end;
@@ -143,7 +143,7 @@ begin
   end;
 end;
 
-function TZipFileEngine.GetVersionNames(const aURL: string): TArray<string>;
+function TZipFileEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
 begin
   raise Exception.Create('GetVersionNames not supported in ZIPFILE protocol.');
 end;

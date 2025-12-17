@@ -10,7 +10,8 @@ procedure RegisterVersionsRemoteCommand;
 implementation
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
-  UJsonPrinter, UConfigDefinition, VCS.Registry, VCS.CoreTypes, VCS.Engine.Factory, Fetching.ProductVersion;
+  UJsonPrinter, UConfigDefinition, VCS.Manager, VCS.Registry, VCS.CoreTypes, VCS.Engine.Factory,
+  Fetching.ProductVersion, IOUtils, UTmsBuildSystemUtils;
 
 var
   EnableLog: Boolean = False;
@@ -95,9 +96,12 @@ begin
     if Product.Product.Protocol <> TVCSProtocol.Git then Exit;
 
     // Find versions for git repo.
+    var RepoFolder := TVCSManager.GetProductFolder(Product.Product.ProductId);
+    var TempGUIDProductFolder := TPath.Combine(Config.Folders.VCSTempFolder, GuidToStringN(TGUID.NewGuid));
+
     var Engine := TVCSFactory.Instance.GetEngine(Product.Product.Protocol);
-    for var VersionName in Engine.GetVersionNames(Product.Product.Url) do
-      ListedVersions.Add(TOutputVersion.Create(VersionName, TLicenseStatus.licensed, 0, ''));
+    for var VersionName in Engine.GetVersionNames(RepoFolder, TempGUIDProductFolder, Config.Folders.LockedFilesFolder, Product.Product.Url) do
+      ListedVersions.Add(TOutputVersion.Create(VersionName.Version, TLicenseStatus.licensed, VersionName.Date, ''));
   finally
     Products.Free;
   end;
