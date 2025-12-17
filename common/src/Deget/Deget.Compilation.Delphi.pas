@@ -228,13 +228,6 @@ begin
 end;
 
 
-function InvalidCompilers(const FileName: string): boolean;
-begin
-  //We could check if running the cmd returns the message that command line compiling is not available too.
-  //What we can't check is the error code, as it is always 0.
-  Result := TFile.GetSize(FileName) < 100000;
-end;
-
 { TMSBuildCompiler }
 
 class procedure TMSBuildCompiler.Build(const ProjectFile: string;

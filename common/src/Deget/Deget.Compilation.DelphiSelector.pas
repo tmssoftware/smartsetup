@@ -29,6 +29,7 @@ uses
   Deget.Compilation.Delphi,
   Deget.Compilation.Precompiled,
   Commands.GlobalConfig,
+  Testing.Globals,
   Deget.IDEUtils;
 
 function GetLibraryPaths(const RootFolder: string; const ExtraPaths: TCompilerPaths; const Plat: TPlatform): string;
@@ -53,6 +54,10 @@ end;
 
 function InvalidCompilers(const FileName: string): boolean;
 begin
+{$IFDEF DEBUG}
+  if TestParameters.DelphiCE then exit(true);
+
+{$ENDIF}
   //We could check if running the cmd returns the message that command line compiling is not available too.
   //What we can't check is the error code, as it is always 0.
   Result := TFile.GetSize(FileName) < 100000;

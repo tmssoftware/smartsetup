@@ -198,8 +198,7 @@ function bds {
 
 function tmscredentials {
     if (-not $env:TMSTEST_CODE -or -not $env:TMSTEST_EMAIL) {
-        Write-Error "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
-        return
+        throw "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
     }
     tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
 }
@@ -211,7 +210,7 @@ function uninstall_and_check {
 
     $remaining = tms list -json | ConvertFrom-Json -AsHashtable
     if ($remaining.Count -ne $expectedRemaining) {
-        Write-Error "There should be $expectedRemaining results remaining, but there are $($remaining.Count)."
+        throw "There should be $expectedRemaining results remaining, but there are $($remaining.Count)."
     }
 }
 
@@ -238,7 +237,7 @@ function compare-files {
     }
 }
 
-function compare-files-diff {
+function compare-files_diff {
     param(
         [Parameter(Mandatory, Position=0)] [string] $file1,
         [Parameter(Mandatory, Position=1)] [string] $file2

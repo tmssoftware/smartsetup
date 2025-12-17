@@ -37,7 +37,7 @@ tms config-write -p:"configuration for all products:platforms=[win32intel, win64
 
 # B has tmsbuild.yaml in the local repo. F and E do not have it locally, so they will be fetched from the server.
 tms install tmstest.b
-compare-files-diff "./Products/tmstest.b/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "B-CDE/tmsbuild.yaml")  
+compare-files_diff "./Products/tmstest.b/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "B-CDE/tmsbuild.yaml")  
 compare-files "./Products/tmstest.e/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "E-F/tmsbuild.yaml")  
 compare-files "./Products/tmstest.f/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "F/tmsbuild.yaml")
 
@@ -62,6 +62,6 @@ if (-not (Test-Result -CommandResult $result -Message "*- win64intel -> UNINSTAL
 }
 
 
-compare-files-diff "./Products/tmstest.b/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "B-CDE/tmsbuild.yaml")  
+compare-files_diff "./Products/tmstest.b/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "B-CDE/tmsbuild.yaml")  
 compare-files "./Products/tmstest.e/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "E-F/tmsbuild.yaml")  
 compare-files "./Products/tmstest.f/src/tmsbuild.yaml" (Join-Path -Path "../_server" -ChildPath "F/tmsbuild.yaml")
