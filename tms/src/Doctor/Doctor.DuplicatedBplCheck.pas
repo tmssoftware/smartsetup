@@ -1,7 +1,8 @@
 unit Doctor.DuplicatedBplCheck;
 interface
 {$IFDEF MSWINDOWS}
-uses Doctor.Check, SysUtils, Classes, Generics.Collections, UFileProperties;
+uses Doctor.Check, SysUtils, Classes, Generics.Collections,
+     UFileProperties, Doctor.DuplicatedFiles, Deget.CoreTypes;
 
 type
 TBplBitCollection = TDictionary<string, TArray<string>>;
@@ -49,10 +50,7 @@ TCorruptBplFix = class(TFix)
     constructor Create(const aFileName: string);
 end;
 
-TDuplicatedBplFix = class(TFix)
-  private
-    function GetQuestions(const aFolders: TArray<string>): TArray<string>;
-    function GetList(const aItems: TArray<string>): string;
+TDuplicatedBplFix = class(TDuplicatedFileFix)
   public
     constructor Create(const aFolderList: TArray<string>; const aFileList: TArray<string>);
 end;
@@ -62,7 +60,8 @@ end;
 
 implementation
 {$IFDEF MSWINDOWS}
-uses UWindowsPath, IOUtils, Windows, UDllBitness, UMultiLogger;
+uses UWindowsPath, IOUtils, Windows, UDllBitness, UMultiLogger,
+     Deget.IDEInfo, Deget.DelphiInfo, Commands.GlobalConfig, ShellApi;
 
 type
 TDuplicatedFixInfo = class
@@ -151,9 +150,8 @@ end;
 function TDuplicatedBplCheck.Description: string;
 begin
   Result := 'If there are duplicated or corrupt bpls in your Windows Path, Delphi might find the wrong ones.'
-           +' This test will search for duplicated and corrupt bpls and offer to delete the ones you don''t need.'
-           +' Note that if fixing SmartSetup files, you probably want to discard the files in \Users\Public\Documents\Embarcadero\Studio'
-           +' and keep the ones in the smartsetup folder';
+           +' This test will search for corrupt bpls and offer to delete the ones you don''t need.'
+           +' For duplicated dlls, it will offer to open the folders with the files so you can manually delete the wrong ones.';
 end;
 
 procedure TDuplicatedBplCheck.Fix(const UndoInfo: TUndoInfo);
@@ -262,6 +260,20 @@ begin
   inherited;
 end;
 
+//Avoid loading errors in delphi once you delete the bpls.
+procedure RemoveFromRegistry(const aFileName: string);
+begin
+  for var IDEName := Low(TIDEName) to High(TIDEName) do
+  begin
+    var IDEInfo: IDelphiIDEInfo := TDelphiIDEInfo.Create(IDEName, Config.AlternateRegistryKey);
+    for var Platform in [TPlatform.win32intel, TPlatform.win64intel] do
+    begin
+      IDEInfo.UnregisterPackage(aFileName, Platform);
+    end;
+  end;
+
+end;
+
 { TCorruptBplFix }
 
 constructor TCorruptBplFix.Create(const aFileName: string);
@@ -273,6 +285,7 @@ begin
         procedure
         begin
           Logger.Trace('Deleting file "' + aFileName + '"');
+          RemoveFromRegistry(aFileName);
           TFile.Delete(aFileName);
         end);
 
@@ -291,24 +304,40 @@ begin
   inherited Create(
         TFixType.Numeric,
         'The folders ' + GetList(Folders) + ' contain the following duplicated files: ' + GetList(Files),
-        'Select the folder with files to KEEP. We will delete the duplicated files in the other folders',
+        'Select the folder with files to KEEP. We will open an explorer with the other folders so you can delete them',
         procedure
         begin
           if Apply <= 0 then exit;
-          for var FileName in Files do
+          {for var FileName in Files do
           begin
             for var i := Low(Folders) to High(Folders) do
             begin
               if i = Apply - 1 then continue;
 
               var FileToDelete := TPath.GetFullPath(TPath.Combine(Folders[i], FileName));
+
               Logger.Trace('Deleting file "' + FileToDelete + '"');
               try
+                RemoveFromRegistry(FileToDelete);
                 TFile.Delete(FileToDelete);
               except on ex: Exception do
                 Logger.Error('Can''t delete file "' + FileToDelete + '": ' + ex.Message);
               end;
+
+
             end;
+          end;}
+
+          for var i := Low(Folders) to High(Folders) do
+          begin
+            if i = Apply - 1 then continue;
+            var Select := '';
+            //We could use SHOpenFolderAndSelectItems to open explorer with multiple files selected, but it isn't worth.
+            //It gets difficult to see if more than one file is selected. So we will only select them if it is a single file.
+            if Length(Files) = 1 then Select := '/select,"' +  TPath.GetFullPath(TPath.Combine(Folders[i], Files[0])) + '"';
+
+            ShellExecute(0, 'open', 'explorer', PChar(Select), PChar(Folders[i]), SW_SHOWNORMAL);
+
           end;
         end,
         GetQuestions(Folders)
@@ -316,36 +345,12 @@ begin
 
 end;
 
-function TDuplicatedBplFix.GetList(const aItems: TArray<string>): string;
-begin
-  Result := '';
-  for var i := 0  to High(aItems) do
-  begin
-    if i > 0 then
-    begin
-      if i < High(aItems) then Result := Result + ', '
-      else Result := Result + ' and ';
-    end;
-    Result := Result + '"' + aItems[i] + '"';
-  end;
-end;
-
-function TDuplicatedBplFix.GetQuestions(const aFolders: TArray<string>): TArray<string>;
-begin
-  Result := nil;
-  SetLength(Result, Length(aFolders));
-  for var i := Low(Result) to High(Result) do
-  begin
-    Result[i] := 'KEEP ' + aFolders[i];
-  end;
-end;
-
-{$ENDIF}
 { TDuplicatedFixInfo }
 
 constructor TDuplicatedFixInfo.Create(const aFolders: TArray<string>);
 begin
   Folders := aFolders;
 end;
+{$ENDIF}
 
 end.

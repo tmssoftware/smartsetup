@@ -8,6 +8,7 @@ type
   public
     Offline: boolean;
     FolderForCompanyName: string;
+    DelphiCE: boolean;
 
     procedure CheckOffline(const Method: string);
   end;

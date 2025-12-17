@@ -31,7 +31,9 @@ begin
 {$IFDEF DEBUG}
   if TestParameters.FolderForCompanyName <> '' then
   begin
+  {$IFDEF MSWINDOWS}
     TDuplicatedBplCheck.TestCompanyName(TestParameters.FolderForCompanyName);
+  {$ENDIF}
     exit;
   end;
 

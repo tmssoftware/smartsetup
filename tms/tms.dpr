@@ -213,7 +213,8 @@ uses
   Commands.Pin in 'src\Commands\Commands.Pin.pas',
   Doctor.DuplicatedBplCheck in 'src\Doctor\Doctor.DuplicatedBplCheck.pas',
   UDllBitness in '..\common\src\System\UDllBitness.pas',
-  UFileProperties in '..\common\src\System\UFileProperties.pas';
+  UFileProperties in '..\common\src\System\UFileProperties.pas',
+  Doctor.DuplicatedFiles in 'src\Doctor\Doctor.DuplicatedFiles.pas';
 
 begin
   try

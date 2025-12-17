@@ -28,6 +28,17 @@ begin
     begin
       TestParameters.FolderForCompanyName := Value
     end);
+  option.Hidden := true;
+
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-delphi-ce', '', 'Forces Delphi CE compilation.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.DelphiCE := Value;
+    end);
+
+  option.HasValue := False;
+  option.Hidden := true;
 
 end;
 

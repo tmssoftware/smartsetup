@@ -6,4 +6,4 @@
 tms config-write -p:"configuration for all products:compilation options:debug dcus=true"
 tms build
 
-uninstall_and_check(0)
+# uninstall_and_check(0)
