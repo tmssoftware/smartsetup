@@ -49,7 +49,7 @@ begin
     
 end;
 
-procedure RestoreComponents(FileName: string; const RestoreVersions, NoBuild, RestoreServerless: boolean; const IncludeMasks, ExcludeMasks: TArray<string>);
+procedure RestoreComponents(FileName: string; const RestoreVersions, NoBuild: boolean; const IncludeMasks, ExcludeMasks: TArray<string>);
 begin
   var Products := TObjectList<TProductStatus>.Create;
   try
@@ -70,9 +70,7 @@ begin
       ProductsToBuild := TList<string>.Create;
 
       for var Product in Products do
-      begin
-        if (Product.Server = '') and not (RestoreServerless) then continue;
-        
+      begin        
         //We could use Config.IsIncluded here but we would get no message that the component was excluded because it was in excluded components in the config file
         //If we add everything, we will still not include the excluded components in the file, but get a less confusing message.
         if Ignore(Product.Id, IncludeMasks, ExcludeMasks) then continue;
@@ -108,14 +106,13 @@ end;
 var OptionFileName: string;
 var OptionRestoreVersions: boolean;
 var OptionNoBuild: boolean;
-var OptionRestoreServerless: boolean;
 var OptionInclude: TArray<string>;
 var OptionExclude: TArray<string>;
 
 procedure RunRestoreCommand;
 begin
   InitFolderBasedCommand(true);
-  RestoreComponents(OptionFileName, OptionRestoreVersions, OptionNoBuild, OptionRestoreServerless, OptionInclude, OptionExclude);
+  RestoreComponents(OptionFileName, OptionRestoreVersions, OptionNoBuild, OptionInclude, OptionExclude);
 end;
 
 
@@ -123,7 +120,7 @@ procedure RegisterRestoreCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('restore', '', 'restore a list of components from a snapshot file.',
     '',
-    'restore [filename] [-full] [-nobuild] [-serverless] [-include:...] [-exclude:...]');
+    'restore [filename] [-full] [-nobuild] [-include:...] [-exclude:...]');
 
   cmd.Examples.Add('restore');
   cmd.Examples.Add('restore c:\test\tms.snapshot.yaml -full');
@@ -140,13 +137,6 @@ begin
     procedure(const Value : boolean)
     begin
       OptionRestoreVersions := true;
-    end);
-  option.HasValue := False;
-
-  option := cmd.RegisterOption<boolean>('serverless', '', 'Try to restore also local products that weren''t loaded from any server. This option is for advanced uses, normally you will want it off',
-    procedure(const Value : boolean)
-    begin
-      OptionRestoreServerless := true;
     end);
   option.HasValue := False;
 

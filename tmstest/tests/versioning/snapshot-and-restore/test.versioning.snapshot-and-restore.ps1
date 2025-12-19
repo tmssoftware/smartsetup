@@ -35,13 +35,6 @@ tms build
 tms restore "snapshot1.yaml" -nobuild
 
 $installed = tms list -json | ConvertFrom-Json -AsHashtable
-if ($installed.Count -ne 7) {
-    Write-Error "After restoring from snapshot, there should be 7 products installed, but there are $($installed.Count)."
-}
-
-tms restore "snapshot1.yaml" -nobuild -serverless
-
-$installed = tms list -json | ConvertFrom-Json -AsHashtable
 if ($installed.Count -ne 9) {
     Write-Error "After restoring from snapshot, there should be 9 products installed, but there are $($installed.Count)."
 }
@@ -50,6 +43,6 @@ uninstall_and_check 0
 
 tms restore "snapshot1.yaml" -full -exclude:tms.biz.* -exclude:vsoft.commandline -nobuild
 $installed = tms list -json | ConvertFrom-Json -AsHashtable
-if ($installed.Count -ne $vsoftCount - 2) {
-    Write-Error "After restoring from snapshot, there should be $($vsoftCount - 2) products installed, but there are $($installed.Count)."
+if ($installed.Count -ne $vsoftCount - 1) {
+    Write-Error "After restoring from snapshot, there should be $($vsoftCount - 1) products installed, but there are $($installed.Count)."
 }
