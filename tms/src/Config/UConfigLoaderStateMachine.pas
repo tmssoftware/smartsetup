@@ -746,6 +746,7 @@ begin
   Actions.Add('prevent sleep', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.PreventSleep := GetBoolEx(value, ErrorInfo) end);
   Actions.Add('versions to keep', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.MaxVersionsPerProduct := GetInt(value, ErrorInfo) end);
   Actions.Add('error if skipped', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.ErrorIfSkipped := GetBool(value, ErrorInfo) end);
+  Actions.Add('auto snapshot filename', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.AutoSnapshotFileName := value; end);
 end;
 
 class function TTmsBuildOptionsSectionConf.SectionNameStatic: string;

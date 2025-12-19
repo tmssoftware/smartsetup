@@ -186,6 +186,7 @@ type
     FBuildCores: integer;
     FPreventSleep: boolean;
     FErrorIfSkipped: boolean;
+    FAutoSnapshotFileName: string;
     FAlternateRegistryKey: string;
     FMaxVersionsPerProduct: integer;
     FServerConfig: TServerConfigList;
@@ -246,6 +247,9 @@ type
 
     property ErrorIfSkipped: boolean read FErrorIfSkipped write FErrorIfSkipped;
 
+    property AutoSnapshotFileName: string read FAutoSnapshotFileName write FAutoSnapshotFileName;
+    function FullAutoSnapshotFileName: string;
+
     property Products: TProductConfigDefinitionDictionary read FProducts;
 
     function GetWorkingFolder(const WithDefault: boolean): string;
@@ -299,6 +303,7 @@ begin
   FPreventSleep := true;
   FMaxVersionsPerProduct := -1;
   FErrorIfSkipped := false;
+  FAutoSnapshotFileName := '';
   FDcuMegafolders := TMegafolderList.Create;
 end;
 
@@ -328,6 +333,13 @@ end;
 function TConfigDefinition.Folders: IBuildFolders;
 begin
   Result := TBuildFolders.Create(GetWorkingFolder(true));
+end;
+
+function TConfigDefinition.FullAutoSnapshotFileName: string;
+begin
+  Result := AutoSnapshotFileName.Trim;
+  if TPath_IsPathRooted(AutoSnapshotFileName) then exit(TPath.GetFullPath(Result));
+  Result := TPath.GetFullPath(TPath.Combine(FConfigFolder, Result));
 end;
 
 function TConfigDefinition.AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;

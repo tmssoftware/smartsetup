@@ -34,6 +34,9 @@ type
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 
+    function GetCommitId(const aWorkingFolder: string): string;
+    function IsRootVCSFolder(const Folder: string): boolean;
+
   end;
 
 implementation
@@ -153,6 +156,20 @@ begin
   end;
 end;
 
+function TGitEngine.IsRootVCSFolder(const Folder: string): boolean;
+begin
+  Result := TDirectory.Exists(TPath.Combine(Folder, '.git'));
+end;
+
+function TGitEngine.GetCommitId(const aWorkingFolder: string): string;
+begin
+  var FullCommand := '"' + GitCommandLine + '" rev-parse HEAD';
+  if not ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0'])
+    then exit('');
+
+  Result := Result.Trim;
+end;
+
 function TGitEngine.GetCurrentBranch(const aFolder: string): string;
 begin
   Result := '';
@@ -218,6 +235,7 @@ end;
 
 procedure TGitEngine.AfterClone(const aRootFolder, aCloneFolder: string);
 begin
+  DeleteFile(TPath.Combine(aRootFolder, GitDefaultBranchFile));
   RenameAndCheck(TPath.Combine(aCloneFolder, GitDefaultBranchFile), TPath.Combine(aRootFolder, GitDefaultBranchFile));
 end;
 

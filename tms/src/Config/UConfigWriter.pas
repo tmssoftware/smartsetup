@@ -245,6 +245,7 @@ begin
   if FullName = 'tms smart setup options:prevent sleep:' then exit(Cfg.PreventSleep);
   if FullName = 'tms smart setup options:versions to keep:' then exit(Cfg.MaxVersionsPerProduct);
   if FullName = 'tms smart setup options:error if skipped:' then exit(Cfg.ErrorIfSkipped);
+  if FullName = 'tms smart setup options:auto snapshot filename:' then exit(Cfg.AutoSnapshotFileName);
 
   if FullName = 'tms smart setup options:excluded products:' then exit(GetIncludedExcludedComponents(Cfg.GetExcludedComponents, true));
   if FullName = 'tms smart setup options:included products:' then exit(GetIncludedExcludedComponents(Cfg.GetIncludedComponents, false));

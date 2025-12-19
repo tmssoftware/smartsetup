@@ -33,6 +33,7 @@ type
     property Server: string read FServer write FServer;
     property Pinned: boolean read FPinned write FPinned;
   public
+    class var ProductsWereModified: boolean;
     class function FromFile(const FileName: string): TFetchInfoFile;
     class procedure SaveInFolder(const Folder, ProductId, Version, Server: string; const Pinned: boolean);
   end;
@@ -90,6 +91,7 @@ end;
 
 class procedure TFetchInfoFile.SaveInFolder(const Folder, ProductId, Version, Server: string; const Pinned: boolean);
 begin
+  ProductsWereModified:= true;
   TDirectory_CreateDirectory(Folder);
   var sw := TStreamWriter.Create(CombinePath(Folder, TFetchInfoFile.FileName), false, TUTF8NoBOMEncoding.Instance);
   try

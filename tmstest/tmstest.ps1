@@ -12,7 +12,7 @@ param(
 . $PSScriptRoot/util/util.errors.ps1
 
 if (-not $tmsTestRootDir) {
-    Write-Error "The variable `tmsTestRootDir` is not set. You need to setup the environment, see $($PSScriptRoot)/README.md."
+    Write-Error "The variable 'tmsTestRootDir' is not set. You need to setup the environment, see $($PSScriptRoot)/README.md."
 }
 
 if (! $env:TMSTEST_CODE -or ! $env:TMSTEST_EMAIL) {

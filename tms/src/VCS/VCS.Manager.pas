@@ -30,7 +30,7 @@ type
   public
     class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
     class function GetProductFolder(const ProductId: string): string; static;
-
+    class function GetCurrentCommit(const ProductId: string): string; static;
   end;
 
 implementation
@@ -60,7 +60,7 @@ begin
   if Engine.GetProduct(ProductFolderRoot, ProductFolder, Product.Product.Url, Product.Product.Server, Product.Product.ProductId, Product.Version) then exit; //direct get.
   
 
-  if TDirectory.Exists(ProductFolder) then
+  if TDirectory.Exists(ProductFolder) and not TDirectory.IsEmpty(ProductFolder) and Engine.IsRootVCSFolder(ProductFolder) then
   begin
     Engine.Pull(ProductFolderRoot, ProductFolder, Product.Version);
     exit;
@@ -255,6 +255,17 @@ begin
     finally
       def.Free;
     end;
+  end;
+end;
+
+class function TVCSManager.GetCurrentCommit(const ProductId: string): string;
+begin
+  Result := '';
+  for var Protocol := Low(TVCSProtocol) to High(TVCSProtocol) do
+  begin
+    var Engine := TVCSFactory.Instance.GetEngine(Protocol);
+    Result := Engine.GetCommitId(GetProductFolder(ProductId));
+    if Result <> '' then exit;
   end;
 end;
 

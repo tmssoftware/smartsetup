@@ -17,6 +17,9 @@ type
     function GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
+
+    function GetCommitId(const aWorkingFolder: string): string;
+    function IsRootVCSFolder(const Folder: string): boolean;
   end;
 
 
@@ -59,6 +62,11 @@ begin
     if Length(TDirectory.GetDirectories(Folder, '*', TSearchOption.soTopDirectoryOnly)) > 1 then exit(false);
   end;
 
+end;
+
+function TZipFileEngine.GetCommitId(const aWorkingFolder: string): string;
+begin
+  Result := '';
 end;
 
 procedure TZipFileEngine.GetFile(const aFileName, aDestFolder, aURL, aServer: string);
@@ -146,6 +154,11 @@ end;
 function TZipFileEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
 begin
   raise Exception.Create('GetVersionNames not supported in ZIPFILE protocol.');
+end;
+
+function TZipFileEngine.IsRootVCSFolder(const Folder: string): boolean;
+begin
+  Result := true;
 end;
 
 procedure TZipFileEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);

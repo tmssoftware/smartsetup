@@ -4,6 +4,8 @@ interface
 procedure RegisterPinCommand;
 procedure RegisterUnpinCommand;
 
+procedure DoPin(const Products: TArray<string>; const PinVersion: boolean);
+
 
 implementation
 uses
@@ -107,5 +109,12 @@ begin
   option.Required := True;
 
   AddCommand(cmd.Name, CommandGroups.Install, RunUnpinCommand);
+end;
+
+
+procedure DoPin(const Products: TArray<string>; const PinVersion: boolean);
+begin
+  ProductMasks := Products;
+  ExecutePinAction(PinVersion);
 end;
 end.

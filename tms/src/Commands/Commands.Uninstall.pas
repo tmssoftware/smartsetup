@@ -9,7 +9,7 @@ implementation
 uses
   System.SysUtils, System.StrUtils, System.IOUtils, UCommandLine, UMultiLogger, System.Diagnostics,
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, Removal.Manager, Removal.Item, Actions.Build,
-  UTmsBuildSystemUtils, Removal.FolderDeleter, Commands.Termination, UAppTerminated;
+  UTmsBuildSystemUtils, Removal.FolderDeleter, Commands.Termination, UAppTerminated, Fetching.InfoFile;
 var
   ProductIds: TArray<string>;
 //  NoBuild: Boolean = False;
@@ -35,6 +35,9 @@ begin
         Manager.Force := Force;
         Manager.IncludeManual := IncludeManual;
         Manager.ProcessSelected(ProductIds);
+
+        //trigger auto-snapshot.
+        if Manager.RemovalItems.Count > 0 then TFetchInfoFile.ProductsWereModified := true;
 
         // Delete the folders
         var Deleter := TFolderDeleter.Create;

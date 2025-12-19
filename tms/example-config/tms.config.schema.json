@@ -235,6 +235,11 @@
         "replace additional products folders": {
           "$ref": "#/definitions/additionalProductsFoldersObject"
         },
+        "auto snapshot filename": {
+          "type": ["string", "null"],
+          "description": "If not empty, smart setup will automatically create a snapshot of the current configuration and save it to the specified file after a successful run.\nThe snapshot file can then be used later to restore the exact same configuration.\nIf you specify a relative path here, it will be relative to the folder where this configuration file is located.",
+          "examples": ["snapshots\\my-snapshot.yaml", "d:\\snapshots\\full-config.yaml"]
+        },
 
         "servers": { "$ref": "#/definitions/serversObject" },
         "add servers": { "$ref": "#/definitions/serversObject" },

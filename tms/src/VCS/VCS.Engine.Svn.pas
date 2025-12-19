@@ -27,6 +27,8 @@ type
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 
+    function GetCommitId(const aWorkingFolder: string): string;
+    function IsRootVCSFolder(const Folder: string): boolean;
   end;
 
 implementation
@@ -58,6 +60,11 @@ begin
   Result := not Output.Trim.StartsWith('?');
 end;
 
+function TSvnEngine.GetCommitId(const aWorkingFolder: string): string;
+begin
+  Result := '';
+end;
+
 function TSvnEngine.GetEnvCommandLine: string;
 const
 {$IFDEF MSWINDOWS}
@@ -82,6 +89,11 @@ end;
 function TSvnEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
 begin
   raise Exception.Create('GetVersionNames not supported in SVN protocol.');
+end;
+
+function TSvnEngine.IsRootVCSFolder(const Folder: string): boolean;
+begin
+  Result := TDirectory.Exists(TPath.Combine(Folder, '.svn'));
 end;
 
 procedure TSvnEngine.AfterClone(const aRootFolder, aCloneFolder: string);

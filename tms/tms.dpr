@@ -214,7 +214,11 @@ uses
   Doctor.DuplicatedBplCheck in 'src\Doctor\Doctor.DuplicatedBplCheck.pas',
   UDllBitness in '..\common\src\System\UDllBitness.pas',
   UFileProperties in '..\common\src\System\UFileProperties.pas',
-  Doctor.DuplicatedFiles in 'src\Doctor\Doctor.DuplicatedFiles.pas';
+  Doctor.DuplicatedFiles in 'src\Doctor\Doctor.DuplicatedFiles.pas',
+  Commands.Snapshot in 'src\Commands\Commands.Snapshot.pas',
+  Snapshot.Reader in 'src\Snapshot\Snapshot.Reader.pas',
+  Snapshot.Writer in 'src\Snapshot\Snapshot.Writer.pas',
+  Commands.Restore in 'src\Commands\Commands.Restore.pas';
 
 begin
   try

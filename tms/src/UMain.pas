@@ -25,7 +25,9 @@ uses
   Commands.Doctor,
   Commands.LogView,
   Commands.Uncompress,
-  Commands.Pin;
+  Commands.Pin,
+  Commands.Snapshot,
+  Commands.Restore;
 
 procedure Run;
 
@@ -33,7 +35,8 @@ implementation
 
 uses
   System.SysUtils, System.IOUtils, UCommandLine, Commands.Logging, Commands.GlobalConfig, UConfigDefinition,
-  UMultiLogger, UConsoleLogger, ULogger, UTmsBuildSystemUtils, Deget.CoreTypes, UConfigKeys, Diagnostics, UDelayedErrors;
+  UMultiLogger, UConsoleLogger, ULogger, UTmsBuildSystemUtils, Deget.CoreTypes,
+  UConfigKeys, Diagnostics, UDelayedErrors, Fetching.InfoFile;
 
 procedure Cleanup;
 begin
@@ -83,6 +86,9 @@ begin
   RegisterVersionsRemoteCommand;
   RegisterInfoCommand;
 
+  RegisterSnapshotCommand;
+  RegisterRestoreCommand;
+
   RegisterCredentialsCommand;
   RegisterConfigCommand;
   RegisterConfigWriteCommand;
@@ -119,6 +125,17 @@ begin
     end);
 end;
 
+procedure SaveAutoSnapshots;
+begin
+  if not TFetchInfoFile.ProductsWereModified then exit;
+  if Config.AutoSnapshotFileName.Trim = ''  then exit;
+  var SnapshotFolder := TPath.GetDirectoryName(Config.FullAutoSnapshotFileName);
+  if not TDirectory.Exists(SnapshotFolder)
+    then TDirectory_CreateDirectory(SnapshotFolder);
+
+  TakeSnapshot(Config.FullAutoSnapshotFileName);
+end;
+
 procedure LogDelayedErrors;
 begin
   if (DelayedErrors = nil) or (DelayedErrors.Count = 0) then exit;
@@ -142,6 +159,7 @@ begin
       Logger.Verbosity := TVerbosity.info;
       try
         Start;
+        SaveAutoSnapshots;
         LogDelayedErrors;
       except
         on E: Exception do

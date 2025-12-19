@@ -4,7 +4,7 @@ interface
 
 uses
   System.Generics.Collections, System.Generics.Defaults, System.SysUtils, Deget.Version, UConfigFolders, UProjectDefinition,
-  Deget.CoreTypes, UConfigDefinition;
+  Deget.CoreTypes, UConfigDefinition, Fetching.InfoFile;
 
 type
   TPlatformStatus = class
@@ -30,6 +30,7 @@ type
     FId: string;
     FName: string;
     FVersion: TLenientVersion;
+    FInstalledVersion: TLenientVersion; //For API products, this is the same as FVersion. For VCS, FVersion might be empty (head), but this field will have the commit so it can be restored.
     FChannel: string;
     FServer: string;
     FPinned: boolean;
@@ -45,6 +46,7 @@ type
     property Id: string read FId write FId;
     property Name: string read FName write FName;
     property Version: TLenientVersion read FVersion write FVersion;
+    property InstalledVersion: TLenientVersion read FInstalledVersion write FInstalledVersion;
     property Channel: string read FChannel write FChannel;
     property Server: string read FServer write FServer;
     property Pinned: boolean read FPinned write FPinned;
@@ -59,6 +61,7 @@ type
     procedure LoadRemoteProducts;
     procedure LoadBuildableProducts;
     procedure UpdateProductStatus(Product: TProductStatus);
+    function GetInstalledVersion(const Item: TFetchInfoFile): TLenientVersion;
   protected
     function FindProduct(const ProductId: string): TProductStatus;
   public
@@ -71,7 +74,7 @@ type
 implementation
 
 uses
-  Fetching.InfoFile, Fetching.InstallInfo, UProjectLoader, UProjectList, UFileHasher, UProjectInstaller;
+  Fetching.InstallInfo, UProjectLoader, UProjectList, UFileHasher, UProjectInstaller, VCS.Manager;
 
 { TStatusManager }
 
@@ -125,6 +128,12 @@ begin
   end;
 end;
 
+function TStatusManager.GetInstalledVersion(const Item: TFetchInfoFile): TLenientVersion;
+begin
+  if (Item.Version <> '') and (Item.Version <> '__latest') then exit(Item.Version);
+  Result := TVCSManager.GetCurrentCommit(Item.ProductId);
+end;
+
 procedure TStatusManager.LoadRemoteProducts;
 begin
   var Items := TObjectList<TFetchInfoFile>.Create;
@@ -137,6 +146,7 @@ begin
       Product.Id := Item.ProductId;
       Product.Name := Item.DisplayName;
       Product.Version := Item.Version;
+      Product.InstalledVersion := GetInstalledVersion(Item);
       Product.Channel := Item.Channel;
       Product.Server := Item.Server;
       Product.Pinned := Item.Pinned;
