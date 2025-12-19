@@ -61,7 +61,7 @@ type
     procedure LoadRemoteProducts;
     procedure LoadBuildableProducts;
     procedure UpdateProductStatus(Product: TProductStatus);
-    function GetInstalledVersion(const Item: TFetchInfoFile): TLenientVersion;
+    function GetInstalledVersion(const Version: string; const ProductId: string): TLenientVersion;
   protected
     function FindProduct(const ProductId: string): TProductStatus;
   public
@@ -120,6 +120,8 @@ begin
       //Prefer the info in fetch.info.txt for products that come from github. Those will have likely the tmsbuild.yaml version empty or wrong.
       //We could also check if Proj.Application.Version = '' then... but the version in tmsbuild.yaml won't be at the commit level. Lots of commits would have the same version.
       if Product.Version = '' then Product.Version := Proj.Application.Version;
+      if Product.InstalledVersion = '' then Product.InstalledVersion := GetInstalledVersion(Product.Version, Product.Id);
+
 
       Product.Project := Projs.All.Extract(Proj);
     end;
@@ -128,10 +130,10 @@ begin
   end;
 end;
 
-function TStatusManager.GetInstalledVersion(const Item: TFetchInfoFile): TLenientVersion;
+function TStatusManager.GetInstalledVersion(const Version: string; const ProductId: string): TLenientVersion;
 begin
-  if (Item.Version <> '') and (Item.Version <> '__latest') then exit(Item.Version);
-  Result := TVCSManager.GetCurrentCommit(Item.ProductId);
+  if (Version <> '') and (Version <> '__latest') then exit(Version);
+  Result := TVCSManager.GetCurrentCommit(ProductId);
 end;
 
 procedure TStatusManager.LoadRemoteProducts;
@@ -146,7 +148,7 @@ begin
       Product.Id := Item.ProductId;
       Product.Name := Item.DisplayName;
       Product.Version := Item.Version;
-      Product.InstalledVersion := GetInstalledVersion(Item);
+      Product.InstalledVersion := GetInstalledVersion(Item.Version, Item.ProductId);
       Product.Channel := Item.Channel;
       Product.Server := Item.Server;
       Product.Pinned := Item.Pinned;
