@@ -128,12 +128,16 @@ end;
 procedure SaveAutoSnapshots;
 begin
   if not TFetchInfoFile.ProductsWereModified then exit;
-  if Config.AutoSnapshotFileName.Trim = ''  then exit;
-  var SnapshotFolder := TPath.GetDirectoryName(Config.FullAutoSnapshotFileName);
-  if not TDirectory.Exists(SnapshotFolder)
-    then TDirectory_CreateDirectory(SnapshotFolder);
+  for var Snapshot in Config.AutoSnapshotFileNames do
+  begin
+    var FileName := Snapshot.Key.Trim;
+    if FileName = ''  then continue;
+    var SnapshotFolder := TPath.GetDirectoryName(FileName);
+    if not TDirectory.Exists(SnapshotFolder)
+      then TDirectory_CreateDirectory(SnapshotFolder);
 
-  TakeSnapshot(Config.FullAutoSnapshotFileName);
+    TakeSnapshot(FileName);
+  end;
 end;
 
 procedure LogDelayedErrors;

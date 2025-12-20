@@ -66,6 +66,13 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TAutoSnapshotFilenamesSectionConf = class(TSectionConf)
+  public
+    constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
+    procedure LoadedState(const State: TArrayOverrideBehavior); override;
+    class function SectionNameStatic: string; override;
+  end;
+
   TServersSectionConf = class(TSectionConf)
   public
     constructor Create(const aParent: TSection; const aConfig: TConfigDefinition; const aProductConfig: TProductConfigDefinition);
@@ -738,6 +745,7 @@ begin
   ChildSections.Add(TGitSectionConf.SectionNameStatic, TGitSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TSvnSectionConf.SectionNameStatic, TSvnSectionConf.Create(Self, aConfig, ProductConfig));
   ChildSections.Add(TDcuMegafoldersSectionConf.SectionNameStatic, TDcuMegafoldersSectionConf.Create(Self, aConfig, ProductConfig));
+  ChildSections.Add(TAutoSnapshotFilenamesSectionConf.SectionNameStatic, TAutoSnapshotFilenamesSectionConf.Create(Self, aConfig, ProductConfig));
 
   Actions := TListOfActions.Create;
   Actions.Add('build cores', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.BuildCores := GetInt(value, ErrorInfo) end);
@@ -746,7 +754,6 @@ begin
   Actions.Add('prevent sleep', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.PreventSleep := GetBoolEx(value, ErrorInfo) end);
   Actions.Add('versions to keep', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.MaxVersionsPerProduct := GetInt(value, ErrorInfo) end);
   Actions.Add('error if skipped', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.ErrorIfSkipped := GetBool(value, ErrorInfo) end);
-  Actions.Add('auto snapshot filename', procedure(value: string; ErrorInfo: TErrorInfo) begin  Config.AutoSnapshotFileName := value; end);
 end;
 
 class function TTmsBuildOptionsSectionConf.SectionNameStatic: string;
@@ -930,6 +937,37 @@ end;
 class function TDcuMegafoldersSectionConf.SectionNameStatic: string;
 begin
   Result := 'dcu megafolders';
+end;
+
+{ TAutoSnapshotFilenamesSectionConf }
+
+constructor TAutoSnapshotFilenamesSectionConf.Create(const aParent: TSection;
+  const aConfig: TConfigDefinition;
+  const aProductConfig: TProductConfigDefinition);
+begin
+  inherited Create(aParent, aConfig, aProductConfig);
+  SectionValueTypes := TSectionValueTypes.NoValues;
+
+  ClearArrayValues := procedure begin aConfig.AutoSnapshotFilenames.Clear;end;
+
+  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo)
+  begin
+    aConfig.AutoSnapshotFilenames.Add(name, ErrorInfo.ToString);
+  end;
+
+end;
+
+procedure TAutoSnapshotFilenamesSectionConf.LoadedState(
+  const State: TArrayOverrideBehavior);
+begin
+  inherited;
+  if Root.CreatedBy.StartsWith('Main: ') then  Config.PrefixedProperties[TGlobalPrefixedProperties.AutosnapshotFilenames] := State;
+
+end;
+
+class function TAutoSnapshotFilenamesSectionConf.SectionNameStatic: string;
+begin
+  Result := 'auto snapshot filenames';
 end;
 
 end.

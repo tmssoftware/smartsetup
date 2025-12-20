@@ -59,6 +59,12 @@ tms smart setup options:
     #- c:\MyProducts   #All folders containing tmsbuild.yaml files inside c:\MyProducts will be added to the build.
     #- ..\..\Other products  #Try to use relative folders if possible.
 
+  # Smart setup will automatically create a snapshot of the current configuration and save it to the every filename in this list.
+  # The snapshot files can then be used later to restore the exact same configuration.
+  # If you specify relative paths here, they will be relative to the folder where this configuration file is located.
+  auto snapshot filenames:
+    #- tms.snaphot.yaml
+
   # Specify which servers SmartSetup will connect to.
   # When creating your own server, you also need to specify "type" (can be api, zipfile)
   # And the "url" where the server is.

@@ -18,6 +18,7 @@ $gitPullCommand = ""
 $svnLocation = ""
 $svnCheckoutCommand = ""
 $svnUpdateCommand = ""
+$autoSnapshotFilenames = "[]"
 $dcuMegafolders = "[]"
 
 $productArray = @("all products", "test1", "test2")
@@ -69,6 +70,7 @@ function Test-ValuesOk() {
     tms config-read "tms smart setup options:svn:checkout command" | Assert-ValueIs $svnCheckoutCommand
     tms config-read "tms smart setup options:svn:update command" | Assert-ValueIs $svnUpdateCommand
     tms config-read "tms smart setup options:dcu megafolders" | Assert-ValueIs $dcuMegafolders
+    tms config-read "tms smart setup options:auto snapshot filenames" | Assert-ValueIs $autoSnapshotFilenames
 
     for ($i = 0; $i -lt $productArray.Count; $i++) {
         tms config-read "configuration for $($productArray[$i]):options:verbosity" | Assert-ValueIs $productOptionsVerbosity[$i]
@@ -164,6 +166,19 @@ Test-ValuesOk
 tms config-write -p:"tms smart setup options:dcu megafolders=[tms:*.tms, none: test,other:*, all: p]"
 $dcuMegafolders = "[tms: '*.tms',none: test,other: '*',all: p]"
 Test-ValuesOk
+
+tms config-write -p:"tms smart setup options:auto snapshot filenames=[snapshot1,snapshot2,snapshot3]"
+$autoSnapshotFilenames = "[snapshot1,snapshot2,snapshot3]"
+Test-ValuesOk
+
+tms config-write -p:"tms smart setup options:add auto snapshot filenames=[snapshot4,snapshot5]"
+$autoSnapshotFilenames = "[snapshot1,snapshot2,snapshot3,snapshot4,snapshot5]"
+Test-ValuesOk
+
+tms config-write -p:"tms smart setup options:replace auto snapshot filenames=[snapshot1,snapshot2,snapshot3]"
+$autoSnapshotFilenames = "[snapshot1,snapshot2,snapshot3]"
+Test-ValuesOk
+
 
 $result = 
 Invoke-WithExitCodeIgnored {

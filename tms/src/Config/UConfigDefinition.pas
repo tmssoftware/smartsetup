@@ -42,7 +42,7 @@ type
   end;
 
   TGlobalPrefixedProperties = (ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
-                             Servers, DcuMegafolders);
+                             Servers, DcuMegafolders, AutoSnapshotFilenames);
   TGlobalPrefixedPropertiesArray = Array[TGlobalPrefixedProperties] of TArrayOverrideBehavior;
 
   TProductPrefixedProperties =(DelphiVersions, Platforms, Defines);
@@ -186,7 +186,7 @@ type
     FBuildCores: integer;
     FPreventSleep: boolean;
     FErrorIfSkipped: boolean;
-    FAutoSnapshotFileName: string;
+    FAutoSnapshotFileNames: TOrderedDictionary<string, string>;
     FAlternateRegistryKey: string;
     FMaxVersionsPerProduct: integer;
     FServerConfig: TServerConfigList;
@@ -247,8 +247,8 @@ type
 
     property ErrorIfSkipped: boolean read FErrorIfSkipped write FErrorIfSkipped;
 
-    property AutoSnapshotFileName: string read FAutoSnapshotFileName write FAutoSnapshotFileName;
-    function FullAutoSnapshotFileName: string;
+    property AutoSnapshotFileNames: TOrderedDictionary<string, string> read FAutoSnapshotFileNames;
+    function FullAutoSnapshotFileNames: TArray<string>;
 
     property Products: TProductConfigDefinitionDictionary read FProducts;
 
@@ -303,12 +303,13 @@ begin
   FPreventSleep := true;
   FMaxVersionsPerProduct := -1;
   FErrorIfSkipped := false;
-  FAutoSnapshotFileName := '';
   FDcuMegafolders := TMegafolderList.Create;
+  FAutoSnapshotFileNames := TOrderedDictionary<string, string>.Create;
 end;
 
 destructor TConfigDefinition.Destroy;
 begin
+  FAutoSnapshotFileNames.Free;
   FDcuMegafolders.Free;
   Namings.Free;
   FServerConfig.Free;
@@ -335,11 +336,19 @@ begin
   Result := TBuildFolders.Create(GetWorkingFolder(true));
 end;
 
-function TConfigDefinition.FullAutoSnapshotFileName: string;
+function TConfigDefinition.FullAutoSnapshotFileNames: TArray<string>;
 begin
-  Result := AutoSnapshotFileName.Trim;
-  if TPath_IsPathRooted(AutoSnapshotFileName) then exit(TPath.GetFullPath(Result));
-  Result := TPath.GetFullPath(TPath.Combine(FConfigFolder, Result));
+  Result := nil;
+  SetLength(Result, AutoSnapshotFileNames.Count);
+  for var i := Low(Result) to High(Result) do
+  begin
+    if TPath_IsPathRooted(AutoSnapshotFileNames.KeyList[i]) then
+    begin
+      Result[i] := TPath.GetFullPath(AutoSnapshotFileNames.KeyList[i].Trim);
+      continue;
+    end;
+    Result[i] := TPath.GetFullPath(TPath.Combine(FConfigFolder, AutoSnapshotFileNames.KeyList[i].Trim));
+  end;
 end;
 
 function TConfigDefinition.AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;

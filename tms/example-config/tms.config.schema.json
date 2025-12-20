@@ -108,6 +108,15 @@
       },
       "uniqueItems": true
     },
+    "snapshotFilenamesObject": {
+      "type": ["array", "null"],
+      "description": "If you write entries here, Smart setup will automatically create a snapshot of the current configuration and save it to the every filename you specify.\nThe snapshot files can then be used later to restore the exact same configuration.\nIf you specify relative paths here, they will be relative to the folder where this configuration file is located.",
+      "items": {
+        "type": "string"
+      },
+      "examples": ["snapshots\\my-snapshot.yaml", "d:\\snapshots\\full-config.yaml"],
+      "uniqueItems": true
+    },
     "serversObject": {
       "type": "object",
       "description": "Specify which servers SmartSetup will connect to.\nWhen creating your own server, you also need to specify \"type\" (can be api, zipfile)\nAnd the \"url\" where the server is.",
@@ -235,10 +244,12 @@
         "replace additional products folders": {
           "$ref": "#/definitions/additionalProductsFoldersObject"
         },
-        "auto snapshot filename": {
-          "type": ["string", "null"],
-          "description": "If not empty, smart setup will automatically create a snapshot of the current configuration and save it to the specified file after a successful run.\nThe snapshot file can then be used later to restore the exact same configuration.\nIf you specify a relative path here, it will be relative to the folder where this configuration file is located.",
-          "examples": ["snapshots\\my-snapshot.yaml", "d:\\snapshots\\full-config.yaml"]
+        "auto snapshot filenames": { "$ref": "#/definitions/snapshotFilenamesObject" },
+        "add auto snapshot filenames": {
+          "$ref": "#/definitions/snapshotFilenamesObject"
+        },
+        "replace auto snapshot filenames": {
+          "$ref": "#/definitions/snapshotFilenamesObject"
         },
 
         "servers": { "$ref": "#/definitions/serversObject" },

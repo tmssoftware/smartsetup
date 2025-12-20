@@ -53,8 +53,8 @@ procedure RestoreComponents(FileName: string; const RestoreVersions, NoBuild: bo
 begin
   var Products := TObjectList<TProductStatus>.Create;
   try
-    if FileName.Trim = '' then FileName := Config.AutoSnapshotFileName; 
-    if FileName.Trim = '' then raise Exception.Create('Please specify the filename of the snapshot to restore. You can only call "tms restore" without filename if an "automatic snapshot filename" is provided.');
+    if (FileName.Trim = '') and (Config.AutoSnapshotFileNames.Count = 1) then FileName := Config.AutoSnapshotFileNames.KeyList[0]; 
+    if FileName.Trim = '' then raise Exception.Create('Please specify the filename of the snapshot to restore. You can only call "tms restore" without filename if a single "automatic snapshot filename" is provided.');
 
     
     LoadSnapshot(FileName, Products);
@@ -126,7 +126,7 @@ begin
   cmd.Examples.Add('restore c:\test\tms.snapshot.yaml -full');
   cmd.Examples.Add('restore -exclude:tms.biz.* -exclude:example.test.*');
 
-  var option := cmd.RegisterUnnamedOption<string>('File from where to load the snapshot. If not specified, we will load the "auto snapshot filename" in the config file.', 'filename',
+  var option := cmd.RegisterUnnamedOption<string>('File from where to load the snapshot. If not specified and there is a single "auto snapshot filenames" entry in the config file, it will load it.', 'filename',
     procedure(const Value : string)
     begin
       OptionFileName := Value;

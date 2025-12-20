@@ -10,6 +10,7 @@
     "excluded products": ["tms-fnc","tms-fnc-cloud"],
     "included products": ["tms-fnc-cloud"],
     "additional products folders": ["..\\landgraf\\aws-sdk-delphi","..\\landgraf\\tms-biz","..\\tms\\delphi-graphql"],
+    "auto snapshot filenames": ["snapshot1","snapshot2","snapshot3"],
     "servers":
     {
       "tms":

@@ -56,6 +56,8 @@ TConfigWriter = class
     procedure SaveToStream(const TextWriter: TTextWriter; const Filter: string; const WritingFormat: TWritingFormat;
              const UseJson: boolean; const SchemaURL, HeaderContent: string);
     class procedure CheckConfig(const aProperty: string); static;
+    function GetAutoSnapshotFilenames(
+      const Values: TEnumerable<string>): TYamlValue;
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
     procedure Save(const FileName: string);
@@ -67,7 +69,7 @@ uses UTmsBuildSystemUtils, Deget.IDETypes, UConfigLoaderStateMachine;
 
 const
   GlobalPrefixedProperties: array[TGlobalPrefixedProperties] of string= ('excluded products', 'included products', 'additional products folders',
-     'servers', 'dcu megafolders');
+     'servers', 'dcu megafolders', 'auto snapshot filenames');
   ProductPrefixedProperties: array[TProductPrefixedProperties] of string= ('delphi versions', 'platforms', 'defines');
 
 constructor TConfigWriter.Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
@@ -175,9 +177,24 @@ begin
 
 end;
 
+function TConfigWriter.GetAutoSnapshotFilenames(const Values: TEnumerable<string>): TYamlValue;
+begin
+  var ArrayResult := Values.ToArray;
+  if (Length(ArrayResult) > 0) or CmdFormat then
+  begin
+    exit(TYamlValue.MakeArray(ArrayResult, BlockArray));
+  end;
+
+  Result := TYamlValue.MakeArray(
+  [
+    TYamlValue.MakeEmpty('tms.snaphot.yaml')
+  ], BlockArray);
+
+end;
+
 function TConfigWriter.GetServer(const Id: string): TYamlValue;
 begin
-  var ServerName := Id.Substring(0, Id.IndexOf(':')); 
+  var ServerName := Id.Substring(0, Id.IndexOf(':'));
   var PropName := Id.Substring(ServerName.Length + 1);
   var Server := Cfg.ServerConfig.GetServer(ServerName);
   if PropName = '' then exit(TYamlValue.MakeObject);
@@ -245,7 +262,7 @@ begin
   if FullName = 'tms smart setup options:prevent sleep:' then exit(Cfg.PreventSleep);
   if FullName = 'tms smart setup options:versions to keep:' then exit(Cfg.MaxVersionsPerProduct);
   if FullName = 'tms smart setup options:error if skipped:' then exit(Cfg.ErrorIfSkipped);
-  if FullName = 'tms smart setup options:auto snapshot filename:' then exit(Cfg.AutoSnapshotFileName);
+  if FullName = 'tms smart setup options:auto snapshot filenames:' then exit(GetAutoSnapshotFilenames(Cfg.AutoSnapshotFileNames.Keys));
 
   if FullName = 'tms smart setup options:excluded products:' then exit(GetIncludedExcludedComponents(Cfg.GetExcludedComponents, true));
   if FullName = 'tms smart setup options:included products:' then exit(GetIncludedExcludedComponents(Cfg.GetIncludedComponents, false));

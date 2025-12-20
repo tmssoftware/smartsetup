@@ -8,7 +8,7 @@ $snapshotFile = Join-Path "snapshots" "auto-snapshot-test.yaml"
 
 Test-CommandFails {tms restore} "*Please specify the filename of the snapshot to restore.*"
 
-tms config-write -p:"tms smart setup options:auto snapshot filename=$snapshotFile"
+tms config-write -p:"tms smart setup options:auto snapshot filenames=[$snapshotFile]"
 
 tms fetch tms.vcl.query:1.18.0.0 pbear.htmlviewer:11.7 pyscripter.python4delphi tms.fnc.uipack
 
