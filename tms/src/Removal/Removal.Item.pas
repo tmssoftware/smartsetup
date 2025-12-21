@@ -35,8 +35,8 @@ type
   public
     function ContainsStatus(Status: TRemovalStatus): Boolean;
     function GetProductsWithStatus(Status: TRemovalStatus): string;
-    function Contains(const ProductId, Version: string): Boolean;
-    function Find(const ProductId, Version: string): TRemovalItem;
+    function Contains(const ProductId: string; const Version: TLenientVersion): Boolean;
+    function Find(const ProductId: string; const Version: TLenientVersion): TRemovalItem;
   end;
 
 implementation
@@ -47,7 +47,7 @@ constructor TRemovalItem.Create(const AProductId, AProductPath, AVersion: string
 begin
   FProductId := AProductId;
   FProductPath := AProductPath;
-  FVersion := AVersion;
+  FVersion := TLenientVersion.Create(AVersion, TVersionType.FreeForm);
   FDependents := TList<string>.Create;
 end;
 
@@ -59,7 +59,7 @@ end;
 
 { TRemovalItems }
 
-function TRemovalItems.Contains(const ProductId, Version: string): Boolean;
+function TRemovalItems.Contains(const ProductId: string; const Version: TLenientVersion): Boolean;
 begin
   Result := Find(ProductId, Version) <> nil;
 end;
@@ -72,10 +72,10 @@ begin
   Result := False;
 end;
 
-function TRemovalItems.Find(const ProductId, Version: string): TRemovalItem;
+function TRemovalItems.Find(const ProductId: string; const Version: TLenientVersion): TRemovalItem;
 begin
   for var Item in Self do
-    if (Item.ProductId = ProductId) and (Item.Version = TLenientVersion(Version)) then
+    if (Item.ProductId = ProductId) and (Item.Version = Version) then
        Exit(Item);
   Result := nil;
 end;

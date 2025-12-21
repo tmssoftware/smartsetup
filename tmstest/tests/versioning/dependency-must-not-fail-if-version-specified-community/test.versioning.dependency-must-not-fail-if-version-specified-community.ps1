@@ -35,11 +35,11 @@ $installResult = tms install tmstest.a:v1.0.0 tmstest.b:v1.0.0
 Test-BuildResultCounts -BuildResult $installResult -expectedNotModifiedCount 0 -expectedIgnoreCount 0 -expectedOkCount 6
 
 $products = tms list -detailed -json | ConvertFrom-Json -AsHashtable
-Test-ProductVersions -Products $products -ExpectedAVersion "v1.0.0" -ExpectedBVersion "v1.0.0" -ExpectedCVersion "0.0.0.0"
+Test-ProductVersions -Products $products -ExpectedAVersion "v1.0.0" -ExpectedBVersion "v1.0.0" -ExpectedCVersion ""
 
 $installResult = tms update tmstest.a:v1.1.0
 $products = tms list -detailed -json | ConvertFrom-Json -AsHashtable
-Test-ProductVersions -Products $products -ExpectedAVersion "v1.1.0" -ExpectedBVersion "0.0.0.0" -ExpectedCVersion "0.0.0.0"
+Test-ProductVersions -Products $products -ExpectedAVersion "v1.1.0" -ExpectedBVersion "" -ExpectedCVersion ""
 
 Test-CommandFails { tms update tmstest.x:v1.0.0 } "*Error: Could not find any products matching tmstest.x*"
 
@@ -50,7 +50,7 @@ Test-CommandFails { tms install tmstest.x:v1.0.0 } "*requires the product ""Spri
 tms server-enable community
 $installResult = tms install tmstest.x:v1.0.0
 $products = tms list -detailed -json | ConvertFrom-Json -AsHashtable
-Test-ProductVersions -Products $products -ExpectedAVersion "v1.1.0" -ExpectedBVersion "0.0.0.0" -ExpectedCVersion "0.0.0.0"
+Test-ProductVersions -Products $products -ExpectedAVersion "v1.1.0" -ExpectedBVersion "" -ExpectedCVersion ""
 if ($Products["tmstest.x"].version -ne "v1.0.0") {
         throw "tmstest.x should be version v1.0.0, but it is $($Products["tmstest.x"].version)."
     }

@@ -7,7 +7,7 @@ uses Classes, SysUtils, Commands.GlobalConfig, VCS.Registry,
      Windows,
 {$ENDIF}
      Generics.Collections, Threading, VCS.Summary, VCS.CoreTypes,
-     UProjectDefinition, Fetching.InfoFile, Fetching.ProductVersion;
+     UProjectDefinition, Fetching.InfoFile, Fetching.ProductVersion, Deget.Version;
 
 type
 
@@ -154,7 +154,7 @@ begin
     var ProductVersion := Product.Version; if ProductVersion = '*' then ProductVersion := '';
 
     //When we fetch a new product, pinned is false
-    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, ProductVersion, Product.Product.Server, false);
+    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, TLenientVersion.Create(ProductVersion, TVersionType.FreeForm), Product.Product.Server, false);
     AddPredefinedData(ProductFolder, Product.Product);
     begin
 

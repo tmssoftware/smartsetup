@@ -65,7 +65,7 @@ if ($results["tms.vcl.query"].pinned -ne $true) {
     Write-Error "After restoring from snapshot, tms.vcl.query should be pinned."
 }
 
-if ($results["pbear.htmlviewer"].version -ne "11.7.0.0") {
+if ($results["pbear.htmlviewer"].version -ne "11.7") {
     Write-Error "After restoring from snapshot, pbear.htmlviewer should be version 11.7."
 }
 if ($results["pbear.htmlviewer"].pinned -ne $false) {

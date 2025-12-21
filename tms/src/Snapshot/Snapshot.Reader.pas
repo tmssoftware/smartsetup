@@ -1,7 +1,7 @@
 unit Snapshot.Reader;
 
 interface
-  uses Classes, SysUtils, Generics.Collections, Status.Manager, BBYaml, BBClasses;
+  uses Classes, SysUtils, Generics.Collections, Status.Manager, BBYaml, BBClasses, Deget.Version;
 
   procedure LoadSnapshot(const FileName: string; const Products: TList<TProductStatus>);
 implementation
@@ -111,7 +111,7 @@ begin
   Actions := TListOfActions.Create;
   Actions.Add('version', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;
-    FProduct.Version := value;
+    FProduct.Version := TLenientVersion.Create(value, TVersionType.FreeForm);
   end);
   Actions.Add('server', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;

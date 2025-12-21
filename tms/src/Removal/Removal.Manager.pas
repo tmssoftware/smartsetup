@@ -61,7 +61,7 @@ begin
       var ProjectFolder := TPath.GetDirectoryName(Project.FullPath);
       if TPath.GetDirectoryName(ProjectFolder) = '' then continue; //Don't remove projects at the root of a drive.
 
-      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, Project.Application.Version, 'unknown', '', false));
+      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, TLenientVersion.Create(Project.Application.Version, TVersionType.FreeForm), 'unknown', '', false));
     end;
   finally
     Projects.Free;
@@ -99,7 +99,7 @@ begin
       end;
       var Item := TRemovalItem.Create(InstalledProduct.ProductId, InstalledProduct.ProductPath, InstalledProduct.Version);
       FRemovalItems.Add(Item);
-      Logger.Trace(Format('Product %s:%s flagged for removal', [InstalledProduct.ProductId, InstalledProduct.Version]));
+      Logger.Trace(Format('Product %s:%s flagged for removal', [InstalledProduct.ProductId, InstalledProduct.Version.ToString]));
     end;
 
   if not Found then

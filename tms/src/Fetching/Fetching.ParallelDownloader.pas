@@ -10,7 +10,7 @@ uses
 {$ENDIF}
   System.SysUtils, System.Threading, System.DateUtils, UAppTerminated, URepositoryManager,
   Fetching.ParallelProjectInfo, Fetching.InfoFile, Fetching.FetchItem, Fetching.InstallInfo,
-  UConfigFolders, UGenericDecompressor;
+  UConfigFolders, UGenericDecompressor, Deget.Version;
 
 type
   TParallelDownloader = class
@@ -118,7 +118,7 @@ end;
 procedure TParallelDownloader.CreateInstallInfoFile(const Folder: string; const FetchItem: TFetchItem);
 begin
   //pinned must be false when downloading new products
-  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, FetchItem.Version, FetchItem.Server, false);
+  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, TLenientVersion.Create(FetchItem.Version, TVersionType.Semantic), FetchItem.Server, false);
 end;
 
 function TParallelDownloader.FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;

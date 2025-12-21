@@ -50,7 +50,8 @@ begin
       var Item := TJSONObject.Create;
       Root.AddPair(Product.Id, Item);
 
-      Item.AddPair('version', TLenientVersion(Product.Version).Normalized);
+      Item.AddPair('version', TLenientVersion.Create(Product.Version, TVersionType.Semantic).Normalized);
+      Item.AddPair('version_type', TLenientVersion.IdSemantic);
       Item.AddPair('name', Product.Name);
       if Product.LicenseStatus <> TLicenseStatus.none then
          Item.AddPair('license_status', LicenseStatusStr[Product.LicenseStatus]);
@@ -68,6 +69,7 @@ begin
 
       //In the future we can include the version from tmsbuild.yaml here. It is simple, but most likely it will be wong as it won't be updated in the registry.
       Item.AddPair('version', '');
+      Item.AddPair('version_type', TLenientVersion.IdFreeForm);
       Item.AddPair('name', Product.Product.Name);
       Item.AddPair('server', Product.Product.Server);
       Item.AddPair('description', Product.Product.Description);

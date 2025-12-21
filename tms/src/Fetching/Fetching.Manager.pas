@@ -90,7 +90,7 @@ begin
       begin
         Matched.Add(InstalledProduct.ProductId, ProductVersion);
       end;
-      Logger.Trace(Format('Product %s:%s to be analyzed', [InstalledProduct.ProductId, InstalledProduct.Version]));
+      Logger.Trace(Format('Product %s:%s to be analyzed', [InstalledProduct.ProductId, InstalledProduct.Version.ToString]));
     end else
     begin
       if Config.IsExcluded(InstalledProduct.ProductId) then Logger.Trace('Ignoring ' + InstalledProduct.ProductId + ' because it is in the "excluded products" section of tms.config.yaml');
@@ -256,7 +256,7 @@ begin
     TMSSetupInfoFile.ProductId := TRepositoryManager.TMSSetupProductId;
     TMSSetupInfoFile.ProductPath := '';
     TMSSetupInfoFile.Channel := 'production';
-    TMSSetupInfoFile.Version := TMSVersion;
+    TMSSetupInfoFile.Version := TLenientVersion.Create(TMSVersion, TVersionType.Semantic);
   end;
   Result := FInstalledProducts;
 end;
@@ -375,10 +375,10 @@ begin
         Continue;
       end;
 
-      if Item.Version <> TVersion(Installed.Version) then
+      if TLenientVersion.Create(Item.Version, TVersionType.Semantic) <> Installed.Version then
       begin
         Item.Status := TFetchStatus.Outdated;
-        Logger.Trace(Format('%s flagged to be downloaded, local version %s is different from requested', [Item.ProductId, Installed.Version]));
+        Logger.Trace(Format('%s flagged to be downloaded, local version %s is different from requested', [Item.ProductId, Installed.Version.ToString]));
         Continue;
       end;
 

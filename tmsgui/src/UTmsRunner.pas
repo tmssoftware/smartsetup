@@ -397,7 +397,7 @@ begin
     var JsonProduct := TJSONObject(Pair.JsonValue);
 
     Product.Name := JsonProduct.GetValue<string>('name');
-    Product.Version := JsonProduct.GetValue<string>('version', '');
+    Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.Channel := JsonProduct.GetValue<string>('channel', '');
     Product.Local := JsonProduct.GetValue<Boolean>('local', False);
     Product.Pinned := JsonProduct.GetValue<Boolean>('pinned', False);
@@ -529,7 +529,7 @@ begin
     var JsonProduct := TJSONObject(Pair.JsonValue);
 
     Product.Name := JsonProduct.GetValue<string>('name');
-    Product.Version := JsonProduct.GetValue<string>('version', '');
+    Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.VendorId := JsonProduct.GetValue<string>('vendor_id', '');
     Product.Server := JsonProduct.GetValue<string>('server', '');
 //    Product.LicenseStatus := JsonProduct.GetValue<string>('license-status', '');

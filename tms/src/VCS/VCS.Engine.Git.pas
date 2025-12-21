@@ -212,7 +212,10 @@ begin
   var Output := '';
   var FullCommand := '"' + GitCommandLine + '" switch' + DetachStr + ' "' + aVersion + '"'; //add a --force to wipe local changes if we prefer it that way.
   if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then raise Exception.Create('Error in git command: ' + FullCommand);
+    then
+    begin
+      raise Exception.Create('Can''t find the version "' + aVersion + '" in product ' + TPath.GetFileName(aCloneFolder) + '. Verify it is a valid tag, branch name or commit id.');
+    end;
 end;
 
 
