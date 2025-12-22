@@ -17,7 +17,7 @@ type
     function GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 
-    function GetCommitId(const aWorkingFolder: string): string;
+    function GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
     function IsRootVCSFolder(const Folder: string): boolean;
   end;
 

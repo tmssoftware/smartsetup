@@ -152,6 +152,8 @@ begin
     //But, if we do it in that order, and DoFetchProduct fails, you will end up with an empty folder with just tmsfetch.info inside.
     //So instead, we ensure DoFetchProduct either returns a full thing, or nothing. Then we save tmsfetch.info only if DoFetchFolder succeeded.
     var ProductVersion := Product.Version; if ProductVersion = '*' then ProductVersion := '';
+    if ProductVersion = '' then ProductVersion := GetCurrentCommit(Product.Product.ProductId);
+
 
     //When we fetch a new product, pinned is false
     TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, TLenientVersion.Create(ProductVersion, TVersionType.FreeForm), Product.Product.Server, false);
@@ -264,7 +266,7 @@ begin
   for var Protocol := Low(TVCSProtocol) to High(TVCSProtocol) do
   begin
     var Engine := TVCSFactory.Instance.GetEngine(Protocol);
-    Result := Engine.GetCommitId(GetProductFolder(ProductId));
+    Result := Engine.GetCommitId(GetProductFolder(ProductId), true);
     if Result <> '' then exit;
   end;
 end;

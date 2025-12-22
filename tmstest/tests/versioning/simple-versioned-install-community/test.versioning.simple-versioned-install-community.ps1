@@ -25,19 +25,19 @@ tms server-enable tms false
 tms server-add testserver zipfile "file:///$($tmsTestRootDir.Replace('\', '/'))/tmp-run/test-repos/tmsbuild_test_repos.zip"
 
 tms install tmstest.a:v1.0.0 tmstest.b:v1.1.0
-Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.0.0" -ExpectedBVersion "v1.1.0" -ExpectedCVersion ""
+Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.0.0" -ExpectedBVersion "v1.1.0" -ExpectedCVersion "v1.1.0"
 
 tms update tmstest.a:v1.1.0
-Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "" -ExpectedCVersion ""
+Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "v1.1.0" -ExpectedCVersion "v1.1.0"
 
 tms update tmstest.b:v1.0.0
-Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "v1.0.0" -ExpectedCVersion ""
+Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "v1.0.0" -ExpectedCVersion "v1.1.0"
 
 tms install tmstest.b
-Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "" -ExpectedCVersion ""
+Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "v1.1.0" -ExpectedCVersion "v1.1.0"
 
 tms update tmstest.b:v1.0.0
-Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "v1.0.0" -ExpectedCVersion ""
+Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "v1.0.0" -ExpectedCVersion "v1.1.0"
 
 tms install tmstest.b
-Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "" -ExpectedCVersion ""
+Test-ProductVersions -Products (tms list -detailed -json | ConvertFrom-Json -AsHashtable) -ExpectedAVersion "v1.1.0" -ExpectedBVersion "v1.1.0" -ExpectedCVersion "v1.1.0"

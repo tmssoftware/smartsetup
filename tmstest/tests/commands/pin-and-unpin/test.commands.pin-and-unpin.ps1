@@ -123,8 +123,8 @@ $list = tms list -json | ConvertFrom-Json -AsHashtable
 if ($list["tmstest.c"].version -ne "v1.0.0") {
     throw "tmstest.c should be version v1.0.0, but it is $($list["tmstest.c"].version)."
 }
-if ($list["tmstest.a"].version -ne "") {
-    throw "tmstest.a should be version empty, but it is $($list["tmstest.a"].version)."
+if ($list["tmstest.a"].version -ne "v1.1.0") {
+    throw "tmstest.a should be version v1.1.0, but it is $($list["tmstest.a"].version)."
 }
 
 $updateResult = tms update tmstest.a:v1.0.0

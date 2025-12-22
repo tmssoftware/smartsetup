@@ -19,6 +19,8 @@ type
     procedure SaveCurrentBranch(const aRootFolder, aRepoFolder: string);
     function LoadCurrentBranch(const aRootFolder: string): string;
     procedure AttachHead(const aRootFolder, aGitFolder: string);
+    function GetBestTag(const Tags: string): string;
+    function LooksLikeVersion(Tag: string): boolean;
   public
     constructor Create(const aGitCommandLine, aCloneCommand, aPullCommand: string);
 
@@ -34,14 +36,14 @@ type
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 
-    function GetCommitId(const aWorkingFolder: string): string;
+    function GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
     function IsRootVCSFolder(const Folder: string): boolean;
 
   end;
 
 implementation
 uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils,
-     DateUtils, Testing.Globals;
+     DateUtils, Testing.Globals, Character;
 
 { TGitEngine }
 
@@ -161,8 +163,46 @@ begin
   Result := TDirectory.Exists(TPath.Combine(Folder, '.git'));
 end;
 
-function TGitEngine.GetCommitId(const aWorkingFolder: string): string;
+function TGitEngine.LooksLikeVersion(Tag: string): boolean;
 begin
+  Result := false;
+  var LastIdx := 0;
+  while (True) do
+  begin
+    var Idx := Tag.IndexOf('.', LastIdx);
+    LastIdx := Idx + 1;
+    if Idx < 0 then exit;
+    if (Idx > 0) and (Idx < Length(Tag) - 1) and Char.IsNumber(Tag, Idx - 1) and Char.IsNumber(Tag, Idx + 1) then exit(true);
+
+  end;
+end;
+
+function TGitEngine.GetBestTag(const Tags: string): string;
+begin
+  var ParsedTags := Tags.Split([#10], TStringSplitOptions.ExcludeEmpty);
+  for var Tag in ParsedTags do
+  begin
+    if LooksLikeVersion(Tag) then exit(Tag.Trim);
+  end;
+  if Length(ParsedTags) > 0 then exit(ParsedTags[0].Trim);
+  Result := '';
+
+end;
+
+
+function TGitEngine.GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
+begin
+  if allowTags then
+  begin
+    var FullCommand := '"' + GitCommandLine + '" tag --points-at HEAD';
+    if ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0']) then
+    begin
+      Result := GetBestTag(Result.Trim);
+      if Result <> '' then exit;
+
+    end;
+  end;
+
   var FullCommand := '"' + GitCommandLine + '" rev-parse HEAD';
   if not ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0'])
     then exit('');

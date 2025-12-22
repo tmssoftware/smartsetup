@@ -18,7 +18,7 @@ type
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 
-    function GetCommitId(const aWorkingFolder: string): string;
+    function GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
     function IsRootVCSFolder(const Folder: string): boolean;
   end;
 
@@ -64,7 +64,7 @@ begin
 
 end;
 
-function TZipFileEngine.GetCommitId(const aWorkingFolder: string): string;
+function TZipFileEngine.GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
 begin
   Result := '';
 end;

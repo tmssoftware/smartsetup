@@ -103,7 +103,9 @@ foreach ($productFolder in $productFolders) {
     git add .
     git commit -m "Updated .pas files to uppercase for new version"
     #create a v1.1.0 tag
+    git tag "first.release"
     git tag v1.1.0
+    git tag "a_lot_of_tags.on.this.commit"
 }
 
 Write-Output "Test repositories created at: $testReposTarget"
