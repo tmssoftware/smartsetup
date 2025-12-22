@@ -3,16 +3,42 @@ uid: SmartSetup.ReleaseNotes
 ---
 
 # Release Notes
+## Version 3.0
+ - **New**: [Versioning](xref:SmartSetup.Versioning) support. You can now install any available version of any product
+
+ - **New**: [Snapshots](xref:SmartSetup.Versioning#snapshots). You can get a list of every component and version installed at any point in time, and restore that snapshot
+
+ - **New**: [Pinning](xref:SmartSetup.Versioning#pinning-versions) support. You can now pin a product to a specific version, and it won't update until you unpin it.
+
+ - **New**: Support for dependencies for products in the community server. Now products in the community server can depend in other products in any other zipfile server.
+
+ - **New**: "working folder" configuration option. It allows you to keep the working folder for SmartSetup (where logs, products, etc go) in an arbitrary folder, not necessarily at the same folder where tms.config.yaml is.
+
+ - **New**: Dark mode support in tmsgui
+
+ - **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
+
+ - **New**: tmsgui has a new column showing the status of the products
+
+ - **Improved** Now the "excluded folders" in the config file apply also to fetching and uninstalling. Before, those products were only excluded from a build.
+
+ - **Fixed**: Products in the community server were failing to update some settings in corner cases.
+
+ - **Fixed**: Unified behavior between API and Community servers. Before, API servers would stop if some operation failed, but Community servers would skip the errors and try to build anyway. Now all servers stop if there is a fetching error.
+
+
 
 ## Version 2.3 (October, 2025)
- - **Fixed** `error :  failed to find / extract cached MinGW includes: PathAlreadyExists` could happen when trying to compile in a newly installed Delphi 13
+ - **Fixed**: `error :  failed to find / extract cached MinGW includes: PathAlreadyExists` could happen when trying to compile in a newly installed Delphi 13
 
 ## Version 2.2 (September, 2025)
-- **New** Delphi 13 official support.
-- **New** For security reasons, now SmartSetup won't run pre/post build events when installing. You can edit tms.config.yaml to allow pre/post build events for specific projects.
+- **New**: Delphi 13 official support.
+
+- **New**: For security reasons, now SmartSetup won't run pre/post build events when installing. You can edit tms.config.yaml to allow pre/post build events for specific projects.
 
 ## Version 2.1 (August, 2025)
-- **New** The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
+- **New**: The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
+
 - **Improved** Rewritten config-read command can now return the full configuration as a JSON object, and it can return from the full configuration to some sections, to a specific property.
 
 ## Version 2.0 (August, 2025)

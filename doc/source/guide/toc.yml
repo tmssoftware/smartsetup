@@ -6,6 +6,8 @@
   href: gui-tool-usage.md
 - name: Configuration 
   href: configuration.md
+- name: Versioning 
+  href: versioning.md
 - name: Consuming SmartSetup bundles 
   href: consuming-bundles.md
 - name: Creating SmartSetup bundles 
