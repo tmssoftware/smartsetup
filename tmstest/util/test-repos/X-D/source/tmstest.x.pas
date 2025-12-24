@@ -3,6 +3,7 @@ unit tmstest.x;
 interface
 uses tmstest.d, Spring.Collections, Spring.Collections.Lists;
 function x: string;
+function x_version: string;
 
 implementation
 function x: string;
@@ -17,4 +18,8 @@ begin
   end;
 end;
 
+function x_version: string;
+begin
+  Result := '1.0.0';
+end;
 end.

@@ -279,3 +279,20 @@ filter Assert-ValueContains
     throw "'$_' does not contain '$expected'"
   }
 }
+
+function Set-AlternateRegistryKey {
+    param(
+        [Parameter(Mandatory, Position=0)] [string] $RegKey
+    )
+
+    $fullRegPath = "HKCU:\Software\Embarcadero\$RegKey"
+    if (Test-Path $fullRegPath) {
+        Remove-Item -Path $fullRegPath -Recurse -Force
+    }
+
+    # Create the empty registry entries in $regkey so smart setup finds them.
+    Start-Process -FilePath $Env:TMS_BDS -ArgumentList @("-ns", "-r$RegKey", "-ProductInfo:Platforms") -NoNewWindow -Wait
+
+    tms config-write -p:"tms general options:registry key=$RegKey"
+}
+
