@@ -61,8 +61,11 @@ And select "Install version":
 For products hosted in an API server like tms, this dialog will show the versions available in the server. For products hosted in a git repository, it will show all the tags in the repository. For example, for Spring4D it will show:
 
 {{#image}}tmsgui-install-version-community.png{{/image}}
-
 {{/Note}}
+
+{{#Important}}
+For products hosted in git, you can select any tag from the list, but also type any **branch name** or **commit id**. You can select any commit, not just tagged ones.
+{{/Important}}
 
 ### Pinning a version
 
