@@ -37,6 +37,8 @@ type
     function FileLinks: boolean;
     function Registry: boolean;
 
+    function ToInteger: integer;
+
     class function All: TSkipRegistering; static;
     class function None: TSkipRegistering; static;
   end;
@@ -194,6 +196,7 @@ type
     FSvnConfig: TSvnConfig;
     FPrefixedProperties: TGlobalPrefixedPropertiesArray;
     FDcuMegafolders: TMegafolderList;
+    FUnregistering: boolean;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -242,6 +245,9 @@ type
     property SvnConfig: TSvnConfig read FSvnConfig write FSvnConfig;
 
     property DcuMegafolders: TMegafolderList read FDcuMegafolders;
+
+    //Not an option in the config file, but something you set externally with tms build -unregister
+    property Unregistering: boolean read FUnregistering write FUnregistering;
 
     property PrefixedProperties[index: TGlobalPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
 
@@ -1059,6 +1065,11 @@ end;
 function TSkipRegistering.StartMenu: boolean;
 begin
   Result := TSkipRegisteringOptions.StartMenu in FOptions;
+end;
+
+function TSkipRegistering.ToInteger: integer;
+begin
+  Result := Byte(FOptions);
 end;
 
 function TSkipRegistering.WebCore: boolean;

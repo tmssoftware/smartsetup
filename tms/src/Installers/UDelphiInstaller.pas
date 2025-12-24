@@ -602,6 +602,8 @@ end;
 
 procedure TDelphiInstaller.UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>);
 begin
+  if Config.Unregistering then exit;
+  
   var IDEInfo := CreateIDEInfo(UninstallInfo);
   var PlatformInfo := IDEInfo.GetPlatform(UninstallInfo.Platform);
   var AlternateRegistryKey := UninstallInfo.Value.ReadStr(UninstallConsts.AlternateRegistryKey);

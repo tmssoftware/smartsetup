@@ -206,7 +206,7 @@ begin
       end;
 
       Logger.Info('All projects built.');
-      SyncMegafolders(BuildInfo);
+      if (not Config.Unregistering) then SyncMegafolders(BuildInfo);
     finally
       ShowProcessedPackagesProgress := false;
     end;
@@ -323,11 +323,12 @@ begin
   ParallelProjects.SetRun(BuildInfo.Project.ProjectId, IDEId[BuildInfo.IDE.Name],
       PlatformID[BuildInfo.Platform.Name],  procedure
   begin
+    var NeedsBuild := BuildInfo.Project.NeedsBuild;
     Logger.StartSection(TMessageType.Build, BuildInfo.Project.ProjectId + '->' + IDEId[BuildInfo.IDE.Name] + '.' + PlatformID[BuildInfo.Platform.Name]);
     ProjectInstaller.UnRegisterAtPlatformLevel(BuildInfo.Project.DryRun, Installer, BuildInfo.Project.ProjectId, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
     var ProcessedInPlatform := 0;
     try
-      if not IsPartialBuild(BuildInfo) then
+      if not IsPartialBuild(BuildInfo) and NeedsBuild then
       begin
         try
           ProjectInstaller.CleanAllBuildTemporaryFilesInPlat(BuildInfo.Project.DryRun, Installer, FileHasher, BuildInfo.Project.ProjectId, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
@@ -352,6 +353,7 @@ begin
           + '.' + PlatformId[BuildInfo.Platform.Name] + ' will likely fail because ' + UnsupportedDependency + ' is not set to be installed in that configuration.');
       end;
 
+      if NeedsBuild then
       begin
         for var BuildPackage in BuildInfo.Platform.PackagesBuildInfo do
         begin
@@ -360,9 +362,10 @@ begin
         end;
         ProjectInstaller.MoveDataFromTempProjects(Installer, BuildInfo, UsedDcuMegafolders);
         ProjectInstaller.RemoveTempProjects(Installer, BuildInfo);
-        ProjectInstaller.RegisterAtPlatformLevel(Installer, BuildInfo);
-        //When we analyze, we analyze up to platform level. This is the hash that matters.
       end;
+
+      ProjectInstaller.RegisterAtPlatformLevel(Installer, BuildInfo);
+      //When we analyze, we analyze up to platform level. This is the hash that matters.
 
 
       var BinaryHash := '';
@@ -372,7 +375,7 @@ begin
       {$ELSE}
         {$message warn 'We need to review this for lazarus, even laz in windows. If we don''t put a binary hash, we can have https://github.com/tmssoftware/tms-smartsetup/issues/148'}
       {$ENDIF}
-      var ProductHash := TProductHash.Create(BuildInfo.Project.SourceCodeHash, BinaryHash);
+      var ProductHash := TProductHash.Create(BuildInfo.Project.SourceCodeHash, BinaryHash, BuildInfo.Project.SkipRegistering.ToInteger);
       if not BuildInfo.Project.DryRun then FileHasher.SaveHash(BuildInfo.Project.Project, ProductHash, BuildInfo.IDE.Name, BuildInfo.Platform.Name, '');
       BuildInfo.Platform.Ok := true;
 
@@ -397,7 +400,7 @@ end;
 procedure TParallelProjectBuilder.BuildOnePackage(const Installer: TInstaller; const BuildInfo: TFullBuildInfo; var ProcessedInPlatform: Integer);
 begin
   //We don't care about binary hash here, that is only checked at platform level.
-  var ProductHash := TProductHash.Create(BuildInfo.Project.SourceCodeHash, '');
+  var ProductHash := TProductHash.Create(BuildInfo.Project.SourceCodeHash, '', 0);
 
   //This hash here is an optimization to not recompile projects that didn't fail in a failed platform. We aren't currently using that optimization, as PartialBuild always returns false.
   if FileHasher.ProductModified(ProductHash, BuildInfo.Project.Project, Config, BuildInfo.IDE.Name, BuildInfo.Platform.Name, BuildInfo.Package.Package.Name) then

@@ -72,6 +72,7 @@ type
     FFileLinks: TObjectList<TFileLinkDefinition>;
     FBasePackagesFolder: string;
     FProgress: TProductProgressInfo;
+    FNeedsBuild: boolean;
 
     function EnsureIDE(const IDEName: TIDEName): TIDEBuildInfo;
     function EnsurePlatform(const IDEName: TIDEName; const dp: TPlatform): TPlatformBuildInfo;
@@ -130,6 +131,7 @@ type
 
     class function GetPlatformPaths(const RootFolder, ExtraPath:string): TPlatformPaths;
 
+    property NeedsBuild: boolean read FNeedsBuild write FNeedsBuild;
 
   end;
 implementation
@@ -385,6 +387,8 @@ end;
 
 function TProjectBuildInfo.SkipRegistering: TSkipRegistering;
 begin
+  if Config.Unregistering then exit(TSkipRegistering.All);
+  
   var Settings := TSkipRegisteringSet(Byte((Config.SkipRegistering(ProjectId, 0))));
   if Project.IsExe then Settings := Settings + [TSkipRegisteringOptions.Packages];
 

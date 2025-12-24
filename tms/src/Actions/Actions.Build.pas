@@ -1,9 +1,10 @@
 unit Actions.Build;
 
 interface
+uses UConfigDefinition;
 
-procedure ExecuteBuildAction(FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
-procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
+procedure ExecuteBuildAction(FullBuild: Boolean); overload;
+procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean); overload;
 procedure RemoveFromWindowsPathIfNoProducts; overload;
 
 implementation
@@ -11,7 +12,7 @@ implementation
 uses
   System.SysUtils, System.Diagnostics, System.Threading, System.IOUtils, ULogger, UMultiLogger, UFileHasher, UInsomnia,
   UConfigKeys, UProjectAnalyzer, Commands.GlobalConfig, Commands.Termination, UProjectList, UProjectLoader,
-  UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface, UConfigDefinition,
+  UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface,
   UParallelProjectBuilder, UWindowsPath, UEnvironmentPath, Fetching.ProductVersion,
   {$IFDEF MSWINDOWS}
   Windows, Messages,
@@ -49,7 +50,7 @@ begin
   Result := TParallelProjectBuilder.Create(Config, FileHasher);
 end;
 
-procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
+procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean); overload;
 begin
   var ProductIds := ParseVersions(ProductIdsAndVersions);
   if Length(ProductIds) > 0 then
@@ -62,7 +63,7 @@ begin
       Config.AddIncludedComponent(ProductId.IdMask, '');
     end;
   end;
-  ExecuteBuildAction(FullBuild, OnlyUnregister);
+  ExecuteBuildAction(FullBuild);
 end;
 
 
@@ -104,7 +105,7 @@ begin
   PostWinMessage(tmsRefreshWindowID, RefreshMessageId);
 end;
 
-procedure ExecuteBuildAction(FullBuild: Boolean; OnlyUnregister: Boolean = False);
+procedure ExecuteBuildAction(FullBuild: Boolean);
 begin
   EnableCtrlCTermination;
 
@@ -147,10 +148,7 @@ begin
         end;
       end;
 
-      // if we are unregistering the products, the easiest way is to "simulate" the deletion of all projects
-      // This is done by simply not loading the list of existing projects
-      if not OnlyUnregister then
-        TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projs);
+      TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projs);
 
       Projs.ResolveDependencies;
 

@@ -96,7 +96,7 @@ begin
   var IncludedCount := 0;
   for var Project in Projects do
   begin
-    Project.IncludeInBuild := Config.IsIncluded(Project.Application.Id);
+    Project.IncludeInBuild := Config.IsIncluded(Project.Application.Id) and (not Config.Unregistering);
     if Project.IncludeInBuild then Inc(IncludedCount);
   end;
   if (IncludedCount = Projects.Count) or (IncludedCount = 0) then exit; //no need to analyze further.
@@ -392,7 +392,7 @@ begin
       {$ELSE}
       {$message warn 'We need to review this for lazarus, even laz in windows. If we don''t put a binary hash, we can have https://github.com/tmssoftware/tms-smartsetup/issues/148'}
       {$ENDIF}
-      var ProductHash := TProductHash.Create(BuildInfo.CurrentProject.SourceCodeHash, BinaryHash);
+      var ProductHash := TProductHash.Create(BuildInfo.CurrentProject.SourceCodeHash, BinaryHash, BuildInfo.CurrentProject.SkipRegistering.ToInteger);
 
       for var Package in Project.Packages do
       begin
@@ -497,8 +497,13 @@ begin
     else if not Package.IsRuntime then exit;
   end;
 
-  if FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '')
-    or (dp in DepsCompiled[dv]) then //we check at project level, not package.
+  var ProductNeedsBuild := FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '')
+    or (dp in DepsCompiled[dv]); //we check at project level, not package.
+
+  BuildInfo.CurrentProject.NeedsBuild := ProductNeedsBuild;
+  var AddInfo := FileHasher.SkipRegistering(BuildInfo.CurrentProject.Project, Config, dv, dp) <> BuildInfo.CurrentProject.SkipRegistering.ToInteger;
+
+  if ProductNeedsBuild or AddInfo then
   begin
     BuildInfo.CurrentProject.AddBuildInfo(dv, TPackageBuildInfo.Create(
         Package,
@@ -546,7 +551,10 @@ begin
 
       for var proj: IUninstallInfo in Uninstaller.GetAllProjects do
       begin
-        if not ExistingProjects.ContainsKey(proj.ProjectId) then
+        var Unregistered := Config.Unregistering
+            and ExistingProjects.ContainsKey(proj.ProjectId)
+            and Config.IsIncluded(proj.ProjectId);
+        if not ExistingProjects.ContainsKey(proj.ProjectId) or Unregistered then
         begin
           BuildInfo.ProjectsToUninstall.Add(proj);
           continue;

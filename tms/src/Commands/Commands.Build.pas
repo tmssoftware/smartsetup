@@ -7,17 +7,17 @@ procedure RegisterBuildCommand;
 implementation
 
 uses
-  System.StrUtils, Commands.Logging, UCommandLine, Actions.Build, Commands.CommonOptions;
+  System.StrUtils, Commands.Logging, UCommandLine, Actions.Build, Commands.CommonOptions,
+  Commands.GlobalConfig, UConfigDefinition, SysUtils;
 
 var
   FullBuild: Boolean = False;
-  OnlyUnregister: Boolean = False;
   ProductIds: TArray<string>;
 
 procedure RunBuildCommand;
 begin
   InitFolderBasedCommand;
-  ExecuteBuildAction(ProductIds, FullBuild, OnlyUnregister);
+  ExecuteBuildAction(ProductIds, FullBuild);
 end;
 
 procedure RegisterBuildCommand;
@@ -44,13 +44,13 @@ begin
     end);
   option.HasValue := False;
 
-  option := cmd.RegisterOption<Boolean>('unregister', '', 'unregister all products from the IDEs',
+  option := cmd.RegisterOption<Boolean>('unregister', '', 'unregister all products from the IDEs, do not delete them. A new tms build will re-register them.',
     procedure(const Value : Boolean)
     begin
-      OnlyUnregister := Value;
+      Config.Unregistering := true;
     end);
   option.HasValue := False;
-  option.Hidden := True;
+
 
   AddCommand(cmd.Name, CommandGroups.Install,  RunBuildCommand);
 end;

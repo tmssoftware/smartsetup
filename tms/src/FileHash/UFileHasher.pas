@@ -12,7 +12,8 @@ type
   public
     SourceCodeHash: string;
     BinaryHash: string;
-    constructor Create(const aSourceCodeHash, aBinaryHash: string);
+    RegistrationHash: integer;
+    constructor Create(const aSourceCodeHash, aBinaryHash: string; const aRegistrationHash: integer);
     constructor CreateFromSerialized(const Serialized: string);
 
     function Serialize: string;
@@ -74,6 +75,13 @@ type
     function ProductModified(const ProductHash: TProductHash;
              const Project: TProjectDefinition; const Config: TConfigDefinition;
              const dv: TIDEName; const dp: TPlatform; const Package: string): boolean;
+
+    function SkipRegistering(
+             const Project: TProjectDefinition; const Config: TConfigDefinition;
+             const dv: TIDEName; const dp: TPlatform): integer;
+
+    procedure ReplaceHash(const Unregistering: boolean; const ProjectId, IDEName, Platform: string);
+
 
   end;
 implementation
@@ -166,6 +174,15 @@ begin
   if StoredHash.Empty then exit(True);
 
   Result := ProductHash <> StoredHash;
+
+end;
+
+function TFileHasher.SkipRegistering(
+  const Project: TProjectDefinition;
+  const Config: TConfigDefinition; const dv: TIDEName; const dp: TPlatform): integer;
+begin
+  var StoredHash := GetStoredHash(Project, dv, dp, '');
+  Result := StoredHash.RegistrationHash;
 
 end;
 
@@ -428,6 +445,17 @@ begin
   Persist.RemoveAndBelow(ProjectId, IdeId, PlatformId);
 end;
 
+procedure TFileHasher.ReplaceHash(const Unregistering: boolean; const ProjectId, IDEName, Platform: string);
+begin
+  if Unregistering then
+  begin
+    var Hash := TProductHash.CreateFromSerialized(Persist.Retrieve(ProjectId, IDEName, Platform));
+    Hash.RegistrationHash := TSkipRegistering.All.ToInteger;
+    Persist.Store(Hash.Serialize, ProjectId, IDEName, Platform);
+  end
+  else Persist.Remove(ProjectId, IDEName, Platform);
+end;
+
 function TFileHasher.GetStoredHash(const Project: TProjectDefinition;
     const IDE: TIDEName; const Platform: TPlatform; const Package: string): TProductHash;
 begin
@@ -453,28 +481,32 @@ end;
 
 { TProductHash }
 
-constructor TProductHash.Create(const aSourceCodeHash, aBinaryHash: string);
+constructor TProductHash.Create(const aSourceCodeHash, aBinaryHash: string; const aRegistrationHash: Integer);
 begin
   SourceCodeHash := aSourceCodeHash;
   BinaryHash := aBinaryHash;
+  RegistrationHash := aRegistrationHash;
 end;
 
 constructor TProductHash.CreateFromSerialized(const Serialized: string);
 begin
-  var Idx := Serialized.IndexOf(SerializedSeparator);
-  if (idx < 0) then
+  var Parts := Serialized.Split([SerializedSeparator], TStringSplitOptions.None);
+  SourceCodeHash := '';
+  BinaryHash := '';
+  RegistrationHash := 0;
+
+  if Length(Parts) > 0 then SourceCodeHash := Parts[0].Trim;
+  if Length(Parts) > 1 then BinaryHash := Parts[1].Trim;
+  if Length(Parts) > 2 then
   begin
-    SourceCodeHash := Serialized;
-    BinaryHash := '';
-    exit;
+    //Do not crash in a wrong case.
+    if not TryStrToInt(Parts[2].Trim, RegistrationHash) then RegistrationHash := 0;
   end;
-  SourceCodeHash := Serialized.Substring(0, Idx).Trim;
-  BinaryHash := Serialized.Substring(Idx + Length(SerializedSeparator)).Trim;
 end;
 
 function TProductHash.Serialize: string;
 begin
-  Result := SourceCodeHash + SerializedSeparator + BinaryHash;
+  Result := SourceCodeHash + SerializedSeparator + BinaryHash + SerializedSeparator + IntToStr(RegistrationHash)
 end;
 
 
