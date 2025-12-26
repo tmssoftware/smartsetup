@@ -97,6 +97,8 @@ foreach ($productFolder in $productFolders) {
     foreach ($pasFile in $pasFiles) {
         $content = Get-Content -Path $pasFile.FullName
         $contentUpper = $content.ToUpper()
+        #replace '1.0.0' with '1.1.0' in the content too, to simulate a version change in the code
+        $contentUpper = $contentUpper -replace '1\.0\.0', '1.1.0'
         Set-Content -Path $pasFile.FullName -Value $contentUpper
     }
 

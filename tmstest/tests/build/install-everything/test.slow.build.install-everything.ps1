@@ -10,22 +10,12 @@ $regkey = "tmstest\everything"
 
 Copy-Item -Path testapp -Destination testapp-no-tmsbuild -Exclude tmsbuild.yaml -Recurse -Force
 
-# Clean up any previous installation
-try {
-Remove-Item -Path "HKCU:\Software\Embarcadero\$regkey" -Recurse -Force
-} catch {
-    Write-Output "No previous installation registry key found."
-}
-# Create the empty registry entries in $regkey so smart setup finds them.
-Set-Location emptyapp
-bds "emptytest.dproj" $regkey
-Set-Location -
+Set-AlternateRegistryKey -RegKey $regkey -RegisterAllDelphiVersions $false
 
 tmscredentials
 tms server-enable community
 tms config-write -p:"configuration for all products:options:skip register=false" #we want to check also if components are registered correctly. We will run msbuild directly later.
 tms config-write -p:"tms smart setup options:error if skipped=false"
-tms config-write -p:"tms smart setup options:alternate registry key=$regkey"
 tms config-write -p:"tms smart setup options:excluded products=[zeos.zeoslib]" #Zeos doesn't build currently. A pity, since it is the only way to test SVN at the moment. See https://sourceforge.net/p/zeoslib/tickets/633/
 
 tms fetch *   #do not install, so we can build with the testapp at the same time and see deps work fine.

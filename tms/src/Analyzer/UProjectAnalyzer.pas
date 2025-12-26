@@ -512,7 +512,7 @@ begin
         dv,
         dp,
         CppBuilderSupport));
-    BuildInfo.CurrentProject.Project.NeedsCompiling.Add(dv, dp);
+    if ProductNeedsBuild then BuildInfo.CurrentProject.Project.NeedsCompiling.Add(dv, dp);
   end else
   begin
     BuildInfo.CurrentProject.Skipped.Add(dv, dp);

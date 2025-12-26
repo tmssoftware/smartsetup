@@ -65,6 +65,7 @@ begin
 
               PlatItem.AddPair('built', PlatStatus.IsBuilt);
               PlatItem.AddPair('registered', PlatStatus.IsRegistered);
+              PlatItem.AddPair('registered_items', PlatStatus.RegisteredItems);
             end;
           end;
         end;

@@ -394,7 +394,7 @@ begin
 
   var SettingsExt := Config.SkipRegisteringExt(ProjectId, TSkipRegisteringOptionsExt_False);
 
-  Result := TSkipRegistering.Create(Settings, SettingsExt);
+  Result := TSkipRegistering.Create(Settings);
 end;
 
 { TPlatformsToUninstall }

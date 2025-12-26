@@ -26,9 +26,9 @@ type
   TSkipRegistering = record
   private
     FOptions: TSkipRegisteringSet;
-    FOriginalOptions: string;
   public
-    constructor Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
+    constructor Create(const AOptions: TSkipRegisteringSet);
+    class function FromInteger(const AOptions: Integer): TSkipRegistering; static;
     function Packages: boolean;
     function StartMenu: boolean;
     function Help: boolean;
@@ -38,6 +38,8 @@ type
     function Registry: boolean;
 
     function ToInteger: integer;
+    function ToSkippedString: string;
+    function ToIncludedString: string;
 
     class function All: TSkipRegistering; static;
     class function None: TSkipRegistering; static;
@@ -1046,10 +1048,9 @@ end;
 
 { TSkipRegistering }
 
-constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
+constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet);
 begin
   FOptions := AOptions;
-  FOriginalOptions := aOriginalOptions;
 end;
 
 function TSkipRegistering.Help: boolean;
@@ -1072,6 +1073,32 @@ begin
   Result := Byte(FOptions);
 end;
 
+function TSkipRegistering.ToSkippedString: string;
+begin
+  Result := '';
+  for var Option := Low(TSkipRegisteringOptions) to High(TSkipRegisteringOptions) do
+  begin
+    if Option in FOptions then
+    begin
+      if Result <> '' then Result := Result + ', ';
+      Result := Result + TSkipRegisteringName[Option];
+    end;
+  end;
+end;
+
+function TSkipRegistering.ToIncludedString: string;
+begin
+  Result := '';
+  for var Option := Low(TSkipRegisteringOptions) to High(TSkipRegisteringOptions) do
+  begin
+    if not(Option in FOptions) then
+    begin
+      if Result <> '' then Result := Result + ', ';
+      Result := Result + TSkipRegisteringName[Option];
+    end;
+  end;
+end;
+
 function TSkipRegistering.WebCore: boolean;
 begin
   Result := TSkipRegisteringOptions.WebCore in FOptions;
@@ -1092,14 +1119,20 @@ begin
   Result := TSkipRegisteringOptions.FileLinks in FOptions;
 end;
 
+class function TSkipRegistering.FromInteger(
+  const AOptions: Integer): TSkipRegistering;
+begin
+  Result := TSkipRegistering.Create(TSkipRegisteringSet(byte(AOptions)));
+end;
+
 class function TSkipRegistering.All: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)], TSkipRegisteringOptionsExt_True);
+  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
 end;
 
 class function TSkipRegistering.None: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([], TSkipRegisteringOptionsExt_False);
+  Result := TSkipRegistering.Create([]);
 end;
 
 { TServerConfigList }

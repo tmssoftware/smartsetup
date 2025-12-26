@@ -340,7 +340,8 @@ begin
    begin
      if v = TSkipRegisteringName[SkipOption] then exit([SkipOption]);
    end;
-   raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of [All, Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks].'+ ErrorInfo.ToString);
+   raise Exception.Create('"' + Value.Trim + '" is not a valid skip registering value. It must be any of ['
+      + TSkipRegisteringOptionsExt_All + ', ' + TSkipRegistering.All.ToSkippedString + '].'+ ErrorInfo.ToString);
 end;
 
 procedure TOptionsSectionConf.GetSkipRegistering(const s: string;

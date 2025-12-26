@@ -280,9 +280,20 @@ filter Assert-ValueContains
   }
 }
 
+filter Assert-ValueNotContains
+{
+  param([string]$expected)
+  
+  $ok = (-not $_.Contains($expected))
+  if (!$ok) { 
+    throw "'$_' contains '$expected'"
+  }
+}
+
 function Set-AlternateRegistryKey {
     param(
-        [Parameter(Mandatory, Position=0)] [string] $RegKey
+        [Parameter(Mandatory, Position=0)] [string] $RegKey,
+        [Parameter(Mandatory, Position=1)] [bool] $RegisterAllDelphiVersions
     )
 
     $fullRegPath = "HKCU:\Software\Embarcadero\$RegKey"
@@ -290,9 +301,17 @@ function Set-AlternateRegistryKey {
         Remove-Item -Path $fullRegPath -Recurse -Force
     }
 
+    if ($RegisterAllDelphiVersions) {
+        foreach ($ver in $Global:AllDelphiVersions) {
+            # Create the empty registry entries in $regkey so smart setup finds them.
+            Start-Process -FilePath "$($Global:ALL_BDS_ROOT_DIRS[$ver])\bin\bds.exe" -ArgumentList @("-ns", "-r$RegKey", "-ProductInfo:Trial") -NoNewWindow -Wait -RedirectStandardOutput "NUL"
+        }
+    }
+    else {
     # Create the empty registry entries in $regkey so smart setup finds them.
-    Start-Process -FilePath $Env:TMS_BDS -ArgumentList @("-ns", "-r$RegKey", "-ProductInfo:Platforms") -NoNewWindow -Wait
+    Start-Process -FilePath $Env:TMS_BDS -ArgumentList @("-ns", "-r$RegKey", "-ProductInfo:Trial") -NoNewWindow -Wait -RedirectStandardOutput "NUL"
+    }
 
-    tms config-write -p:"tms general options:registry key=$RegKey"
+    tms config-write -p:"tms smart setup options:alternate registry key=$RegKey"
 }
 

@@ -11,9 +11,11 @@ type
   private
     FIsBuilt: Boolean;
     FIsRegistered: Boolean;
+    FRegisteredItems: string;
   public
     property IsBuilt: Boolean read FIsBuilt write FIsBuilt;
     property IsRegistered: Boolean read FIsRegistered write FIsRegistered;
+    property RegisteredItems: string read FRegisteredItems write FRegisteredItems;
   end;
 
   TIDEStatus = class
@@ -190,8 +192,10 @@ begin
         for var Plat := Low(TPlatform) to High(TPlatform) do
         begin
           var PlatStatus := Product.IDEStatus(IDEName).PlatformStatus(Plat);
-          PlatStatus.IsRegistered := Installer.HasPlatformUninstallInfo(Product.Id, IDEName, Plat);
-          PlatStatus.IsBuilt := Hasher.GetStoredHash(Product.Project, IDEName, Plat, '').HasAllHashes;
+          var Hashes := Hasher.GetStoredHash(Product.Project, IDEName, Plat, '');
+          PlatStatus.IsRegistered := Installer.HasPlatformUninstallInfo(Product.Id, IDEName, Plat) and (Hashes.RegistrationHash <> TSkipRegistering.All.ToInteger);
+          PlatStatus.RegisteredItems := TSkipRegistering.FromInteger(Hashes.RegistrationHash).ToIncludedString;
+          PlatStatus.IsBuilt := Hashes.HasAllHashes;
         end;
       end;
     finally
