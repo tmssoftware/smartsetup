@@ -1,0 +1,21 @@
+tms smart setup options:
+  build cores: 9
+  alternate registry key:
+  replace excluded products: 
+
+  replace auto snapshot filenames: 
+    - potato.snapshot.yaml
+  servers:
+    tms:
+      enabled: false
+    community:
+      enabled: false
+configuration for my product:
+  options:
+    verbosity: trace
+    skip register: true
+    dry run: false
+  replace delphi versions: 
+    - delphi11
+  add platforms: 
+    - win32intel

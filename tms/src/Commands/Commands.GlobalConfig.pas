@@ -9,12 +9,14 @@ function Config: TConfigDefinition;
 function ConfigNoCheck: TConfigDefinition;
 function ConfigHasBeenLoaded: boolean;
 procedure SetConfigFileName(const FileName: string);
+procedure AddConfigFileName(const FileName: string);
 procedure AddConfigParameter(const Parameter: string);
 function ConfigFileName: string;
 function IsValidTMSSetupFolder: Boolean;
 procedure CheckValidTMSSetupFolder;
 function RegisteredVCSRepos(const Server: string=''): TProductRegistry;
 function CommandLineConfig: TArray<string>;
+function AddedConfigFileNames: TArray<string>;
 var
   NeedsToRestartIDE: boolean; // Not sure if here is the best place to put it.
 
@@ -24,11 +26,17 @@ var
   _Config: TConfigDefinition;
   _CustomFileName: string;
   _CommandLineConfig: TArray<string>;
+  _AddedConfigFileNames: TArray<string>;
   _RegisteredVCSRepos: TProductRegistry;
 
 function CommandLineConfig: TArray<string>;
 begin
   Result := _CommandLineConfig;
+end;
+
+function AddedConfigFileNames: TArray<string>;
+begin
+  Result := _AddedConfigFileNames;
 end;
 
 function ConfigFileName: string;
@@ -47,6 +55,11 @@ begin
     raise Exception.CreateFmt('Can''t find the configuration file: "%s"', [TPath.GetFullPath(FileName)]);
 
   _CustomFileName:= FileName;
+end;
+
+procedure AddConfigFileName(const FileName: string);
+begin
+  _AddedConfigFileNames := _AddedConfigFileNames + [FileName];
 end;
 
 procedure AddConfigParameter(const Parameter: string);
@@ -78,7 +91,7 @@ begin
   if _Config = nil then
   begin
     CheckValidTMSSetupFolder;
-    _Config := TConfigLoader.LoadConfig(ConfigFileName, _CommandLineConfig);
+    _Config := TConfigLoader.LoadConfig(ConfigFileName, AddedConfigFileNames, _CommandLineConfig);
 
   end;
   Result :=_Config;
@@ -93,7 +106,7 @@ function ConfigNoCheck: TConfigDefinition;
 begin
   if _Config = nil then
   begin
-    _Config := TConfigLoader.LoadConfig(ConfigFileName, _CommandLineConfig);
+    _Config := TConfigLoader.LoadConfig(ConfigFileName, AddedConfigFileNames, _CommandLineConfig);
 
   end;
   Result :=_Config;

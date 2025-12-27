@@ -118,6 +118,13 @@ begin
       SetConfigFileName(Value);
     end);
 
+  option := TOptionsRegistry.RegisterOption<string>(
+    'add-config', '', 'adds the options from a new config file to the existing ones',
+    procedure(const Value: string)
+    begin
+      AddConfigFileName(Value);
+    end);
+
   // log verbose mode
   option := TOptionsRegistry.RegisterOption<Boolean>(
     'verbose', '', 'shows more detailed information in the output',

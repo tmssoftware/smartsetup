@@ -7,11 +7,11 @@ type
 
   TConfigLoader = class
   private
-    class procedure LoadIntoConfig(const Filename: string; const Config: TConfigDefinition; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
+    class procedure LoadIntoConfig(const Filename: string; const Config: TConfigDefinition; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
     class procedure SetMaxCores(const Config: TConfigDefinition); static;
 
   public
-    class function LoadConfig(const ConfigFile: string; const CmdParameters: TArray<string>; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TConfigDefinition;
+    class function LoadConfig(const ConfigFile: string; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TConfigDefinition;
   end;
 implementation
 uses Classes, SysUtils, UMultiLogger, System.Threading;
@@ -30,6 +30,7 @@ begin
 end;
 
 class procedure TConfigLoader.LoadIntoConfig(const Filename: string; const Config: TConfigDefinition;
+   const ExtraConfigFiles: TArray<string>;
    const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
 var
   MainSection: TMainSectionConf;
@@ -38,6 +39,16 @@ begin
   try
     MainSection.CreatedBy := 'Main: ' + Filename;
     if (TFile.Exists(Filename)) then TBBYamlReader.ProcessFile(Filename, MainSection, aStopAt, aIgnoreOtherFiles);
+
+    for var ExtraConfig in ExtraConfigFiles do
+    begin
+      MainSection.CreatedBy := 'Extra: ' + ExtraConfig;
+      if (not TFile.Exists(ExtraConfig)) then raise Exception.Create('Cannot find extra configuration file: ' + ExtraConfig);
+      Logger.Trace('Loading extra configuration from ' + ExtraConfig);
+      TBBYamlReader.ProcessFile(ExtraConfig, MainSection, aStopAt, aIgnoreOtherFiles);
+
+    end;
+
     MainSection.CreatedBy := 'Command line';
     TBBCmdReader.ProcessCommandLine(CmdParameters, MainSection, ':', false);
 
@@ -48,7 +59,7 @@ begin
   SetMaxCores(Config);
 end;
 
-class function TConfigLoader.LoadConfig(const ConfigFile: string; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean): TConfigDefinition;
+class function TConfigLoader.LoadConfig(const ConfigFile: string; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean): TConfigDefinition;
 begin
   if TFile.Exists(ConfigFile) then
   begin
@@ -60,7 +71,7 @@ begin
 
   Result := TConfigDefinition.Create(ConfigFileFullName);
   try
-    LoadIntoConfig(ConfigFile, Result, CmdParameters, aStopAt, aIgnoreOtherFiles);
+    LoadIntoConfig(ConfigFile, Result, ExtraConfigFiles, CmdParameters, aStopAt, aIgnoreOtherFiles);
   Except
     Result.Free;
     raise;
