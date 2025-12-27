@@ -478,7 +478,7 @@ begin
 
     for var root in AdditionalProductsFolders do
     begin
-      AddPathsWithWildcards(ResultList, TPath.GetFullPath(TPath.Combine(Folders.RootFolder, root.Key)), root.Value,
+      AddPathsWithWildcards(ResultList, TPath.GetFullPath(TPath.Combine(FConfigFolder, root.Key)), root.Value,
         CheckSameDrive);
     end;
 
@@ -596,7 +596,11 @@ end;
 
 function TConfigDefinition.CompilerPath(const ProductId: String; const dv: TIDEName): string;
 begin
-  Result := ReadStringProperty(ProductId, ConfigKeys.CompilerPath + IDEId[dv], '');
+  Result := ReadStringProperty(ProductId, ConfigKeys.CompilerPath + IDEId[dv], '').Trim;
+  if Result = '' then exit;
+
+  if not TPath_IsPathRooted(Result) then Result := TPath.Combine(FConfigFolder, Result); //relative to where config is, not to working folder.
+  
 end;
 
 function TConfigDefinition.KeepParallelFolders(const ProductId: String): Boolean;

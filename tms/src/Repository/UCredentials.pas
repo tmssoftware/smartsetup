@@ -91,7 +91,7 @@ begin
       Exit(Credentials.AccessToken);
 
     if (Credentials.Email = '') or (Credentials.Code = '') then
-      raise Exception.Create('Credentials not provided. Use "tms credentials" to access the ' + FServerName + ' server, or disable it with "tms server-enable ' + FServerName + ' false');
+      raise Exception.Create('Credentials not provided. Use "tms credentials" to access the ' + FServerName + ' server, or disable it with "tms server-enable ' + FServerName + ' false"');
 
     // Retrieve access token using credentials
     if Credentials.AccessToken <> '' then
