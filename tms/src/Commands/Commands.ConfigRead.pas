@@ -13,11 +13,12 @@ uses UCommandLine, Commands.CommonOptions,
 var
   VariableName: string;
   UseJson: boolean;
+  CmdSyntax: boolean;
 
 
 procedure RunConfigReadCommand;
 begin
-  WriteLn(TConfigWriter.GetProperty(Config, VariableName, UseJson));
+  WriteLn(TConfigWriter.GetProperty(Config, VariableName, UseJson, CmdSyntax));
 end;
 
 
@@ -28,6 +29,7 @@ begin
     'config-read <variable-name>');
 
   cmd.Examples.Add('config-read tms-smart-setup-options:git:git-location');
+  cmd.Examples.Add('config-read -cmd');
 
   var option := cmd.RegisterUnNamedOption<string>('the name of the setting to read', 'variable-name',
     procedure(const Value: string)
@@ -44,6 +46,12 @@ begin
     end);
   option.HasValue := False;
 
+  option := cmd.RegisterOption<Boolean>('cmd', '', 'show the property names as you need them in the command line',
+    procedure(const Value: Boolean)
+    begin
+      CmdSyntax := Value;
+    end);
+  option.HasValue := False;
 
   AddCommand(cmd.Name, CommandGroups.Config, RunConfigReadCommand);
 end;

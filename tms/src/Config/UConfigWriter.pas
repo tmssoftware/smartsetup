@@ -54,14 +54,14 @@ TConfigWriter = class
     function GetGlobalPropertyPrefix(const FullName: string): string;
     function GetProductPropertyPrefix(const ProductCfg: TProductConfigDefinition; const FullName: string): string;
     procedure SaveToStream(const TextWriter: TTextWriter; const Filter: string; const WritingFormat: TWritingFormat;
-             const UseJson: boolean; const SchemaURL, HeaderContent: string);
+             const UseJson, CmdSyntax: boolean; const SchemaURL, HeaderContent: string);
     class procedure CheckConfig(const aProperty: string); static;
     function GetAutoSnapshotFilenames(
       const Values: TEnumerable<string>): TYamlValue;
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
     procedure Save(const FileName: string);
-    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson: boolean): string; static;
+    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson, CmdSyntax: boolean): string; static;
 end;
 
 implementation
@@ -533,7 +533,7 @@ procedure TConfigWriter.Save(const FileName: string);
 begin
   var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
   try
-    SaveToStream(TextWriter, '', TWritingFormat.Full, false,
+    SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
       'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
       'TMS Smart Setup configuration file'#10'Modify settings as needed.');
   finally
@@ -542,11 +542,11 @@ begin
 end;
 
 procedure TConfigWriter.SaveToStream(const TextWriter: TTextWriter; const Filter: string;
-   const WritingFormat: TWritingFormat; const UseJson: boolean; const SchemaURL, HeaderContent: string);
+   const WritingFormat: TWritingFormat; const UseJson, CmdSyntax: boolean; const SchemaURL, HeaderContent: string);
 begin
   var SchemaStream := TResourceStream.Create(HInstance, 'TmsConfigSchema', RT_RCDATA);
   try
-    var BBWriter := TBBYamlWriter.Create(WritingFormat, Filter, UseJson);
+    var BBWriter := TBBYamlWriter.Create(WritingFormat, Filter, UseJson, CmdSyntax);
     try
       BBWriter.OnMember := OnMember;
       BBWriter.OnComment := OnComment;
@@ -588,14 +588,14 @@ begin
   end;
 end;
 
-class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson: boolean): string;
+class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson, CmdSyntax: boolean): string;
 begin
   var Writer := TConfigWriter.Create(aCfg, true);
   try
     var PropertyName := TBBCmdReader.AdaptForCmd(aPropertyName, ':');
     var StringWriter := TStringWriter.Create;
     try
-      Writer.SaveToStream(StringWriter, PropertyName, TWritingFormat.NoComments, UseJson, '', '');
+      Writer.SaveToStream(StringWriter, PropertyName, TWritingFormat.NoComments, UseJson, CmdSyntax, '', '');
       StringWriter.Flush;
       Result := StringWriter.ToString;
       if Result = '' then

@@ -17,6 +17,10 @@ uid: SmartSetup.ReleaseNotes
  - **New**: Dark mode support in tmsgui
 
  - **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
+ 
+ - **New**: New -cmd parameter in tms `config-write` shows the parameters in the [syntax you need to use when using the -p parameter](xref:SmartSetup.CommandLineUsage#-p-command-to-pass-a-configuration-to-tms).
+
+ - **New**: There is a global parameter `-add-config:<config-file-name>` that you can use to override the properties set in tms.config.yaml.
 
  - **New**: tmsgui has a new column showing the status of the products
 

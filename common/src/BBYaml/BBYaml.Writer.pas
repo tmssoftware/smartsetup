@@ -52,7 +52,7 @@ type
     function GetIndent(const i: integer): string; overload;
     function FullName: string;
     function GetFullName(const aName: string): string;
-    procedure WriteAll(const NameWrite: TProc<string, string, string, string>);
+    procedure WriteAll(const NameWrite: TProc<string, string, string, string>; const CmdSyntax: boolean);
 
     procedure Push(const aName, aDisplayName: string; const aComment: string; const aIndent: string; const aCollectionType: TYamlCollectionType);
     procedure Pop;
@@ -112,8 +112,9 @@ type
     Writer: TTextWriter;
     Stack: TBBYamlWriterStack;
     FullSchema: TJSONObject;
+    CmdSyntax: boolean;
   public
-    constructor Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON: boolean);
+    constructor Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON, aCmdSyntax: boolean);
     destructor Destroy; override;
 
     property WritingFormat: TWritingFormat read FWritingFormat write FWritingFormat;
@@ -131,11 +132,12 @@ uses BBClasses;
 
 { TBBYamlWriter }
 
-constructor TBBYamlWriter.Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON: boolean);
+constructor TBBYamlWriter.Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON, aCmdSyntax: boolean);
 begin
   FWritingFormat := aWritingFormat;
   Stack := TBBYamlWriterStack.Create(aFilter, OpenObject, CloseObject);
   ToJSON := aToJSON;
+  CmdSyntax := aCmdSyntax;
 end;
 
 destructor TBBYamlWriter.Destroy;
@@ -190,8 +192,13 @@ begin
     var ActualComment := Comment;
     if Assigned(OnComment) then ActualComment := OnComment(Self, FullName, Comment);
     if ((WritingFormat = TWritingFormat.Full) or (Indent = ''))and (ActualComment <> '') then WriteComment(Indent, ActualComment, true);
-    if Name <> '' then WriteLineRaw(Indent + Quote + Name + Quote + ':');
-  end);
+    if Name <> '' then
+    begin
+      if CmdSyntax
+        then WriteLineRaw('-p:"' + Quote + FullName.Substring(0, FullName.Length - 1) + Quote + ' =')
+        else WriteLineRaw(Indent + Quote + Name + Quote + ':');
+    end;
+  end, CmdSyntax);
 
 end;
 
@@ -212,9 +219,17 @@ begin
   if(WritingFormat = TWritingFormat.Full) and (ActualComment <> '') then WriteComment(Stack.Indent, ActualComment, true);
   WriteJSONComma(IsFirst);
 
-  WriteRaw(Stack.Indent + Stack.ArrIndent + Quote + IdName + Quote + ':' + ValueSep);
+  var CloseValue := '';
+  if CmdSyntax then
+  begin
+    WriteRaw('-p:"' + Quote + Stack.FullName + IdName + Quote + ' =' + ValueSep);
+    CloseValue := '"';
+  end else
+  begin
+    WriteRaw(Stack.Indent + Stack.ArrIndent + Quote + IdName + Quote + ':' + ValueSep);
+  end;
   Stack.Push(IdName, IdName, '', '', TYamlCollectionType.Object);
-  WriteLineRaw(IdValue);
+  WriteLineRaw(IdValue + CloseValue);
   Stack.Pop;
   Stack.UsedArrIndent;
 end;
@@ -251,7 +266,10 @@ begin
   if ToJSON and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Indent + '}');
   if CollectionType = TYamlCollectionType.FlowArray then
   begin
-    if WriteLineRaw(']') then PendingLineFeed := true;
+    var CloseCmd := '';
+    if CmdSyntax then CloseCmd := '"';
+    
+    if WriteLineRaw(']' + CloseCmd) then PendingLineFeed := true;
     Stack.FInsideFlowArray := false;
   end;
 end;
@@ -638,7 +656,7 @@ begin
   Result := FullName + aName + ':';
 end;
 
-procedure TBBYamlWriterStack.WriteAll(const NameWrite: TProc<string, string, string, string>);
+procedure TBBYamlWriterStack.WriteAll(const NameWrite: TProc<string, string, string, string>; const CmdSyntax: boolean);
 begin
   var FullName := '';
   for var i := 0 to FList.Count - 1 do
@@ -648,8 +666,10 @@ begin
     if (FList[i].NameWritten) then continue;
     FList[i].NameWritten := true;
     if not InsideFilter(FullName) then continue;
+    if CmdSyntax and (FList[i].CollectionType <> TYamlCollectionType.FlowArray) then continue;
 
     if InsideFilter(OldFullName) then NameWrite(GetIndent(i - 1), FList[i].DisplayName, FullName, FList[i].Comment);
+
     OpenObject(FList[i].CollectionType, i);
   end;
 

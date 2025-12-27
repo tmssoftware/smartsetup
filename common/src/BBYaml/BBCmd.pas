@@ -135,7 +135,7 @@ end;
 
 class function TBBCmdReader.AdaptForCmd(const s, SectionSeparator: string): string;
 begin
-  Result := s.Replace('_', ' ').Replace('-', ' ').Replace('#', SectionSeparator);
+  Result := s.Replace('_', ' ').Replace('-', ' ').Replace('#', SectionSeparator).Trim;
 end;
 
 class procedure TBBCmdReader.ProcessOneParameter(const Parameter, SectionSeparator: string;

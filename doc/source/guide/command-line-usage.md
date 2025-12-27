@@ -175,8 +175,9 @@ tms config-read -json
 ### `-p` command, to pass a configuration to tms 
 
 Our configuration is normally done in `tms.config.yaml`. This allows all your settings to be in a single version-controlled file. 
-But sometimes, you might want to call tms with some specific configuration, but not alter the existing `tms.config.yaml`
+But sometimes, you might want to call tms with some specific configuration, but not alter the existing `tms.config.yaml`.
 In those cases, you can use the "-p" parameter to override any property in `tms.config.yaml`
+
 The rules are: 
  1. Look at the path for the property in tms.config.yaml. Say we want to change the skip-register setting: it is under `configuration for all products`, then `options`, then `skip register`
  2. Replace the spaces with "-" signs. *Note: This step is optional. You can still write the names with spaces, but you will need to quote them so the command line accepts them*.
@@ -192,8 +193,33 @@ tms build -p:configuration-for-all-products:replace-platforms=[win32intel,win64i
 ```
 
 {{#Tip}}
-As this property was designed to be used mainly when automating, we didn't care about making it less verbose. For that reason, it might be difficult to get it right.
-To experiment, you can use `tms config-read` and `tms config-write` instead of `tms build -p` as it is faster to iterate. `tms config-read` uses the same syntax, so when you get it right, you can apply the same syntax to `-p`
+Sometimes it might not be easy to figure out the exact syntax to change a setting. **But there is a simple way**.
+`tms config-read` has a parameter: `-cmd`, which will list all the existing configuration options with the syntax `-p` uses.  So for example, you would do:
+
+```
+tms config-read -cmd
+```
+And get this result:
+```
+-p:"tms smart setup options:build cores = 0"
+-p:"tms smart setup options:alternate registry key ="
+-p:"tms smart setup options:working folder ="
+-p:"tms smart setup options:prevent sleep = true"
+-p:"tms smart setup options:versions to keep = -1"
+-p:"tms smart setup options:error if skipped = false"
+-p:"tms smart setup options:excluded products = []"
+-p:"tms smart setup options:included products = []"
+-p:"tms smart setup options:additional products folders = []"
+-p:"tms smart setup options:auto snapshot filenames = [tms.snapshot.yaml]"
+-p:"tms smart setup options:servers:tms:enabled = true"
+-p:"tms smart setup options:servers:community:enabled = true"
+...
+```
+
+So, if you wanted to change the autosnapshot filenames to save to two places, you can just copy from the results above and modify them:
+```
+tms config-write -p:"tms smart setup options:auto snapshot filenames = [tms.snapshot.yaml, ../../tms.snapshot.yaml]"
+```
 {{/Tip}}
 
 ### `tms config-read` and `tms config-write` to read and change tms.config.yaml
@@ -211,7 +237,7 @@ tms config-write -p:configuration-for-tms.flexcel.vcl:replace-platforms=[] -p:tm
 `tms config-write` will reformat and remove all manually entered comments in tms.config.yaml. See [configuration](xref:SmartSetup.Configuration)
 {{/Important}}
 
-`tms config-read` can be called with a full path to a property, like `tms config-read "tms smart setup options:build cores"`, or it can be called with a partial path or even no path at all. If you call `tms config-read` alone, it will output the full configuration file to the screen. By default, this will be in YAML format, but you can call `tms config-read -json` to get a JSON object with all the configuration.
+`tms config-read` can be called with a full path to a property, like `tms config-read "tms smart setup options:build cores"`, or it can be called with a partial path or even no path at all. If you call `tms config-read` alone, it will output the full configuration file to the screen. By default, this will be in YAML format, but you can call `tms config-read -json` to get a JSON object with all the configuration, or `tms config-read -cmd` to get the properties in a syntax that you can copy and paste to use in the `-p` parameter.
 
 ## Fixing problems
 To open a browser showing a complete log of the last command, you can type:
