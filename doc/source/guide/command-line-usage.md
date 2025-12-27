@@ -222,6 +222,56 @@ tms config-write -p:"tms smart setup options:auto snapshot filenames = [tms.snap
 ```
 {{/Tip}}
 
+### Adding extra settings to an existing configuration file.
+
+As mentioned before, if you have am existing configuration, but you want to temporarily change a value, you can do it with `-p`. But if there are many `-p` parameters, the command line might become too complex. An alternative, which is 100% equivalent, is to use the `-add-config` command.
+
+Let's say you have an existing configuration, but you now want to build in a CI server, so you don't want to register any component.
+
+You could do it with:
+```
+tms build -p:"configuration for all products:options:skip register = true"
+```
+But you can also create a CI config file, let's call it `tms.ci-config.yaml`. Inside that file you can have just the lines:
+```yaml
+configuration for all products:
+   options:
+      skip register: true
+```
+And then call 
+```
+tms build -add-config:tms.ci-config.yaml
+```
+This will have the same effect as the `-p` line above, but it might be simpler to maintain. You can also add multiple configs:
+```
+tms build -add-config:tms.ci-config.yaml -add-config:tms.delphi12-config.yaml
+```
+The line above will load the configuration in `tms.config.yaml`, then apply the changes in `tms.ci-config.yaml` and finally apply the changes in `tms.delphi12-config.yaml`.
+
+{{#Note}}
+The same rule 4 in [the section about -p](#-p-command-to-pass-a-configuration-to-tms) applies here. If you are replacing an array, you can use `add ` or `replace ` prefixes to control the behavior:
+
+If the original tms.config.yaml had delphi11 as the delphi version, then adding this config:
+
+```yaml
+configuration for all products:
+   add delphi versions:
+    - delphi12
+    - delphi13
+```
+will add delphi12 and delphi13 to the existing ones, resulting in `delphi versions=[delphi11, delphi12, delphi13]`
+
+On the other hand, if you add this configuration:
+```yaml
+configuration for all products:
+   replace delphi versions:
+    - delphi12
+    - delphi13
+```
+it will replace [delphi11] array with the new one, and the result will be `delphi versions=[delphi12, delphi13]`
+
+{{/Note}}
+
 ### `tms config-read` and `tms config-write` to read and change tms.config.yaml
 These two commands allow you to read or update a setting from `tms.config.yaml`. Different from the `-p` parameter, `tms config-write` will modify the actual file. This can be useful, for example, when doing a GUI: You can use `tms config-read` to read a value from the config file and show it to the user. When the user modifies it, you can use `tms config-write` to write it back.
 
