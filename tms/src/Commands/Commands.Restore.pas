@@ -49,7 +49,7 @@ begin
     
 end;
 
-procedure RestoreComponents(FileName: string; const RestoreVersions, NoBuild: boolean; const IncludeMasks, ExcludeMasks: TArray<string>);
+procedure RestoreComponents(FileName: string; const RestoreVersions, NoBuild, IncludeLocalProducts: boolean; const IncludeMasks, ExcludeMasks: TArray<string>);
 begin
   var Products := TObjectList<TProductStatus>.Create;
   try
@@ -74,7 +74,8 @@ begin
         //We could use Config.IsIncluded here but we would get no message that the component was excluded because it was in excluded components in the config file
         //If we add everything, we will still not include the excluded components in the file, but get a less confusing message.
         if Ignore(Product.Id, IncludeMasks, ExcludeMasks) then continue;
-        
+        if (Product.Server = '') and not IncludeLocalProducts then continue;
+
         
         var Version := '';
         if RestoreVersions then Version := ':'+ String(Product.Version);
@@ -106,13 +107,14 @@ end;
 var OptionFileName: string;
 var OptionRestoreVersions: boolean;
 var OptionNoBuild: boolean;
+var OptionLocal: boolean;
 var OptionInclude: TArray<string>;
 var OptionExclude: TArray<string>;
 
 procedure RunRestoreCommand;
 begin
   InitFolderBasedCommand(true);
-  RestoreComponents(OptionFileName, OptionRestoreVersions, OptionNoBuild, OptionInclude, OptionExclude);
+  RestoreComponents(OptionFileName, OptionRestoreVersions, OptionNoBuild, OptionLocal, OptionInclude, OptionExclude);
 end;
 
 
@@ -133,7 +135,14 @@ begin
     end);
   option.Required := false;
 
-  option := cmd.RegisterOption<boolean>('full', '', 'without this parameter, the components will be restored to their latest versions. with it, the components will be restored to the exact version saved in the snapshot, along with the pinned status.',
+  option := cmd.RegisterOption<boolean>('with-versions', '', 'without this parameter, the components will be restored to their latest versions. with it, the components will be restored to the exact version saved in the snapshot, along with the pinned status.',
+    procedure(const Value : boolean)
+    begin
+      OptionRestoreVersions := true;
+    end);
+  option.HasValue := False;
+
+  option := cmd.RegisterOption<boolean>('include-local', '', 'if you specify this parameter, restore will try to also install local projects in the snapshot, and probably fail.',
     procedure(const Value : boolean)
     begin
       OptionRestoreVersions := true;

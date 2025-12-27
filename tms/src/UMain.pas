@@ -127,16 +127,16 @@ end;
 
 procedure SaveAutoSnapshots;
 begin
-  if not TFetchInfoFile.ProductsWereModified then exit;
-  for var Snapshot in Config.AutoSnapshotFileNames do
-  begin
-    var FileName := Snapshot.Key.Trim;
-    if FileName = ''  then continue;
-    var SnapshotFolder := TPath.GetDirectoryName(FileName);
-    if not TDirectory.Exists(SnapshotFolder)
-      then TDirectory_CreateDirectory(SnapshotFolder);
-
-    TakeSnapshot(FileName);
+  try
+    if not TFetchInfoFile.ProductsWereModified then exit;
+    for var Snapshot in Config.FullAutoSnapshotFileNames do
+    begin
+      var FileName := Snapshot.Trim;
+      if FileName = ''  then continue;
+      TakeSnapshot(FileName);
+    end;
+  except on ex: Exception do
+    raise Exception.Create('Error creating snapshot: ' + ex.message);
   end;
 end;
 
