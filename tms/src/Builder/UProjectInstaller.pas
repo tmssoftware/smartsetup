@@ -299,7 +299,7 @@ function TProjectInstaller.GetCredentials(const ServerName: string; const RegCod
 begin
   var Folders: IBuildFolders := Config.Folders;
 
-  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions);
+  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions, ServerName);
   try
     var Credentials := Manager.ReadCredentials;
     try

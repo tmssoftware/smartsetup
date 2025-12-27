@@ -83,7 +83,7 @@ end;
 
 procedure DoServerCredentials(const Data: TJSONObject; Folders: IBuildFolders; const ServerName, ServerUrl: string);
 begin
-  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions);
+  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions, ServerName);
   try
     var Credentials := Manager.ReadCredentials;
     try

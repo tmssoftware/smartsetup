@@ -117,7 +117,7 @@ begin
   try
     Result.Url := Options.RepositoryInfo(RootUrl).ApiUrl;
     Result.Server := Server;
-    Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, Options.RepositoryInfo(RootUrl).AuthUrl);
+    Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, Options.RepositoryInfo(RootUrl).AuthUrl, Server);
   except
     Result.Free;
     if ThrowExceptions then raise else Result := nil;
@@ -203,7 +203,7 @@ begin
   // Try to get a better error message if it's empty
   if Error = '' then
     case Resp.StatusCode of
-      401: Error := 'Credentials not provided. Use credentials command to provide your credentials to access repository';
+      401: Error := 'Credentials not provided. Use "tms credentials" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"';
       403: Error := 'Credentials expired or forbidden';
     else
       Error := 'Request failed';

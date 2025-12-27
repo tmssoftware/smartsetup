@@ -31,11 +31,12 @@ type
   private
     FCredentialsFile: string;
     FDefaultProfile: string;
+    FServerName: string;
     procedure LoadCredentials(Credentials: TCredentials; const Profile: string);
   protected
     function RetrieveAccessToken(const AuthUrl: string; const Profile: string = ''): string;
   public
-    constructor Create(const ACredentialsFile, DefaultProfile: string);
+    constructor Create(const ACredentialsFile, DefaultProfile, ServerName: string);
     destructor Destroy; override;
 
     procedure UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
@@ -43,27 +44,28 @@ type
     procedure SaveCredentials(Credentials: TCredentials; const Profile: string = '');
     function ReadCredentials(const Profile: string = ''): TCredentials;
   public
-    class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl: string): string;
+    class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
   end;
 
-function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions): TCredentialsManager;
+function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 
 implementation
 
 uses
   System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth;
 
-function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions): TCredentialsManager;
+function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 begin
-  Result := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository);
+  Result := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository, ServerName);
 end;
 
 { TCredentialsManager }
 
-constructor TCredentialsManager.Create(const ACredentialsFile, DefaultProfile: string);
+constructor TCredentialsManager.Create(const ACredentialsFile, DefaultProfile, ServerName: string);
 begin
   FCredentialsFile := ACredentialsFile;
   FDefaultProfile := DefaultProfile;
+  FServerName := ServerName;
 end;
 
 destructor TCredentialsManager.Destroy;
@@ -71,9 +73,9 @@ begin
   inherited;
 end;
 
-class function TCredentialsManager.GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl: string): string;
+class function TCredentialsManager.GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
 begin
-  var Manager := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository);
+  var Manager := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository, Server);
   try
     Result := Manager.RetrieveAccessToken(AuthUrl);
   finally
@@ -89,7 +91,7 @@ begin
       Exit(Credentials.AccessToken);
 
     if (Credentials.Email = '') or (Credentials.Code = '') then
-      raise Exception.Create('Credentials not provided. Use credentials command to provide your credentials to access repository');
+      raise Exception.Create('Credentials not provided. Use "tms credentials" to access the ' + FServerName + ' server, or disable it with "tms server-enable ' + FServerName + ' false');
 
     // Retrieve access token using credentials
     if Credentials.AccessToken <> '' then

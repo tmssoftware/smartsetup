@@ -27,7 +27,7 @@ begin
     // HasCredentials is deprecated. We will keep the old behavior, which is "HasCredentials" indicates if the
     // server "tms" has its credentials set.
     if (not Server.Enabled) or (Server.ServerType <> TServerType.Api) or not SameText(Server.Name, 'tms') then Continue;
-    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions);
+    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions, Server.Name);
     try
       var Credentials := Manager.ReadCredentials;
       try

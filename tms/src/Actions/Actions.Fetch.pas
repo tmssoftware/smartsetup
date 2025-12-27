@@ -44,7 +44,7 @@ procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: 
 begin
   var ApiServer := FindApiServer;
   var ProductVersions := ParseVersions(AProductIdsAndVersions);
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, false);
+  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, true);
   try
     var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled);
     try
