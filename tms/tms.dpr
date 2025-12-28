@@ -218,7 +218,8 @@ uses
   Commands.Snapshot in 'src\Commands\Commands.Snapshot.pas',
   Snapshot.Reader in 'src\Snapshot\Snapshot.Reader.pas',
   Snapshot.Writer in 'src\Snapshot\Snapshot.Writer.pas',
-  Commands.Restore in 'src\Commands\Commands.Restore.pas';
+  Commands.Restore in 'src\Commands\Commands.Restore.pas',
+  Util.Credentials in '..\common\src\System\Util.Credentials.pas';
 
 begin
   try

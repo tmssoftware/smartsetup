@@ -3,7 +3,7 @@ unit UCredentials;
 interface
 
 uses
-  System.IniFiles, System.SysUtils, System.IOUtils, System.DateUtils, Fetching.Options;
+  System.IniFiles, System.SysUtils, System.IOUtils, System.DateUtils, Fetching.Options, Util.Credentials;
 
 type
   TCredentials = class
@@ -113,6 +113,38 @@ end;
 
 procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials; const Profile: string);
 begin
+{$IFDEF MSWINDOWS}
+  var Email, Code: string;
+  var ProfileDot := Profile; if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
+
+  var Error := CredReadGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.auth', Email, Code, false);
+  if Error <> '' then
+  begin
+    Logger.Trace(Error);
+  end;
+  Credentials.Email := Email;
+  Credentials.Code := Code;
+
+  var Expiration, AccessToken: string;
+  var Error2 := CredReadGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.tokens', Expiration, AccessToken, false);
+  if Error2 <> '' then
+  begin
+    Logger.Trace(Error2);
+  end;
+
+  if Expiration <> ''
+    then Credentials.Expiration := ISO8601ToDate(Expiration, False)
+    else Credentials.Expiration := 0;
+
+  Credentials.AccessToken := AccessToken;
+  if Credentials.Email <> '' then
+  begin
+    if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
+    exit;
+  end;
+
+  //if no credentials, try reading legacy ones.
+{$ENDIF}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
     var IniSection := Profile;
@@ -129,6 +161,12 @@ begin
   finally
     IniFile.Free;
   end;
+
+{$IFDEF MSWINDOWS}
+  //found the legacy credentials. Delete them, and save them in the new place.
+  SaveCredentials(Credentials, Profile);
+  if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
+{$ENDIF}
 end;
 
 function TCredentialsManager.ReadCredentials(const Profile: string): TCredentials;
@@ -144,6 +182,17 @@ end;
 
 procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const Profile: string);
 begin
+{$IFDEF MSWINDOWS}
+  var ProfileDot := Profile; if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
+
+  CredWriteGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.auth', Credentials.Email, Credentials.Code);
+
+  var Expiration := '';
+  if YearOf(Credentials.Expiration) > 1900 then
+      Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
+
+  CredWriteGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.tokens', Expiration, Credentials.AccessToken);
+{$ELSE}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
     var IniSection := Profile;
@@ -163,6 +212,7 @@ begin
   finally
     IniFile.Free;
   end;
+{$ENDIF}
 end;
 
 procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
