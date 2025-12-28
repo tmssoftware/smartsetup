@@ -138,7 +138,7 @@ begin
       var msg := 'No api server is enabled.';
       if ServerName <> '' then msg := 'Server ' + ServerName + ' isn''t defined or is not enabled.';
 
-      Writeln('There are no credentials to set or show. ' + msg);
+      raise Exception.Create('There are no credentials to set or show. ' + msg);
     end;
 
   end;

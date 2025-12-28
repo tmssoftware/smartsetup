@@ -17,6 +17,8 @@ function Update-ServerZip {
 }
 
 . test.setup
+tms server-enable tms false
+
 Copy-Item -Path (Join-Path -Path $tmsTestRootDir -ChildPath "tmp-run/test-repos/tmsbuild_test_repos.zip") -Destination "." -Force
 # extract the zip above to the "server" folder
 Expand-Archive -Path "tmsbuild_test_repos.zip" -DestinationPath "_server" -Force

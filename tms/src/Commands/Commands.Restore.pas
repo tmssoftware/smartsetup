@@ -145,7 +145,7 @@ begin
   option := cmd.RegisterOption<boolean>('include-local', '', 'if you specify this parameter, restore will try to also install local projects in the snapshot, and probably fail.',
     procedure(const Value : boolean)
     begin
-      OptionRestoreVersions := true;
+      OptionLocal := true;
     end);
   option.HasValue := False;
 

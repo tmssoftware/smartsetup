@@ -40,11 +40,25 @@ begin
   Result := Config.ServerConfig.GetServer(ServerIndex);
 end;
 
+function AllServersDisabled: boolean;
+begin
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    var Server := Config.ServerConfig.GetServer(i);
+    if Server.Enabled then exit(false);
+  end;
+
+  Result := true;
+end;
+
 procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
 begin
+  if AllServersDisabled then raise Exception.Create('There are no servers enabled. To fetch a product, enable a server first.');
+
   var ApiServer := FindApiServer;
   var ProductVersions := ParseVersions(AProductIdsAndVersions);
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, true);
+  var Repo: TRepositoryManager := nil;
+  if ApiServer.Enabled then Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, true);
   try
     var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled);
     try

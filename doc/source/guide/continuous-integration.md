@@ -2,5 +2,5 @@
 uid: SmartSetup.ContinuousIntegration
 ---
 
-# Using SmartSetup in a Continuous Integration (CI) environments
+# Using SmartSetup in Continuous Integration (CI) environments
 

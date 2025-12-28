@@ -32,7 +32,7 @@ if ($installed.Count -ne 2) {
 Remove-Item -Path "Products" -Recurse -Force
 tms build
 
-tms restore "snapshot1.yaml" -nobuild
+tms restore "snapshot1.yaml" -nobuild -include-local
 
 $installed = tms list -json | ConvertFrom-Json -AsHashtable
 if ($installed.Count -ne 9) {
@@ -41,8 +41,17 @@ if ($installed.Count -ne 9) {
 
 uninstall_and_check 0
 
-tms restore "snapshot1.yaml" -full -exclude:tms.biz.* -exclude:vsoft.commandline -nobuild
+tms restore "snapshot1.yaml" -nobuild
+
 $installed = tms list -json | ConvertFrom-Json -AsHashtable
-if ($installed.Count -ne $vsoftCount - 1) {
-    Write-Error "After restoring from snapshot, there should be $($vsoftCount - 1) products installed, but there are $($installed.Count)."
+if ($installed.Count -ne 7) {
+    Write-Error "After restoring from snapshot, there should be 7 products installed, but there are $($installed.Count)."
+}
+
+uninstall_and_check 0
+
+tms restore "snapshot1.yaml" -with-versions -exclude:tms.biz.* -exclude:vsoft.commandline -nobuild
+$installed = tms list -json | ConvertFrom-Json -AsHashtable
+if ($installed.Count -ne $vsoftCount - 2) {
+    Write-Error "After restoring from snapshot, there should be $($vsoftCount - 2) products installed, but there are $($installed.Count)."
 }
