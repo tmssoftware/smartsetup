@@ -79,10 +79,19 @@ begin
   if TDirectory.Exists(Folders.MetaFolder) then
     Exit(True);
 
-  if TDirectory.GetDirectories(TPath.GetDirectoryName(ConfigFileName), '*', TSearchOption.soTopDirectoryOnly) = nil then
+{$IFDEF MSWINDOWS}
+  const tmsexe = 'tms.exe';
+{$ELSE}
+  const tmsexe = 'tms';
+{$ENDIF}
+  if TFile.Exists(TPath.Combine(TPath.GetDirectoryName(ConfigFileName), tmsexe)) then
+    Exit(true);
+
+
+  if TDirectory.IsEmpty(TPath.GetDirectoryName(ConfigFileName)) then
     Exit(True);
 
-  Result := false;
+  Result := False;
 
 end;
 

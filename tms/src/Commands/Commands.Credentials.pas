@@ -107,9 +107,12 @@ begin
           if Check then
             Manager.UpdateAccessToken(Credentials, FetchOptions.RepositoryInfo(ServerUrl).AuthUrl);
 
+          //Only create the folder if we are using TMemIniFile to store it. In windows we are using Credential manager, so no need for it.
+          {$IFNDEF MSWINDOWS}
           // Create meta directory here, not inside SaveCredentials. This makes sure that it only works when
           // running credentials command. Otherwise, the meta folder should be created all the time.
           TDirectory_CreateDirectory(TPath.GetDirectoryName(Folders.CredentialsFile(ServerName)));
+          {$ENDIF}
 
           Manager.SaveCredentials(Credentials);
         end;
