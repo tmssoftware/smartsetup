@@ -9,7 +9,7 @@ procedure LogSkipped(const BuildInfo: TBuildInfo);
 
 implementation
 uses ULogger, UMultiLogger, UInstaller, UProjectBuildInfo, SysUtils,
-     Generics.Collections, UUninstallInfo, UProjectInstallerConstants, Commands.GlobalConfig;
+     Generics.Collections, UUninstallInfo, UProjectInstallerConstants, Commands.GlobalConfig, UConfigDefinition;
 
 procedure LogSkippedGeneric(const BuildInfo: TBuildInfo; const NoteTypes: TNoteTypeSet; const Header: string; var HasSDKs: boolean);
 begin
@@ -142,8 +142,12 @@ begin
   begin
     if (proj.IDEsBuildInfo.Count > 0) and proj.AllOk then
     begin
-      if not proj.NeedsBuild
-        then Logger.Info('  - ' + proj.Project.Application.NameAndVersion + ' -> REGISTERED.')
+      if not proj.NeedsBuild then
+        begin
+          if Config.Unregistering or (Config.SkipRegistering(proj.ProjectId, 0) = TSkipRegistering.All.ToInteger)
+            then Logger.Info('  - ' + proj.Project.Application.NameAndVersion + ' -> UNREGISTERED.')
+            else Logger.Info('  - ' + proj.Project.Application.NameAndVersion + ' -> REGISTERED.')
+        end
         else Logger.Info('  - ' + proj.Project.Application.NameAndVersion + ' -> OK.');
       DumpUninstalled(proj);
     end;

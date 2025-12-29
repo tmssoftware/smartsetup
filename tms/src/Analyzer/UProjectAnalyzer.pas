@@ -501,7 +501,7 @@ begin
     or (dp in DepsCompiled[dv]); //we check at project level, not package.
 
   BuildInfo.CurrentProject.NeedsBuild := ProductNeedsBuild;
-  var AddInfo := FileHasher.SkipRegistering(BuildInfo.CurrentProject.Project, Config, dv, dp) <> BuildInfo.CurrentProject.SkipRegistering.ToInteger;
+  var AddInfo := FileHasher.SkipRegistering(BuildInfo.CurrentProject.Project, dv, dp) <> BuildInfo.CurrentProject.SkipRegistering.ToInteger;
 
   if ProductNeedsBuild or AddInfo then
   begin

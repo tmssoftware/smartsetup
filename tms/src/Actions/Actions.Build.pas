@@ -13,7 +13,7 @@ uses
   System.SysUtils, System.Diagnostics, System.Threading, System.IOUtils, ULogger, UMultiLogger, UFileHasher, UInsomnia,
   UConfigKeys, UProjectAnalyzer, Commands.GlobalConfig, Commands.Termination, UProjectList, UProjectLoader,
   UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface,
-  UParallelProjectBuilder, UWindowsPath, UEnvironmentPath, Fetching.ProductVersion,
+  UParallelProjectBuilder, UWindowsPath, UEnvironmentPath, Fetching.ProductVersion, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}
   Windows, Messages,
   {$ENDIF}
@@ -38,8 +38,28 @@ procedure RemoveFromWindowsPathIfNoProducts; overload;
 begin
   var Projects := TProjectList.Create;
   try
-    TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projects, 'root:minimum required tmsbuild version', true);
-    RemoveFromWindowsPathIfNoProducts(Projects.All.Count);
+    TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projects, 'root:application:id', true);
+    var FileHasher := TFileHasher.Create(Config);
+    try
+      for var Project in Projects.All do
+      begin
+        //can't use Config.GetIdeNames or Config.GetPlatforms because we haven't read them.
+        for var dv := Low(TIDEName) to High(TIDEName) do
+        begin
+          for var dp := Low(TPlatform) to High(TPlatform) do
+          begin
+            var Hash := FileHasher.GetStoredHash(Project, dv, dp, '');
+            if Hash.SourceCodeHash = '' then continue; //this hash doesn't exist.
+
+            var Skip := TSkipRegistering.FromInteger(Hash.RegistrationHash);
+            if not Skip.WindowsPath then exit;
+          end;
+        end;
+      end;
+      RemoveFromWindowsPathIfNoProducts(0);
+    finally
+      FileHasher.Free;
+    end;
   finally
     Projects.Free;
   end;
@@ -152,6 +172,7 @@ begin
 
       Projs.ResolveDependencies;
 
+      //Most common case, not 100% needed but in case of an error later, we remove ourselves first.
       RemoveFromWindowsPathIfNoProducts(Projs.All.Count);
 
       CreatePackages(Projs);
@@ -213,7 +234,7 @@ begin
   finally
     Projs.Free;
   end;
-
+  RemoveFromWindowsPathIfNoProducts;
   StopWatch.Stop;
 
   Logger.Info('');

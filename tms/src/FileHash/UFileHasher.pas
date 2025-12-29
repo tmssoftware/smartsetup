@@ -77,7 +77,7 @@ type
              const dv: TIDEName; const dp: TPlatform; const Package: string): boolean;
 
     function SkipRegistering(
-             const Project: TProjectDefinition; const Config: TConfigDefinition;
+             const Project: TProjectDefinition;
              const dv: TIDEName; const dp: TPlatform): integer;
 
     procedure ReplaceHash(const Unregistering: boolean; const ProjectId, IDEName, Platform: string);
@@ -179,7 +179,7 @@ end;
 
 function TFileHasher.SkipRegistering(
   const Project: TProjectDefinition;
-  const Config: TConfigDefinition; const dv: TIDEName; const dp: TPlatform): integer;
+  const dv: TIDEName; const dp: TPlatform): integer;
 begin
   var StoredHash := GetStoredHash(Project, dv, dp, '');
   Result := StoredHash.RegistrationHash;

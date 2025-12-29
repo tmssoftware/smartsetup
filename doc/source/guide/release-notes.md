@@ -10,6 +10,8 @@ uid: SmartSetup.ReleaseNotes
 
  - **New**: [Pinning](xref:SmartSetup.Versioning#pinning-versions) support. You can now pin a product to a specific version, and it won't update until you unpin it.
 
+- **New**: Support for unregistering products. Now you can do `tms build -unregister` in folder A, and `tms build` in folder B, and you can work with the components in folder B. IF you want to switch back to using folder A, just unregister B and build A again. The switch is instant, no need to wait for products to build.
+
  - **New**: Support for dependencies for products in the community server. Now products in the community server can depend in other products in any other zipfile server.
 
  - **New**: "working folder" configuration option. It allows you to keep the working folder for SmartSetup (where logs, products, etc go) in an arbitrary folder, not necessarily at the same folder where tms.config.yaml is.
