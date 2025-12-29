@@ -76,13 +76,20 @@ begin
 
   //If the config file doesn't exist, then there is no working folder and we can search in the folder where configfilename is.
   var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
-  Result := TDirectory.Exists(Folders.MetaFolder);
+  if TDirectory.Exists(Folders.MetaFolder) then
+    Exit(True);
+
+  if TDirectory.GetDirectories(TPath.GetDirectoryName(ConfigFileName), '*', TSearchOption.soTopDirectoryOnly) = nil then
+    Exit(True);
+
+  Result := false;
+
 end;
 
 procedure CheckValidTMSSetupFolder;
 begin
   if not IsValidTMSSetupFolder then
-    raise Exception.CreateFmt('Folder %s is not prepared for TMS Smart Setup, run "tms credentials" or "tms config" first.',
+    raise Exception.CreateFmt('Folder %s doesn''t look like a valid folder for TMS Smart Setup. To use this folder anyway, run "tms config" on it.',
       [TPath.GetDirectoryName(ConfigFileName)]);
 end;
 

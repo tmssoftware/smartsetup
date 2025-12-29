@@ -9,6 +9,8 @@ type
     Offline: boolean;
     FolderForCompanyName: string;
     DelphiCE: boolean;
+    CredentialsProfile: string;
+
 
     procedure CheckOffline(const Method: string);
   end;

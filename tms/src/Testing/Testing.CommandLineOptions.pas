@@ -36,9 +36,17 @@ begin
     begin
       TestParameters.DelphiCE := Value;
     end);
-
   option.HasValue := False;
   option.Hidden := true;
+
+  option := TOptionsRegistry.RegisterOption<string>(
+    'test-credentials-profile', '', 'Allows us to use a different credential profile to test configurations without credentials.',
+    procedure(const Value: String)
+    begin
+      TestParameters.CredentialsProfile := Value
+    end);
+  option.Hidden := true;
+
 
 end;
 

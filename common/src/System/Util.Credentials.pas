@@ -16,7 +16,7 @@ type
 
 function CredReadGenericCredentials(const Target: UnicodeString; out Username, Password: UnicodeString; const ThrowExceptions: boolean = true): string;
 procedure CredWriteGenericCredentials(const Target: UnicodeString; Username, Password: UnicodeString);
-procedure CredDeleteGenericCredential(const Target: UnicodeString);
+function CredDeleteGenericCredential(const Target: UnicodeString; const ThrowExceptions: boolean = true): string;
 function EnumerateGenericCredentials(const Filter: string): TArray<TWindowsCredential>;
 
 {$ENDIF}
@@ -72,14 +72,16 @@ begin
   end;
 end;
 
-procedure CredDeleteGenericCredential(const Target: UnicodeString);
+function CredDeleteGenericCredential(const Target: UnicodeString; const ThrowExceptions: boolean): string;
 var
   le: DWORD;
 begin
+  Result := '';
   if not CredDelete(PChar(Target), CRED_TYPE_GENERIC, 0) then
   begin
     le := GetLastError;
-    raise Exception.Create('Could not delete "'+ Target + '" from generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le));
+    Result := 'Could not delete "'+ Target + '" from generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le);
+    if ThrowExceptions then raise Exception.Create(Result);
   end;
 
 end;

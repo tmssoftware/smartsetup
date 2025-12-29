@@ -4,8 +4,15 @@
 
 Remove-Item -Path (Join-Path -Path (Get-Location) -ChildPath "tms.config.yaml")
 
-tms credentials -code:"test" -email:"test@example.com"
-$Credentials = tms credentials -print -json | ConvertFrom-Json
+# delete existing credentials
+tms credentials -code:" " -email:" " -test-credentials-profile:temstest.emptycreds
+tms credentials -code:" " -email:" " -test-credentials-profile:temstest.emptycreds  #check deleting non-existing creds doesn't crash
+
+$existing = tms credentials -print -json -test-credentials-profile:temstest.emptycreds | ConvertFrom-Json -AsHashtable
+$existing.Count | Assert-ValueIs 0
+
+tms credentials -code:"test" -email:"test@example.com" -test-credentials-profile:temstest.emptycreds
+$Credentials = tms credentials -print -json -test-credentials-profile:temstest.emptycreds| ConvertFrom-Json
 if ($Credentials.code -ne "test") {
     Write-Error "The credentials code should be 'test'."
 }

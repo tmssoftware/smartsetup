@@ -33,6 +33,9 @@ type
     FDefaultProfile: string;
     FServerName: string;
     procedure LoadCredentials(Credentials: TCredentials; const Profile: string);
+    function AuthCredName(Profile: string): string;
+    function TokensCredName(Profile: string): string;
+    function CredName(Profile, Name: string): string;
   protected
     function RetrieveAccessToken(const AuthUrl: string; const Profile: string = ''): string;
   public
@@ -52,7 +55,7 @@ function CreateCredentialsManager(const CredentialsFile: string; Options: TFetch
 implementation
 
 uses
-  System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth;
+  System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals;
 
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 begin
@@ -111,13 +114,31 @@ begin
   end;
 end;
 
+function TCredentialsManager.CredName(Profile, Name: string): string;
+begin
+{$IFDEF DEBUG}
+  if TestParameters.CredentialsProfile <> '' then Profile := TestParameters.CredentialsProfile;
+{$ENDIF}
+  var ProfileDot := Profile; if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
+  Result := 'tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + Name;
+end;
+
+function TCredentialsManager.AuthCredName(Profile: string): string;
+begin
+  Result := CredName(Profile, '.auth');
+end;
+
+function TCredentialsManager.TokensCredName(Profile: string): string;
+begin
+  Result := CredName(Profile, '.tokens');
+end;
+
 procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials; const Profile: string);
 begin
 {$IFDEF MSWINDOWS}
   var Email, Code: string;
-  var ProfileDot := Profile; if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
 
-  var Error := CredReadGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.auth', Email, Code, false);
+  var Error := CredReadGenericCredentials(AuthCredName(Profile), Email, Code, false);
   if Error <> '' then
   begin
     Logger.Trace(Error);
@@ -126,7 +147,7 @@ begin
   Credentials.Code := Code;
 
   var Expiration, AccessToken: string;
-  var Error2 := CredReadGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.tokens', Expiration, AccessToken, false);
+  var Error2 := CredReadGenericCredentials(TokensCredName(Profile), Expiration, AccessToken, false);
   if Error2 <> '' then
   begin
     Logger.Trace(Error2);
@@ -183,15 +204,23 @@ end;
 procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const Profile: string);
 begin
 {$IFDEF MSWINDOWS}
-  var ProfileDot := Profile; if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
+  if String.IsNullOrWhiteSpace(Credentials.Email) or String.IsNullOrWhiteSpace(Credentials.Code) then
+  begin
+    var CmdResult := CredDeleteGenericCredential(AuthCredName(Profile), false);
+    if CmdResult <> '' then Logger.Trace(CmdResult);
 
-  CredWriteGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.auth', Credentials.Email, Credentials.Code);
+    CmdResult := CredDeleteGenericCredential(TokensCredName(Profile), false);
+    if CmdResult <> '' then Logger.Trace(CmdResult);
+    exit;
+  end;
+
+  CredWriteGenericCredentials(AuthCredName(Profile), Credentials.Email, Credentials.Code);
 
   var Expiration := '';
   if YearOf(Credentials.Expiration) > 1900 then
       Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
 
-  CredWriteGenericCredentials('tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + '.tokens', Expiration, Credentials.AccessToken);
+  CredWriteGenericCredentials(TokensCredName(Profile), Expiration, Credentials.AccessToken);
 {$ELSE}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try

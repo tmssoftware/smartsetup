@@ -197,10 +197,10 @@ function bds {
 }
 
 function tmscredentials {
-    if (-not $env:TMSTEST_CODE -or -not $env:TMSTEST_EMAIL) {
-        throw "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
-    }
-    tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
+  #  if (-not $env:TMSTEST_CODE -or -not $env:TMSTEST_EMAIL) {
+  #      throw "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
+  #  }
+  #  tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
 }
 
 function uninstall_and_check {
