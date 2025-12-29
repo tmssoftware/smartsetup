@@ -14,6 +14,8 @@ uid: SmartSetup.ReleaseNotes
 
  - **New**: "working folder" configuration option. It allows you to keep the working folder for SmartSetup (where logs, products, etc go) in an arbitrary folder, not necessarily at the same folder where tms.config.yaml is.
 
+ - **New**: Now your tms credentials will be stored in the Windows Credential Manager, and apply to the whole machine. There is no need to enter the credentials for every folder where you use smartsetup anymore.
+
  - **New**: Dark mode support in tmsgui
 
  - **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
