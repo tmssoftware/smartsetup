@@ -91,7 +91,7 @@ begin
   var Credentials := ReadCredentials(Profile);
   try
     // Use a 5-minute margin to check for token expiration. See https://github.com/tmssoftware/tms-smartsetup/issues/301
-    if (Credentials.AccessToken <> '') and (Now < IncMinute(Credentials.Expiration, 5)) then
+    if (Credentials.AccessToken <> '') and (Now < IncMinute(Credentials.Expiration, -5)) then
       Exit(Credentials.AccessToken);
 
     if (Credentials.Email = '') or (Credentials.Code = '') then
