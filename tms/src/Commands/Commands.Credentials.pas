@@ -114,7 +114,7 @@ begin
           TDirectory_CreateDirectory(TPath.GetDirectoryName(Folders.CredentialsFile(ServerName)));
           {$ENDIF}
 
-          Manager.SaveCredentials(Credentials);
+          Manager.SaveCredentials(Credentials, false);
         end;
       end;
     finally

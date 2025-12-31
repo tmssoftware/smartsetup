@@ -44,7 +44,7 @@ type
 
     procedure UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 
-    procedure SaveCredentials(Credentials: TCredentials; const Profile: string = '');
+    procedure SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean; const Profile: string = '');
     function ReadCredentials(const Profile: string = ''): TCredentials;
   public
     class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
@@ -106,7 +106,7 @@ begin
     UpdateAccessToken(Credentials, AuthUrl);
 
     // Save access token
-    SaveCredentials(Credentials, Profile);
+    SaveCredentials(Credentials, true, Profile);
 
     // Return
     Result := Credentials.AccessToken;
@@ -186,7 +186,7 @@ begin
 
 {$IFDEF MSWINDOWS}
   //found the legacy credentials. Delete them, and save them in the new place.
-  SaveCredentials(Credentials, Profile);
+  SaveCredentials(Credentials, false, Profile);
   if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
 {$ENDIF}
 end;
@@ -202,20 +202,23 @@ begin
   end;
 end;
 
-procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const Profile: string);
+procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean; const Profile: string);
 begin
 {$IFDEF MSWINDOWS}
-  if String.IsNullOrWhiteSpace(Credentials.Email) or String.IsNullOrWhiteSpace(Credentials.Code) then
+  if not OnlyToken then
   begin
-    var CmdResult := CredDeleteGenericCredential(AuthCredName(Profile), false);
-    if CmdResult <> '' then Logger.Trace(CmdResult);
+    if String.IsNullOrWhiteSpace(Credentials.Email) or String.IsNullOrWhiteSpace(Credentials.Code) then
+    begin
+      var CmdResult := CredDeleteGenericCredential(AuthCredName(Profile), false);
+      if CmdResult <> '' then Logger.Trace(CmdResult);
 
-    CmdResult := CredDeleteGenericCredential(TokensCredName(Profile), false);
-    if CmdResult <> '' then Logger.Trace(CmdResult);
-    exit;
+      CmdResult := CredDeleteGenericCredential(TokensCredName(Profile), false);
+      if CmdResult <> '' then Logger.Trace(CmdResult);
+      exit;
+    end;
+
+    CredWriteGenericCredentials(AuthCredName(Profile), Credentials.Email, Credentials.Code);
   end;
-
-  CredWriteGenericCredentials(AuthCredName(Profile), Credentials.Email, Credentials.Code);
 
   var Expiration := '';
   if YearOf(Credentials.Expiration) > 1900 then
