@@ -457,8 +457,8 @@ begin
   end;
 
   // build msbuild command line
-  Result := Format(' /target:%s /nologo /p:config=%s /p:Platform="%s"',
-    [LocalBuildMode, LocalTargetConfig, Settings.TargetPlatform.BuildName]);
+  Result := Format(' /target:%s /nologo /p:config=%s /p:Platform="%s" /p:ProductVersion="%s"',
+    [LocalBuildMode, LocalTargetConfig, Settings.TargetPlatform.BuildName, DelphiProductVersion[IDEName]]);
 
   // Add local search path
   if LocalSearchPath <> '' then

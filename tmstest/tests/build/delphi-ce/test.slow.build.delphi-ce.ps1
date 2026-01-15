@@ -12,6 +12,27 @@ Test-CommandOk { $result } "*Rad Studio CE detected. Disabling multithreaded com
 
 Test-BuildResultCounts $result 0 0 2
 
+$buildOutputFolder = "./Products/tms.biz.bcl/Packages"
+$bplfiles = Get-ChildItem -Path $buildOutputFolder -Filter *.bpl -Recurse
+if ($bplfiles.Count -eq 0) {
+    throw "No BPL files were created in the build output folder '$buildOutputFolder'."
+}
+$dcufiles = Get-ChildItem -Path $buildOutputFolder -Filter *.dcu -Recurse
+if ($dcufiles.Count -eq 0) {
+    throw "No DCU files were created in the build output folder '$buildOutputFolder'."
+}
+
+$buildOutputFolder = "./Products/vsoft.yaml/src/Packages"
+$bplfiles = Get-ChildItem -Path $buildOutputFolder -Filter *.bpl -Recurse
+if ($bplfiles.Count -eq 0) {
+    throw "No BPL files were created in the build output folder '$buildOutputFolder'."
+}
+$dcufiles = Get-ChildItem -Path $buildOutputFolder -Filter *.dcu -Recurse
+if ($dcufiles.Count -eq 0) {
+    throw "No DCU files were created in the build output folder '$buildOutputFolder'."
+}
+
+
 tms uninstall * -test-delphi-ce
     
 $expectedRemaining = 0
