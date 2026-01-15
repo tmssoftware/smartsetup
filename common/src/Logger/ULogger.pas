@@ -25,7 +25,8 @@ type
       Analyze,
       Skipped,
       Megafolder,
-      SetupIDE
+      SetupIDE,
+      Configuration
   );
 
   TConnectionPoint = record

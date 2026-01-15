@@ -61,7 +61,7 @@ TConfigWriter = class
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
     procedure Save(const FileName: string);
-    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson, CmdSyntax: boolean): string; static;
+    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const WritingFormat: TWritingFormat; const UseJson, CmdSyntax: boolean): string; static;
 end;
 
 implementation
@@ -588,14 +588,14 @@ begin
   end;
 end;
 
-class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson, CmdSyntax: boolean): string;
+class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const WritingFormat: TWritingFormat; const UseJson, CmdSyntax: boolean): string;
 begin
   var Writer := TConfigWriter.Create(aCfg, true);
   try
     var PropertyName := TBBCmdReader.AdaptForCmd(aPropertyName, ':');
     var StringWriter := TStringWriter.Create;
     try
-      Writer.SaveToStream(StringWriter, PropertyName, TWritingFormat.NoComments, UseJson, CmdSyntax, '', '');
+      Writer.SaveToStream(StringWriter, PropertyName, WritingFormat, UseJson, CmdSyntax, '', '');
       StringWriter.Flush;
       Result := StringWriter.ToString;
       if Result = '' then

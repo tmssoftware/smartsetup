@@ -8,7 +8,7 @@ procedure RegisterConfigReadCommand;
 implementation
 uses UCommandLine, Commands.CommonOptions,
      UConfigWriter, Types, Commands.GlobalConfig,
-     BBCmd, UConfigLoaderStateMachine;
+     BBCmd, UConfigLoaderStateMachine, BBYaml.Writer;
 
 var
   VariableName: string;
@@ -18,7 +18,7 @@ var
 
 procedure RunConfigReadCommand;
 begin
-  WriteLn(TConfigWriter.GetProperty(Config, VariableName, UseJson, CmdSyntax));
+  WriteLn(TConfigWriter.GetProperty(Config, VariableName, TWritingFormat.NoComments, UseJson, CmdSyntax));
 end;
 
 
