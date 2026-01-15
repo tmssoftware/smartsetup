@@ -90,7 +90,7 @@ end;
 class function TPackageFinder.GetPackage(const Naming: TNaming; const dv: TIDEName; const IsExe: boolean;
   const packs: TArray<string>; const BasePath, PackageName: string; const ThrowExceptions: boolean; const Project: TProjectDefinition): string;
 begin
-  var StandardFolderName := Naming.GetPackageNaming(dv, IsExe, Project.PackageFolders[dv]);
+  var StandardFolderName := Naming.GetPackageNaming(dv, IsExe, Project.PackageFolders[dv].Value);
   for var pack in packs do
   begin
     if (pack.Trim = '') then continue;
@@ -101,9 +101,9 @@ begin
       then exit(pack);
 
     var StandardFolderNamePlus: string;
-    if not IsExe and (Project.PackageFolders[dv] = '') and EndsInMultiIDE(Naming, dv, PackFolder, BaseFolder, StandardFolderNamePlus) then
+    if not IsExe and (Project.PackageFolders[dv].Value = '') and EndsInMultiIDE(Naming, dv, PackFolder, BaseFolder, StandardFolderNamePlus) then
     begin
-      Project.SetPackageFolders(dv, StandardFolderNamePlus);
+      Project.SetPackageFolders(dv, StandardFolderNamePlus, TPlusState.Plus);
       exit(pack);
     end;
 

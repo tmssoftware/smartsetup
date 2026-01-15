@@ -546,7 +546,7 @@ procedure TConfigWriter.SaveToStream(const TextWriter: TTextWriter; const Filter
 begin
   var SchemaStream := TResourceStream.Create(HInstance, 'TmsConfigSchema', RT_RCDATA);
   try
-    var BBWriter := TBBYamlWriter.Create(WritingFormat, Filter, UseJson, CmdSyntax);
+    var BBWriter := TBBYamlWriter.Create(WritingFormat, Filter, UseJson, CmdSyntax, '-p');
     try
       BBWriter.OnMember := OnMember;
       BBWriter.OnComment := OnComment;

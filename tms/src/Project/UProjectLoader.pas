@@ -2,17 +2,18 @@ unit UProjectLoader;
 {$i ../../tmssetup.inc}
 
 interface
-uses UProjectDefinition, BBYaml, UProjectLoaderStateMachine, IOUtils, Generics.Collections, UProjectList;
+uses UProjectDefinition, BBYaml, BBCmd, UProjectLoaderStateMachine, IOUtils, Generics.Collections, UProjectList;
 type
 
   TProjectLoader = class
   public const
     TMSBuildDefinitionFile = 'tmsbuild.yaml';
   private
-    class procedure LoadIntoProject(const Filename: string; const Project: TProjectDefinition; const aStopAt: string; const aIgnoreOtherFiles: boolean);
+    class procedure LoadIntoProject(const Filename: string; const Project: TProjectDefinition; const aStopAt: string; const aIgnoreOtherFiles: boolean; const CmdParameters: TArray<string>);
   public
     class procedure LoadProjects(const Roots: TArray<string>; const Projects: TProjectList; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false);
     class function LoadProjectDefinition(const RootFolder: string; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TProjectDefinition;
+    class function LoadProjectDefinitionFromFile(const FileName: string; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false; const CmdParameters: TArray<string> = nil): TProjectDefinition;
     class function GetProjectDefinition(const RootFolder: string): string;
     class procedure LoadDataIntoProject(const Filename, Data: string; const Project: TProjectDefinition; const aStopAt: string; const aIgnoreOtherFiles: boolean);
   end;
@@ -69,13 +70,17 @@ begin
   end;
 end;
 
-class procedure TProjectLoader.LoadIntoProject(const Filename: string; const Project: TProjectDefinition; const aStopAt: string; const aIgnoreOtherFiles: boolean);
+class procedure TProjectLoader.LoadIntoProject(const Filename: string; const Project: TProjectDefinition; const aStopAt: string; const aIgnoreOtherFiles: boolean; const CmdParameters: TArray<string>);
 var
   MainSection: TMainSectionDef;
 begin
   MainSection := TMainSectionDef.Create(Project);
   try
+    MainSection.CreatedBy := 'Main: ' + Filename;
     TBBYamlReader.ProcessFile(Filename, MainSection, aStopAt, aIgnoreOtherFiles);
+
+    MainSection.CreatedBy := 'Command line';
+    TBBCmdReader.ProcessCommandLine(CmdParameters, MainSection, ':', false);
   finally
     MainSection.Free;
   end;
@@ -83,10 +88,14 @@ end;
 
 class function TProjectLoader.LoadProjectDefinition(const RootFolder: string; const aStopAt: string; const aIgnoreOtherFiles: boolean): TProjectDefinition;
 begin
-  var FileName := TPath.Combine(RootFolder, TMSBuildDefinitionFile);
+  Result := LoadProjectDefinitionFromFile(TPath.Combine(RootFolder, TMSBuildDefinitionFile), aStopAt, aIgnoreOtherFiles);
+end;
+
+class function TProjectLoader.LoadProjectDefinitionFromFile(const FileName: string; const aStopAt: string; const aIgnoreOtherFiles: boolean; const CmdParameters: TArray<string>): TProjectDefinition;
+begin
   Result := TProjectDefinition.Create(FileName);
   try
-    TProjectLoader.LoadIntoProject(FileName, Result, aStopAt, aIgnoreOtherFiles);
+    TProjectLoader.LoadIntoProject(FileName, Result, aStopAt, aIgnoreOtherFiles, CmdParameters);
   except
     Result.Free;
     raise;
@@ -109,7 +118,7 @@ begin
         begin
           Projects.Add(TProjectDefinition.Create(files[i]));
           Logger.Trace('Loading project ' + files[i]);
-          LoadIntoProject(files[i], Projects.LastUnresolved, aStopAt, aIgnoreOtherFiles);
+          LoadIntoProject(files[i], Projects.LastUnresolved, aStopAt, aIgnoreOtherFiles, nil);
           Logger.Trace('Loaded project ' + Projects.LastUnresolved.Application.Id);
         end;
       finally

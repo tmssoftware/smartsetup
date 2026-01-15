@@ -1,0 +1,116 @@
+package VCLTMSFNCCorePkg;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$IMPLICITBUILD OFF}
+{$DESCRIPTION 'TMS FNC Core for VCL'}
+{$LIBSUFFIX '260'}
+
+requires
+  rtl,
+  vcl,
+  vclimg,
+  VclSmp,
+  vclie,
+  xmlrtl,
+  vclwinx,
+  dbrtl;
+
+contains
+  VCL.TMSFNCResponsiveManager in '..\..\VCL.TMSFNCResponsiveManager.pas',
+  VCL.TMSFNCStateManager in '..\..\VCL.TMSFNCStateManager.pas',
+  VCL.TMSFNCResponsiveManagerReg in '..\..\VCL.TMSFNCResponsiveManagerReg.pas',
+  VCL.TMSFNCCloudBase in '..\..\VCL.TMSFNCCloudBase.pas',
+  VCL.TMSFNCCloudBase.Win in '..\..\VCL.TMSFNCCloudBase.Win.pas',
+  VCL.TMSFNCBitmapEditor in '..\..\VCL.TMSFNCBitmapEditor.pas',
+  VCL.TMSFNCBitmapContainer in '..\..\VCL.TMSFNCBitmapContainer.pas',
+  VCL.TMSFNCBitmapContainerReg in '..\..\VCL.TMSFNCBitmapContainerReg.pas',
+  VCL.TMSFNCCustomComponent in '..\..\VCL.TMSFNCCustomComponent.pas',
+  VCL.TMSFNCCustomControl in '..\..\VCL.TMSFNCCustomControl.pas',
+  VCL.TMSFNCCustomScrollControl in '..\..\VCL.TMSFNCCustomScrollControl.pas',
+  VCL.TMSFNCGDIPlusApi in '..\..\VCL.TMSFNCGDIPlusApi.pas',
+  VCL.TMSFNCGDIPlusClasses in '..\..\VCL.TMSFNCGDIPlusClasses.pas',
+  VCL.TMSFNCGraphics.General in '..\..\VCL.TMSFNCGraphics.General.pas',
+  VCL.TMSFNCGraphics in '..\..\VCL.TMSFNCGraphics.pas',
+  VCL.TMSFNCGraphics.Win in '..\..\VCL.TMSFNCGraphics.Win.pas',
+  VCL.TMSFNCGraphicsPDFEngine in '..\..\VCL.TMSFNCGraphicsPDFEngine.pas',
+  VCL.TMSFNCGraphicsSVGEngine in '..\..\VCL.TMSFNCGraphicsSVGEngine.pas',
+  VCL.TMSFNCGraphicsPDFIOReg in '..\..\VCL.TMSFNCGraphicsPDFIOReg.pas',
+  VCL.TMSFNCGraphicsTypes in '..\..\VCL.TMSFNCGraphicsTypes.pas',
+  VCL.TMSFNCHint in '..\..\VCL.TMSFNCHint.pas',
+  VCL.TMSFNCHintReg in '..\..\VCL.TMSFNCHintReg.pas',
+  VCL.TMSFNCHTMLEngine in '..\..\VCL.TMSFNCHTMLEngine.pas',
+  VCL.TMSFNCJSONReader in '..\..\VCL.TMSFNCJSONReader.pas',
+  VCL.TMSFNCJSONWriter in '..\..\VCL.TMSFNCJSONWriter.pas',
+  VCL.TMSFNCPDFCoreLibBase in '..\..\VCL.TMSFNCPDFCoreLibBase.pas',
+  VCL.TMSFNCPDFGraphicsLib.General in '..\..\VCL.TMSFNCPDFGraphicsLib.General.pas',
+  VCL.TMSFNCPDFGraphicsLib in '..\..\VCL.TMSFNCPDFGraphicsLib.pas',
+  VCL.TMSFNCPDFGraphicsLibHTMLEngine in '..\..\VCL.TMSFNCPDFGraphicsLibHTMLEngine.pas',
+  VCL.TMSFNCPDFIO in '..\..\VCL.TMSFNCPDFIO.pas',
+  VCL.TMSFNCPDFLib.General in '..\..\VCL.TMSFNCPDFLib.General.pas',
+  VCL.TMSFNCPDFLib.General.Win in '..\..\VCL.TMSFNCPDFLib.General.Win.pas',
+  VCL.TMSFNCPDFLib in '..\..\VCL.TMSFNCPDFLib.pas',
+  VCL.TMSFNCPDFLibReg in '..\..\VCL.TMSFNCPDFLibReg.pas',
+  VCL.TMSFNCPDFRichTextLib.General in '..\..\VCL.TMSFNCPDFRichTextLib.General.pas',
+  VCL.TMSFNCPDFRichTextLib in '..\..\VCL.TMSFNCPDFRichTextLib.pas',
+  VCL.TMSFNCPersistence in '..\..\VCL.TMSFNCPersistence.pas',
+  VCL.TMSFNCPopup in '..\..\VCL.TMSFNCPopup.pas',
+  VCL.TMSFNCPopupReg in '..\..\VCL.TMSFNCPopupReg.pas',
+  VCL.TMSFNCScrollBar in '..\..\VCL.TMSFNCScrollBar.pas',
+  VCL.TMSFNCScrollBarReg in '..\..\VCL.TMSFNCScrollBarReg.pas',
+  VCL.TMSFNCStyles in '..\..\VCL.TMSFNCStyles.pas',
+  VCL.TMSFNCStylesEditor in '..\..\VCL.TMSFNCStylesEditor.pas',
+  VCL.TMSFNCTypes in '..\..\VCL.TMSFNCTypes.pas',
+  VCL.TMSFNCUndo in '..\..\VCL.TMSFNCUndo.pas',
+  VCL.TMSFNCURLBitmapContainer in '..\..\VCL.TMSFNCURLBitmapContainer.pas',
+  VCL.TMSFNCUtils in '..\..\VCL.TMSFNCUtils.pas',
+  VCL.TMSFNCGraphicsTools in '..\..\VCL.TMSFNCGraphicsTools.pas',
+  VCL.TMSFNCWebBrowser in '..\..\VCL.TMSFNCWebBrowser.pas',
+  VCL.TMSFNCWebBrowser.Win in '..\..\VCL.TMSFNCWebBrowser.Win.pas',
+  VCL.TMSFNCWebBrowserReg in '..\..\VCL.TMSFNCWebBrowserReg.pas',
+  VCL.TMSFNCEdgeWebBrowser in '..\..\VCL.TMSFNCEdgeWebBrowser.pas',
+  VCL.TMSFNCEdgeWebBrowserReg in '..\..\VCL.TMSFNCEdgeWebBrowserReg.pas',
+  VCL.TMSFNCWebCoreClientBrowser in '..\..\VCL.TMSFNCWebCoreClientBrowser.pas',
+  VCL.TMSFNCXPVS in '..\..\VCL.TMSFNCXPVS.pas',
+  VCL.TMSFNCStylesReg in '..\..\VCL.TMSFNCStylesReg.pas',
+  VCL.TMSFNCDataBinding in '..\..\VCL.TMSFNCDataBinding.pas',
+  VCL.TMSFNCDataBindingEditor in '..\..\VCL.TMSFNCDataBindingEditor.pas',
+  VCL.TMSFNCCustomWEBControl in '..\..\VCL.TMSFNCCustomWEBControl.pas',
+  VCL.TMSFNCCustomWEBComponent in '..\..\VCL.TMSFNCCustomWEBComponent.pas',
+  VCL.TMSFNCDataBindingReg in '..\..\VCL.TMSFNCDataBindingReg.pas',
+  VCL.TMSFNCGraphicsAppearanceEditor in '..\..\VCL.TMSFNCGraphicsAppearanceEditor.pas',
+  VCL.TMSFNCPrinters in '..\..\VCL.TMSFNCPrinters.pas',
+  VCL.TMSFNCPrintIO in '..\..\VCL.TMSFNCPrintIO.pas',
+  VCL.TMSFNCPrintIOReg in '..\..\VCL.TMSFNCPrintIOReg.pas',
+  VCL.TMSFNCBitmapContainerEditor in '..\..\VCL.TMSFNCBitmapContainerEditor.pas',
+  VCL.TMSFNCEditorButton in '..\..\VCL.TMSFNCEditorButton.pas',
+  VCL.TMSFNCEditorListView in '..\..\VCL.TMSFNCEditorListView.pas',
+  VCL.TMSFNCEditorPanel in '..\..\VCL.TMSFNCEditorPanel.pas',
+  VCL.TMSFNCEditorsTools in '..\..\VCL.TMSFNCEditorsTools.pas',
+  VCL.TMSFNCPopupMenu in '..\..\VCL.TMSFNCPopupMenu.pas',
+  VCL.TMSFNCPopupMenuReg in '..\..\VCL.TMSFNCPopupMenuReg.pas';
+
+end.

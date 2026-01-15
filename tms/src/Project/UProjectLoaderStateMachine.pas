@@ -402,7 +402,7 @@ begin
   Actions.Add('copyright', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Copyright := value; end);
   Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Url := value; end);
   Actions.Add('docs', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Docs := value; end);
-  Actions.Add('version file', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Version := ReadVersionFile(value, ErrorInfo); end);
+  Actions.Add('version file', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.VersionFile := value; Project.Application.Version := ReadVersionFile(value, ErrorInfo); end);
   Actions.Add('company name', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.CompanyName := value; end);
   Actions.Add('can add source code to library path', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.CanAddSourceCodeToLibraryPath := GetBool(value, ErrorInfo); end);
   Actions.Add('vcs protocol', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.VCSProtocol := GetVCSProtocol(value, ErrorInfo); end);
@@ -535,7 +535,7 @@ function TPackageFoldersSectionDef.Capture(const dv: TIDEName): TAction;
 begin
   Result := procedure(value: string; ErrorInfo: TErrorInfo)
     begin
-      Project.SetPackageFolders(dv, value);
+      Project.SetPackageFolders(dv, value, TPlusState.Single);
     end;
 end;
 
@@ -543,9 +543,10 @@ function TPackageFoldersSectionDef.CapturePlus(const dv: TIDEName): TAction;
 begin
   Result := procedure(value: string; ErrorInfo: TErrorInfo)
     begin
-      for var dvi := dv to High(TIDEName) do
+      Project.SetPackageFolders(dv, value, TPlusState.Plus);
+      for var dvi := Succ(dv) to High(TIDEName) do
       begin
-        Project.SetPackageFolders(dvi, value);
+        Project.SetPackageFolders(dvi, value, TPlusState.Auto);
       end;
     end;
 end;
@@ -1413,7 +1414,13 @@ constructor TExeOptionsSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   Actions := TListOfActions.Create;
+  //delphi versions is the same as compile with, but we keep it (undocumented) for backward compat.
+  //the schema defines compile with, not delphi versions
   Actions.Add('delphi versions', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.ExeOptions.CompileWith := GetExeCompileWith(value, ErrorInfo);
+    end);
+  Actions.Add('compile with', procedure(value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExeOptions.CompileWith := GetExeCompileWith(value, ErrorInfo);
     end);

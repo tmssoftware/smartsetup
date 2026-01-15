@@ -13,6 +13,7 @@ type
     FDescription: string;
     FUrl: string;
     FCopyright: string;
+    FVersionFile: string;
     FVersion: string;
     FCompanyName: string;
     FVCSProtocol: string;
@@ -26,6 +27,7 @@ type
     property Copyright: string read FCopyright write FCopyright;
     property Url: string read FUrl write FUrl;
     property Docs: string read FDocs write FDocs;
+    property VersionFile: string read FVersionFile write FVersionFile;
     property Version: string read FVersion write FVersion;
     property CompanyName: string read FCompanyName write FCompanyName;
     property VCSProtocol: string read FVCSProtocol write FVCSProtocol;
@@ -121,16 +123,19 @@ type
     FId: TFramework;
     FName: string;
     FIdeSince: TIDEName;
-    FIdeUntil: TIDEName;
+    FIdeUntil: Nullable<TIDEName>;
     FPlatforms: TPlatformSet;
     FSuportsCppBuilder: boolean;
     FDependencies: TObjectList<TDependency>;
+    function GetIdeUntil: TIDEName;
+    procedure SetIdeUntil(const Value: TIDEName);
 
   public
     property Id: TFramework read FId;
     property Name: string read FName;
     property IdeSince: TIDEName read FIdeSince write FIdeSince;
-    property IdeUntil: TIDEName read FIdeUntil write FIdeUntil;
+    property IdeUntil: TIDEName read GetIdeUntil write SetIdeUntil;
+    function HasIdeUntil: boolean;
 
     property Platforms: TPlatformSet read FPlatforms write FPlatforms;
     property Dependencies: TObjectList<TDependency> read FDependencies;
@@ -267,7 +272,7 @@ type
     FApplication: TApplicationDefinition;
     FNotSupportedIDEs: TIDENameSet;
     FPackages: TListOfPackages;
-    FDefines: TDictionary<string, boolean>;
+    FDefines: TOrderedDictionary<string, boolean>;
     FRegistryEntries: TObjectList<TRegistryEntry>;
     FHelpFile: string;
     FDependencies: TObjectList<TDependency>;
@@ -303,7 +308,7 @@ type
     property NotSupportedIDEs: TIDENameSet read FNotSupportedIDEs write FNotSupportedIDEs;
     property Packages: TListOfPackages read FPackages;
     property DefinesFilename: string read FDefinesFilename write FDefinesFilename;
-    property Defines: TDictionary<string, boolean> read FDefines;
+    property Defines: TOrderedDictionary<string, boolean> read FDefines;
     property RegistryEntries: TObjectList<TRegistryEntry> read FRegistryEntries;
     property HelpFile: string read FHelpFile write FHelpFile;
     property Dependencies: TObjectList<TDependency> read FDependencies;
@@ -335,7 +340,9 @@ type
 
     procedure RegisterFramework(const Name: string; const ErrorInfo: string);
     function GetFramework(const Name: string): TFrameworkDefinition;
+    function HasFramework(const Name: string): boolean;
     function GetFrameworkName(const Id: TFramework): string;
+    function GetFrameworkCount: integer;
     function GetAllFrameworks: TFrameworkSet;
 
     property ExtraPaths: TCompilerPaths read FExtraPaths;
@@ -357,7 +364,7 @@ type
     function FileNameExtension: TArray<string>;
 
     procedure AddSearchPathToPreserve(const Pattern: string);
-    procedure SetPackageFolders(const dv: TIDEName; const Folder: string);
+    procedure SetPackageFolders(const dv: TIDEName; const Folder: string; const PlusState: TPlusState);
     procedure SetLibSuffixes(const dv: TIDEName; const Suffix: string);
 
   end;
@@ -397,7 +404,7 @@ begin
   FPackages := TListOfPackages.Create;
   FDependencies := TObjectList<TDependency>.Create;
   FWeakDependencies := TObjectList<TDependency>.Create;
-  FDefines := TDictionary<string, boolean>.Create;
+  FDefines := TOrderedDictionary<string, boolean>.Create;
   FRegistryEntries := TObjectList<TRegistryEntry>.Create;
   FRegisteredFrameworks := TObjectDictionary<string, TFrameworkDefinition>.Create([doOwnsValues]);
   FExtraPaths := TCompilerPaths.Create;
@@ -443,6 +450,16 @@ begin
   Result := FRegisteredFrameworks[Name];
 end;
 
+function TProjectDefinition.HasFramework(const Name: string): boolean;
+begin
+  Result := FRegisteredFrameworks.ContainsKey(Name);
+end;
+
+function TProjectDefinition.GetFrameworkCount: integer;
+begin
+  Result := FRegisteredFrameworks.Count;
+end;
+
 function TProjectDefinition.GetFrameworkName(const Id: TFramework): string;
 begin
   Result := FRegisteredFrameworkNames[Id];
@@ -465,17 +482,17 @@ begin
   try
     for var ide in PackageFolders do
     begin
-      if ide = '' then continue;
+      if ide.Value = '' then continue;
       if Finder = nil then
       begin
         Finder := THashSet<string>.Create(TIStringComparer.Ordinal);
       end;
-      if Finder.Contains(ide.Trim) then
+      if Finder.Contains(ide.Value.Trim) then
       begin
         FHasMultiIDEPackages := true;
         exit(true);
       end;
-      Finder.Add(ide.Trim);
+      Finder.Add(ide.Value.Trim);
     end;
   finally
     Finder.Free;
@@ -540,9 +557,10 @@ begin
 end;
 
 procedure TProjectDefinition.SetPackageFolders(const dv: TIDEName;
-  const Folder: string);
+  const Folder: string; const PlusState: TPlusState);
 begin
-  FPackageFolders[dv] := Folder;
+  FPackageFolders[dv].Value := Folder;
+  FPackageFolders[dv].PlusState := PlusState;
 end;
 
 procedure TProjectDefinition.SetLibSuffixes(const dv: TIDEName; const Suffix: string);
@@ -648,7 +666,6 @@ constructor TFrameworkDefinition.Create(const aId: TFramework;
 begin
   FId := aId;
   FName := aName;
-  FIdeUntil := High(TIDEName);
   FDependencies := TObjectList<TDependency>.Create;
 end;
 
@@ -656,6 +673,23 @@ destructor TFrameworkDefinition.Destroy;
 begin
   FDependencies.Free;
   inherited;
+end;
+
+function TFrameworkDefinition.GetIdeUntil: TIDEName;
+begin
+  if FIdeUntil.HasValue
+    then Result := FIdeUntil.Value
+    else Result := High(TIDEName);
+end;
+
+function TFrameworkDefinition.HasIdeUntil: boolean;
+begin
+  Result := FIdeUntil.HasValue;
+end;
+
+procedure TFrameworkDefinition.SetIdeUntil(const Value: TIDEName);
+begin
+  FIdeUntil := Value;
 end;
 
 { TCompilerPaths }

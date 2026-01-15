@@ -180,8 +180,8 @@ function TProjectAnalyzer.BackToFolder(const StartFolder: string; const PackageF
 begin
   for var PackageFolder in PackageFolders do
   begin
-    if PackageFolder = '' then continue;
-    if TPackageFinder.EndsInFolder(StartFolder, PackageFolder, Result) then exit;
+    if PackageFolder.Value = '' then continue;
+    if TPackageFinder.EndsInFolder(StartFolder, PackageFolder.Value, Result) then exit;
 
   end;
 
@@ -346,7 +346,7 @@ begin
     var Naming := Config.GetNaming(Project.Naming, Project.FullPath);
     if not Project.IsExe then
     begin
-      if not (TPackageFinder.PackagesExist(BasePackagesFolder, dv, Naming, false, Project.PackageFolders[dv])) then continue; //This is for the case user didn't specify "ide until". If the package doesn't exist, we ignore it.
+      if not (TPackageFinder.PackagesExist(BasePackagesFolder, dv, Naming, false, Project.PackageFolders[dv].Value)) then continue; //This is for the case user didn't specify "ide until". If the package doesn't exist, we ignore it.
     end;
 
 
@@ -384,7 +384,7 @@ begin
         continue;
       end;
 
-      var PackagesFolder := TPackageFinder.PackagesFolder(BasePackagesFolder, dv, Naming, Project.IsExe, Project.PackageFolders[dv]);
+      var PackagesFolder := TPackageFinder.PackagesFolder(BasePackagesFolder, dv, Naming, Project.IsExe, Project.PackageFolders[dv].Value);
       var BinaryHash := '';
       {$IFDEF MSWINDOWS}
       var IDEInfo: IDelphiIDEInfo := TDelphiIDEInfo.Create(dv, BuildInfo.CurrentProject.AlternateRegistryKey, '');

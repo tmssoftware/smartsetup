@@ -31,7 +31,7 @@ type
     procedure Error(const s: string); override;
     procedure Info(const s: string); override;
     procedure Trace(const s: string); override;
-    procedure Message(const MessageKind: TLogMessageKind; const Message: string); override;
+    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const NewLine: boolean = true); override;
     property OnLogMessage: TLogMessageProc read FOnLogMessage write FOnLogMessage;
   end;
 
@@ -275,7 +275,7 @@ begin
 end;
 
 procedure TGUILogger.Message(const MessageKind: TLogMessageKind;
-  const Message: string);
+  const Message: string; const NewLine: boolean = true);
 begin
   LogMessage(Message, TLogLevel.Info);
 end;

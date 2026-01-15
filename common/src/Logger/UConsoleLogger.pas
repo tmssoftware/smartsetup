@@ -47,7 +47,7 @@ type
     procedure Error(const Message: string); override;
     procedure Info(const Message: string); override;
     procedure Trace(const Message: string); override;
-    procedure Message(const MessageKind: TLogMessageKind; const Message: string); override;
+    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const NewLine: boolean); override;
     procedure Progress(const Message: string; const Progress: TProductProgressInfo); override;
     procedure StartSection(const MessageType: TMessageType; const MessageLabel: string); override;
     procedure FinishSection(const MessageType: TMessageType; const IsError: boolean); override;
@@ -216,11 +216,12 @@ begin
 end;
 
 procedure TConsoleLogger.Message(const MessageKind: TLogMessageKind;
-  const Message: string);
+  const Message: string; const NewLine: boolean);
 begin
   OutputLock.Enter;
   try
-    WriteLn(Output, Console.SetColor(GetColor(MessageKind)) + Message + Console.SetColor(TConsoleColors.None));
+    if NewLine then WriteLn(Output, Console.SetColor(GetColor(MessageKind)) + Message + Console.SetColor(TConsoleColors.None))
+    else Write(Output, Console.SetColor(GetColor(MessageKind)) + Message + Console.SetColor(TConsoleColors.None));
   finally
     OutputLock.Leave;
   end;

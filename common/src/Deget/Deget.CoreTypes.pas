@@ -120,9 +120,15 @@ type
 {$SCOPEDENUMS ON}
   TBuildConfig = (Debug, Release);
   TPackageType = (Package, Exe);
-  TPackageFolders =  Array[TIDEName] of string;
   TLibSuffixes = Array[TIDEName] of string;
 
+  TPlusState = (Single, Plus, Auto);
+  TPackageFolder = record
+    PlusState: TPlusState;
+    Value: string;
+    class operator Initialize(out Dest: TPackageFolder);
+  end;
+  TPackageFolders =  Array[TIDEName] of TPackageFolder;
 
 const
   BuildConfigs: array[TBuildConfig] of string = ('Debug', 'Release');
@@ -226,6 +232,14 @@ begin
   Result := [];
   for var IDERange in SplitString(Value, ',') do
     Result := Result + StrToIDENameRange(IDERange, ValidIDEs);
+end;
+
+{ TPackageFolder }
+
+class operator TPackageFolder.Initialize(out Dest: TPackageFolder);
+begin
+  Dest.PlusState := TPlusState.Single;
+  Dest.Value := '';
 end;
 
 end.

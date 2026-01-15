@@ -5,8 +5,23 @@ uses Classes, SysUtils;
 
   function BBYamlUnescapeString(const s: string): string;
   function BBYamlEscapeString(const s: string; const ToJSON: boolean): string;
+  function IsBoolTrue(const s: string): boolean;
+  function IsBoolFalse(const s: string): boolean;
 
 implementation
+
+function IsBoolTrue(const s: string): boolean;
+begin
+  var s1 := AnsiLowerCase(s);
+  Result := (s1 = 'true') or (s1='1') or (s1 = 'on') or (s1 = 'yes');
+end;
+
+function IsBoolFalse(const s: string): boolean;
+begin
+  var s1 := AnsiLowerCase(s);
+  Result := (s1 = 'false') or (s1='0') or (s1 = 'off') or (s1 = 'no')
+end;
+
 function UnEscapeDoubleQuote(const s: string): string;
 begin
   //Someday we can do a better parser here.
@@ -69,9 +84,16 @@ begin
   or s.StartsWith('`')
   or s.StartsWith('"')
   or s.StartsWith('''')
-
+  or s.StartsWith('%')
+  or s.EndsWith(':')
   or s.EndsWith(' ')
   then exit(SingleQuote(s));
+
+  var value: integer;
+  if (TryStrToInt(s, value)) then exit(SingleQuote(s));
+  if (IsBoolTrue(s)) then exit(SingleQuote(s));
+  if (IsBoolFalse(s)) then exit(SingleQuote(s));
+
 
   exit(s);
 end;

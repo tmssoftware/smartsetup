@@ -43,6 +43,7 @@ type
     OpenObject: TOpenObjectAction;
     CloseObject: TCloseObjectAction;
     FInsideFlowArray: boolean;
+    function ArraysUpTo(const index: integer): string;
   public
     constructor Create(const aFilter: string; const aOpenObject: TOpenObjectAction; const aCloseObject: TCloseObjectAction);
     destructor Destroy; override;
@@ -59,7 +60,8 @@ type
 
     procedure ResetArrIndent;
     procedure UsedArrIndent;
-    function ArrIndent: string;
+    function ArrIndent: string; overload;
+    function ArrIndent(const i: integer): string; overload;
     function InsideFilter: boolean; overload;
     function InsideFilter(const aFullName: string): boolean; overload;
 
@@ -72,6 +74,7 @@ type
   private
     PendingLineFeed: boolean;
     PendingComma: boolean;
+    CmdParamName: string;
     procedure CheckPendingLineFeed;
     procedure WriteJSONComma(var IsFirst: boolean);
     function ISJsonNull(const s: string): boolean;
@@ -100,7 +103,7 @@ type
     function IsEmpty(const jValue: TYamlValue): boolean;
     procedure OpenObject(const CollectionType: TYamlCollectionType; const i: integer);
     procedure CloseObject(const CollectionType: TYamlCollectionType);
-    function Quote: string;
+    function Quote(const s: string): string;
   var
     FWritingFormat: TWritingFormat;
     ToJSON: boolean;
@@ -114,7 +117,7 @@ type
     FullSchema: TJSONObject;
     CmdSyntax: boolean;
   public
-    constructor Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON, aCmdSyntax: boolean);
+    constructor Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON, aCmdSyntax: boolean; const aCmdParamName: string);
     destructor Destroy; override;
 
     property WritingFormat: TWritingFormat read FWritingFormat write FWritingFormat;
@@ -128,16 +131,17 @@ type
     procedure Save(const aWriter: TTextWriter; const Schema: TJSONObject; const SchemaURL, HeaderComment: string);
   end;
 implementation
-uses BBClasses;
+uses BBClasses, System.JSON.Types, System.JSON.Utils;
 
 { TBBYamlWriter }
 
-constructor TBBYamlWriter.Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON, aCmdSyntax: boolean);
+constructor TBBYamlWriter.Create(const aWritingFormat: TWritingFormat; const aFilter: string; const aToJSON, aCmdSyntax: boolean; const aCmdParamName: string);
 begin
   FWritingFormat := aWritingFormat;
   Stack := TBBYamlWriterStack.Create(aFilter, OpenObject, CloseObject);
   ToJSON := aToJSON;
   CmdSyntax := aCmdSyntax;
+  CmdParamName := aCmdParamName;
 end;
 
 destructor TBBYamlWriter.Destroy;
@@ -195,16 +199,26 @@ begin
     if Name <> '' then
     begin
       if CmdSyntax
-        then WriteLineRaw('-p:"' + Quote + FullName.Substring(0, FullName.Length - 1) + Quote + ' =')
-        else WriteLineRaw(Indent + Quote + Name + Quote + ':');
+        then WriteLineRaw(CmdParamName + ':"' + Quote(FullName.Substring(0, FullName.Length - 1)) + ' =')
+        else WriteLineRaw(Indent + Quote(Name) + ':');
     end;
   end, CmdSyntax);
 
 end;
 
-function TBBYamlWriter.Quote: string;
+function TBBYamlWriter.Quote(const s: string): string;
 begin
-  if ToJSON then Result := '"' else Result := '';
+  if not ToJSON then exit(s);
+  var WriteBuffer: TCharArray := nil;
+  SetLength(WriteBuffer, 5);
+
+  var LWriter := TStringWriter.Create;
+  try
+    TJsonTextUtils.WriteEscapedString(LWriter, s, '"', true, TJsonTextUtils.DoubleQuoteCharEscapeFlags, TJsonStringEscapeHandling.Default, WriteBuffer);
+    Result := LWriter.ToString;
+  finally
+    LWriter.Free;
+  end;
 end;
 
 procedure TBBYamlWriter.WritePair(const IdName, IdComment, IdValue: string; var IsFirst: boolean);
@@ -216,17 +230,17 @@ begin
 
   var ActualComment := IdComment;
   if Assigned(OnComment) then ActualComment := OnComment(Self, Stack.GetFullName(IdName), IdComment);
-  if(WritingFormat = TWritingFormat.Full) and (ActualComment <> '') then WriteComment(Stack.Indent, ActualComment, true);
+  if(WritingFormat = TWritingFormat.Full) and (ActualComment <> '') then WriteComment(Stack.Indent + Stack.ArraysUpTo(Stack.FList.Count - 1), ActualComment, true);
   WriteJSONComma(IsFirst);
 
   var CloseValue := '';
   if CmdSyntax then
   begin
-    WriteRaw('-p:"' + Quote + Stack.FullName + IdName + Quote + ' =' + ValueSep);
+    WriteRaw(CmdParamName + ':"' + Quote(Stack.FullName + IdName) + ' =' + ValueSep);
     CloseValue := '"';
   end else
   begin
-    WriteRaw(Stack.Indent + Stack.ArrIndent + Quote + IdName + Quote + ':' + ValueSep);
+    WriteRaw(Stack.Indent + Stack.ArrIndent + Quote(IdName) + ':' + ValueSep);
   end;
   Stack.Push(IdName, IdName, '', '', TYamlCollectionType.Object);
   WriteLineRaw(IdValue + CloseValue);
@@ -236,7 +250,7 @@ end;
 
 procedure TBBYamlWriter.WriteComment(const Indent: string; const Comment: string; const Separate: boolean);
 begin
-  if ToJSON then exit;
+  if ToJSON or CmdSyntax then exit;
 
   if Separate then WriteLineRaw('');
   var Lines := Comment.Split([#10]);
@@ -305,7 +319,7 @@ end;
 
 procedure TBBYamlWriter.WriteArray(const name, comment: string; const value: TYamlValue; const Schema: TJSONObject);
 begin
-  var Flow := ToJSON or value.IsFlowArray;
+  var Flow := ToJSON or value.IsFlowArray or CmdSyntax;
   var FlowSeparator := '';
 
   var ArrayType := TYamlCollectionType.BlockArray;
@@ -431,7 +445,7 @@ begin
     begin
       WriteJSONComma(IsFirst);
       Stack.Push(name, GetAddReplaceOverload(name), comment, Stack.Indent + SingleIndent, TYamlCollectionType.Object);
-      WriteObject(Schema, jValue, -1);
+      WriteObject(Schema, jValue, ArrayIndex);
       Stack.Pop;
     end
     else if (jValue.ValueType = TYamlValueType.Null) then
@@ -488,9 +502,18 @@ begin
   var IsFirst := true;
   if InternalMembers <> nil then
   begin
+    var Schema2 := Schema;
+    if Schema2 <> nil then
+    begin
+      Schema2 := GetValue<TJSONObject>(Schema, 'properties', nil);
+    end;
+
     for var Member in InternalMembers do
     begin
-      WriteOneProperty(Member, '', nil, ArrayIndex, IsFirst);
+      var Schema3 := Schema2;
+      if Schema3 <> nil then Schema3 := Schema3.GetValue(Member) as TJSONObject;
+
+      WriteOneProperty(Member, '', Schema3, ArrayIndex, IsFirst);
     end;
     exit;
   end;
@@ -542,7 +565,7 @@ procedure TBBYamlWriter.Save(const aWriter: TTextWriter;
 begin
   Writer := aWriter;
   FullSchema := Schema;
-  if not ToJSON and (SchemaURL <> '') then
+  if not ToJSON and not CmdSyntax and (SchemaURL <> '') then
   begin
     var SchemaMeta :=  '# yaml-language-server: $schema=' + SchemaUrl;
     var Line := '# ' + StringOfChar('=', MaxLength(HeaderComment)) + '==';
@@ -578,12 +601,27 @@ begin
   FList.Add(TBBYamlWriterState.Create(aName, aDisplayName, aComment, ActualIndent, aCollectionType));
 end;
 
-function TBBYamlWriterStack.ArrIndent: string;
+function TBBYamlWriterStack.ArrIndent(): string;
 begin
-  if FList.Count = 0 then exit('');
-  
-  if FList.Last.CollectionType <> TYamlCollectionType.BlockArray then exit('');
-  if FList.Last.IsFirstProperty then exit('- ') else exit('  ');
+  Result := ArrIndent(FList.Count - 1);
+end;
+
+function TBBYamlWriterStack.ArraysUpTo(const index: integer): string;
+begin
+  Result := '';
+  for var i := 0 to index - 1 do
+  begin
+    if FList[i].CollectionType = TYamlCollectionType.BlockArray then Result := Result + '  ';
+  end;
+end;
+
+function TBBYamlWriterStack.ArrIndent(const i: integer): string;
+begin
+  if (i < 0) or (i >= FList.Count) then exit('');
+  Result := ArraysUpTo(i);
+  var Item := FList[i];
+  if Item.CollectionType <> TYamlCollectionType.BlockArray then exit;
+  if Item.IsFirstProperty then exit(Result + '- ') else exit(Result + '  ');
 end;
 
 procedure TBBYamlWriterStack.ResetArrIndent;
@@ -593,6 +631,8 @@ end;
 
 procedure TBBYamlWriterStack.UsedArrIndent;
 begin
+  if FList.Count = 0 then exit;
+  
   FList.Last.IsFirstProperty := false;
 end;
 
@@ -668,7 +708,7 @@ begin
     if not InsideFilter(FullName) then continue;
     if CmdSyntax and (FList[i].CollectionType <> TYamlCollectionType.FlowArray) then continue;
 
-    if InsideFilter(OldFullName) then NameWrite(GetIndent(i - 1), FList[i].DisplayName, FullName, FList[i].Comment);
+    if InsideFilter(OldFullName) then NameWrite(GetIndent(i - 1) + ArrIndent(i - 1), FList[i].DisplayName, FullName, FList[i].Comment);
 
     OpenObject(FList[i].CollectionType, i);
   end;

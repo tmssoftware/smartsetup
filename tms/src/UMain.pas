@@ -11,6 +11,7 @@ uses
   Commands.ListRemote,
   Commands.VersionsRemote,
   Commands.Credentials,
+  Commands.Spec,
   Commands.Config,
   Commands.ConfigWrite,
   Commands.ConfigRead,
@@ -90,6 +91,7 @@ begin
   RegisterRestoreCommand;
 
   RegisterCredentialsCommand;
+  RegisterSpecCommand;
   RegisterConfigCommand;
   RegisterConfigWriteCommand;
   RegisterConfigReadCommand;

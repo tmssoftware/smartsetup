@@ -52,7 +52,7 @@ type
     procedure Error(const Message: string); virtual; abstract;
     procedure Info(const Message: string); virtual; abstract;
     procedure Trace(const Message: string); virtual; abstract;
-    procedure Message(const MessageKind: TLogMessageKind; const Message: string); virtual; abstract;
+    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const NewLine: boolean); virtual; abstract;
     procedure Progress(const Message: string; const Progress: TProductProgressInfo); virtual;
 
 

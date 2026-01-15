@@ -439,6 +439,8 @@
         <DCCReference Include="src\Snapshot\Snapshot.Writer.pas"/>
         <DCCReference Include="src\Commands\Commands.Restore.pas"/>
         <DCCReference Include="..\common\src\System\Util.Credentials.pas"/>
+        <DCCReference Include="src\Commands\Commands.Spec.pas"/>
+        <DCCReference Include="src\Config\USpecWriter.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

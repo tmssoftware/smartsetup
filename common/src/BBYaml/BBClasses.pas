@@ -313,12 +313,9 @@ end;
 
 function TSection.GetBool(const s: string;
   const ErrorInfo: TErrorInfo): boolean;
-var
-  s1: string;
 begin
- s1 := AnsiLowerCase(s);
- if (s1 = 'true') or (s1='1') or (s1 = 'on') or (s1 = 'yes') then exit(true);
- if (s1 = 'false') or (s1='0') or (s1 = 'off') or (s1 = 'no') then exit(false);
+ if IsBoolTrue(s) then exit(true);
+ if IsBoolFalse(s) then exit(false);
 
  raise Exception.Create('"' + s + '" is not a valid boolean value. It must be true, 1, on, yes, false, 0, off or no. ' + ErrorInfo.ToString);
 

@@ -219,7 +219,9 @@ uses
   Snapshot.Reader in 'src\Snapshot\Snapshot.Reader.pas',
   Snapshot.Writer in 'src\Snapshot\Snapshot.Writer.pas',
   Commands.Restore in 'src\Commands\Commands.Restore.pas',
-  Util.Credentials in '..\common\src\System\Util.Credentials.pas';
+  Util.Credentials in '..\common\src\System\Util.Credentials.pas',
+  Commands.Spec in 'src\Commands\Commands.Spec.pas',
+  USpecWriter in 'src\Config\USpecWriter.pas';
 
 begin
   try

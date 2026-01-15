@@ -1,0 +1,237 @@
+#####################################
+# TMS Smart Setup definition file.
+# Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+#####################################
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 2.1
+  
+application:
+  id: tms.example # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
+  name: TMS Example for VCL
+  description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
+  company name: TMS Software
+  copyright: tmssoftware
+  url: https://www.tmssoftware.com/
+  # vcs protocol: git  #might be git, svn or zipfile. If omitted, it will be git.
+  docs: https://doc.tmssoftware.com/
+  version file: version.txt  # if this line is present, then version.txt must exist, it must have at least one line, 
+                             # and the line must be "something: version". like for example "tms.example: 1.0.3". 
+                             # The text after ":" will be used as version number to display along the name.
+
+# valid ide values:
+#   delphi6/delphi7/delphi2005/delphi2006/delphi2007/delphi2009/delphi2010/delphixe/delphixe2..delphixe8
+#   delphiseattle/delphiberlin/delphitokyo/delphirio/delphisydney/delphi11..delphi12
+#   lazarus
+
+# platforms you can write below:
+#  win32intel/win64intel/win64xintel/macos32intel/macos64intel/macos64arm/iossimulator/iosdevice32/iosdevice64/android32/android64/linux64
+
+# Frameworks are just a group of supported IDEs and platforms. You can define as much as you want
+# with any name you desire, and then combine them to specify what platforms and IDEs the packages support.
+supported frameworks:
+  vcl:
+    ide since: delphi7
+    ide until: delphi12
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+    c++ builder support: Yes
+
+  fmx:
+    ide since: delphixe2
+    #can omit ide until
+    platforms:
+      - all
+      - linux64: false
+
+  lcl:
+    ide since: lazarus
+    ide until: lazarus
+    platforms:
+      - win32intel
+
+  product2:
+    ide since: delphixe  # the minimum version product2 supports
+    platforms:
+      - win32intel # what product2 supports
+    dependencies:
+      - tms.product2   # a weak dependency. packages using this framework will only be compiled if tms.product2 exists
+      - ~tms.product3 # when a dependency starts with ~, it means "NOT". That is, the framework will be active is tms.product3 is NOT installed.
+
+packages:
+  - Example_Core: [runtime, vcl, fmx]
+  - VCL_Example: [runtime, vcl]            
+  - FMX_Example: [runtime, fmx]
+  - FMX_Example_DESIGN: [design, fmx]
+  - Example_That_Uses_Product2: [runtime, product2]  # this package will only be compiled if/when product2 is installed too.
+
+
+# The settings in the this section are only needed if the packages don't follow smartsetup conventions
+package options:
+  # By default, smartsetup double-checks that the dproj it is going to compile supports the platforms you specified above in the "packages" section.
+  # But some packages might have wrong data in the dproj. If you set this to true, smartsetup will ignore whatever the dproj says and only use the info in "packages" 
+  ignore dproj platforms: false
+
+  # This shouldn't be needed in general. Smartsetup will find your packages wherever they are.
+  # But sometimes you might have the same packages in different unrelated folders (maybe some backup) and SmartSetup will get confused
+  # about which ones it has to use. In this case, you can specify the relative path here where SmartSetup will start looking for packages.
+  root package folder:
+
+  # Use this *only* when you cannot change the packages. If possible, it is always better to modify the packages
+  # so they have a libsuffix. Otherwise, manual compilation of the packages will fail.
+  # add libsuffix: true
+
+  # Use this section only if you are not using the standard smartsetup folders for the packages.
+  # Note that if the same folder supports for example Delphi 11 and Delphi 12 (by using Libsuffix $(auto)), you can 
+  # write the same folder for 11 and 12.
+  # You can also use a + at the end of the IDE Name to specify that this applies to that Delphi version and all newer ones.
+  # When using + order is important. In the example above, the line with delphisydney+ affects all versions until delphi12 (sydney and 11).
+  # The line delphi12+, being below delphisydney+ affects all delphi versions after 12, overriding the line delpihsydney+.
+  # If you don't specify a name for a given version,  the standard packages will be assumed for that version.
+  package folders:
+    delphirio: Rad Studio 10.3 Rio
+    delphisydney+: Rad Studio Sydney To 11
+    delphi12+: Rad Studio 12 And Newer
+
+  # If the packages in the library use LIBSUFFIX different from the standard (270, 280, etc), you need to specify them here.
+  # In most cases, you should just have standard LIBSUFIXes and do nothing here.
+  # This setting applies to all packages in the library.
+  lib suffixes:
+   delphi11: _D11
+   delphi12: _D12
+
+  # Use this section if you require a different set of defines to compile from SmartSetup
+  # Avoid using this section whenever possible, the best is to modify the packages to have the correct includes
+  extra defines:
+    - add: MYDEFINE
+    - remove: OTHERDEFINE  
+    - add: ANOTHERDEFINE
+
+
+# Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.
+# Note: This section must come after you have specified the "packages" section above.
+package definitions:
+  Example_Core:
+    framework type: NONE # can be NONE, FMX or VCL
+    description: description for the package
+    requires: rtl;dbrtl;FireDAC   #write the dcp packages this package requires. don't include the dcp extension.
+    files:
+      - source:
+          folder: source\core;  # Include the files in the folder.
+          include file mask: '*'                  # separate masks with ;.
+          exclude file mask: '*.dcu'
+      - source:
+          folder: source\advanced;  # Include the files in the folder.
+          include folder mask: source     # for recursive calls, we will only enter folders named source  
+          exclude folder mask: .svn       # for recursive calls, we will exclude folders names .svn.
+          include file mask: '*.pas;*.rc'                  # separate masks with ;.
+          recursive: true #search in subfolders also. false by default
+
+# Only applies to executables.
+exe options:
+  # You might want to build an exe with just one delphi version, not all of them.
+  # The possible values here are "latest" (use the latest delphi version supported and installed in the user's machine), "earliest" and "all" (compile in all delphi versions
+  # supported in the user's machine). The default if omitted is "all"
+  compile with: latest
+
+  # If false, do not generate debug version of the exes even if the user is building with debug dcus. Default is false.
+  debug exes: false
+
+paths:
+  extra library paths:  #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path
+    
+     - path1 # relative to the root of the project. do not start with a \. You can also use /, tmsbuild will fix it according ot the OS.
+     - path2\a\b
+     - '@linux64,win64intel: path3' #only added to the linux64 and win64 library path
+  
+  extra browsing paths:
+  
+  extra debug dcu path:
+
+  web core paths: #paths to register in webcore
+    # - path1
+
+  # the paths below are pattern-matched with the existing library path (case insensitive), and they will be passed to the compiler if they match.
+  # Smart setup by default doesn't pass the library path in the user's machine to the compiler, to avoid errors due to broken
+  # library paths. Use this only when you need some component like fmxlinux which is not a smart-setup dependency and not something that comes built-in in delphi.
+  search paths to preserve:
+    # - *fmxlinux*
+
+  # this is similar to "extra library paths" above (and all the comments also apply here), but this path will only be added when compiling
+  # with msbuild. "extra library paths" will be added when compiling with msbuild, but also registered in Rad Studio. Entries here won't be registered.
+  # normally you will use this entries to fix buggy packages that you can't modify. It shouldn't be needed in normal cases and correct packages.
+  build-only library paths:
+  # - source
+
+defines:
+    defines filename: source/example.inc # if not empty, smart setup will create this file and overwrite any existing file. You can include this file from other include file.
+                                         # the folder must exist. You can use both / or \ as path separator, smart setup will fix it for the os. The folder must exist.
+    available defines:  # this are the defines the user can write in the "defines" section of tmsbuild.config.yaml.  
+      - RTTI  # this option will make your compiled exes much bigger. Only set it to true if requires, and likely in a product-by product basis.
+      - USE_UNICODE
+
+# Add entries to HKCU. For the values, you can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%
+# %alternate-registry-key% is what the "alternate registry key" used by delphi, as specified in tms.config.yaml
+# value type can be String or DWORD. If omitted it is String
+# For the Keys, you can use the variable %bds% to access the registry path for the BDS install.
+registry keys:
+  - Software\tmssoftware\TMS WEB Core:
+      - value:
+          name: InstallDir
+          data: '%install-path%'
+
+      - value: 
+          name:   No 
+          type: dword
+          data: '2'
+          
+  - Software\tmssoftware\TMS WEB Core\Components:
+      - value:
+          name: ' on'
+          data: 'off '
+
+# Register your help in Rad Studio
+help:
+  file: ' Documentation/Example.chm'  #this must be a chm file that will be registered so you can press F1 in Delphi and get help. If you don't have a chm file comment this line.
+
+# Create entries in the start menu.
+links:
+  - link:
+      type: file  # currently can only be file
+      name: MyTool
+      target: Tools\MyTool.exe
+      description: A tool to do stuff.
+      working folder: 
+
+  - link:
+      type: file
+      name: MyOtherTool
+      target: Tools\MyOtherTool.exe
+      description: Another tool. The same as MyTool but cooler.
+      working folder: 
+
+# Link files inside your bundle
+file links:
+  - link:
+      file to link: example.dll
+      link to folder: #optional. If you don't specify it, it will link to bpl folder.
+      os: [linux, windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
+
+# For checking if older products installed with a different method exist.
+other versions: # if the registry key exists, it means the product is already installed with other setup, and tms smart setup will refuse to run.
+  - reg: HKEY_CURRENT_USER\SOFTWARE\tmssoftware\Example 
+
+dependencies: 
+  # write here the application ids for the *direct* dependencies.
+  # if "A" depends on "B" and "B" on "C", you can just write "B" as the "A" dependency. 
+  # You can also write "C" and it will still work, but it is not necessary. Only direct dependencies are needed.
+
+  # - appid: description
+  # 
+  - tms.example2: TMS Example 2
+  - tms.example3: TMS Example 3
+
+  

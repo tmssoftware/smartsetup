@@ -55,6 +55,7 @@ type
     FPackageName: string;
     FTargetedPlatforms: string;
     FCBuilderOutputMode: TCBuilderOutputMode;
+    FProjectVersion: string;
     FPropertyGroups: TPropertyGroupEntryList;
 
   public
@@ -79,6 +80,7 @@ type
     property Win64Namespaces: string read FWin64Namespaces write FWin64Namespaces;
     property Win64xNamespaces: string read FWin64xNamespaces write FWin64xNamespaces;
     property CBuilderOutputMode: TCBuilderOutputMode read FCBuilderOutputMode write FCBuilderOutputMode;
+    property ProjectVersion: string read FProjectVersion write FProjectVersion;
 //    property ProjectImports: TList<TProjectImport> read FProjectImports;
     property PropertyGroups: TPropertyGroupEntryList read FPropertyGroups;
     property TargetedPlatforms: string read FTargetedPlatforms write FTargetedPlatforms;
@@ -498,10 +500,8 @@ begin
       try
         Info.Node := Node;
         Info.Condition := Node.Attributes['Condition'];
-        if IDEName >= TIDEName.delphi2009 then
-          Info.IsBase := Info.Condition = BaseConfigCondition
-        else
-          Info.IsBase := (Info.Condition = D2007DebugConfigCondition) or (Info.Condition = D2007ReleaseConfigCondition);
+        //We might not know which version we are reading.
+        Info.IsBase := (Info.Condition = BaseConfigCondition) or (Info.Condition = D2007DebugConfigCondition) or (Info.Condition = D2007ReleaseConfigCondition);
         Info.Is2007Debug := (IDEName <= TIDEName.delphi2009) and (Info.Condition = D2007DebugConfigCondition);
         Info.IsWin32 := Info.Condition = BaseWin32ConfigCondition;
         Info.IsWin64 := (Info.Condition = BaseWin64ConfigCondition);
@@ -1472,13 +1472,17 @@ begin
   if (Node <> nil) then
     Data.FrameworkType := Node.Text;
 
+  Node := MainPropertyGroupNode.ChildNodes.FindNode('ProjectVersion');
+  if (Node <> nil) then
+    Data.ProjectVersion := Node.Text;
+
+
   Node := MainPropertyGroupNode.ChildNodes.FindNode('TargetedPlatforms');
   if (Node <> nil) then
     Data.TargetedPlatforms := Node.Text;
 
   Node := MainPropertyGroupNode.ChildNodes.FindNode('ProjectGuid');
   Data.ProjectGuid := StringToGuid(Node.NodeValue);
-
   Data.CBuilderOutputMode := TCBuilderOutputMode.None;
   IteratePropertyGroups(function(Info: TPropGroupInfo): Boolean
     begin
