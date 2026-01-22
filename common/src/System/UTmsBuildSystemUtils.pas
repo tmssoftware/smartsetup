@@ -240,6 +240,7 @@ begin
             if StartsStr('__', F.Name) then continue;
             if SameText('RELEASE', F.Name) then continue;   //Avoid searching in the binary folders.
             if SameText('DEBUG', F.Name) then continue;
+            if SameText('Temp', F.Name) then continue;
             if AllowMany then FindProjects(TPath.Combine(FilePath, F.Name), FileExt, Files, AllowMany)
             else ChildFolders.Add(F.Name);
           end else
