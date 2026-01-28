@@ -59,8 +59,17 @@ begin
 
 {$ENDIF}
   //We could check if running the cmd returns the message that command line compiling is not available too.
+  //But that would have to take in account language translations.
   //What we can't check is the error code, as it is always 0.
   Result := TFile.GetSize(FileName) < 100000;
+
+  //Check for IDE Fix Pack: https://github.com/tmssoftware/tms-smartsetup/issues/305
+  if Result then
+  begin
+    var fastdcc := (TPath.Combine(TPath.GetDirectoryName(FileName), TPath.GetFileNameWithoutExtension(FileName) + 'compiler' + TPath.GetExtension(FileName)));
+    if TFile.Exists(fastdcc)
+      then exit(false);
+  end;
 end;
 
 function CreateDegetPackageCompilationSettings(BuildInfo: TProjectBuildInfo;
