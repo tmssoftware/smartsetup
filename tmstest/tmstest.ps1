@@ -97,6 +97,8 @@ foreach ($test in $tests) {
         continue
     }
 
+    $percent = ($index / $tests.Length) * 100
+    Write-Progress -Activity "Running tests" -Status "Test $($index) of $($tests.Length)." -PercentComplete $percent -CurrentOperation "$($test.Name)"
     Write-Host "Running test: $($test.Name)"  -NoNewline -ForegroundColor Cyan
     try {
         # Delete the test directory if it exists
@@ -109,8 +111,6 @@ foreach ($test in $tests) {
         Copy-Item -Path $test.Directory.FullName -Destination "$tmsTestRootDir\tmp-run\" -Recurse -Force -Exclude "test.*.ps1"
         Copy-Item -Path "$tmsTestRootDir\util\tms.starting.config.yaml" -Destination "$testDir\tms.config.yaml" -Force
 
-        $percent = ($index / $tests.Length) * 100
-        Write-Progress -Activity "Running tests" -Status "Test $($index) of $($tests.Length)." -PercentComplete $percent -CurrentOperation "$($test.Name)"
 
         Set-Location $testDir
         try {
