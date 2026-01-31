@@ -20,7 +20,11 @@ uses IOUtils;
 
 class function TBundleDecompressor.GetFileFormat(const FileName: string): TDownloadFormat;
 begin
-  if TZipFile.IsValid(FileName) then exit(TDownloadFormat.Zip);
+  try
+    if TZipFile.IsValid(FileName) then exit(TDownloadFormat.Zip);
+  except
+    //It is not a zipfile. TZipFile.IsValid should have returned false, but sometimes it can raise an exception...
+  end;
   if TZSTDDecompressor.IsValid(FileName) then exit(TDownloadFormat.Zstd);
   Result := TDownloadFormat.Unknown;
 end;
