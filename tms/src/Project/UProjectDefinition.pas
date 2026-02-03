@@ -72,6 +72,7 @@ type
 
     property FileMasks: TArray<TFileMasks> read FFileMasks;
     function Empty: boolean;
+    procedure ClearFolders;
   end;
 
   TPackage = class
@@ -364,6 +365,7 @@ type
     function IsExe: boolean;
     function FileNameExtension: TArray<string>;
 
+    procedure ClearSearchPathsToPreserve;
     procedure AddSearchPathToPreserve(const Pattern: string);
     procedure SetPackageFolders(const dv: TIDEName; const Folder: string; const PlusState: TPlusState);
     procedure SetLibSuffixes(const dv: TIDEName; const Suffix: string);
@@ -389,6 +391,11 @@ function TProjectDefinition.FileNameExtension: TArray<string>;
 begin
   if IsExe then begin Result := ['.dproj', '.dpr', '.cbproj']; exit; end;
   Result := ['.dproj', '.dpk', '.cbproj', BinprojExtension];
+end;
+
+procedure TProjectDefinition.ClearSearchPathsToPreserve;
+begin
+  FSearchPathsToPreserve := nil;
 end;
 
 procedure TProjectDefinition.AddSearchPathToPreserve(const Pattern: string);
@@ -932,6 +939,11 @@ end;
 procedure TFileMasksList.AddFolder(const aBaseFolder: string);
 begin
   FFileMasks := FFileMasks + [TFileMasks.Create(aBaseFolder)];
+end;
+
+procedure TFileMasksList.ClearFolders;
+begin
+  FFileMasks := nil;
 end;
 
 function TFileMasksList.Empty: boolean;

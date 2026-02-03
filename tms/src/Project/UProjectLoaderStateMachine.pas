@@ -302,7 +302,7 @@ type
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition;
       const AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask: TProc<string>;
-      const SetRecursive: TProc<boolean>);
+      const SetRecursive: TProc<boolean>; const ClearFolders: TProc);
     class function SectionNameStatic: string; override;
   end;
 
@@ -472,6 +472,7 @@ constructor TPackagesSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
+  ClearArrayValues := procedure begin Project.Packages.Clear;end;
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
@@ -618,6 +619,7 @@ constructor TDependenciesSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
+  ClearArrayValues := procedure begin Project.Dependencies.Clear;end;
 
   ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin Project.Dependencies.Add(TDependency.Create(name, value)); end;
 end;
@@ -687,6 +689,8 @@ begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.Defines.Clear;end;
+
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     Project.Defines.AddOrSetValue(name, true);
   end;
@@ -720,6 +724,8 @@ constructor TRegistryKeysSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ContainsArrays := true;
+  ClearArrayValues := procedure begin Project.RegistryEntries.Clear;end;
+
   ChildSectionAction :=
     function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
     begin
@@ -886,6 +892,8 @@ begin
   Framework := aFramework;
   SectionValueTypes := TSectionValueTypes.Both;
   ContainsArrays := true;
+  ClearArrayValues := procedure begin Framework.Platforms := [];end;
+
 
   Actions := TListOfActions.Create;
   for dp := Low(TPlatform) to High(TPlatform) do
@@ -994,6 +1002,7 @@ begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.DebugDCUPaths.Clear;end;
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
@@ -1015,6 +1024,7 @@ begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.LibraryPathsBuildAndRegister.Clear;end;
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
@@ -1036,6 +1046,7 @@ begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.LibraryPathsBuildOnly.Clear;end;
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
@@ -1057,6 +1068,7 @@ begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.BrowsingPaths.Clear;end;
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
@@ -1078,6 +1090,8 @@ begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.WebCorePaths.Clear;end;
+
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
@@ -1099,6 +1113,7 @@ begin
   inherited Create(aParent, aProject);
   Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ClearSearchPathsToPreserve;end;
 
   ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
@@ -1121,6 +1136,7 @@ constructor TLinksSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ContainsArrays := true;
+  ClearArrayValues := procedure begin Project.Shortcuts.Clear;end;
   ChildSections.Add(TLinkSectionDef.SectionNameStatic, TLinkSectionDef.Create(Self, aProject));
 
   ChildSectionAction :=
@@ -1179,6 +1195,7 @@ begin
   inherited Create(aParent, aProject);
   ContainsArrays := true;
   ChildSections.Add(TFileLinkSectionDef.SectionNameStatic, TFileLinkSectionDef.Create(Self, aProject));
+  ClearArrayValues := procedure begin Project.FileLinks.Clear;end;
 
   ChildSectionAction :=
     function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
@@ -1241,6 +1258,8 @@ constructor TOtherVersionsSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ContainsArrays := true;
+  ClearArrayValues := procedure begin Project.OtherRegistryKeys.Clear;end;
+
   Actions := TListOfActions.Create;
   Actions.Add('reg', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.OtherRegistryKeys.Add(value); end );
 
@@ -1309,8 +1328,8 @@ begin
          procedure(Masks: string) begin FPackage.FileMasks.SetExcludeFolders(GetMasks(Masks)); end,
          procedure(Masks: string) begin FPackage.FileMasks.SetIncludeFiles(GetMasks(Masks)); end,
          procedure(Masks: string) begin FPackage.FileMasks.SetExcludeFiles(GetMasks(Masks)); end,
-         procedure(value: boolean) begin FPackage.FileMasks.SetRecursive(value); end
-         )
+         procedure(value: boolean) begin FPackage.FileMasks.SetRecursive(value); end,
+         procedure begin FPackage.FileMasks.ClearFolders; end)
        );
 end;
 
@@ -1351,11 +1370,13 @@ end;
 constructor TStandardFilesSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition;
   const AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask: TProc<string>;
-  const SetRecursive: TProc<boolean>);
+  const SetRecursive: TProc<boolean>; const ClearFolders: TProc);
 begin
   inherited Create(aParent, aProject);
   SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
+  ClearArrayValues := procedure begin ClearFolders;end;
+
 
   ChildSections.Add(TStandardFilesSourceSectionDef.SectionNameStatic, TStandardFilesSourceSectionDef.Create(Self, aProject,
     AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask, SetRecursive));
@@ -1398,6 +1419,8 @@ begin
   inherited Create(aParent, aProject);
   ContainsArrays := true;
   Actions := TListOfActions.Create;
+  ClearArrayValues := procedure begin Project.PackageExtraDefines.Clear;end;
+
   Actions.Add('add', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.PackageExtraDefines.Add(value);  end);
   Actions.Add('remove', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.PackageExtraDefines.Add('-'+ value);  end);
 end;
