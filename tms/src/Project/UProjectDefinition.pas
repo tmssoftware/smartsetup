@@ -136,6 +136,7 @@ type
     property IdeSince: TIDEName read FIdeSince write FIdeSince;
     property IdeUntil: TIDEName read GetIdeUntil write SetIdeUntil;
     function HasIdeUntil: boolean;
+    procedure ClearIdeUntil;
 
     property Platforms: TPlatformSet read FPlatforms write FPlatforms;
     property Dependencies: TObjectList<TDependency> read FDependencies;
@@ -685,6 +686,11 @@ end;
 function TFrameworkDefinition.HasIdeUntil: boolean;
 begin
   Result := FIdeUntil.HasValue;
+end;
+
+procedure TFrameworkDefinition.ClearIdeUntil;
+begin
+  FIdeUntil := SNull;
 end;
 
 procedure TFrameworkDefinition.SetIdeUntil(const Value: TIDEName);

@@ -2,7 +2,8 @@ unit Commands.Spec;
 interface
 
 uses
-  System.SysUtils, UCommandLine, VSoft.CommandLine.Options, Commands.CommonOptions, UMultiLogger, ULogger;
+  System.SysUtils, UCommandLine, VSoft.CommandLine.Options,
+  Commands.CommonOptions, UMultiLogger, ULogger, Generics.Defaults;
 
 procedure RegisterSpecCommand;
 
@@ -10,7 +11,7 @@ implementation
 
 uses
   USpecWriter, UTmsBuildSystemUtils, UProjectDefinition, UProjectLoader, IOUtils, Deget.Filer.DprojFile,
-  Deget.Version, Deget.Filer.Types,
+  Deget.Version, Deget.Filer.Types, Deget.IDETypes,
   Generics.Collections,
 {$IFDEF MSWINDOWS}
   Windows, ActiveX,
@@ -27,7 +28,12 @@ type
     destructor Destroy; override;
   end;
 
-  TPackageDataList = TObjectDictionary<string, TPackageData>;
+  TPackageDataList = class(TObjectDictionary<string, TPackageData>)
+  public
+    IDEName: TIDEName;
+    IsPlusName: boolean;
+    IsStandardName: boolean;
+  end;
 
   TPackageManager = class
   private
@@ -36,11 +42,13 @@ type
     function HasUnsolvedDependencies(const Deps: THashSet<string>; const AllPackages: TObjectOrderedDictionary<string, THashSet<string>>; const SortedPackages: TOrderedDictionary<string, bool>): boolean;
   public
     property Exes: TList<string> read FExes;
-    property Packages: TObjectOrderedDictionary<string,TPackageDataList> read FPackages;
+    property Packages: TObjectOrderedDictionary<string, TPackageDataList> read FPackages;
 
     procedure Load;
-    procedure LoadPackageData(const RootFolder: string);
-    function SortPackages(const RootFolder: string): TArray<string>;
+    procedure RemovePackagesNotInFolder(const RootFolder: string);
+    procedure LoadPackageData;
+    procedure SortByIDEName;
+    function GetSortedPackages: TArray<string>;
 
     function GetPackageData(const DProj: string): TPackageReadData;
 
@@ -73,6 +81,8 @@ begin
   Result := '';
   for var i :=Low(Options) to High(Options) do
   begin
+    if Options[i] = '' then continue;
+
     if Result <> '' then
     begin
       if i < High(Options) then Result := Result + ', ' else Result := Result + ' or ';
@@ -86,7 +96,7 @@ begin
   while True do
   begin
     var Answer := Question(Ask, Description, DefaultAnswer).Trim.ToLowerInvariant;
-    for var c in Options do if(SameText(Answer, c)) then exit(c);
+    for var c in Options do if((c <> '') and SameText(Answer, c)) then exit(c);
     Logger.Message(TLogMessageKind.Text, 'Please answer ' + Join(Options));
     if not Interactive then raise Exception.Create('Internal error: There is no default option for non-interactive mode.');
   end;
@@ -118,6 +128,17 @@ end;
 function GetIDE(const IDE: string): TIDEName;
 begin
   for var i := Low(TIDEName) to High(TIDEName) do if SameText(IDEId[i], IDE) then exit(i);
+  exit(High(TIDEName));
+end;
+
+function GetIDEPlus(const IDE: string; var IsPlus: boolean): TIDEName;
+begin
+  IsPlus := false;
+  for var i := Low(TIDEName) to High(TIDEName) do
+  begin
+    if SameText(IDEId[i], IDE) then exit(i);
+    if SameText(IDEId[i] +'+', IDE) then begin; IsPlus := true; exit(i); end;
+  end;
   exit(High(TIDEName));
 end;
 
@@ -180,16 +201,40 @@ begin
   Pack.Frameworks := [0];
 end;
 
-function ActualPlatforms(const Platforms: TPlatformSet; const Usage: TPackageUsage; const IDEName: TIDEName): TPlatformSet;
+function PlatformApplies(const Plat: TPlatform; const PackageUsage: TPackageUsage; const IDE: TIDEName): boolean;
 begin
-  if Usage = TPackageUsage.Runtime then exit(Platforms);
-  Result := [];
-  if (TPlatform.win32intel in Platforms) then Result := Result + [TPlatform.win32intel];
-  if IDEName < TIDEName.delphi12 then exit;
-  if (TPlatform.win64intel in Platforms) then Result := Result + [TPlatform.win64intel];
+  if PackageUsage = TPackageUsage.DesignTime then
+  begin
+    if IDE >= TIDEName.delphi12 then
+    begin
+      exit ((Plat = TPlatform.win32intel) or (Plat = TPlatform.win64intel));
+    end;
+    exit(Plat = TPlatform.win32intel);
+  end;
+
+  exit (Plat in PlatformsInDelphi[IDE]);
 end;
 
-function RegisterFramework(const Product: TProjectDefinition; const BaseFrameworkName: string; const PackageData: TPackageReadData; const IdeSince: TIDEName): string;
+function SamePlatforms(const FrameworkPlatforms: TPlatformSet; const FrameworkIDE: TIDEName;
+   const PackageUsage: TPackageUsage; const PackagePlatforms: TPlatformSet; const PackageIDE: TIDEName): boolean;
+begin
+  Result := true;
+  for var Plat := Low(TPlatform) to High(TPlatform) do
+  begin
+    if not PlatformApplies(Plat, PackageUsage, PackageIDE) then continue;
+    if not PlatformApplies(Plat, PackageUsage, FrameworkIDE) then continue;
+
+    if (Plat in FrameworkPlatforms) xor (Plat in PackagePlatforms) then exit(false);
+  end;
+end;
+
+procedure FixPlatforms(const Framework: TFrameworkDefinition; const NewPlaforms: TPlatformSet; const IDEName: TIDEName);
+begin
+  Framework.IdeUntil := IDEName;
+  Framework.Platforms := Framework.Platforms + NewPlaforms;
+end;
+
+function RegisterFramework(const Product: TProjectDefinition; const BaseFrameworkName: string; const PackageData: TPackageReadData; const IDEName: TIDEName): string;
 begin
   var Index := -1;
   while True do
@@ -201,15 +246,19 @@ begin
     if Product.HasFramework(FrameworkName) then
     begin
       var Framework := Product.GetFramework(FrameworkName);
-//      if (ActualPlatforms(Framework.Platforms, PackageData.Usage, IDESince) = PackageData.SupportedPlatforms)
-      if (Framework.Platforms = PackageData.SupportedPlatforms)
+      if (SamePlatforms(Framework.Platforms, Framework.IdeUntil, PackageData.Usage, PackageData.SupportedPlatforms, IDEName))
         and (Framework.SupportsCppBuilder = (PackageData.CBuilderOutputMode <> TCBuilderOutputMode.None))
-        then exit(FrameworkName);
+        then
+        begin
+          FixPlatforms(Framework, PackageData.SupportedPlatforms, IDEName);
+          exit(FrameworkName);
+        end;
     end else
     begin
       Product.RegisterFramework(FrameworkName, '');
       var Framework := Product.GetFramework(FrameworkName);
-      Framework.IdeSince := IDESince;
+      Framework.IdeSince := IDEName;
+      Framework.IdeUntil := IDEName;
 
       Framework.Platforms := PackageData.SupportedPlatforms;
       Framework.SupportsCppBuilder := PackageData.CBuilderOutputMode <> TCBuilderOutputMode.None;
@@ -223,33 +272,29 @@ begin
   for var Pack in Packages do
   begin
     if SameText(Pack.Name, PackageName) then exit(Pack);
-    
   end;
 
   Packages.Add(TPackage.Create(PackageName));
   Result := Packages.Last;
-
 end;
 
-procedure ConfigurePackages(const Product: TProjectDefinition; const SortedPackages: TArray<string>; const Packages: TDictionary<string, TPackageData>);
+procedure ConfigurePackages(const Product: TProjectDefinition; const SortedPackages: TArray<string>; const Packages: TPackageDataList);
 begin
-  var IDESince := TIDEName(-1);
   for var SortedPackage in SortedPackages do
   begin
     var Package: TPackageData := nil;
     if not Packages.TryGetValue(SortedPackage, Package) then continue;
 
     var FrameworkName := Package.Data.FrameworkType.ToLower.Trim;
-    if (FrameworkName = '') or (FrameworkName = 'none') then FrameworkName := 'pkg';
-    if (IDESince = TIDEName(-1)) then IDESince := GetIdeSince('Packages', Package.Data.ProjectVersion);
-    var FinalFrameworkName := RegisterFramework(Product, FrameworkName, Package.Data, IDESince);
+    if (FrameworkName = '') or (FrameworkName = 'none') then FrameworkName := 'rtl';
+    var FinalFrameworkName := RegisterFramework(Product, FrameworkName, Package.Data, Packages.IDEName);
 
     var Pack := FindPackage(TPath.GetFileNameWithoutExtension(Package.FileName), Product.Packages);
     Pack.PackageType := TPackageType.Package;
     case Package.Data.Usage of
       TPackageUsage.Runtime: Pack.IsRuntime := true;
       TPackageUsage.DesignTime : Pack.IsDesign := true;
-      TPackageUsage.RuntimeAndDesignTime: begin Pack.IsRuntime := true; Pack.IsDesign := true; end;
+      TPackageUsage.RuntimeAndDesignTime: begin Pack.IsRuntime := true; end; //We behave differently from the dproj. In a dproj, a runtime+designtime can be compiled say in macos, because it is runtime. For us, a runtime+designtime can only be conpiled for design.
     end;
 
     Pack.Frameworks := Pack.Frameworks + [Product.GetFramework(FinalFrameworkName).Id];
@@ -276,6 +321,109 @@ begin
   Result := PkgFolder;
 end;
 
+function FindAndAssignIDE(const Packs: TPair<string, TPackageDataList>): boolean;
+begin
+  for var IDEName := Low(TIDEName) to High(TIDEName) do
+  begin
+    if SameText(TPath.GetFileName(Packs.Key), DelphiSuffixes[IDEName]) then
+    begin
+      Packs.Value.IDEName := IDEName;
+      Packs.Value.IsStandardName := true;
+      exit(true);
+    end;
+    if SameText(TPath.GetFileName(Packs.Key), DelphiSuffixes[IDEName] + '+') then
+    begin
+      Packs.Value.IDEName := IDEName;
+      Packs.Value.IsPlusName := true;
+      Packs.Value.IsStandardName := true;
+      exit(true);
+    end;
+  end;
+  Result := false;
+end;
+
+procedure RemoveItem(var DelphiVersions: TArray<string>; const IDEName: TIDEName; const FirstIDE: TIDEName);
+begin
+  if IDEName < FirstIDE then exit;
+  DelphiVersions[ord(IDEName) - ord(FirstIDE)] := '';
+  DelphiVersions[(ord(IDEName) - ord(FirstIDE)) + (Length(IDEId) - ord(FirstIDE))] := '';
+end;
+
+function First(const Data: TPackageDataList): TPackageData;
+begin
+  for var d in Data do exit(d.Value);
+  raise Exception.Create('Invalid dictionary, there are no items.');
+end;
+
+procedure AssignIDEs(const PackageManager: TPackageManager);
+const
+  FirstItem = TIDEName.delphixe;
+begin
+  var DelphiVersions: TArray<string> := nil;
+  SetLength(DelphiVersions, (Length(IDEId) - ord(FirstItem)) * 2);
+  for var IDEIndex := FirstItem to High(TIDEName) do DelphiVersions[ord(IDEIndex) - ord(FirstItem)] := IDEId[IDEIndex];
+  for var IDEIndex := FirstItem to High(TIDEName) do DelphiVersions[Length(IDEId) - ord(FirstItem) + ord(IDEIndex) - ord(FirstItem)] := IDEId[IDEIndex] + '+';
+
+  for var Packs in PackageManager.Packages do
+  begin
+    if FindAndAssignIDE(Packs) then
+    begin
+      RemoveItem(DelphiVersions, Packs.Value.IDEName, FirstItem);
+
+    end else
+    begin
+      var IDE := GetIDEPlus(QuestionChoose('Packages in folder ' + TPath.GetFileName(Packs.Key) + ' are for Rad Studio:', 'Write one of ' + Join(DelphiVersions),
+        IDEId[GetBestDelphi(First(Packs.Value).Data.ProjectVersion)], DelphiVersions), Packs.Value.IsPlusName);
+      Packs.Value.IDEName := IDE;
+      RemoveItem(DelphiVersions, IDE, FirstItem);
+    end;
+
+  end;
+end;
+
+function GetConsistentLibSuffix(const Packages: TPackageDataList): string;
+begin
+  Result := '';
+  var FirstPackage := true;
+  for var Package in Packages.Values do
+  begin
+    var PackageSuffix := Package.Data.DllSuffix;
+    if FirstPackage then
+    begin
+      Result := PackageSuffix;
+      FirstPackage := false;
+    end
+    else if not SameText(Result, PackageSuffix) then
+      exit('');
+  end;
+end;
+
+procedure SetPackageOptions(const Product: TProjectDefinition; const PackageManager: TPackageManager);
+begin
+  for var Folder in PackageManager.Packages do
+  begin
+    // Only set package folder if it differs from the standard naming
+    if not Folder.Value.IsStandardName then
+    begin
+      var FolderName := TPath.GetFileName(Folder.Key);
+      var PlusState: TPlusState;
+      if Folder.Value.IsPlusName then
+        PlusState := TPlusState.Plus
+      else
+        PlusState := TPlusState.Single;
+
+      Product.SetPackageFolders(Folder.Value.IDEName, FolderName, PlusState);
+    end;
+
+    // Only set lib suffix if consistent, not empty, not $(Auto), and not the default
+    var CommonSuffix := GetConsistentLibSuffix(Folder.Value);
+    if (CommonSuffix <> '')
+      and not SameText(CommonSuffix, '$(Auto)')
+      and not SameText(CommonSuffix, PackageSuffixes[Folder.Value.IDEName])
+      then Product.SetLibSuffixes(Folder.Value.IDEName, CommonSuffix);
+  end;
+end;
+
 procedure SelectPackages(const Product: TProjectDefinition; const PackageManager: TPackageManager);
 begin
   var Folders := TDictionary<string, bool>.Create;
@@ -297,14 +445,23 @@ begin
     end;
 
     Logger.Message(TLogMessageKind.Text, 'Using Packages in folder ' + PackageFolder);
-    PackageManager.LoadPackageData(PackageFolder);
-    var SortedPackages := PackageManager.SortPackages(PackageFolder);
+    PackageManager.RemovePackagesNotInFolder(PackageFolder);
+    PackageManager.LoadPackageData;
+    AssignIDEs(PackageManager);
+    PackageManager.SortByIDEName;
+
+    var SortedPackages := PackageManager.GetSortedPackages;
+    var LastIDE := TIDEName.lazarus;
     for var Folder in PackageManager.Packages do
     begin
-      if Folder.Key.StartsWith(PackageFolder) then
-      begin
-        ConfigurePackages(Product, SortedPackages, Folder.Value);
-      end;
+      ConfigurePackages(Product, SortedPackages, Folder.Value);
+      LastIDE := Folder.Value.IDEName;
+    end;
+
+    for var FrameworkId in Product.GetAllFrameworks do
+    begin
+      var Framework := Product.GetFramework(Product.GetFrameworkName(FrameworkId));
+      if Framework.IdeUntil = LastIDE then Framework.ClearIdeUntil;
     end;
 
 
@@ -347,6 +504,7 @@ begin
   else
   begin
     SelectPackages(Product, PackageManager);
+    SetPackageOptions(Product, PackageManager);
   end;
 
 
@@ -551,18 +709,46 @@ begin
 
 end;
 
-procedure TPackageManager.LoadPackageData(const RootFolder: string);
+procedure TPackageManager.LoadPackageData;
 begin
   for var Folder in Packages do
   begin
-    if Folder.Key.StartsWith(RootFolder) then
+    for var Value in Folder.Value.Values do
     begin
-      for var Value in Folder.Value.Values do
-      begin
-        Value.Data := GetPackageData(Value.FileName);
-      end;
+      Logger.Message(TLogMessageKind.Text, '.', false, false);
+      Value.Data := GetPackageData(Value.FileName);
     end;
   end;
+  Logger.Message(TLogMessageKind.Text, '.', false, true);
+end;
+
+procedure TPackageManager.RemovePackagesNotInFolder(const RootFolder: string);
+begin
+  var KeysToRemove := TList<string>.Create;
+  try
+    for var Key in Packages.Keys do
+    begin
+      if not Key.StartsWith(RootFolder)
+        then KeysToRemove.Add(Key);
+    end;
+
+    for var Key in KeysToRemove do
+    begin
+      Packages.Remove(Key);
+    end;
+  finally
+    KeysToRemove.Free;
+  end;
+
+end;
+
+procedure TPackageManager.SortByIDEName;
+begin
+  Packages.SortByValues(TDelegatedComparer<TPackageDataList>.Create(
+    function(const Left, Right: TPackageDataList): Integer
+    begin
+      Result := Ord(Left.IDEName) - Ord(Right.IDEName);
+    end));
 end;
 
 function TPackageManager.HasUnsolvedDependencies(const Deps: THashSet<string>; const AllPackages: TObjectOrderedDictionary<string, THashSet<string>>; const SortedPackages: TOrderedDictionary<string, bool>): boolean;
@@ -575,14 +761,13 @@ begin
   Result := false;
 end;
 
-function TPackageManager.SortPackages(const RootFolder: string): TArray<string>;
+function TPackageManager.GetSortedPackages: TArray<string>;
 begin
   Result := nil;
   var AllPackages := TObjectOrderedDictionary<string, THashSet<string>>.Create([doOwnsValues]);
   try
     for var Folder in Packages do
     begin
-      if not Folder.Key.StartsWith(RootFolder) then continue;
       for var Value in Folder.Value.Values do
       begin
         var PkgList: THashSet<string> := nil;

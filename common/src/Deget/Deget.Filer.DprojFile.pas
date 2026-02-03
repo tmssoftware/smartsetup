@@ -57,6 +57,7 @@ type
     FCBuilderOutputMode: TCBuilderOutputMode;
     FProjectVersion: string;
     FPropertyGroups: TPropertyGroupEntryList;
+    FDllSuffix: string;
 
   public
     constructor Create;
@@ -84,6 +85,7 @@ type
 //    property ProjectImports: TList<TProjectImport> read FProjectImports;
     property PropertyGroups: TPropertyGroupEntryList read FPropertyGroups;
     property TargetedPlatforms: string read FTargetedPlatforms write FTargetedPlatforms;
+    property DllSuffix: string read FDllSuffix write FDllSuffix;
   end;
 
   TPackageReadData = class(TBasePackageReadData)
@@ -1508,6 +1510,10 @@ begin
         Node := Info.Node.ChildNodes.FindNode('DCC_CBuilderOutput');
         if (Node <> nil) and SameText(Node.Text, 'All') then
           Data.CBuilderOutputMode := TCBuilderOutputMode.All;
+
+        Node := Info.Node.ChildNodes.FindNode('DllSuffix');
+        if Node <> nil then
+          Data.DllSuffix := Node.NodeValue;
       end
       else
       if Info.IsWin32 or Info.IsWin64 or Info.IsWin64x then
@@ -1540,7 +1546,8 @@ begin
 
   Node := MainPropertyGroupNode.ChildNodes.FindNode('TargetedPlatforms');
   if Node <> nil then
-    Data.SupportedPlatforms := IntegerToPlatforms(Node.NodeValue);
+    Data.SupportedPlatforms := IntegerToPlatforms(Node.NodeValue)
+  else Data.SupportedPlatforms := [TPlatform.win32intel]; //D<XE2 doesn't have platforms.
 
   Node := ItemGroupNode.ChildNodes.First;
   while (Node <> nil) do
