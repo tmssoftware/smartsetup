@@ -47,6 +47,7 @@ configuration for %product-id%:
 %{#has-compilation-options}%    
   compilation options:
     debug dcus: %debug-dcus%
+    xml docs: %xml-docs%
 
     # specify compilation directives to be set when building the packages
 %{#is-not-all-products}% 

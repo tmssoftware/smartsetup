@@ -528,7 +528,9 @@ begin
    // an optimization would be to not rebuild everything if debug dcus changed.
    // but it is complex to do, and changing between compiling with debug and without shouldn't be common.
    if not Product.BoolProperties.TryGetValue(ConfigKeys.DebugDcus, DebugDcus) then DebugDcus := false;
-   Result := Result + '~' + BoolToStr(DebugDcus);
+   var XmlDocs: boolean;
+   if not Product.BoolProperties.TryGetValue(ConfigKeys.XmlDocs, XmlDocs) then XmlDocs := false;
+   Result := Result + '~' + BoolToStr(DebugDcus) + '~' + BoolToStr(XmlDocs);
 
 end;
 
