@@ -180,6 +180,7 @@ begin
 
   Result.ExtraSearchPath := ExtraPath;
   Result.SearchPathsToPreserve := Project.SearchPathsToPreserve;
+  Result.ExtraCompilerParameters := Config.CompilerParameters(Project.Application.Id, IDEName);
 end;
 
 procedure DelphiCompile(const ProjectFile: string; IDEName: TIDEName; Settings: TCompilationSettings;

@@ -27,6 +27,7 @@ type
     FSearchPathMode: TSearchPathMode;
     FWarningsAsErrors: Nullable<boolean>;
     FTargetConfig: Nullable<string>;
+    FExtraCompilerParameters: string;
   public
     property BuildMode: TBuildMode read FBuildMode write FBuildMode;
     property TargetConfig: Nullable<string> read FTargetConfig write FTargetConfig;
@@ -37,6 +38,7 @@ type
     property SearchPathMode: TSearchPathMode read FSearchPathMode write FSearchPathMode;
     property ExtraSearchPath: Nullable<string> read FExtraSearchPath write FExtraSearchPath;
     property SearchPathsToPreserve: TArray<string> read FSearchPathsToPreserve write FSearchPathsToPreserve;
+    property ExtraCompilerParameters: string read FExtraCompilerParameters write FExtraCompilerParameters;
 
   end;
 

@@ -492,6 +492,10 @@ begin
   // Different registry settings
   if Settings.RegistryName <> '' then
     Result := Result + ' /p:BDSAppDataBaseDir=' + Quote(Settings.RegistryName);
+
+  if Settings.ExtraCompilerParameters <> '' then Result := Result + ' ' + Settings.ExtraCompilerParameters;
+
+
 //  Logger.Note(Result);
 end;
 
