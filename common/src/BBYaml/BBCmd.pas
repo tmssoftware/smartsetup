@@ -66,12 +66,14 @@ begin
     end;
   end;
 
-  TSection.GetArray(ArrayStr.Trim, nil,
+  TSection.GetFlowArray(ArrayStr.Trim, nil,
     procedure(Value: string; ErrorInfo: TErrorInfo)
     begin
       var ElementName := Value;
       var ElementValue := '';
       var idx := Value.IndexOf(':');
+      if idx < 0 then idx := Value.IndexOf('=');
+      
       if idx > 0 then
       begin
         ElementName := Value.Substring(0, idx).Trim;
@@ -119,7 +121,7 @@ begin
       end;
       if Parameter[i] = '=' then
       begin
-        Value := Parameter.Substring(i).Trim;
+        Value := BBYamlUnescapeString(Parameter.Substring(i).Trim);
         EndParameter := i - 1;
         break;
       end;

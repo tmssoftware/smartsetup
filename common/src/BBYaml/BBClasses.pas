@@ -80,7 +80,7 @@ public
   ArrayActions: TListOfActions;
 
   procedure ThrowInvalidTag(const Name: string; const ErrorInfo: TErrorInfo);
-  class procedure GetArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
+  class procedure GetFlowArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
 
   function ExtraInfo: string; virtual;
 
@@ -293,12 +293,36 @@ begin
   '". It must be one of [' + ListSectionsAndActions + ']. ' + ErrorInfo.ToString);
 end;
 
-class procedure TSection.GetArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
+class procedure TSection.GetFlowArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
 var
   Act: TAction;
+  varr: TArray<string>;
+  Content: string;
+  BracketDepth: Integer;
+  StartPos, i: Integer;
 begin
-  if not s.StartsWith('[') then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
-  var varr := s.Substring(1, s.Length - 2).Split([',']);
+  if not s.StartsWith('[') and not s.EndsWith(']') then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
+  Content := s.Substring(1, s.Length - 2);
+
+  // Split by commas, but only at top level (not inside nested brackets)
+  varr := [];
+  BracketDepth := 0;
+  StartPos := 1;
+  for i := 1 to Length(Content) do
+  begin
+    if Content[i] = '[' then
+      Inc(BracketDepth)
+    else if Content[i] = ']' then
+      Dec(BracketDepth)
+    else if (Content[i] = ',') and (BracketDepth = 0) then
+    begin
+      varr := varr + [Copy(Content, StartPos, i - StartPos)];
+      StartPos := i + 1;
+    end;
+  end;
+  // Add the last element
+  if StartPos <= Length(Content) then
+    varr := varr + [Copy(Content, StartPos, Length(Content) - StartPos + 1)];
 
   for var v0 in varr do
   begin

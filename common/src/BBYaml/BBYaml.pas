@@ -182,7 +182,7 @@ begin
   if Assigned(Section.ArrayMainAction) then Section.ArrayMainAction(Name, Value, ErrorInfo);
   if Section.ArrayActions <> nil then
   begin
-    Section.GetArray(Value, Section.ArrayActions, nil, ErrorInfo);
+    Section.GetFlowArray(Value, Section.ArrayActions, nil, ErrorInfo);
   end;
 
 end;

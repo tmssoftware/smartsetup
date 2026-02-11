@@ -266,7 +266,7 @@ filter Assert-ValueIs
 
   $same = ($expected -eq $_)
   if (!$same) { 
-    throw "'$_' is not equal to '$expected'"
+    throw "Actual value: '$_' is not equal to expected value: '$expected'"
   }
 }
 

@@ -42,8 +42,9 @@ type
     FFilter: string;
     OpenObject: TOpenObjectAction;
     CloseObject: TCloseObjectAction;
-    FInsideFlowArray: boolean;
+    FInsideFlowArray: integer;
     function ArraysUpTo(const index: integer): string;
+    function GetInsideFlowArray: boolean;
   public
     constructor Create(const aFilter: string; const aOpenObject: TOpenObjectAction; const aCloseObject: TCloseObjectAction);
     destructor Destroy; override;
@@ -65,7 +66,9 @@ type
     function InsideFilter: boolean; overload;
     function InsideFilter(const aFullName: string): boolean; overload;
 
-    property InsideFlowArray: boolean read FInsideFlowArray;
+    property InsideFlowArray: boolean read GetInsideFlowArray;
+    procedure IncInsideFlowArray;
+    procedure DecInsideFlowArray;
   end;
 
   TWritingFormat = (Minimal, NoComments, Full);
@@ -185,7 +188,7 @@ begin
     IsFirst := false;
   end else
   begin
-    if ToJSON then PendingComma := true;
+    if ToJSON or (CmdSyntax and Stack.InsideFlowArray) then PendingComma := true;
   end;
 end;
 
@@ -198,8 +201,12 @@ begin
     if ((WritingFormat = TWritingFormat.Full) or (Indent = ''))and (ActualComment <> '') then WriteComment(Indent, ActualComment, true);
     if Name <> '' then
     begin
-      if CmdSyntax
-        then WriteLineRaw(CmdParamName + ':"' + Quote(FullName.Substring(0, FullName.Length - 1)) + ' =')
+      if CmdSyntax then
+        begin
+          if Stack.InsideFlowArray
+          then WriteRaw(Name + ' =')
+          else WriteLineRaw(CmdParamName + ':"' + Quote(FullName.Substring(0, FullName.Length - 1)) + ' =');
+        end
         else WriteLineRaw(Indent + Quote(Name) + ':');
     end;
   end, CmdSyntax);
@@ -236,8 +243,13 @@ begin
   var CloseValue := '';
   if CmdSyntax then
   begin
-    WriteRaw(CmdParamName + ':"' + Quote(Stack.FullName + IdName) + ' =' + ValueSep);
-    CloseValue := '"';
+    if Stack.InsideFlowArray
+      then WriteRaw(IdName + ' =' + ValueSep)
+      else
+      begin
+        WriteRaw(CmdParamName + ':"' + Quote(Stack.FullName + IdName) + ' =' + ValueSep);
+        CloseValue := '"';
+      end;
   end else
   begin
     WriteRaw(Stack.Indent + Stack.ArrIndent + Quote(IdName) + ':' + ValueSep);
@@ -266,7 +278,7 @@ begin
   if ToJSON and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Stack.GetIndent(i - 1) + '{');
   if CollectionType = TYamlCollectionType.FlowArray then
   begin
-    Stack.FInsideFlowArray := true;
+    Stack.IncInsideFlowArray;
     PendingLineFeed := false;
     WriteRaw(' [');
   end;
@@ -282,9 +294,14 @@ begin
   begin
     var CloseCmd := '';
     if CmdSyntax then CloseCmd := '"';
-    
-    if WriteLineRaw(']' + CloseCmd) then PendingLineFeed := true;
-    Stack.FInsideFlowArray := false;
+    if Stack.FInsideFlowArray > 1 then
+    begin
+      WriteRaw(']');
+    end else
+    begin
+      if WriteLineRaw(']' + CloseCmd) then PendingLineFeed := true;
+    end;
+    Stack.DecInsideFlowArray;
   end;
 end;
 
@@ -651,6 +668,17 @@ begin
   inherited;
 end;
 
+procedure TBBYamlWriterStack.IncInsideFlowArray;
+begin
+  if InsideFilter then Inc(FInsideFlowArray)
+end;
+
+procedure TBBYamlWriterStack.DecInsideFlowArray;
+begin
+  if InsideFilter then Dec(FInsideFlowArray)
+end;
+
+
 function TBBYamlWriterStack.Indent: string;
 begin
   Result := GetIndent(FList.Count - 1);
@@ -669,6 +697,11 @@ begin
   exit(FList[i].Indent);
 end;
 
+
+function TBBYamlWriterStack.GetInsideFlowArray: boolean;
+begin
+  Result := FInsideFlowArray > 0;
+end;
 
 function TBBYamlWriterStack.InsideFilter: boolean;
 begin

@@ -464,7 +464,10 @@ end;
 
 function TPackagesSectionDef.Capture(const fr: TFramework): TAction;
 begin
-  Result := procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.Frameworks := Project.Packages.Last.Frameworks + [fr]; end;
+  Result := procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.Packages.Last.Frameworks := Project.Packages.Last.Frameworks + [fr];
+    end;
 end;
 
 constructor TPackagesSectionDef.Create(const aParent: TSection;
@@ -1226,7 +1229,7 @@ begin
   Actions.Add('link to folder', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.FileLinks.Last.LinkToFolder := value; end);
   Actions.Add('os', procedure (value: string; ErrorInfo: TErrorInfo)
   begin
-    GetArray(value, ArrayActions, procedure(value: string; ErrorInfo: TErrorInfo)
+    GetFlowArray(value, ArrayActions, procedure(value: string; ErrorInfo: TErrorInfo)
     begin
     end, ErrorInfo);
   end);
