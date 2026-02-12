@@ -585,7 +585,6 @@ begin
 
   Actions := TListOfActions.Create;
   s := 'debug dcus'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin SetBool(ConfigKeys.DebugDcus, value, ErrorInfo); end);
-  s := 'xml docs'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin SetBool(ConfigKeys.XmlDocs, value, ErrorInfo); end);
   s := 'run build events'; Actions.Add(s, procedure(value: string; ErrorInfo: TErrorInfo) begin SetBool(ConfigKeys.BuildEvents, value, ErrorInfo); end);
 
   ChildSections.Add(TDefinesSectionConf.SectionNameStatic, TDefinesSectionConf.Create(Self, aConfig, ProductConfig));

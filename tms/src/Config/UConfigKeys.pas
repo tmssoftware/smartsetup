@@ -15,7 +15,6 @@ type
     SkipRegister = 'skip-register';
     SkipRegisterExt = 'skip-register-ext';
     DebugDcus = 'debug-dcus';
-    XmlDocs = 'xml-docs';
     BuildEvents = 'build-events';
     AddSourceCodeToLibraryPath = 'add-source-code-to-library-path';
     KeepParallelFolders = 'keep-parallel-folders';

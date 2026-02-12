@@ -501,7 +501,6 @@ begin
 
   if FullName = CfgStart + 'compilation options:' then exit(TYamlValue.MakeObject);
   if FullName = CfgStart + 'compilation options:debug dcus:' then exit(GetProductBool(CfgProduct, ConfigKeys.DebugDcus, true));
-  if FullName = CfgStart + 'compilation options:xml docs:' then exit(GetProductBool(CfgProduct, ConfigKeys.XmlDocs, false));
   if FullName = CfgStart + 'compilation options:run build events:' then exit(GetProductBool(CfgProduct, ConfigKeys.BuildEvents, false));
   if FullName = CfgStart + 'compilation options:defines:' then exit(GetDefines(CfgProduct));
   if FullName.StartsWith(CfgStart + 'compilation options:defines:') then exit(GetDefine(CfgProduct, GetLastEntry(FullName)));

@@ -58,7 +58,6 @@ type
 
     FDryRun: boolean;
     FDebugDCUs: boolean;
-    FXmlDocs: boolean;
     FBuildEvents: boolean;
     FAddSourceCodeToLibraryPath: boolean;
     FDefines: TArray<string>;
@@ -113,7 +112,6 @@ type
     property Dependencies: TList<TProjectBuildInfo> read FDependencies;
     property DryRun: boolean read FDryRun;
     property DebugDCUs: boolean read FDebugDCUs;
-    property XmlDocs: boolean read FXmlDocs;
     property BuildEvents: boolean read FBuildEvents;
     property AddSourceCodeToLibraryPath: boolean read FAddSourceCodeToLibraryPath;
     property Defines: TArray<string> read FDefines;
@@ -152,7 +150,6 @@ begin
   FDryRun := aConfig.DryRun(ProjectId);
   FDebugDCUs := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.DebugDcus, true);
   if aProject.IsExe and not aProject.ExeOptions.ExeDebug then FDebugDCUs := false;
-  FXmlDocs := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.XmlDocs, false);
   FBuildEvents := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.BuildEvents, false);
 
   if aProject.Application.CanAddSourceCodeToLibraryPath then
