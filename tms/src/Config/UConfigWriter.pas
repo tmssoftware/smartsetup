@@ -58,6 +58,8 @@ TConfigWriter = class
     class procedure CheckConfig(const aProperty: string); static;
     function GetAutoSnapshotFilenames(
       const Values: TEnumerable<string>): TYamlValue;
+    function GetCompilerParameters(const CfgProduct: TProductConfigDefinition;
+      const IdeName: string): TYamlValue;
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
     procedure Save(const FileName: string);
@@ -428,6 +430,14 @@ begin
   Result := TYamlValue.MakeNull;
 end;
 
+function TConfigWriter.GetCompilerParameters(const CfgProduct: TProductConfigDefinition; const IdeName: string): TYamlValue;
+begin
+  var CompilerParameters := CfgProduct.GetString(ConfigKeys.CompilerParameters +  IdeName.Substring(0, IdeName.Length - 1), '');
+  if CompilerParameters <> '' then exit (CompilerParameters);
+
+  Result := TYamlValue.MakeNull;
+end;
+
 function TConfigWriter.IsAddReplacePrefixedProperty(const FullName: string): boolean;
 begin
   for var PrefixedProperty := Low(TGlobalPrefixedProperties) to High(TGlobalPrefixedProperties) do
@@ -516,6 +526,10 @@ begin
   var CompilerPaths := CfgStart + 'compiler paths:';
   if FullName = CompilerPaths then exit(TYamlValue.MakeObject);  
   if FullName.StartsWith(CompilerPaths) then exit(GetCompilerPaths(CfgProduct, FullName.Substring(CompilerPaths.Length)));
+
+  var CompilerParameters := CfgStart + 'compiler parameters:';
+  if FullName = CompilerParameters then exit(TYamlValue.MakeObject);
+  if FullName.StartsWith(CompilerParameters) then exit(GetCompilerParameters(CfgProduct, FullName.Substring(CompilerParameters.Length)));
 
   raise Exception.Create('Invalid tag for product configuration: ' + FullName);
 end;

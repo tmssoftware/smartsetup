@@ -521,6 +521,85 @@
             }
           },
           "additionalProperties": false
+        },
+        "compiler parameters": {
+          "type": ["object", "null"],
+          "description": "Here you can specify additional command line parameters to be passed to the compiler for each Delphi version.",
+          "properties": {
+            "lazarus": {
+              "type": ["string", "null"]
+            },
+            "delphi6": {
+              "type": ["string", "null"]
+            },
+            "delphi7": {
+              "type": ["string", "null"]
+            },
+            "delphi2005": {
+              "type": ["string", "null"]
+            },
+            "delphi2006": {
+              "type": ["string", "null"]
+            },
+            "delphi2007": {
+              "type": ["string", "null"]
+            },
+            "delphi2009": {
+              "type": ["string", "null"]
+            },
+            "delphi2010": {
+              "type": ["string", "null"]
+            },
+            "delphixe": {
+              "type": ["string", "null"]
+            },
+            "delphixe2": {
+              "type": ["string", "null"]
+            },
+            "delphixe3": {
+              "type": ["string", "null"]
+            },
+            "delphixe4": {
+              "type": ["string", "null"]
+            },
+            "delphixe5": {
+              "type": ["string", "null"]
+            },
+            "delphixe6": {
+              "type": ["string", "null"]
+            },
+            "delphixe7": {
+              "type": ["string", "null"]
+            },
+            "delphixe8": {
+              "type": ["string", "null"]
+            },
+            "delphiseattle": {
+              "type": ["string", "null"]
+            },
+            "delphiberlin": {
+              "type": ["string", "null"]
+            },
+            "delphitokyo": {
+              "type": ["string", "null"]
+            },
+            "delphirio": {
+              "type": ["string", "null"]
+            },
+            "delphisydney": {
+              "type": ["string", "null"]
+            },
+            "delphi11": {
+              "type": ["string", "null"]
+            },
+            "delphi12": {
+              "type": ["string", "null"]
+            },
+            "delphi13": {
+              "type": ["string", "null"]
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
