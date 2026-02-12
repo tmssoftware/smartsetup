@@ -63,6 +63,10 @@
     "compiler paths":
     {
       "delphi11": "C:\\Program Files (x86)\\Embarcadero\\Studio\\22.0\\bin"
+    },
+    "compiler parameters":
+    {
+      "delphi12": "-p:one"
     }
   },
   "configuration for test1":
@@ -88,6 +92,10 @@
     "compiler paths":
     {
       "delphi11": "C:\\Delphi11"
+    },
+    "compiler parameters":
+    {
+      "delphi12": "-p:two -p:three"
     }
   },
   "configuration for test2":
@@ -103,7 +111,7 @@
     "compilation options":
     {
       "debug dcus": true,
-      "defines": ["DEBUG","TEST"]
+      "defines": ["DEBUGO",{"TESTO": false}]
     },
     "advanced options":
     {

@@ -44,7 +44,7 @@ Test-NullableArray -PropertyName "platforms" -PropertyValue "[win32intel,win64xi
 
 Test-NullableProperty -PropertyName "compilation options:debug dcus" -PropertyValue "true"
 Test-NullableArray -PropertyName "compilation options:defines" -PropertyValue "[UNICODE,MyTest]"
-Test-NullableArray -PropertyName "compilation options:defines" -PropertyValue "[UNICODE,MyTest=false]"
+Test-NullableArray -PropertyName "compilation options:defines" -PropertyValue "[UNICODE,MyTest: false]"
 
 Test-NullableProperty -PropertyName "advanced options:use symlinks" -PropertyValue "false"
 Test-NullableProperty -PropertyName "advanced options:keep parallel folders" -PropertyValue "true"
