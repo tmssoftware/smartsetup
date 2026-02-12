@@ -1,0 +1,19 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmslaztest.a
+  name: "LA"
+  url: "file://lazarus-repos/L_A"
+
+supported frameworks:
+  rtl:
+    ide since: lazarus
+    platforms: 
+      - all
+  
+packages:
+  - l_a: [runtime, rtl]
+
+dependencies:
+#  - tmstest.b: tmstest.b
+

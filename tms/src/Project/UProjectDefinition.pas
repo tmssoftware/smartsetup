@@ -390,7 +390,7 @@ end;
 function TProjectDefinition.FileNameExtension: TArray<string>;
 begin
   if IsExe then begin Result := ['.dproj', '.dpr', '.cbproj']; exit; end;
-  Result := ['.dproj', '.dpk', '.cbproj', BinprojExtension];
+  Result := ['.dproj', '.dpk', '.cbproj', BinprojExtension, '.lpk'];
 end;
 
 procedure TProjectDefinition.ClearSearchPathsToPreserve;

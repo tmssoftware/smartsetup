@@ -198,7 +198,8 @@ begin
   TDirectory_CreateDirectory(TPath.GetDirectoryName(FileNameOnDisk));
   var ETagFileName := FileNameOnDisk + '.etag';
   var ETag := ReadETag(ETagFileName, ForceDownload, DownloadLogger);
-  var FileHash := THashSHA2.GetHashStringFromFile(DownloadUrl);
+  var DownloadFile := TPath.GetFullPath(DownloadUrl);
+  var FileHash := THashSHA2.GetHashStringFromFile(DownloadFile);
 
   if FileHash = ETag then
   begin
