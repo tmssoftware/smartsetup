@@ -21,18 +21,30 @@ uid: SmartSetup.ReleaseNotes
  - **New**: Dark mode support in tmsgui
 
  - **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
+
+ - **New**: new `tms spec` command allows to create tmsbuild.yaml file for new products that you want to add to smartsetup.
  
  - **New**: New -cmd parameter in tms `config-write` shows the parameters in the [syntax you need to use when using the -p parameter](xref:SmartSetup.CommandLineUsage#-p-command-to-pass-a-configuration-to-tms).
 
  - **New**: There is a global parameter `-add-config:<config-file-name>` that you can use to override the properties set in tms.config.yaml.
 
- - **New**: tmsgui has a new column showing the status of the products
+ - **New**: tmsgui has a new column showing the status of the products.
 
  - **Improved** Now the "excluded folders" in the config file apply also to fetching and uninstalling. Before, those products were only excluded from a build.
+
+ - **Improved** Better lazarus support for products that depend on other products.
+
+ - **Improved** Support for building in machines where IDEFixPack/FastDCC is installed. Older SmartSetup would detect an invalid compiler and compile as if this was a Rad Studio trial or community version. 
 
  - **Fixed**: Products in the community server were failing to update some settings in corner cases.
 
  - **Fixed**: Unified behavior between API and Community servers. Before, API servers would stop if some operation failed, but Community servers would skip the errors and try to build anyway. Now all servers stop if there is a fetching error.
+
+ - **Fixed**: Better detection of .zip/.tar.zstd files. The built-in TZipFile.IsValid doesn't work reliably.
+
+ - **Fixed**: Compilation for Dn+ packages on Rad Studio Trials/Community Editions. The "+" packages use the same package for different Rad Studio versions, and rely in the $(ProductVersion) macro being set by Rad Studio. But rad studio doesn't set this macro, so we needed to workaround it.
+
+ - **Fixed**: In some very rare cases, SmartSetup could ask for a token to the server, and the server be expired when returning, leading to a failure when downloading products from the api server.
 
 
 
