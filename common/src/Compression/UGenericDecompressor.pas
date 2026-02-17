@@ -12,6 +12,8 @@ type
   private
     class procedure ExtractZipFile(const ZipFileName, ExtractFolder: string;
       const Skip: TFunc<string, boolean>); static;
+    class function IsZipByLocalHeader(const FileName: string): Boolean; overload; static;
+    class function IsZipByLocalHeader(Stream: TStream): Boolean; overload; static;
   public
     class function GetFileFormat(const FileName: string): TDownloadFormat; static;
     class procedure ExtractCompressedFile(const FileName, ExtractFolder: string;
@@ -21,14 +23,47 @@ type
 implementation
 uses IOUtils;
 
+class function TBundleDecompressor.IsZipByLocalHeader(Stream: TStream): Boolean;
+var
+  Pos0: Int64;
+  B: array[0..3] of Byte;
+begin
+  Result := False;
+  if Stream.Size - Stream.Position < 4 then Exit;
+
+  Pos0 := Stream.Position;
+  Stream.ReadBuffer(B, SizeOf(B));
+  Result :=
+    (B[0] = $50) and  // 'P'
+    (B[1] = $4B) and  // 'K'
+    (B[2] = $03) and
+    (B[3] = $04);
+  Stream.Position := Pos0;
+end;
+
+class function TBundleDecompressor.IsZipByLocalHeader(const FileName: string): Boolean;
+var
+  FS: TFileStream;
+begin
+  Result := False;
+  if not FileExists(FileName) then Exit;
+
+  FS := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
+  try
+    Result := IsZipByLocalHeader(FS);
+  finally
+    FS.Free;
+  end;
+end;
+
 class function TBundleDecompressor.GetFileFormat(const FileName: string): TDownloadFormat;
 begin
+  if TZSTDDecompressor.IsValid(FileName) then exit(TDownloadFormat.Zstd);
   try
-    if TZipFile.IsValid(FileName) then exit(TDownloadFormat.Zip);
+    if IsZipByLocalHeader(FileName) and TZipFile.IsValid(FileName) then exit(TDownloadFormat.Zip);
   except
     //It is not a zipfile. TZipFile.IsValid should have returned false, but sometimes it can raise an exception...
   end;
-  if TZSTDDecompressor.IsValid(FileName) then exit(TDownloadFormat.Zstd);
   Result := TDownloadFormat.Unknown;
 end;
 
