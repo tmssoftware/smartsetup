@@ -29,7 +29,7 @@ type
     function PackageSupportsPlatform(const dv: TIDEName; const dp: TPlatform; const Project: TProjectDefinition; const Package: TPackage): boolean;
     function PackageSupportsCppBuilder(const dv: TIDEName; const dp: TPlatform; const Project: TProjectDefinition; const Package: TPackage): boolean;
     procedure Validate(const Projects: TProjectDefinitionList);
-    function GetPackagesFolder(const PackageCache: TPackageCache;
+    function GetPackagesFolder(const ProjectNaming: string; const PackageCache: TPackageCache;
        const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders): string;
     procedure AnalyzeProjectsToInclude(const Projects: TProjectDefinitionList);
     procedure AddInstalled(const Dict: TDictionary<string, boolean>);
@@ -41,6 +41,8 @@ type
     function BackToFolder(const StartFolder: string;
       const PackageFolders: TPackageFolders): string;
     function GetIDEs(const Project: TProjectDefinition): TIDENameArray;
+    function FolderInPackageFolder(const ProjectNaming, StartFolder: string;
+      const PackageFolders: TPackageFolders): boolean;
 
   public
     constructor Create(const aConfig: TConfigDefinition; const aProjectList: TProjectList; const aFileHasher: TFileHasher);
@@ -188,7 +190,21 @@ begin
   Result := TPath.GetDirectoryName(StartFolder);
 end;
 
-function TProjectAnalyzer.GetPackagesFolder(const PackageCache: TPackageCache; const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders): string;
+function TProjectAnalyzer.FolderInPackageFolder(const ProjectNaming, StartFolder: string; const PackageFolders: TPackageFolders): boolean;
+begin
+  var Naming := Config.GetNaming(ProjectNaming, '');
+
+  for var IdeName := Low(TIDEName) to High(TIDEName) do
+  begin
+    var BaseFolder := '';
+    if TPackageFinder.EndsInFolder(StartFolder, Naming.GetPackageNaming(IDEName, false, PackageFolders[IDEName].Value), BaseFolder) then exit(true);
+    if TPackageFinder.EndsInFolder(StartFolder, Naming.GetPackageNamingPlus(IDEName), BaseFolder) then exit(true);
+  end;
+  Result := false;
+end;
+
+
+function TProjectAnalyzer.GetPackagesFolder(const ProjectNaming: string; const PackageCache: TPackageCache; const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders): string;
 begin
   Result := '';
   var Pkgs := PackageCache.GetFiles(AppFolder, exts);
@@ -207,6 +223,8 @@ begin
         var PkgFolder := PkgFolderIDE; //for exes.
         if not IsExe then
         begin
+          if not FolderInPackageFolder(ProjectNaming, PkgFolderIDE, PackageFolders) then continue;
+
           PkgFolder := BackToFolder(PkgFolderIDE, PackageFolders);
         end;
         if Result = '' then Result := PkgFolder else if Result <> PkgFolder then raise Exception.Create('Packages in a project can''t be in more than one folder. ' + AppFolder + ' has folders in ' + Result + ' and ' + PkgFolder);
@@ -244,7 +262,7 @@ begin
       BuildInfo.CurrentProject.BasePackagesFolder := PackagesFolder;
     end else
     begin
-      BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
+      BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(Project.Naming, PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
     end;
     var DepsCompiled := DependenciesRebuilt(Config, Project);
 
