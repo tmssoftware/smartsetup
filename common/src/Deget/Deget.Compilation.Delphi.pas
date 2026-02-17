@@ -1171,8 +1171,13 @@ begin
     try
       TDirectory_CreateDirectory(TempPath);
       TFile.WriteAllText(TPath.Combine(TempPath, 'resource_empty.rc'), '');
-      var ResinatorCommand := '"' + ResinatorPath + '" -v resource_empty.rc -foresource_empty.res';
-      ExecuteCommand(ResinatorCommand, TempPath);
+      try
+        var ResinatorCommand := '"' + ResinatorPath + '" -v resource_empty.rc -fo resource_empty.res';
+        ExecuteCommand(ResinatorCommand, TempPath);
+      finally
+        TryDeleteFileAndRemoveParentFolderIfEmpty(Config.Folders.LockedFilesFolder, TPath.Combine(TempPath, 'resource_empty.rc'));
+        TryDeleteFileAndRemoveParentFolderIfEmpty(Config.Folders.LockedFilesFolder, TPath.Combine(TempPath, 'resource_empty.res'));
+      end;
     finally
       Lock.Release;
     end;
