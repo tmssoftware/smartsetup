@@ -1,0 +1,18 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: test.working.folder.split
+  name: "Working folder split in 2 parts."
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - test.working.folder.split: [runtime, rtl, exe]
+
+dependencies:
+  - jam.virtualtreeview: virtual tree view
+

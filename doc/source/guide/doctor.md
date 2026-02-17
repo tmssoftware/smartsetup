@@ -89,6 +89,15 @@ These checks apply to every installed Delphi IDE and platform.
 - **Why It Matters:** Non-existent paths unnecessarily bloat the library path and can cause build slowdowns or failures.
 - **Fix:** Suggests removing such paths.
 
+These checks apply to every installed Delphi IDE and platform.
+
+### ✅ Duplicated Files Checks
+#### 6. **Duplicated BPLs**
+- **Description:** Looks in the Windows Path for duplicated bpls.
+- **Why It Matters:** If you have two different bpls in the Windows Path, Rad Studio is very likely to find the wrong bpl and show an error message when loading.
+- **Fix:** Opens the folders where the duplicated bpls are, in file explorer, so you can delete the wrong ones. As you need to be very sure to remove the right bpls, this test won't automatically delete any file, you need to remove them yourself.
+
+
 ## What It Changes
 
 When fixes are applied (using `-fix`), the following system areas **may be modified**:
@@ -97,6 +106,7 @@ When fixes are applied (using `-fix`), the following system areas **may be modif
 - Delphi IDE configurations: IDE environment overrides and library paths.
 
 All changes are logged and undo information is saved in a specific folder, so manual rollback is possible if needed.
+
 
 ## Troubleshooting Tips
 

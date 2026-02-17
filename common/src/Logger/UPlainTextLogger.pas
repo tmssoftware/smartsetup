@@ -96,7 +96,9 @@ begin
       inc(thread);
       for var msg in log do
       begin
-        Writer.WriteLine(Format('%s [%s] %s', [MessageVerbosities[msg.MessageVerbosity], FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', msg.Time), msg.Message]));
+        var MsgText := Format('%s [%s] %s', [MessageVerbosities[msg.MessageVerbosity], FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', msg.Time), msg.Message]);
+        if msg.NewLine then Writer.WriteLine(MsgText)
+        else Writer.Write(MsgText);
       end;
     end;
   finally

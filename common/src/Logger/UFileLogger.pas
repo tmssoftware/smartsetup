@@ -26,19 +26,21 @@ type
     FSectionType: TSectionType;
     FSectionHasErrors: boolean;
     FChildren: TLogMessageList;
+    FNewLine: boolean;
   public
     property Message: string read FMessage;
     property MessageVerbosity: TVerbosity read FMessageVerbosity;
     property Time: TDateTime read FTime;
     property MessageType: TMessageType read FMessageType;
     property LogMessageKind: TLogMessageKind read FLogMessageKind;
+    property NewLine: boolean read FNewLine;
     property SectionType: TSectionType read FSectionType;
     property SectionHasErrors: boolean read FSectionHasErrors write FSectionHasErrors;
 
     property Children: TLogMessageList read FChildren;
 
     constructor CreateJoint;
-    constructor Create(const aMessage: string; const aMessageVerbosity: TVerbosity; const aLogMessageKind: TLogMessageKind = TLogMessageKind.Text);
+    constructor Create(const aMessage: string; const aMessageVerbosity: TVerbosity; const aLogMessageKind: TLogMessageKind = TLogMessageKind.Text; const aNewLine: boolean = true);
     constructor CreateStartSection(const aMessageType: TMessageType; const aCaption: string);
     constructor CreateEndSection(const aMessageType: TMessageType; const IsError: boolean);
     destructor Destroy; override;
@@ -63,7 +65,7 @@ type
     procedure Error(const Message: string); override;
     procedure Info(const Message: string); override;
     procedure Trace(const Message: string); override;
-    procedure Message(const MessageKind: TLogMessageKind; const Message: string); override;
+    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const NewLine: boolean); override;
   end;
 
 implementation
@@ -114,10 +116,13 @@ begin
 end;
 
 procedure TFileLogger.Message(const MessageKind: TLogMessageKind;
-  const Message: string);
+  const Message: string; const NewLine: boolean);
 begin
   CheckLogger;
-  if (Logger <> nil) then Logger.Add(TLogMessage.Create(Message, TVerbosity.info, MessageKind));
+  if (Logger <> nil) then
+  begin
+    Logger.Add(TLogMessage.Create(Message, TVerbosity.info, MessageKind, NewLine));
+  end;
 end;
 
 procedure TFileLogger.Error(const Message: string);
@@ -128,11 +133,12 @@ end;
 
 { TLogMessage }
 
-constructor TLogMessage.Create(const aMessage: string; const aMessageVerbosity: TVerbosity; const aLogMessageKind: TLogMessageKind = TLogMessageKind.Text);
+constructor TLogMessage.Create(const aMessage: string; const aMessageVerbosity: TVerbosity; const aLogMessageKind: TLogMessageKind = TLogMessageKind.Text; const aNewLine: boolean = true);
 begin
   FMessage := aMessage;
   FMessageVerbosity := aMessageVerbosity;
   FLogMessageKind := aLogMessageKind;
+  FNewLine := aNewLine;
   FTime := Now;
 end;
 

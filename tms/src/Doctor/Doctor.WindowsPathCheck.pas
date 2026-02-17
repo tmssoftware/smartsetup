@@ -6,9 +6,6 @@ uses Doctor.Check, Doctor.CorePathCheck, SysUtils, Classes;
 
 type
 TWindowsPathCheck = class(TCorePathCheck)
-private
-  function ExpandPath(const Path: string): string;
-
 protected
   function IsPathValid(const Path: string; out Reason, Action: string): boolean; override;
 end;
@@ -35,20 +32,10 @@ uses UWindowsPath, IOUtils, Windows;
 
 { TWindowsPathCheck }
 
-function TWindowsPathCheck.ExpandPath(const Path: string): string;
-const
-  MAXSIZE = 32768;
-begin
-  Result := '';
-  SetLength(Result, MAXSIZE);
-  var ResultLength := ExpandEnvironmentStrings(PCHAR(Path), @Result[1], Length(Result));
-  SetLength(Result, ResultLength - 1);
-end;
-
 function TWindowsPathCheck.IsPathValid(const Path: string; out Reason,
   Action: string): boolean;
 begin
-   if not TDirectory.Exists(ExpandPath(Path.Trim)) then
+   if not TDirectory.Exists(ExpandWindowsPath(Path.Trim)) then
    begin
       Reason := 'The path "' + Path.Trim + '" in the Windows Path doesn''t seem to point to an existing folder.';
       Action := 'Remove?';

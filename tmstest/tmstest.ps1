@@ -5,18 +5,29 @@ param(
     [Alias("skip-slow")]    
     [switch]$skipSlow = $false,
     [Alias("failed")]
-    [switch]$openFailedFiles = $false
+    [switch]$openFailedFiles = $false,
+    [Alias("working-folder")]
+    [switch]$useWorkingFolder = $false # uses a working folder based on temp. If temp is in a different drive, it will be a better test.
 )
 . $PSScriptRoot/util/util.errors.ps1
 
 if (-not $tmsTestRootDir) {
-    Write-Error "The variable `tmsTestRootDir` is not set. You need to setup the environment, see $($PSScriptRoot)/README.md."
+    Write-Error "The variable 'tmsTestRootDir' is not set. You need to setup the environment, see $($PSScriptRoot)/README.md."
 }
 
 if (! $env:TMSTEST_CODE -or ! $env:TMSTEST_EMAIL) {
     Write-Error "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
 }
 . $PSScriptRoot/util/util.set_tmstest_util.ps1
+
+$Global:tmsUseWorkingFolder = $useWorkingFolder
+$workFolder = Join-Path -Path $env:TEMP -ChildPath "tmstest-tmp"
+if (Test-Path -Path $workFolder) {
+    # Clean up any previous temp folder
+    $workFolder = Join-Path -Path $env:TEMP -ChildPath "tmstest-tmp"
+    tmsutil delete-folder -keep-root-folder -folder:$workFolder | Out-Null
+}
+
 
 $testsToRun = $testsToRunParam
 
@@ -39,6 +50,14 @@ if ($null -eq $tests -or $tests.Count -eq 0) {
     Write-Error "No tests found matching the pattern '$testsToRun'."
     Exit 1
 }   
+
+# Clean up any previous installation
+try {
+Remove-Item -Path "HKCU:\Software\Embarcadero\tmstest" -Recurse -Force
+} catch {
+}
+
+& $tmsTestRootDir/util/util.create_test_repositories.ps1
 
 $successfulTests = @()
 $failedTests = @()
@@ -69,6 +88,7 @@ foreach ($test in $tests) {
             if (Test-Path -Path $logPath) {
                 $opened++
                 Start-Process -FilePath $logPath
+                Start-Process -FilePath $testDir
             }
         }
         else {
@@ -77,6 +97,8 @@ foreach ($test in $tests) {
         continue
     }
 
+    $percent = ($index / $tests.Length) * 100
+    Write-Progress -Activity "Running tests" -Status "Test $($index) of $($tests.Length)." -PercentComplete $percent -CurrentOperation "$($test.Name)"
     Write-Host "Running test: $($test.Name)"  -NoNewline -ForegroundColor Cyan
     try {
         # Delete the test directory if it exists
@@ -89,8 +111,6 @@ foreach ($test in $tests) {
         Copy-Item -Path $test.Directory.FullName -Destination "$tmsTestRootDir\tmp-run\" -Recurse -Force -Exclude "test.*.ps1"
         Copy-Item -Path "$tmsTestRootDir\util\tms.starting.config.yaml" -Destination "$testDir\tms.config.yaml" -Force
 
-        $percent = ($index / $tests.Length) * 100
-        Write-Progress -Activity "Running tests" -Status "Test $($index) of $($tests.Length)." -PercentComplete $percent -CurrentOperation "$($test.Name)"
 
         Set-Location $testDir
         try {

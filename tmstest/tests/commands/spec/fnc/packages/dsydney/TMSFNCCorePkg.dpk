@@ -1,0 +1,54 @@
+package TMSFNCCorePkg;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$IMPLICITBUILD OFF}
+{$DESCRIPTION 'TMS FNC Core for RTL'}
+{$LIBSUFFIX '270'}
+
+requires
+  rtl,
+  dbrtl;
+
+contains
+  TMS.TMSFNCDataSet in '..\..\TMS.TMSFNCDataSet.pas',
+  TMS.TMSFNCDataSetReg in '..\..\TMS.TMSFNCDataSetReg.pas',
+  TMS.TMSFNCCustomDataLink in '..\..\TMS.TMSFNCCustomDataLink.pas',
+  TMS.TMSFNCDataLinkCSV in '..\..\TMS.TMSFNCDataLinkCSV.pas',
+  TMS.TMSFNCDataLinkCSVReg in '..\..\TMS.TMSFNCDataLinkCSVReg.pas',
+  TMS.TMSFNCDataLinkJSON in '..\..\TMS.TMSFNCDataLinkJSON.pas',
+  TMS.TMSFNCDataLinkJSONReg in '..\..\TMS.TMSFNCDataLinkJSONReg.pas',
+  TMS.TMSFNCValue in '..\..\TMS.TMSFNCValue.pas',
+  TMS.TMSFNCFilterBuilder in '..\..\TMS.TMSFNCFilterBuilder.pas',
+  TMS.TMSFNCFilterStructure in '..\..\TMS.TMSFNCFilterStructure.pas',
+  Next.Core.DisposableValue in '..\..\Next.Core.DisposableValue.pas',
+  Next.Core.FailureReason in '..\..\Next.Core.FailureReason.pas',
+  Next.Core.Promises in '..\..\Next.Core.Promises.pas',
+  Next.Core.TTry in '..\..\Next.Core.TTry.pas',
+  Next.Core.Void in '..\..\Next.Core.Void.pas';
+
+end.
+

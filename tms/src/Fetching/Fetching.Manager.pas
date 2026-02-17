@@ -7,7 +7,7 @@ interface
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils, UMultiLogger,
   Fetching.FetchItem, Fetching.InfoFile, Fetching.InstallInfo, UConfigFolders,
-  URepositoryManager, Fetching.Options, Deget.Version;
+  URepositoryManager, Fetching.Options, Deget.Version, Fetching.ProductVersion;
 
 type
   TStringSet = TDictionary<string, Boolean>;
@@ -21,15 +21,17 @@ type
     FAllInstalledProductsIncludingManual: THashSet<string>;
     FIgnoreMissing: Boolean;
     FAlreadyHandledProducts: THashSet<string>;
-    procedure AddMatchedItems(const ProductIdMask: string);
-    procedure AddMatchedInstalledProducts(const ProductIdMask: string; Matched: TStringSet);
-    function FindItem(const ProductId, Version: string): TFetchItem;
-    function ContainsItem(const ProductId, Version: string): Boolean;
+    FPinned: THashSet<string>;
+    procedure AddMatchedItems(const ProductVersion: TProductVersion);
+    procedure AddMatchedInstalledProducts(const ProductVersion: TProductVersion; Matched: TDictionary<string, TProductVersion>);
+    function FindItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): TFetchItem;
+    function ContainsItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): Boolean;
     function FindInstalledProduct(Item: TFetchItem): TFetchInfoFile;
     procedure FlagOutdatedItems;
     procedure DownloadOutdated;
     procedure ProcessDependencies;
     function GetProductDependencies(const ProductId: string): TArray<string>;
+    function GetPinned: THashSet<string>;
   protected
     procedure UpdateItems;
     property Repo: TRepositoryManager read FRepo;
@@ -39,10 +41,11 @@ type
     constructor Create(AFolders: IBuildFolders; ARepo: TRepositoryManager; AAlreadyHandledProducts: THashSet<string>); reintroduce;
     destructor Destroy; override;
     property FetchItems: TFetchItems read FFetchItems;
-    procedure UpdateSelected(const ProductIdMasks: TArray<string>);
-    procedure UpdateInstalled(const ProductIdMasks: TArray<string>);
+    procedure UpdateSelected(const ProductVersions: TArray<TProductVersion>);
+    procedure UpdateInstalled(const ProductVersions: TArray<TProductVersion>);
 
     property AlreadyHandledProducts: THashSet<string> read FAlreadyHandledProducts;
+    property Pinned: THashSet<string> read GetPinned;
   end;
 
   EFetchException = class(Exception)
@@ -64,70 +67,108 @@ begin
       Item.DependenciesProcessed := True;
       var Dependencies := GetProductDependencies(Item.ProductId);
       for var Dependency in Dependencies do
-        AddMatchedItems(Dependency);
+        AddMatchedItems(TProductVersion.Create(Dependency, '*'));
     end;
 end;
 
-procedure TFetchManager.AddMatchedInstalledProducts(const ProductIdMask: string; Matched: TStringSet);
+procedure TFetchManager.AddMatchedInstalledProducts(const ProductVersion: TProductVersion; Matched: TDictionary<string, TProductVersion>);
 begin
-  Logger.Trace('Looking up installed products matching ' + ProductIdMask);
+  Logger.Trace('Looking up installed products matching ' + ProductVersion.IdMask);
   var Found := False;
   for var InstalledProduct in InstalledProducts do
-    if MatchesMask(InstalledProduct.ProductId, ProductIdMask) then
+    if Config.IsIncluded(InstalledProduct.ProductId, ProductVersion.IdMask) then
     begin
       Found := True;
-      Matched.AddOrSetValue(InstalledProduct.ProductId, True);
-      Logger.Trace(Format('Product %s:%s to be analyzed', [InstalledProduct.ProductId, InstalledProduct.Version]));
+      var ExistingProduct: TProductVersion;
+      if (Matched.TryGetValue(InstalledProduct.ProductId, ExistingProduct)) then
+      begin
+        if (ExistingProduct.Version <> ProductVersion.Version) then
+        begin
+          raise Exception.Create('The product ' + InstalledProduct.ProductId +' was requested to be installed in versions "' + ExistingProduct.Version + '" and "' + ProductVersion.Version + '" at the same time.');
+        end;
+      end else
+      begin
+        Matched.Add(InstalledProduct.ProductId, ProductVersion);
+      end;
+      Logger.Trace(Format('Product %s:%s to be analyzed', [InstalledProduct.ProductId, InstalledProduct.Version.ToString]));
+    end else
+    begin
+      if Config.IsExcluded(InstalledProduct.ProductId) then Logger.Trace('Ignoring ' + InstalledProduct.ProductId + ' because it is in the "excluded products" section of tms.config.yaml');
+
     end;
 
-  if not Found and not FAlreadyHandledProducts.Contains(ProductIdMask) then
+  if not Found and not FAlreadyHandledProducts.Contains(ProductVersion.IdMask) then
   begin
-    var ErrorMessage := Format('Could not find any products matching %s', [ProductIdMask]);
+    var ErrorMessage := Format('Could not find any products matching %s', [ProductVersion.IdMask]);
+    if Config.IsExcluded(ProductVersion.IdMask) then ErrorMessage := Format('The product %s is excluded in the section "excluded products" from tms.config.yaml.', [ProductVersion.IdMask]);
+
     raise Exception.Create(ErrorMessage);
   end;
 end;
 
-procedure TFetchManager.AddMatchedItems(const ProductIdMask: string);
+procedure TFetchManager.AddMatchedItems(const ProductVersion: TProductVersion);
 begin
-  Logger.Trace('Looking up products matching ' + ProductIdMask);
-  var Found := False;
-  for var RepoProduct in Repo.Products do
-    if MatchesMask(RepoProduct.Id, ProductIdMask) then
-    begin
-      // Ignore products that are not licensed unless the ProductIdMask is exactly the product name
-      // (meaning it was explicitly provided by the user or from the list of installed products
-      if (RepoProduct.LicenseStatus in [TLicenseStatus.none]) and (ProductIdMask <> RepoProduct.Id) then
-        Continue;
-
-      // Ignore products that were not released yet
-      if RepoProduct.LatestVersion = nil then
-      begin
-        Logger.Trace(Format('Ignoring %s - no version available', [RepoProduct.Id]));
-        Continue;
-      end;
-
-      Found := True;
-      if ContainsItem(RepoProduct.Id, RepoProduct.LatestVersion.Version) then
-      begin
-        Logger.Trace(Format('Ignoring %s because it was already added', [RepoProduct.Id]));
-        Continue;
-      end;
-
-      var Item := TFetchItem.Create(RepoProduct.Id, RepoProduct.LatestVersion.Version, Repo.Server);
-      FFetchItems.Add(Item);
-      Item.Internal := RepoProduct.Internal;
-      Item.FileHash := RepoProduct.LatestVersion.FileHash;
-      if RepoProduct.Id = TRepositoryManager.TMSSetupProductId then
-        Item.SkipExtraction := True;
-      Logger.Info(Format('Found %s:%s in repository', [RepoProduct.Id, RepoProduct.LatestVersion.Version]));
-    end;
-
-  if not Found and (ProductIdMask <> TRepositoryManager.TMSSetupProductId) and not FAlreadyHandledProducts.Contains(ProductIdMask) then
+  if Repo = nil then
   begin
-    var ErrorMessage := Format('Could not find any products matching %s', [ProductIdMask]);
+    Logger.Trace('Skipping API server because it isn''t enabled or there are no credentials.');
+  end;
+  Logger.Trace('Looking up products matching ' + ProductVersion.IdMask + ' with version "' + ProductVersion.Version + '"');
+  var Found := False;
+
+  if Repo <> nil then
+  begin
+    for var RepoProduct in Repo.Products do
+      if Config.IsIncluded(RepoProduct.Id, ProductVersion.IdMask) then
+      begin
+        // Ignore products that are not licensed unless the ProductIdMask is exactly the product name
+        // (meaning it was explicitly provided by the user or from the list of installed products
+        if (RepoProduct.LicenseStatus in [TLicenseStatus.none]) and (ProductVersion.IdMask <> RepoProduct.Id) then
+          Continue;
+
+        // Ignore products that were not released yet
+        if RepoProduct.LatestVersion = nil then
+        begin
+          Logger.Trace(Format('Ignoring %s - no version available', [RepoProduct.Id]));
+          Continue;
+        end;
+
+        Found := True;
+
+        var VersionToInstall := ProductVersion.Version;
+        if (VersionToInstall = '') or (VersionToInstall = '*') then VersionToInstall := RepoProduct.LatestVersion.Version;
+
+        if ContainsItem(RepoProduct.Id, VersionToInstall, ProductVersion.Version = '*', false) then
+        begin
+          Logger.Trace(Format('Ignoring %s:%s because it was already added', [RepoProduct.Id, VersionToInstall]));
+          Continue;
+        end;
+
+        var Item := TFetchItem.Create(RepoProduct.Id, VersionToInstall, Repo.Server, ProductVersion.Version = '*');
+        FFetchItems.Add(Item);
+        Item.Internal := RepoProduct.Internal;
+
+        //We only have the FileHash of the latest version. If we aren't installing that, we will just leave it empty, and calculate it at download time.
+        if VersionToInstall = RepoProduct.LatestVersion.Version then Item.FileHash := RepoProduct.LatestVersion.FileHash;
+        if RepoProduct.Id = TRepositoryManager.TMSSetupProductId then
+          Item.SkipExtraction := True;
+        Logger.Info(Format('Found %s in repository', [RepoProduct.Id]));
+      end else
+      begin
+        if Config.IsExcluded(RepoProduct.Id) then Logger.Trace('Ignoring ' + RepoProduct.Id + ' because it is in the "excluded products" section of tms.config.yaml');
+
+      end;
+  end;
+
+  if not Found and (ProductVersion.IdMask <> TRepositoryManager.TMSSetupProductId) and not FAlreadyHandledProducts.Contains(ProductVersion.IdMask) then
+  begin
+    var ErrorMessage := Format('Could not find any products matching %s', [ProductVersion.IdMask]);
+    if Config.IsExcluded(ProductVersion.IdMask) then ErrorMessage := Format('The product %s is excluded in the section "excluded products" from tms.config.yaml.', [ProductVersion.IdMask]);
+
     if FIgnoreMissing then
     begin
-      var Item := TFetchItem.Create(ProductIdMask, '', Repo.Server);
+      var RepoServer := '';
+      if Repo <> nil then RepoServer := Repo.Server;
+      var Item := TFetchItem.Create(ProductVersion.IdMask, ProductVersion.Version, RepoServer, false);
       FFetchItems.Add(Item);
       Item.Status := TFetchStatus.Failed;
       Logger.Error(ErrorMessage);
@@ -137,9 +178,9 @@ begin
   end;
 end;
 
-function TFetchManager.ContainsItem(const ProductId, Version: string): Boolean;
+function TFetchManager.ContainsItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): Boolean;
 begin
-  Result := FindItem(ProductId, Version) <> nil;
+  Result := FindItem(ProductId, Version, CanBeAnyVersion, AllowDuplicates) <> nil;
 end;
 
 constructor TFetchManager.Create(AFolders: IBuildFolders; ARepo: TRepositoryManager; AAlreadyHandledProducts: THashSet<string>);
@@ -155,6 +196,7 @@ begin
   FFetchItems.Free;
   FInstalledProducts.Free;
   FAllInstalledProductsIncludingManual.Free;
+  FPinned.Free;
   inherited;
 end;
 
@@ -176,11 +218,26 @@ begin
   Result := nil;
 end;
 
-function TFetchManager.FindItem(const ProductId, Version: string): TFetchItem;
+function TFetchManager.FindItem(const ProductId, Version: string; const CanBeAnyVersion, AllowDuplicates: boolean): TFetchItem;
 begin
   for var Item in FetchItems do
-    if (Item.ProductId = ProductId) and (Item.Version = Version) then
+    if (Item.ProductId = ProductId) then
+    begin
+      if CanBeAnyVersion then Exit(Item);
+      if Item.CanBeAnyVersion then
+      begin
+        Item.CanBeAnyVersion := false;
+        Exit(Item);
+      end;
+
+      if (Item.Version = Version) then
        Exit(Item);
+
+      if not AllowDuplicates then
+      begin
+        raise Exception.Create('The product ' + Item.ProductId +' was requested to be installed in versions "' + Version + '" and "' + Item.Version + '" at the same time.');
+      end;
+    end;
   Result := nil;
 end;
 
@@ -199,7 +256,7 @@ begin
     TMSSetupInfoFile.ProductId := TRepositoryManager.TMSSetupProductId;
     TMSSetupInfoFile.ProductPath := '';
     TMSSetupInfoFile.Channel := 'production';
-    TMSSetupInfoFile.Version := TMSVersion;
+    TMSSetupInfoFile.Version := TLenientVersion.Create(TMSVersion, TVersionType.Semantic);
   end;
   Result := FInstalledProducts;
 end;
@@ -223,34 +280,40 @@ begin
   Result := FAllInstalledProductsIncludingManual;
 end;
 
-procedure TFetchManager.UpdateSelected(const ProductIdMasks: TArray<string>);
+procedure TFetchManager.UpdateSelected(const ProductVersions: TArray<TProductVersion>);
 begin
   // Since product ids are provided explicit, fail the command if id does not exist.
   FIgnoreMissing := False;
   FFetchItems.Clear;
 
   // Retrieve initial raw list of products that should be installed
-  for var ProductIdMask in ProductIdMasks do
-    AddMatchedItems(ProductIdMask);
+  for var ProductVersion in ProductVersions do
+    AddMatchedItems(ProductVersion);
 
   UpdateItems;
 end;
 
-procedure TFetchManager.UpdateInstalled(const ProductIdMasks: TArray<string>);
+procedure TFetchManager.UpdateInstalled(const ProductVersions: TArray<TProductVersion>);
 begin
   // find the installed products to be updated
-  var ProductsToUpdate: TArray<string>;
+  var ProductsToUpdate: TArray<TProductVersion>;
   begin
-    var MatchedProducts := TStringSet.Create;
+    var MatchedProducts := TDictionary<string, TProductVersion>.Create;
     try
-      for var ProductIdMask in ProductIdMasks do
-        AddMatchedInstalledProducts(ProductIdMask, MatchedProducts);
+      for var ProductVersion in ProductVersions do
+        AddMatchedInstalledProducts(ProductVersion, MatchedProducts);
 
       // if no productid mask was provided, then add all
-      if (Length(ProductIdMasks) = 0) and (InstalledProducts.Count > 0) then
-        AddMatchedInstalledProducts('*', MatchedProducts);
+      if (Length(ProductVersions) = 0) and (InstalledProducts.Count > 0) then
+        AddMatchedInstalledProducts(TProductVersion.Create('', ''), MatchedProducts);
 
-      ProductsToUpdate := MatchedProducts.Keys.ToArray;
+      ProductsToUpdate := nil; SetLength(ProductsToUpdate, MatchedProducts.Count);
+      var i := 0;
+      for var MatchedProduct in MatchedProducts do
+      begin
+        ProductsToUpdate[i] := TProductVersion.Create(MatchedProduct.Key, MatchedProduct.Value.Version);
+        inc(i);
+      end;
     finally
       MatchedProducts.Free;
     end;
@@ -260,8 +323,8 @@ begin
   FIgnoreMissing := True;
   FFetchItems.Clear;
 
-  for var ProductId in ProductsToUpdate do
-    AddMatchedItems(ProductId);
+  for var ProductVersion in ProductsToUpdate do
+    AddMatchedItems(ProductVersion);
 
   UpdateItems;
 end;
@@ -270,7 +333,7 @@ procedure TFetchManager.UpdateItems;
 begin
   // Always check for tms smart setup
   Logger.Trace('Looking up for ' + TRepositoryManager.TMSSetupProductId);
-  AddMatchedItems(TRepositoryManager.TMSSetupProductId);
+  AddMatchedItems(TProductVersion.Create(TRepositoryManager.TMSSetupProductId, ''));
 
   // Process all fetch items
   while FetchItems.ContainsStatus(TFetchStatus.Unprocessed) do
@@ -287,6 +350,14 @@ procedure TFetchManager.FlagOutdatedItems;
 begin
   // First, check which items must be downloaded or are already downloaded
   for var Item in FetchItems do
+  begin
+    if Pinned.Contains(Item.ProductId) then
+    begin
+      Item.Status := TFetchStatus.SkippedPinned;
+      Logger.Info('Skipped ' + Item.ProductId + ' because it is pinned');
+      continue;
+    end;
+
     if Item.Status = TFetchStatus.Unprocessed then
     begin
       var Installed := FindInstalledProduct(Item);
@@ -304,16 +375,29 @@ begin
         Continue;
       end;
 
-      if Item.Version > TVersion(Installed.Version) then
+      if TLenientVersion.Create(Item.Version, TVersionType.Semantic) <> Installed.Version then
       begin
         Item.Status := TFetchStatus.Outdated;
-        Logger.Trace(Format('%s flagged to be downloaded, local version %s is outdated', [Item.ProductId, Installed.Version]));
+        Logger.Trace(Format('%s flagged to be downloaded, local version %s is different from requested', [Item.ProductId, Installed.Version.ToString]));
         Continue;
       end;
 
       Item.Status := TFetchStatus.SkippedUpToDate;
-      Logger.Trace(Format('%s skipped, local version is already updated', [Item.ProductId]));
+      Logger.Trace(Format('%s skipped, local version is already in the correct version', [Item.ProductId]));
     end;
+  end;
+end;
+
+function TFetchManager.GetPinned: THashSet<string>;
+begin
+  if FPinned <> nil then exit(FPinned);
+  FPinned := THashSet<string>.Create;
+  GetFetchedProducts(Config.Folders.ProductsFolder, FPinned,
+    function(item: TFetchInfoFile): boolean
+    begin
+      Result := item.Pinned;
+    end);
+  Result := FPinned;
 end;
 
 function TFetchManager.GetProductDependencies(const ProductId: string): TArray<string>;

@@ -1,0 +1,72 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<ProjectGuid>{D8968258-85FA-424F-BD07-C3D71D8115C8}</ProjectGuid>
+	</PropertyGroup>
+	<ItemGroup>
+		<Projects Include="TMSFNCCorePkg.dproj">
+			<Dependencies/>
+		</Projects>
+		<Projects Include="VCLTMSFNCCorePkg.dproj">
+			<Dependencies/>
+		</Projects>
+		<Projects Include="FMXTMSFNCCorePkg.dproj">
+			<Dependencies/>
+		</Projects>
+		<Projects Include="TMSFNCCorePkgDE.dproj">
+			<Dependencies>FMXTMSFNCCorePkg.dproj;VCLTMSFNCCorePkg.dproj;TMSFNCCorePkg.dproj</Dependencies>
+		</Projects>
+	</ItemGroup>
+	<ProjectExtensions>
+		<Borland.Personality>Default.Personality.12</Borland.Personality>
+		<Borland.ProjectType/>
+		<BorlandProject>
+			<Default.Personality/>
+		</BorlandProject>
+	</ProjectExtensions>
+	<Target Name="TMSFNCCorePkg">
+		<MSBuild Projects="TMSFNCCorePkg.dproj"/>
+	</Target>
+	<Target Name="TMSFNCCorePkg:Clean">
+		<MSBuild Projects="TMSFNCCorePkg.dproj" Targets="Clean"/>
+	</Target>
+	<Target Name="TMSFNCCorePkg:Make">
+		<MSBuild Projects="TMSFNCCorePkg.dproj" Targets="Make"/>
+	</Target>
+	<Target Name="VCLTMSFNCCorePkg">
+		<MSBuild Projects="VCLTMSFNCCorePkg.dproj"/>
+	</Target>
+	<Target Name="VCLTMSFNCCorePkg:Clean">
+		<MSBuild Projects="VCLTMSFNCCorePkg.dproj" Targets="Clean"/>
+	</Target>
+	<Target Name="VCLTMSFNCCorePkg:Make">
+		<MSBuild Projects="VCLTMSFNCCorePkg.dproj" Targets="Make"/>
+	</Target>
+	<Target Name="FMXTMSFNCCorePkg">
+		<MSBuild Projects="FMXTMSFNCCorePkg.dproj"/>
+	</Target>
+	<Target Name="FMXTMSFNCCorePkg:Clean">
+		<MSBuild Projects="FMXTMSFNCCorePkg.dproj" Targets="Clean"/>
+	</Target>
+	<Target Name="FMXTMSFNCCorePkg:Make">
+		<MSBuild Projects="FMXTMSFNCCorePkg.dproj" Targets="Make"/>
+	</Target>
+	<Target Name="TMSFNCCorePkgDE" DependsOnTargets="FMXTMSFNCCorePkg;VCLTMSFNCCorePkg;TMSFNCCorePkg">
+		<MSBuild Projects="TMSFNCCorePkgDE.dproj"/>
+	</Target>
+	<Target Name="TMSFNCCorePkgDE:Clean" DependsOnTargets="FMXTMSFNCCorePkg:Clean;VCLTMSFNCCorePkg:Clean;TMSFNCCorePkg:Clean">
+		<MSBuild Projects="TMSFNCCorePkgDE.dproj" Targets="Clean"/>
+	</Target>
+	<Target Name="TMSFNCCorePkgDE:Make" DependsOnTargets="FMXTMSFNCCorePkg:Make;VCLTMSFNCCorePkg:Make;TMSFNCCorePkg:Make">
+		<MSBuild Projects="TMSFNCCorePkgDE.dproj" Targets="Make"/>
+	</Target>
+	<Target Name="Build">
+		<CallTarget Targets="TMSFNCCorePkg;VCLTMSFNCCorePkg;FMXTMSFNCCorePkg;TMSFNCCorePkgDE"/>
+	</Target>
+	<Target Name="Clean">
+		<CallTarget Targets="TMSFNCCorePkg:Clean;VCLTMSFNCCorePkg:Clean;FMXTMSFNCCorePkg:Clean;TMSFNCCorePkgDE:Clean"/>
+	</Target>
+	<Target Name="Make">
+		<CallTarget Targets="TMSFNCCorePkg:Make;VCLTMSFNCCorePkg:Make;FMXTMSFNCCorePkg:Make;TMSFNCCorePkgDE:Make"/>
+	</Target>
+	<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

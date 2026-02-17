@@ -7,7 +7,7 @@ type
   TMemoLogger = class(TLogger)
   strict private
     FMemo: TMemo;
-    procedure LogToMemo(const S: string);
+    procedure LogToMemo(const S: string; const NewLine: boolean = true);
   public
     MessageFormat: string;
     constructor Create(AMemo: TMemo);
@@ -19,7 +19,7 @@ type
     procedure Error(const s: string); override;
     procedure Info(const s: string); override;
     procedure Trace(const s: string); override;
-    procedure Message(const MessageKind: TLogMessageKind; const Message: string); override;
+    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const NewLine: boolean); override;
 
   end;
 
@@ -61,7 +61,7 @@ begin
   LogToMemo(s);
 end;
 
-procedure TMemoLogger.LogToMemo(const S: string);
+procedure TMemoLogger.LogToMemo(const S: string; const NewLine: boolean = true);
 begin
   if Assigned(FMemo) then
     TThread.Queue(nil, procedure
@@ -71,10 +71,10 @@ begin
 end;
 
 procedure TMemoLogger.Message(const MessageKind: TLogMessageKind;
-  const Message: string);
+  const Message: string; const NewLine: boolean);
 begin
   inherited;
-  LogToMemo(Message);
+  LogToMemo(Message, NewLine);
 end;
 
 procedure TMemoLogger.Error(const s: string);

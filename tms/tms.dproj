@@ -419,6 +419,28 @@
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Writer.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBYaml.Types.pas"/>
         <DCCReference Include="..\common\src\BBYaml\BBStrings.pas"/>
+        <DCCReference Include="..\common\src\Deget\Deget.Compilation.Delphi.pas"/>
+        <DCCReference Include="..\common\src\Deget\Deget.Compilation.Precompiled.pas"/>
+        <DCCReference Include="..\common\src\Deget\Deget.Compilation.Lazarus.pas"/>
+        <DCCReference Include="..\common\src\Deget\Deget.Compilation.DelphiSelector.pas"/>
+        <DCCReference Include="src\Fetching\Fetching.ProductVersion.pas"/>
+        <DCCReference Include="src\Commands\Commands.VersionsRemote.pas"/>
+        <DCCReference Include="src\Core\UDelayedErrors.pas"/>
+        <DCCReference Include="src\Testing\Testing.Globals.pas"/>
+        <DCCReference Include="src\Testing\Testing.CommandLineOptions.pas"/>
+        <DCCReference Include="src\Fetching\Fetching.OfflineHTTPClient.pas"/>
+        <DCCReference Include="src\Commands\Commands.Pin.pas"/>
+        <DCCReference Include="src\Doctor\Doctor.DuplicatedBplCheck.pas"/>
+        <DCCReference Include="..\common\src\System\UDllBitness.pas"/>
+        <DCCReference Include="..\common\src\System\UFileProperties.pas"/>
+        <DCCReference Include="src\Doctor\Doctor.DuplicatedFiles.pas"/>
+        <DCCReference Include="src\Commands\Commands.Snapshot.pas"/>
+        <DCCReference Include="src\Snapshot\Snapshot.Reader.pas"/>
+        <DCCReference Include="src\Snapshot\Snapshot.Writer.pas"/>
+        <DCCReference Include="src\Commands\Commands.Restore.pas"/>
+        <DCCReference Include="..\common\src\System\Util.Credentials.pas"/>
+        <DCCReference Include="src\Commands\Commands.Spec.pas"/>
+        <DCCReference Include="src\Config\USpecWriter.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">
@@ -441,7 +463,6 @@
                 <Source>
                     <Source Name="MainSource">tms.dpr</Source>
                 </Source>
-                
             </Delphi.Personality>
             <Deployment Version="5">
                 <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">

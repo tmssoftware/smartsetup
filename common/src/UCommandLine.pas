@@ -88,8 +88,9 @@ var
   cmd: TCommandDefinition;
   option: IOptionDefinition;
 begin
-  cmd := TOptionsRegistry.RegisterCommand('help', 'h', 'get help for command',
-    '', 'help <command>');
+  cmd := TOptionsRegistry.RegisterCommand('help', 'h', 'Gets help for a specific command',
+    'To get help for a specific command, type "tms help <command>". To know the available commands, type "tms". Full documentation is available at https://doc.tmssoftware.com/smartsetup',
+    'help <command>');
   option := cmd.RegisterUnNamedOption<string>('The command you need help for',
     'command',
     procedure(const Value: string)

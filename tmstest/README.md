@@ -61,7 +61,7 @@ Those folders might also have log files from smartsetup, if they run some smarts
 ```
 tmstest build
 ```
-this will run all tests that have `build` inside their name. We search for `test.*{parameter}*.tms` so in this case, this will run all tests matching `test.*build*.ps1`.
+this will run all tests that have `build` inside their name. We search for `test.*{parameter}*.ps1` so in this case, this will run all tests matching `test.*build*.ps1`.
 
 > [!NOTE]
 > Don't run the tests directly, by executing them in the command line. They will refuse to run, because they need to be run outside the `tests` folder. Otherwise they would create their temporary files in the wrong place. To run them manually, call `tmstest name-of-the-test` instead. `tmstest` will basically copy the folder to tmp-run, and run it there.
@@ -72,6 +72,19 @@ tmstest -skip-slow
 tmstest build -skip-slow
 ```
 Will skip all slow tests.
+
+### Testing working folder
+
+Normal tests run in the default smartsetup configuration where the default folder is the same folder where tms.config.yaml is.
+There are some specific tests for changing the working folder, but they are few. To run all the tests using a working folder
+based on %temp%,call
+
+```
+tmstest -working-folder
+```
+
+> [!NOTE]
+> To test better, you would need %temp% to be located in a different drive from the tests. You can do so by setting `$env:TEMP=z:\mytests`
 
 ### Debugging from the console
 
@@ -191,6 +204,10 @@ The following functions are defined in util.modules.psm1:
   * **uninstall_and_check(products-remaining)**: uninstalls everything and checks that product-remaining products remain. Normally you will call this at the end of the script with products-remaining = 0.
   * **compare-files**: compares 2 files and returns an error if not the same.
   * **Assert-ValueIs**: Asserts 2 values are the same. Must be used as a filter, like `command | Assert-ValueIs("0")`
+  * **Test-Result**: Checks if the result from a call contains some string
+  * **Test-BuildResultCounts**: Checks the ok, not modified and ignored results from a build command.
+  * **Test-FetchResultCounts**: Checks if the fetch summary is as expected.
+  * **Set-AlternateRegistryKey**: Runs the test in an alternate registry key.
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 
@@ -198,3 +215,4 @@ A starting tms.config.yaml is provided automatically to all `tms` calls, so you 
 A command `tmstest_util` is provided that can be called from the scripts, to add specific delphi-only functionality we want to test, or stuff that is done simpler/faster in delphi. Currently tmstest_util has the commands:
   *  **delete-folder**: Deletes a folder, or moves the files to the locked folder if not possible.
   *  **clean-locked**: Deletes the locked folder.
+  *  **summary-to-json**: Converts the build summary to json so it can be analyzed.

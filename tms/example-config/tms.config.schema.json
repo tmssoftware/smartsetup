@@ -108,6 +108,15 @@
       },
       "uniqueItems": true
     },
+    "snapshotFilenamesObject": {
+      "type": ["array", "null"],
+      "description": "If you write entries here, Smart setup will automatically create a snapshot of the current configuration and save it to the every filename you specify.\nThe snapshot files can then be used later to restore the exact same configuration.\nIf you specify relative paths here, they will be relative to the folder where this configuration file is located.",
+      "items": {
+        "type": "string"
+      },
+      "examples": ["snapshots\\my-snapshot.yaml", "d:\\snapshots\\full-config.yaml"],
+      "uniqueItems": true
+    },
     "serversObject": {
       "type": "object",
       "description": "Specify which servers SmartSetup will connect to.\nWhen creating your own server, you also need to specify \"type\" (can be api, zipfile)\nAnd the \"url\" where the server is.",
@@ -189,6 +198,11 @@
           "type": ["string", "null"],
           "description": "installs the component in an alternate place so you can have different components installed in the same Delphi.\nsee https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key"
         },
+        "working folder": {
+          "type": ["string", "null"],
+          "description": "folder where smart setup will store the products along with its metadata, like downloaded files, unzipped files, logs, etc.\nif empty (the default), all folders will be created where this tms.config.yaml file is located.\nthis folder can be located in a different disk than this configuration file.",
+          "examples": ["..\\..\\components", "d:\\builds\\"]
+        },
         "prevent sleep": {
           "type": "boolean",
           "description": " prevents the machine from going to sleep while smart setup is running. Default is true.\nnote that for this setting to work, \"Allow applications to prevent automatic sleep (plugged in)\" must be set\nto Enabled in the Group Policy Settings. See https://github.com/microsoft/PowerToys/issues/12326#issuecomment-1304934080",
@@ -230,6 +244,13 @@
         "replace additional products folders": {
           "$ref": "#/definitions/additionalProductsFoldersObject"
         },
+        "auto snapshot filenames": { "$ref": "#/definitions/snapshotFilenamesObject" },
+        "add auto snapshot filenames": {
+          "$ref": "#/definitions/snapshotFilenamesObject"
+        },
+        "replace auto snapshot filenames": {
+          "$ref": "#/definitions/snapshotFilenamesObject"
+        },
 
         "servers": { "$ref": "#/definitions/serversObject" },
         "add servers": { "$ref": "#/definitions/serversObject" },
@@ -252,7 +273,7 @@
             "pull command": {
               "type": ["string", "null"],
               "description": "Here you can specify extra parameters for the git pull call. If not specified, smart setup will do a plain pull.",
-              "examples": ["pull --ff-only"]
+              "examples": ["pull --all --ff-only"]
             }
           },
           "additionalProperties": false
@@ -497,6 +518,85 @@
             "delphi13": {
               "type": ["string", "null"],
               "description": "Path where bin\\rsvars.bat is located for Delphi 13. If not specified, smart setup will try to find Delphi 13 automatically."
+            }
+          },
+          "additionalProperties": false
+        },
+        "compiler parameters": {
+          "type": ["object", "null"],
+          "description": "Here you can specify additional command line parameters to be passed to the compiler for each Delphi version.",
+          "properties": {
+            "lazarus": {
+              "type": ["string", "null"]
+            },
+            "delphi6": {
+              "type": ["string", "null"]
+            },
+            "delphi7": {
+              "type": ["string", "null"]
+            },
+            "delphi2005": {
+              "type": ["string", "null"]
+            },
+            "delphi2006": {
+              "type": ["string", "null"]
+            },
+            "delphi2007": {
+              "type": ["string", "null"]
+            },
+            "delphi2009": {
+              "type": ["string", "null"]
+            },
+            "delphi2010": {
+              "type": ["string", "null"]
+            },
+            "delphixe": {
+              "type": ["string", "null"]
+            },
+            "delphixe2": {
+              "type": ["string", "null"]
+            },
+            "delphixe3": {
+              "type": ["string", "null"]
+            },
+            "delphixe4": {
+              "type": ["string", "null"]
+            },
+            "delphixe5": {
+              "type": ["string", "null"]
+            },
+            "delphixe6": {
+              "type": ["string", "null"]
+            },
+            "delphixe7": {
+              "type": ["string", "null"]
+            },
+            "delphixe8": {
+              "type": ["string", "null"]
+            },
+            "delphiseattle": {
+              "type": ["string", "null"]
+            },
+            "delphiberlin": {
+              "type": ["string", "null"]
+            },
+            "delphitokyo": {
+              "type": ["string", "null"]
+            },
+            "delphirio": {
+              "type": ["string", "null"]
+            },
+            "delphisydney": {
+              "type": ["string", "null"]
+            },
+            "delphi11": {
+              "type": ["string", "null"]
+            },
+            "delphi12": {
+              "type": ["string", "null"]
+            },
+            "delphi13": {
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false

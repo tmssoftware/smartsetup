@@ -15,6 +15,11 @@ tms smart setup options:
   # see https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
   alternate registry key:
 
+  # folder where smart setup will store the products along with its metadata, like downloaded files, unzipped files, logs, etc.
+  # if empty (the default), all folders will be created where this tms.config.yaml file is located.
+  # this folder can be located in a different disk than this configuration file.
+  working folder: #..\..\components
+
   # prevents the machine from going to sleep while smart setup is running. Default is true.
   # note that for this setting to work, "Allow applications to prevent automatic sleep (plugged in)" must be set
   # to Enabled in the Group Policy Settings. See https://github.com/microsoft/PowerToys/issues/12326#issuecomment-1304934080
@@ -48,9 +53,17 @@ tms smart setup options:
   # All configuration folders (.tmsbuild, Temp, etc) are still under the main root folder, nothing will
   # be generated under the additional folders. This is useful if you want to use tms to build your own sources.
   # The folders you add here must be in the same drive as the main root folder.
+  # You can also use wildcards (* or ?) here to add multiple folders with a single entry.
+  # For example: c:\MyProducts\*\demo\source would match MyProducts\product1\demo\source, MyProducts\product2\demo\source, etc.
   additional products folders:
     #- c:\MyProducts   #All folders containing tmsbuild.yaml files inside c:\MyProducts will be added to the build.
     #- ..\..\Other products  #Try to use relative folders if possible.
+
+  # If you write entries here, Smart setup will automatically create a snapshot of the current configuration and save it to the every filename you specify.
+  # The snapshot files can then be used later to restore the exact same configuration.
+  # If you specify relative paths here, they will be relative to the folder where this configuration file is located.
+  auto snapshot filenames:
+    #- tms.snaphot.yaml
 
   # Specify which servers SmartSetup will connect to.
   # When creating your own server, you also need to specify "type" (can be api, zipfile)
@@ -65,7 +78,7 @@ tms smart setup options:
   git:
     git location: #c:\git\bin\git.exe
     clone command: #clone --branch my-branch --single-branch
-    pull command: #pull --ff-only
+    pull command: #pull --all --ff-only
 
   # Subversion (SVN) client configuration.
   svn:

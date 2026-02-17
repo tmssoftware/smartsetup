@@ -19,15 +19,15 @@ var
 function HasCredentials: Boolean;
 begin
   Result := false;
-  var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
-  for var i := 0 to ConfigNoCheck.ServerConfig.ServerCount - 1 do
+  var Folders := ConfigNoCheck.Folders;
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
   begin
     var Server := Config.ServerConfig.GetServer(i);
 
     // HasCredentials is deprecated. We will keep the old behavior, which is "HasCredentials" indicates if the
     // server "tms" has its credentials set.
     if (not Server.Enabled) or (Server.ServerType <> TServerType.Api) or not SameText(Server.Name, 'tms') then Continue;
-    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions);
+    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions, Server.Name);
     try
       var Credentials := Manager.ReadCredentials;
       try
@@ -49,7 +49,7 @@ begin
   try
     Json.AddPair('tms version', TMSVersion);
     Json.AddPair('tms location', ParamStr(0));
-    Json.AddPair('working folder', TPath.GetDirectoryName(ConfigFileName));
+    Json.AddPair('working folder', ConfigNoCheck.Folders.RootFolder);
     Json.AddPair('folder initialized', IsValidTMSSetupFolder);
     Json.AddPair('has credentials', HasCredentials);
     if TFile.Exists(ConfigFileName) then

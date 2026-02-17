@@ -194,9 +194,10 @@
         "uniqueItems": true,
         "additionalProperties": false
       },
-      "uniqueItems": true
+      "uniqueItems": true,
+      "additionalProperties": false
+
     },
-    "additionalProperties": false,
     "package options": {
       "type": "object",
       "description": "The settings in the this section are only needed if the packages don't follow smartsetup conventions.",
@@ -527,8 +528,7 @@
             }
           },
           "additionalProperties": false
-        },
-        "additionalProperties": false
+        }
       }
     },
     "exe options": {

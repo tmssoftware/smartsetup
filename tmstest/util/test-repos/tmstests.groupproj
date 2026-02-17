@@ -1,0 +1,108 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{A3629C2F-FCC3-46B6-AA74-B7941CC87F9F}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="A-BC\tmstest_a.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="B-CDE\tmstest_b.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="C\tmstest_c.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D\tmstest_d.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="E-F\tmstest_e.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="F\tmstest_f.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="X-D\tmstest_x.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="tmstest_a">
+        <MSBuild Projects="A-BC\tmstest_a.dproj"/>
+    </Target>
+    <Target Name="tmstest_a:Clean">
+        <MSBuild Projects="A-BC\tmstest_a.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmstest_a:Make">
+        <MSBuild Projects="A-BC\tmstest_a.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="tmstest_b">
+        <MSBuild Projects="B-CDE\tmstest_b.dproj"/>
+    </Target>
+    <Target Name="tmstest_b:Clean">
+        <MSBuild Projects="B-CDE\tmstest_b.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmstest_b:Make">
+        <MSBuild Projects="B-CDE\tmstest_b.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="tmstest_c">
+        <MSBuild Projects="C\tmstest_c.dproj"/>
+    </Target>
+    <Target Name="tmstest_c:Clean">
+        <MSBuild Projects="C\tmstest_c.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmstest_c:Make">
+        <MSBuild Projects="C\tmstest_c.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="tmstest_d">
+        <MSBuild Projects="D\tmstest_d.dproj"/>
+    </Target>
+    <Target Name="tmstest_d:Clean">
+        <MSBuild Projects="D\tmstest_d.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmstest_d:Make">
+        <MSBuild Projects="D\tmstest_d.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="tmstest_e">
+        <MSBuild Projects="E-F\tmstest_e.dproj"/>
+    </Target>
+    <Target Name="tmstest_e:Clean">
+        <MSBuild Projects="E-F\tmstest_e.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmstest_e:Make">
+        <MSBuild Projects="E-F\tmstest_e.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="tmstest_f">
+        <MSBuild Projects="F\tmstest_f.dproj"/>
+    </Target>
+    <Target Name="tmstest_f:Clean">
+        <MSBuild Projects="F\tmstest_f.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmstest_f:Make">
+        <MSBuild Projects="F\tmstest_f.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="tmstest_x">
+        <MSBuild Projects="X-D\tmstest_x.dproj"/>
+    </Target>
+    <Target Name="tmstest_x:Clean">
+        <MSBuild Projects="X-D\tmstest_x.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tmstest_x:Make">
+        <MSBuild Projects="X-D\tmstest_x.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="tmstest_a;tmstest_b;tmstest_c;tmstest_d;tmstest_e;tmstest_f;tmstest_x"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="tmstest_a:Clean;tmstest_b:Clean;tmstest_c:Clean;tmstest_d:Clean;tmstest_e:Clean;tmstest_f:Clean;tmstest_x:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="tmstest_a:Make;tmstest_b:Make;tmstest_c:Make;tmstest_d:Make;tmstest_e:Make;tmstest_f:Make;tmstest_x:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

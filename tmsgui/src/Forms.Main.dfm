@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'TMS Smart Setup'
   ClientHeight = 561
-  ClientWidth = 921
+  ClientWidth = 971
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clBtnText
@@ -18,7 +18,7 @@ object MainForm: TMainForm
   object Panel3: TPanel
     Left = 0
     Top = 0
-    Width = 921
+    Width = 971
     Height = 542
     Align = alClient
     BevelOuter = bvNone
@@ -26,7 +26,7 @@ object MainForm: TMainForm
     object PageControl1: TPageControl
       Left = 0
       Top = 0
-      Width = 921
+      Width = 971
       Height = 383
       ActivePage = tsProducts
       Align = alClient
@@ -65,11 +65,13 @@ object MainForm: TMainForm
         object lvProducts: TListView
           Left = 105
           Top = 35
-          Width = 703
+          Width = 753
           Height = 320
           Align = alClient
           BorderStyle = bsNone
           Columns = <
+            item
+            end
             item
               Caption = 'Product Id'
               Width = 120
@@ -100,15 +102,18 @@ object MainForm: TMainForm
           ReadOnly = True
           RowSelect = True
           ParentFont = False
+          ParentShowHint = False
           PopupMenu = pmProducts
+          ShowHint = True
           TabOrder = 2
           ViewStyle = vsReport
           OnColumnClick = lvProductsColumnClick
           OnCompare = lvProductsCompare
-          OnCustomDrawItem = lvProductsCustomDrawItem
+          OnInfoTip = lvProductsInfoTip
+          OnMouseMove = lvProductsMouseMove
         end
         object RightPanel: TPanel
-          Left = 808
+          Left = 858
           Top = 35
           Width = 105
           Height = 320
@@ -168,7 +173,7 @@ object MainForm: TMainForm
         object TopPanel: TPanel
           Left = 0
           Top = 0
-          Width = 913
+          Width = 963
           Height = 35
           Align = alTop
           BevelEdges = [beBottom]
@@ -176,10 +181,10 @@ object MainForm: TMainForm
           BevelOuter = bvNone
           TabOrder = 0
           DesignSize = (
-            913
+            963
             33)
           object btConfiguration2: TSpeedButton
-            Left = 882
+            Left = 932
             Top = 3
             Width = 23
             Height = 25
@@ -195,7 +200,7 @@ object MainForm: TMainForm
             ExplicitLeft = 871
           end
           object lbServer: TLabel
-            Left = 742
+            Left = 792
             Top = 8
             Width = 35
             Height = 15
@@ -213,7 +218,7 @@ object MainForm: TMainForm
             OnChange = edSearchChange
           end
           object cbServer: TComboBox
-            Left = 784
+            Left = 834
             Top = 5
             Width = 91
             Height = 23
@@ -224,13 +229,13 @@ object MainForm: TMainForm
           end
         end
       end
-      object TabSheet1: TTabSheet
+      object tsOutput: TTabSheet
         Caption = 'Output'
         ImageIndex = 2
         object OutputMemo: TMemo
           Left = 0
           Top = 0
-          Width = 913
+          Width = 963
           Height = 355
           Align = alClient
           BorderStyle = bsNone
@@ -249,7 +254,7 @@ object MainForm: TMainForm
     object LogPanel: TPanel
       Left = 0
       Top = 407
-      Width = 921
+      Width = 971
       Height = 135
       Align = alBottom
       BevelOuter = bvNone
@@ -258,7 +263,7 @@ object MainForm: TMainForm
       object LogSplitter: TSplitter
         Left = 0
         Top = 62
-        Width = 921
+        Width = 971
         Height = 3
         Cursor = crVSplit
         Align = alBottom
@@ -269,7 +274,7 @@ object MainForm: TMainForm
       object mmLogDetails: TMemo
         Left = 0
         Top = 65
-        Width = 921
+        Width = 971
         Height = 70
         Align = alBottom
         BorderStyle = bsNone
@@ -292,7 +297,7 @@ object MainForm: TMainForm
       object lbLogItems: TListBox
         Left = 0
         Top = 0
-        Width = 921
+        Width = 971
         Height = 62
         Align = alClient
         BorderStyle = bsNone
@@ -310,13 +315,13 @@ object MainForm: TMainForm
     object ProgressPanel: TPanel
       Left = 0
       Top = 383
-      Width = 921
+      Width = 971
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 2
       object SpeedButton1: TSpeedButton
-        Left = 864
+        Left = 914
         Top = 0
         Width = 57
         Height = 24
@@ -329,7 +334,7 @@ object MainForm: TMainForm
       object ProgressBar: TProgressBar
         Left = 0
         Top = 0
-        Width = 864
+        Width = 914
         Height = 24
         Align = alClient
         Smooth = True
@@ -340,7 +345,7 @@ object MainForm: TMainForm
   object StatusBar: TStatusBar
     Left = 0
     Top = 542
-    Width = 921
+    Width = 971
     Height = 19
     Panels = <
       item
@@ -355,6 +360,12 @@ object MainForm: TMainForm
   object ActionList1: TActionList
     Left = 240
     Top = 96
+    object acInstallVersion: TAction
+      Category = 'Menus'
+      Caption = 'Install ver&sion...'
+      OnExecute = acInstallVersionExecute
+      OnUpdate = acInstallVersionUpdate
+    end
     object acInstall: TAction
       Category = 'Commands'
       Caption = '&Install'
@@ -427,6 +438,18 @@ object MainForm: TMainForm
       ShortCut = 16453
       OnExecute = acSearchFocusExecute
     end
+    object acPin: TAction
+      Category = 'Menus'
+      Caption = 'Pin version'
+      OnExecute = acPinExecute
+      OnUpdate = acPinUpdate
+    end
+    object acUnpin: TAction
+      Category = 'Menus'
+      Caption = 'Unpin version'
+      OnExecute = acUnpinExecute
+      OnUpdate = acUnpinUpdate
+    end
   end
   object BuildMenu: TPopupMenu
     Left = 848
@@ -441,8 +464,17 @@ object MainForm: TMainForm
   object pmProducts: TPopupMenu
     Left = 344
     Top = 96
+    object Installversion1: TMenuItem
+      Action = acInstallVersion
+    end
     object Openversionhistory1: TMenuItem
       Action = acVersionHistory
+    end
+    object Pinversion1: TMenuItem
+      Action = acPin
+    end
+    object Unpinversion1: TMenuItem
+      Action = acUnpin
     end
   end
 end

@@ -9,10 +9,17 @@ type
   private
     procedure RemoveTopEmptyFolder(const DestFolder: string);
   public
-    procedure Clone(const  aCloneFolder, aURL: string);
-    procedure Pull(const aFolder: string);
+    procedure Clone(const aCloneFolder, aURL, aVersion: string);
+    procedure AfterClone(const aRootFolder, aCloneFolder: string);
+
+    procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
     procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
-    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
+    function GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
+    function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
+    function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
+
+    function GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
+    function IsRootVCSFolder(const Folder: string): boolean;
   end;
 
 
@@ -23,9 +30,20 @@ uses
 
 { TZipFileEngine }
 
-procedure TZipFileEngine.Clone(const aCloneFolder, aURL: string);
+procedure TZipFileEngine.AfterClone(const aRootFolder, aCloneFolder: string);
+begin
+
+end;
+
+procedure TZipFileEngine.Clone(const aCloneFolder, aURL, aVersion: string);
 begin
   raise Exception.Create('Clone not supported in ZIPFILE protocol.');
+end;
+
+function TZipFileEngine.FileIsVersioned(const aFileName,
+  aWorkingFolder: string): boolean;
+begin
+  Result := TFile.Exists(aFileName);
 end;
 
 //This method is to handle a case where the product is all put inside a folder.
@@ -44,6 +62,11 @@ begin
     if Length(TDirectory.GetDirectories(Folder, '*', TSearchOption.soTopDirectoryOnly)) > 1 then exit(false);
   end;
 
+end;
+
+function TZipFileEngine.GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
+begin
+  Result := '';
 end;
 
 procedure TZipFileEngine.GetFile(const aFileName, aDestFolder, aURL, aServer: string);
@@ -98,8 +121,10 @@ begin
 
 end;
 
-function TZipFileEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId: string): boolean;
+function TZipFileEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
 begin
+  if aVersion <> '' then raise Exception.Create('Versioning not supported in ZIPFILE protocol.');
+
   Result := true;
   var TempGUIDProductFolder := TPath.Combine(Config.Folders.VCSTempFolder, GuidToStringN(TGUID.NewGuid));
   TDirectory_CreateDirectory(TempGUIDProductFolder);
@@ -126,7 +151,17 @@ begin
   end;
 end;
 
-procedure TZipFileEngine.Pull(const aFolder: string);
+function TZipFileEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
+begin
+  raise Exception.Create('GetVersionNames not supported in ZIPFILE protocol.');
+end;
+
+function TZipFileEngine.IsRootVCSFolder(const Folder: string): boolean;
+begin
+  Result := true;
+end;
+
+procedure TZipFileEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
   raise Exception.Create('Pull not supported in ZIPFILE protocol.');
 end;

@@ -19,7 +19,7 @@ type
     procedure Info(const Message: string);
     procedure Trace(const Message: string);
     procedure Write(const verb: TVerbosity; const s: string);
-    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const Process: boolean = false);
+    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const Process: boolean = false; const NewLine: boolean = true);
     procedure Progress(const Message: string; const Progress: TProductProgressInfo);
 
     function TraceProc: TProc<string>;
@@ -255,14 +255,14 @@ begin
   Result := procedure(s: string) begin Logger.Trace(s); end;
 end;
 
-procedure TMultiLogger.Message(const MessageKind: TLogMessageKind; const Message: string; const Process: boolean = false);
+procedure TMultiLogger.Message(const MessageKind: TLogMessageKind; const Message: string; const Process: boolean = false; const NewLine: boolean = true);
 begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     try
       var ActualMsg := Message;
       if Process then ActualMsg := Loggers[i].ProcessMsg(Message);
-      Loggers[i].Message(MessageKind, ActualMsg);
+      Loggers[i].Message(MessageKind, ActualMsg, NewLine);
     except
       //nothing, we can't recover or even write the message. Maybe other logger will.
     end;

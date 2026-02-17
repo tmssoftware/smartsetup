@@ -199,7 +199,29 @@ uses
   BBArrays in '..\common\src\BBYaml\BBArrays.pas',
   BBYaml.Writer in '..\common\src\BBYaml\BBYaml.Writer.pas',
   BBYaml.Types in '..\common\src\BBYaml\BBYaml.Types.pas',
-  BBStrings in '..\common\src\BBYaml\BBStrings.pas';
+  BBStrings in '..\common\src\BBYaml\BBStrings.pas',
+  Deget.Compilation.Delphi in '..\common\src\Deget\Deget.Compilation.Delphi.pas',
+  Deget.Compilation.Precompiled in '..\common\src\Deget\Deget.Compilation.Precompiled.pas',
+  Deget.Compilation.Lazarus in '..\common\src\Deget\Deget.Compilation.Lazarus.pas',
+  Deget.Compilation.DelphiSelector in '..\common\src\Deget\Deget.Compilation.DelphiSelector.pas',
+  Fetching.ProductVersion in 'src\Fetching\Fetching.ProductVersion.pas',
+  Commands.VersionsRemote in 'src\Commands\Commands.VersionsRemote.pas',
+  UDelayedErrors in 'src\Core\UDelayedErrors.pas',
+  Testing.Globals in 'src\Testing\Testing.Globals.pas',
+  Testing.CommandLineOptions in 'src\Testing\Testing.CommandLineOptions.pas',
+  Fetching.OfflineHTTPClient in 'src\Fetching\Fetching.OfflineHTTPClient.pas',
+  Commands.Pin in 'src\Commands\Commands.Pin.pas',
+  Doctor.DuplicatedBplCheck in 'src\Doctor\Doctor.DuplicatedBplCheck.pas',
+  UDllBitness in '..\common\src\System\UDllBitness.pas',
+  UFileProperties in '..\common\src\System\UFileProperties.pas',
+  Doctor.DuplicatedFiles in 'src\Doctor\Doctor.DuplicatedFiles.pas',
+  Commands.Snapshot in 'src\Commands\Commands.Snapshot.pas',
+  Snapshot.Reader in 'src\Snapshot\Snapshot.Reader.pas',
+  Snapshot.Writer in 'src\Snapshot\Snapshot.Writer.pas',
+  Commands.Restore in 'src\Commands\Commands.Restore.pas',
+  Util.Credentials in '..\common\src\System\Util.Credentials.pas',
+  Commands.Spec in 'src\Commands\Commands.Spec.pas',
+  USpecWriter in 'src\Config\USpecWriter.pas';
 
 begin
   try

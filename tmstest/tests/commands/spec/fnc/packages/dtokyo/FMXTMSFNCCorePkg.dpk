@@ -1,0 +1,139 @@
+package FMXTMSFNCCorePkg;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$IMPLICITBUILD OFF}
+{$DESCRIPTION 'TMS FNC Core for FMX'}
+{$LIBSUFFIX '250'}
+
+requires
+  rtl,
+  fmx,
+  xmlrtl,
+  dbrtl;
+
+contains
+  FMX.TMSFNCResponsiveManager in '..\..\FMX.TMSFNCResponsiveManager.pas',
+  FMX.TMSFNCStateManager in '..\..\FMX.TMSFNCStateManager.pas',
+  FMX.TMSFNCResponsiveManagerReg in '..\..\FMX.TMSFNCResponsiveManagerReg.pas',
+  FMX.TMSFNCCloudBase.Android in '..\..\FMX.TMSFNCCloudBase.Android.pas',
+  FMX.TMSFNCCloudBase.Mac in '..\..\FMX.TMSFNCCloudBase.Mac.pas',
+  FMX.TMSFNCCloudBase in '..\..\FMX.TMSFNCCloudBase.pas',
+  FMX.TMSFNCCloudBase.Unix in '..\..\FMX.TMSFNCCloudBase.Unix.pas',
+  FMX.TMSFNCCloudBase.WEB in '..\..\FMX.TMSFNCCloudBase.WEB.pas',
+  FMX.TMSFNCCloudBase.Win in '..\..\FMX.TMSFNCCloudBase.Win.pas',
+  FMX.TMSFNCBitmapEditor in '..\..\FMX.TMSFNCBitmapEditor.pas',
+  FMX.TMSFNCBitmapContainer in '..\..\FMX.TMSFNCBitmapContainer.pas',
+  FMX.TMSFNCBitmapContainerReg in '..\..\FMX.TMSFNCBitmapContainerReg.pas',
+  FMX.TMSFNCCustomComponent in '..\..\FMX.TMSFNCCustomComponent.pas',
+  FMX.TMSFNCCustomControl in '..\..\FMX.TMSFNCCustomControl.pas',
+  FMX.TMSFNCCustomScrollControl in '..\..\FMX.TMSFNCCustomScrollControl.pas',
+  FMX.TMSFNCGDIPlusApi in '..\..\FMX.TMSFNCGDIPlusApi.pas',
+  FMX.TMSFNCGDIPlusClasses in '..\..\FMX.TMSFNCGDIPlusClasses.pas',
+  FMX.TMSFNCGraphics.Android in '..\..\FMX.TMSFNCGraphics.Android.pas',
+  FMX.TMSFNCGraphics.General in '..\..\FMX.TMSFNCGraphics.General.pas',
+  FMX.TMSFNCGraphics.iOS in '..\..\FMX.TMSFNCGraphics.iOS.pas',
+  FMX.TMSFNCGraphics.Mac in '..\..\FMX.TMSFNCGraphics.Mac.pas',
+  FMX.TMSFNCGraphics in '..\..\FMX.TMSFNCGraphics.pas',
+  FMX.TMSFNCGraphics.Unix in '..\..\FMX.TMSFNCGraphics.Unix.pas',
+  FMX.TMSFNCGraphics.WEB in '..\..\FMX.TMSFNCGraphics.WEB.pas',
+  FMX.TMSFNCGraphics.Win in '..\..\FMX.TMSFNCGraphics.Win.pas',
+  FMX.TMSFNCGraphicsPDFEngine in '..\..\FMX.TMSFNCGraphicsPDFEngine.pas',
+  FMX.TMSFNCGraphicsSVGEngine in '..\..\FMX.TMSFNCGraphicsSVGEngine.pas',
+  FMX.TMSFNCGraphicsPDFIOReg in '..\..\FMX.TMSFNCGraphicsPDFIOReg.pas',
+  FMX.TMSFNCGraphicsTypes in '..\..\FMX.TMSFNCGraphicsTypes.pas',
+  FMX.TMSFNCHint in '..\..\FMX.TMSFNCHint.pas',
+  FMX.TMSFNCHintReg in '..\..\FMX.TMSFNCHintReg.pas',
+  FMX.TMSFNCHTMLEngine in '..\..\FMX.TMSFNCHTMLEngine.pas',
+  FMX.TMSFNCJSONReader in '..\..\FMX.TMSFNCJSONReader.pas',
+  FMX.TMSFNCJSONWriter in '..\..\FMX.TMSFNCJSONWriter.pas',
+  FMX.TMSFNCPDFCoreLibBase in '..\..\FMX.TMSFNCPDFCoreLibBase.pas',
+  FMX.TMSFNCPDFGraphicsLib.Android in '..\..\FMX.TMSFNCPDFGraphicsLib.Android.pas',
+  FMX.TMSFNCPDFGraphicsLib.General in '..\..\FMX.TMSFNCPDFGraphicsLib.General.pas',
+  FMX.TMSFNCPDFGraphicsLib.iOS in '..\..\FMX.TMSFNCPDFGraphicsLib.iOS.pas',
+  FMX.TMSFNCPDFGraphicsLib.Mac in '..\..\FMX.TMSFNCPDFGraphicsLib.Mac.pas',
+  FMX.TMSFNCPDFGraphicsLib in '..\..\FMX.TMSFNCPDFGraphicsLib.pas',
+  FMX.TMSFNCPDFGraphicsLibHTMLEngine in '..\..\FMX.TMSFNCPDFGraphicsLibHTMLEngine.pas',
+  FMX.TMSFNCPDFIO in '..\..\FMX.TMSFNCPDFIO.pas',
+  FMX.TMSFNCPDFLib.Android in '..\..\FMX.TMSFNCPDFLib.Android.pas',
+  FMX.TMSFNCPDFLib.General.Android in '..\..\FMX.TMSFNCPDFLib.General.Android.pas',
+  FMX.TMSFNCPDFLib.General.Default in '..\..\FMX.TMSFNCPDFLib.General.Default.pas',
+  FMX.TMSFNCPDFLib.General.iOS in '..\..\FMX.TMSFNCPDFLib.General.iOS.pas',
+  FMX.TMSFNCPDFLib.General.Mac in '..\..\FMX.TMSFNCPDFLib.General.Mac.pas',
+  FMX.TMSFNCPDFLib.General in '..\..\FMX.TMSFNCPDFLib.General.pas',
+  FMX.TMSFNCPDFLib.General.Unix in '..\..\FMX.TMSFNCPDFLib.General.Unix.pas',
+  FMX.TMSFNCPDFLib.General.WEB in '..\..\FMX.TMSFNCPDFLib.General.WEB.pas',
+  FMX.TMSFNCPDFLib.General.Win in '..\..\FMX.TMSFNCPDFLib.General.Win.pas',
+  FMX.TMSFNCPDFLib.iOS in '..\..\FMX.TMSFNCPDFLib.iOS.pas',
+  FMX.TMSFNCPDFLib.Mac in '..\..\FMX.TMSFNCPDFLib.Mac.pas',
+  FMX.TMSFNCPDFLib in '..\..\FMX.TMSFNCPDFLib.pas',
+  FMX.TMSFNCPDFLibReg in '..\..\FMX.TMSFNCPDFLibReg.pas',
+  FMX.TMSFNCPDFRichTextLib.Android in '..\..\FMX.TMSFNCPDFRichTextLib.Android.pas',
+  FMX.TMSFNCPDFRichTextLib.General in '..\..\FMX.TMSFNCPDFRichTextLib.General.pas',
+  FMX.TMSFNCPDFRichTextLib.iOS in '..\..\FMX.TMSFNCPDFRichTextLib.iOS.pas',
+  FMX.TMSFNCPDFRichTextLib.Mac in '..\..\FMX.TMSFNCPDFRichTextLib.Mac.pas',
+  FMX.TMSFNCPDFRichTextLib in '..\..\FMX.TMSFNCPDFRichTextLib.pas',
+  FMX.TMSFNCPersistence in '..\..\FMX.TMSFNCPersistence.pas',
+  FMX.TMSFNCPopup in '..\..\FMX.TMSFNCPopup.pas',
+  FMX.TMSFNCPopupReg in '..\..\FMX.TMSFNCPopupReg.pas',
+  FMX.TMSFNCScrollBar in '..\..\FMX.TMSFNCScrollBar.pas',
+  FMX.TMSFNCScrollBarReg in '..\..\FMX.TMSFNCScrollBarReg.pas',
+  FMX.TMSFNCStyles in '..\..\FMX.TMSFNCStyles.pas',
+  FMX.TMSFNCStylesEditor in '..\..\FMX.TMSFNCStylesEditor.pas',
+  FMX.TMSFNCTypes in '..\..\FMX.TMSFNCTypes.pas',
+  FMX.TMSFNCUndo in '..\..\FMX.TMSFNCUndo.pas',
+  FMX.TMSFNCURLBitmapContainer in '..\..\FMX.TMSFNCURLBitmapContainer.pas',
+  FMX.TMSFNCUtils in '..\..\FMX.TMSFNCUtils.pas',
+  FMX.TMSFNCGraphicsTools in '..\..\FMX.TMSFNCGraphicsTools.pas',
+  FMX.TMSFNCStylesReg in '..\..\FMX.TMSFNCStylesReg.pas',
+  FMX.TMSFNCWebBrowser.Android in '..\..\FMX.TMSFNCWebBrowser.Android.pas',
+  FMX.TMSFNCWebBrowser.iOS in '..\..\FMX.TMSFNCWebBrowser.iOS.pas',
+  FMX.TMSFNCWebBrowser.Mac in '..\..\FMX.TMSFNCWebBrowser.Mac.pas',
+  FMX.TMSFNCWebBrowser in '..\..\FMX.TMSFNCWebBrowser.pas',
+  FMX.TMSFNCWebBrowser.Unix in '..\..\FMX.TMSFNCWebBrowser.Unix.pas',
+  FMX.TMSFNCWebBrowser.Win in '..\..\FMX.TMSFNCWebBrowser.Win.pas',
+  FMX.TMSFNCWebBrowserReg in '..\..\FMX.TMSFNCWebBrowserReg.pas',
+  FMX.TMSFNCEdgeWebBrowser in '..\..\FMX.TMSFNCEdgeWebBrowser.pas',
+  FMX.TMSFNCEdgeWebBrowserReg in '..\..\FMX.TMSFNCEdgeWebBrowserReg.pas',
+  FMX.TMSFNCDataBinding in '..\..\FMX.TMSFNCDataBinding.pas',
+  FMX.TMSFNCDataBindingEditor in '..\..\FMX.TMSFNCDataBindingEditor.pas',
+  FMX.TMSFNCDataBindingReg in '..\..\FMX.TMSFNCDataBindingReg.pas',
+  FMX.TMSFNCCustomWEBControl in '..\..\FMX.TMSFNCCustomWEBControl.pas',
+  FMX.TMSFNCCustomWEBComponent in '..\..\FMX.TMSFNCCustomWEBComponent.pas',
+  FMX.TMSFNCWebCoreClientBrowser in '..\..\FMX.TMSFNCWebCoreClientBrowser.pas',
+  FMX.TMSFNCGraphicsAppearanceEditor in '..\..\FMX.TMSFNCGraphicsAppearanceEditor.pas',
+  FMX.TMSFNCPrinters in '..\..\FMX.TMSFNCPrinters.pas',
+  FMX.TMSFNCPrintIO in '..\..\FMX.TMSFNCPrintIO.pas',
+  FMX.TMSFNCPrintIOReg in '..\..\FMX.TMSFNCPrintIOReg.pas',
+  FMX.TMSFNCBitmapContainerEditor in '..\..\FMX.TMSFNCBitmapContainerEditor.pas',
+  FMX.TMSFNCEditorButton in '..\..\FMX.TMSFNCEditorButton.pas',
+  FMX.TMSFNCEditorListView in '..\..\FMX.TMSFNCEditorListView.pas',
+  FMX.TMSFNCEditorPanel in '..\..\FMX.TMSFNCEditorPanel.pas',
+  FMX.TMSFNCEditorsTools in '..\..\FMX.TMSFNCEditorsTools.pas',
+  FMX.TMSFNCPopupMenu in '..\..\FMX.TMSFNCPopupMenu.pas',
+  FMX.TMSFNCPopupMenuReg in '..\..\FMX.TMSFNCPopupMenuReg.pas';
+
+end.

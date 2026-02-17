@@ -182,7 +182,7 @@ begin
   if Assigned(Section.ArrayMainAction) then Section.ArrayMainAction(Name, Value, ErrorInfo);
   if Section.ArrayActions <> nil then
   begin
-    Section.GetArray(Value, Section.ArrayActions, nil, ErrorInfo);
+    Section.GetFlowArray(Value, Section.ArrayActions, nil, ErrorInfo);
   end;
 
 end;
@@ -210,6 +210,7 @@ begin
   if not childValue.EndsWith(':') then exit (false);
 
   if (Section.Actions <> nil) and (Section.Actions.ContainsKey(childValue.Substring(0, childValue.Length - 1))) then exit(false);
+  if Section.ChildSections = nil then raise Exception.Create('The section "' + Section.SectionName + '" doesn''t contain arrays or ChildSections');
 
   Result := Section.ChildSections.Count > 0;
 end;

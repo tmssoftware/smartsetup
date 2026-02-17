@@ -110,7 +110,7 @@ begin
 
   if not (IdeName in ValidIDEs) then
   begin
-    if not DryRun then Persist.Remove(ProjectId, IDEId);
+    if not DryRun and (not Config.Unregistering) then Persist.Remove(ProjectId, IDEId);
     exit;
   end;
 
@@ -158,7 +158,7 @@ procedure TProjectUninstaller.UninstallOnePackage(const DryRun: boolean;
 begin
   if not (Platform in ValidPlatforms) or not (IdeName in ValidIDEs) then
   begin
-    if not DryRun then Persist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform], Package);
+    if not DryRun and (not Config.Unregistering) then Persist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform], Package);
     exit;
   end;
 

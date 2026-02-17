@@ -54,12 +54,16 @@ TConfigWriter = class
     function GetGlobalPropertyPrefix(const FullName: string): string;
     function GetProductPropertyPrefix(const ProductCfg: TProductConfigDefinition; const FullName: string): string;
     procedure SaveToStream(const TextWriter: TTextWriter; const Filter: string; const WritingFormat: TWritingFormat;
-             const UseJson: boolean; const SchemaURL, HeaderContent: string);
+             const UseJson, CmdSyntax: boolean; const SchemaURL, HeaderContent: string);
     class procedure CheckConfig(const aProperty: string); static;
+    function GetAutoSnapshotFilenames(
+      const Values: TEnumerable<string>): TYamlValue;
+    function GetCompilerParameters(const CfgProduct: TProductConfigDefinition;
+      const IdeName: string): TYamlValue;
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
     procedure Save(const FileName: string);
-    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson: boolean): string; static;
+    class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const WritingFormat: TWritingFormat; const UseJson, CmdSyntax: boolean): string; static;
 end;
 
 implementation
@@ -67,7 +71,7 @@ uses UTmsBuildSystemUtils, Deget.IDETypes, UConfigLoaderStateMachine;
 
 const
   GlobalPrefixedProperties: array[TGlobalPrefixedProperties] of string= ('excluded products', 'included products', 'additional products folders',
-     'servers', 'dcu megafolders');
+     'servers', 'dcu megafolders', 'auto snapshot filenames');
   ProductPrefixedProperties: array[TProductPrefixedProperties] of string= ('delphi versions', 'platforms', 'defines');
 
 constructor TConfigWriter.Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
@@ -175,9 +179,24 @@ begin
 
 end;
 
+function TConfigWriter.GetAutoSnapshotFilenames(const Values: TEnumerable<string>): TYamlValue;
+begin
+  var ArrayResult := Values.ToArray;
+  if (Length(ArrayResult) > 0) or CmdFormat then
+  begin
+    exit(TYamlValue.MakeArray(ArrayResult, BlockArray));
+  end;
+
+  Result := TYamlValue.MakeArray(
+  [
+    TYamlValue.MakeEmpty('tms.snaphot.yaml')
+  ], BlockArray);
+
+end;
+
 function TConfigWriter.GetServer(const Id: string): TYamlValue;
 begin
-  var ServerName := Id.Substring(0, Id.IndexOf(':')); 
+  var ServerName := Id.Substring(0, Id.IndexOf(':'));
   var PropName := Id.Substring(ServerName.Length + 1);
   var Server := Cfg.ServerConfig.GetServer(ServerName);
   if PropName = '' then exit(TYamlValue.MakeObject);
@@ -241,9 +260,11 @@ begin
   if FullName = 'tms smart setup options:' then exit(TYamlValue.MakeObject);
   if FullName = 'tms smart setup options:build cores:' then exit(Cfg.BuildCores);
   if FullName = 'tms smart setup options:alternate registry key:' then exit(Cfg.AlternateRegistryKey);
+  if FullName = 'tms smart setup options:working folder:' then exit(Cfg.GetWorkingFolder(false));
   if FullName = 'tms smart setup options:prevent sleep:' then exit(Cfg.PreventSleep);
   if FullName = 'tms smart setup options:versions to keep:' then exit(Cfg.MaxVersionsPerProduct);
   if FullName = 'tms smart setup options:error if skipped:' then exit(Cfg.ErrorIfSkipped);
+  if FullName = 'tms smart setup options:auto snapshot filenames:' then exit(GetAutoSnapshotFilenames(Cfg.AutoSnapshotFileNames.Keys));
 
   if FullName = 'tms smart setup options:excluded products:' then exit(GetIncludedExcludedComponents(Cfg.GetExcludedComponents, true));
   if FullName = 'tms smart setup options:included products:' then exit(GetIncludedExcludedComponents(Cfg.GetIncludedComponents, false));
@@ -409,6 +430,14 @@ begin
   Result := TYamlValue.MakeNull;
 end;
 
+function TConfigWriter.GetCompilerParameters(const CfgProduct: TProductConfigDefinition; const IdeName: string): TYamlValue;
+begin
+  var CompilerParameters := CfgProduct.GetString(ConfigKeys.CompilerParameters +  IdeName.Substring(0, IdeName.Length - 1), '');
+  if CompilerParameters <> '' then exit (CompilerParameters);
+
+  Result := TYamlValue.MakeNull;
+end;
+
 function TConfigWriter.IsAddReplacePrefixedProperty(const FullName: string): boolean;
 begin
   for var PrefixedProperty := Low(TGlobalPrefixedProperties) to High(TGlobalPrefixedProperties) do
@@ -498,6 +527,10 @@ begin
   if FullName = CompilerPaths then exit(TYamlValue.MakeObject);  
   if FullName.StartsWith(CompilerPaths) then exit(GetCompilerPaths(CfgProduct, FullName.Substring(CompilerPaths.Length)));
 
+  var CompilerParameters := CfgStart + 'compiler parameters:';
+  if FullName = CompilerParameters then exit(TYamlValue.MakeObject);
+  if FullName.StartsWith(CompilerParameters) then exit(GetCompilerParameters(CfgProduct, FullName.Substring(CompilerParameters.Length)));
+
   raise Exception.Create('Invalid tag for product configuration: ' + FullName);
 end;
 
@@ -514,7 +547,7 @@ procedure TConfigWriter.Save(const FileName: string);
 begin
   var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
   try
-    SaveToStream(TextWriter, '', TWritingFormat.Full, false,
+    SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
       'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
       'TMS Smart Setup configuration file'#10'Modify settings as needed.');
   finally
@@ -523,11 +556,11 @@ begin
 end;
 
 procedure TConfigWriter.SaveToStream(const TextWriter: TTextWriter; const Filter: string;
-   const WritingFormat: TWritingFormat; const UseJson: boolean; const SchemaURL, HeaderContent: string);
+   const WritingFormat: TWritingFormat; const UseJson, CmdSyntax: boolean; const SchemaURL, HeaderContent: string);
 begin
   var SchemaStream := TResourceStream.Create(HInstance, 'TmsConfigSchema', RT_RCDATA);
   try
-    var BBWriter := TBBYamlWriter.Create(WritingFormat, Filter, UseJson);
+    var BBWriter := TBBYamlWriter.Create(WritingFormat, Filter, UseJson, CmdSyntax, '-p');
     try
       BBWriter.OnMember := OnMember;
       BBWriter.OnComment := OnComment;
@@ -569,14 +602,14 @@ begin
   end;
 end;
 
-class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const UseJson: boolean): string;
+class function TConfigWriter.GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const WritingFormat: TWritingFormat; const UseJson, CmdSyntax: boolean): string;
 begin
   var Writer := TConfigWriter.Create(aCfg, true);
   try
     var PropertyName := TBBCmdReader.AdaptForCmd(aPropertyName, ':');
     var StringWriter := TStringWriter.Create;
     try
-      Writer.SaveToStream(StringWriter, PropertyName, TWritingFormat.NoComments, UseJson, '', '');
+      Writer.SaveToStream(StringWriter, PropertyName, WritingFormat, UseJson, CmdSyntax, '', '');
       StringWriter.Flush;
       Result := StringWriter.ToString;
       if Result = '' then

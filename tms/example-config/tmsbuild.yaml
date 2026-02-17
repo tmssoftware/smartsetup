@@ -144,7 +144,7 @@ paths:
     
     # - path1 # relative to the root of the project. do not start with a \. You can also use /, tmsbuild will fix it according ot the OS.
     # - path2\a\b
-    # - @linux64,win64intel: path3 #only added to the linux64 and win64 library path
+    # - '@linux64,win64intel: path3' #only added to the linux64 and win64 library path
   
   extra browsing paths:
   
@@ -180,12 +180,12 @@ registry keys:
 #  - Software\tmssoftware\TMS WEB Core:
 #      - value:
 #          name: InstallDir
-#          data: %install-path%
+#          data: '%install-path%'
 
 #      - value: 
 #          name: WebServerWait
 #          type: Dword
-#          data: 2
+#          data: '2'
           
 #  - Software\tmssoftware\TMS WEB Core\Components:
 #      - value:
@@ -217,7 +217,7 @@ file links:
   - link:
       file to link: example.dll
       link to folder: #optional. If you don't specify it, it will link to bpl folder.
-      os: [windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
+      os: [linux, windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
 
 # For checking if older products installed with a different method exist.
 other versions: # if the registry key exists, it means the product is already installed with other setup, and tms smart setup will refuse to run.

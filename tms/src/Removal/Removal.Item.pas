@@ -16,7 +16,7 @@ type
   private
     FProductId: string;
     FProductPath: string;
-    FVersion: TVersion;
+    FVersion: TLenientVersion;
     FDependenciesProcessed: Boolean;
     FDependents: TList<string>;
     FStatus: TRemovalStatus;
@@ -26,7 +26,7 @@ type
     property DependenciesProcessed: Boolean read FDependenciesProcessed write FDependenciesProcessed;
     property ProductId: string read FProductId;
     property ProductPath: string read FProductPath;
-    property Version: TVersion read FVersion;
+    property Version: TLenientVersion read FVersion;
     property Dependents: TList<string> read FDependents;
     property Status: TRemovalStatus read FStatus write FStatus;
   end;
@@ -34,8 +34,9 @@ type
   TRemovalItems = class(TObjectList<TRemovalItem>)
   public
     function ContainsStatus(Status: TRemovalStatus): Boolean;
-    function Contains(const ProductId, Version: string): Boolean;
-    function Find(const ProductId, Version: string): TRemovalItem;
+    function GetProductsWithStatus(Status: TRemovalStatus): string;
+    function Contains(const ProductId: string; const Version: TLenientVersion): Boolean;
+    function Find(const ProductId: string; const Version: TLenientVersion): TRemovalItem;
   end;
 
 implementation
@@ -46,7 +47,7 @@ constructor TRemovalItem.Create(const AProductId, AProductPath, AVersion: string
 begin
   FProductId := AProductId;
   FProductPath := AProductPath;
-  FVersion := AVersion;
+  FVersion := TLenientVersion.Create(AVersion, TVersionType.FreeForm);
   FDependents := TList<string>.Create;
 end;
 
@@ -58,7 +59,7 @@ end;
 
 { TRemovalItems }
 
-function TRemovalItems.Contains(const ProductId, Version: string): Boolean;
+function TRemovalItems.Contains(const ProductId: string; const Version: TLenientVersion): Boolean;
 begin
   Result := Find(ProductId, Version) <> nil;
 end;
@@ -71,12 +72,23 @@ begin
   Result := False;
 end;
 
-function TRemovalItems.Find(const ProductId, Version: string): TRemovalItem;
+function TRemovalItems.Find(const ProductId: string; const Version: TLenientVersion): TRemovalItem;
 begin
   for var Item in Self do
-    if (Item.ProductId = ProductId) and (Item.Version = TVersion(Version)) then
+    if (Item.ProductId = ProductId) and (Item.Version = Version) then
        Exit(Item);
   Result := nil;
+end;
+
+function TRemovalItems.GetProductsWithStatus(Status: TRemovalStatus): string;
+begin
+  Result := '';
+  for var Item in Self do
+    if Item.Status = Status then
+    begin
+      if Result <> '' then Result := Result + ', ';
+      Result := Result + Item.ProductId;
+    end;
 end;
 
 end.

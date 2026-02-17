@@ -6,7 +6,7 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
-  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UConfigInfo;
+  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -31,31 +31,33 @@ type
     procedure Error(const s: string); override;
     procedure Info(const s: string); override;
     procedure Trace(const s: string); override;
-    procedure Message(const MessageKind: TLogMessageKind; const Message: string); override;
+    procedure Message(const MessageKind: TLogMessageKind; const Message: string; const NewLine: boolean = true); override;
     property OnLogMessage: TLogMessageProc read FOnLogMessage write FOnLogMessage;
   end;
 
   TGUIProduct = class
   private
     FId: string;
-    FLocalVersion: TVersion;
-    FRemoteVersion: TVersion;
+    FLocalVersion: TLenientVersion;
+    FRemoteVersion: TLenientVersion;
     FName: string;
     FStatus: TProductStatus;
     FHasFetchInfo: Boolean;
     FVendorId: string;
     FServer: string;
+    FIsPinned: Boolean;
   public
     function IsOutdated: Boolean;
     function DisplayName: string;
     property Id: string read FId write FId;
     property Name: string read FName write FName;
-    property LocalVersion: TVersion read FLocalVersion write FLocalVersion;
-    property RemoteVersion: TVersion read FRemoteVersion write FRemoteVersion;
+    property LocalVersion: TLenientVersion read FLocalVersion write FLocalVersion;
+    property RemoteVersion: TLenientVersion read FRemoteVersion write FRemoteVersion;
     property Status: TProductStatus read FStatus write FStatus;
     property HasFetchInfo: Boolean read FHasFetchInfo write FHasFetchInfo;
     property VendorId: string read FVendorId write FVendorId;
     property Server: string read FServer write FServer;
+    property IsPinned: Boolean read FIsPinned write FIsPinned;
   end;
 
   TGUIProductList = class(TObjectList<TGUIProduct>)
@@ -156,8 +158,15 @@ type
     procedure ExecuteInstall(ProgressCallback: TProductProgressProc);
     procedure ExecuteUninstall(ProgressCallback: TProgressProc);
 
+    // Execute install explicitly passing the product ids to be installed
+    procedure ExecuteInstallProducts(const ProductIds: TArray<string>; ProgressCallback: TProductProgressProc);
+
     // Execute self-update command and fires RelaunchCallback if a new update is available and downloaded
     procedure ExecuteSelfUpdate(ProgressCallback: TProgressProc; RelaunchCallback: TProc);
+
+    // Execute pin/unpin operations on selected products
+    procedure ExecutePinSelected;
+    procedure ExecuteUnpinSelected;
 
     // Updates the credentials
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
@@ -178,6 +187,8 @@ type
     function CanApplyFilter: Boolean;
     function CanRequestCredentials: Boolean;
     function CanConfigure: Boolean;
+    function CanPinSelected: Boolean;
+    function CanUnpinSelected: Boolean;
 
     // Functions to read/write configuration parameters
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -189,6 +200,9 @@ type
     procedure RemoveServerConfigItem(const Name: string);
     procedure AddServerConfigItem(Item: TServerConfigItem);
     procedure EnableServerConfigItem(const Name: string; Enabled: Boolean);
+
+    // functions to manipulate version information about products
+    procedure GetProductVersions(const ProductId: string; Versions: TVersionInfoList);
 
     // Additional check to see if a TGUIProduct instance is valid, i.e., was not deleted
     function IsValidProduct(Product: TGUIProduct): Boolean;
@@ -261,7 +275,7 @@ begin
 end;
 
 procedure TGUILogger.Message(const MessageKind: TLogMessageKind;
-  const Message: string);
+  const Message: string; const NewLine: boolean = true);
 begin
   LogMessage(Message, TLogLevel.Info);
 end;
@@ -378,6 +392,16 @@ begin
 //  end;
 end;
 
+function TGUIEnvironment.CanPinSelected: Boolean;
+begin
+  if IsRunning then Exit(False);
+  UpdateSelectedProducts;
+  Result := False;
+  for var Product in FSelected do
+    if not Product.IsPinned then
+      Exit(True);
+end;
+
 function TGUIEnvironment.CanRequestCredentials: Boolean;
 begin
   if IsRunning then Exit(False);
@@ -398,6 +422,16 @@ begin
       Result := True
     else
       Exit(False);
+end;
+
+function TGUIEnvironment.CanUnpinSelected: Boolean;
+begin
+  if IsRunning then Exit(False);
+  UpdateSelectedProducts;
+  Result := False;
+  for var Product in FSelected do
+    if Product.IsPinned then
+      Exit(True);
 end;
 
 function TGUIEnvironment.ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -449,6 +483,7 @@ begin
       GUIProduct.Status := TProductStatus.Available;
     GUIProduct.HasFetchInfo := not Product.Local;
     GUIProduct.Server := Product.Server;
+    GUIProduct.IsPinned := Product.Pinned;
   end;
 
   for var Product in Remote do
@@ -678,6 +713,12 @@ end;
 
 procedure TGUIEnvironment.ExecuteInstall(ProgressCallback: TProductProgressProc);
 begin
+  ExecuteInstallProducts(SelectedProductIds, ProgressCallback);
+end;
+
+procedure TGUIEnvironment.ExecuteInstallProducts(const ProductIds: TArray<string>;
+  ProgressCallback: TProductProgressProc);
+begin
   RunAsync<TTmsInstallRunner>(
     procedure(Runner: TTmsInstallRunner)
     begin
@@ -688,7 +729,7 @@ begin
       end;
 
       Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.ProductIds.AddStrings(SelectedProductIds);
+      Runner.ProductIds.AddStrings(ProductIds);
       Runner.OnProgress :=
         procedure(const Info: TProgressInfo)
         begin
@@ -723,6 +764,16 @@ begin
   ExecuteBuild(False, ProgressCallback);
 end;
 
+procedure TGUIEnvironment.ExecutePinSelected;
+begin
+  RunSync<TTmsPinRunner>(
+    procedure(Runner: TTmsPinRunner)
+    begin
+      Runner.RunPin(SelectedProductIds)
+    end);
+  RefreshFetchedProducts(FProductFilter);
+end;
+
 procedure TGUIEnvironment.ExecuteUninstall(ProgressCallback: TProgressProc);
 begin
   RunAsync<TTmsUninstallRunner>(
@@ -752,6 +803,16 @@ begin
 
       RefreshFetchedProducts(FProductFilter);
     end);
+end;
+
+procedure TGUIEnvironment.ExecuteUnpinSelected;
+begin
+  RunSync<TTmsUnpinRunner>(
+    procedure(Runner: TTmsUnpinRunner)
+    begin
+      Runner.RunUnpin(SelectedProductIds)
+    end);
+  RefreshFetchedProducts(FProductFilter);
 end;
 
 procedure TGUIEnvironment.RunnerOutputEvent(const S: string);
@@ -839,6 +900,15 @@ begin
       end);
   end;
   Result := FInfo;
+end;
+
+procedure TGUIEnvironment.GetProductVersions(const ProductId: string; Versions: TVersionInfoList);
+begin
+  RunSync<TTmsVersionsRemoteRunner>(
+    procedure(Runner: TTmsVersionsRemoteRunner)
+    begin
+      Runner.RunVersionsRemote(ProductId, Versions);
+    end);
 end;
 
 procedure TGUIEnvironment.GetServerConfigItems(Items: TServerConfigItems);

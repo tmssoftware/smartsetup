@@ -1,3 +1,4 @@
 PackageTemplates RCDATA "..\resources\package-templates.zip"
 TmsConfigSchema RCDATA "..\example-config\tms.config.schema.json"
+TmsBuildSchema RCDATA "..\example-config\tmsbuild.schema.json"
 

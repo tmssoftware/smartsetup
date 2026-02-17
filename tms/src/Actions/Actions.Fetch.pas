@@ -7,10 +7,9 @@ interface
 type
   TFetchMode = (OnlyInstalled, DownloadNew);
 
-procedure ExecuteFetchAction(AProductIds: TArray<string>; FetchMode: TFetchMode);
+procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
 
 implementation
-
 uses
   System.SysUtils,
   System.StrUtils,
@@ -22,7 +21,8 @@ uses
   Fetching.Summary,
   Commands.Logging,
   UConfigDefinition,
-  VCS.Manager;
+  Fetching.ProductVersion,
+  VCS.Manager, Downloads.VersionManager;
 
 function FindApiServer: TServerConfig;
 begin
@@ -40,46 +40,58 @@ begin
   Result := Config.ServerConfig.GetServer(ServerIndex);
 end;
 
-procedure ExecuteFetchAction(AProductIds: TArray<string>; FetchMode: TFetchMode);
+function AllServersDisabled: boolean;
 begin
+  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  begin
+    var Server := Config.ServerConfig.GetServer(i);
+    if Server.Enabled then exit(false);
+  end;
+
+  Result := true;
+end;
+
+procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
+begin
+  if AllServersDisabled then raise Exception.Create('There are no servers enabled. To fetch a product, enable a server first.');
+
   var ApiServer := FindApiServer;
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, false);
+  var ProductVersions := ParseVersions(AProductIdsAndVersions);
+  var Repo: TRepositoryManager := nil;
+  if ApiServer.Enabled then Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, true);
   try
-    var VCSProducts := TVCSManager.Fetch(AProductIds, FetchMode = TFetchMode.OnlyInstalled);
+    var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled);
     try
-      if Repo <> nil then
-      begin
-        var Manager := TFetchManager.Create(Config.Folders, Repo, VCSProducts);
+      var Manager := TFetchManager.Create(Config.Folders, Repo, VCSProducts);
+      try
         try
-          try
-            case FetchMode of
-              TFetchMode.OnlyInstalled:
-              begin
-                Logger.StartSection(TMessageType.Update, 'Updating installed products');
-                try
-                  Manager.UpdateInstalled(AProductIds);
-                finally
-                  Logger.FinishSection(TMessageType.Update, false);
-                end;
-              end
-            else
-              begin
-                { TFetchMode.DownloadNew: }
-                Logger.StartSection(TMessageType.Update, 'Updating selected products');
-                try
-                  Manager.UpdateSelected(AProductIds);
-                finally
-                  Logger.FinishSection(TMessageType.Update, false);
-                end;
+          case FetchMode of
+            TFetchMode.OnlyInstalled:
+            begin
+              Logger.StartSection(TMessageType.Update, 'Updating installed products');
+              try
+                Manager.UpdateInstalled(ProductVersions);
+              finally
+                Logger.FinishSection(TMessageType.Update, false);
+              end;
+            end
+          else
+            begin
+              { TFetchMode.DownloadNew: }
+              Logger.StartSection(TMessageType.Update, 'Updating selected products');
+              try
+                  Manager.UpdateSelected(ProductVersions);
+              finally
+                Logger.FinishSection(TMessageType.Update, false);
               end;
             end;
-
-          finally
-            LogFetchSummary(Manager.FetchItems);
           end;
+
         finally
-          Manager.Free;
+          LogFetchSummary(Manager.FetchItems);
         end;
+      finally
+        Manager.Free;
       end;
     finally
       VCSProducts.Free;
@@ -87,6 +99,9 @@ begin
   finally
     Repo.Free;
   end;
+
+  RotateDownloads(Config.MaxVersionsPerProduct);
+
 end;
 
 end.

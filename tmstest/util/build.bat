@@ -12,7 +12,7 @@ call "%TMS_RSVARS%"
 @       echo Error %ERRORLEVEL% in rsvars. Exiting.
 @        exit /b %ERRORLEVEL%
     )
-msbuild
+msbuild  /p:DCC_UseMSBuildExternally=true
 @if !ERRORLEVEL! NEQ 0 (
 @       echo Error %ERRORLEVEL% in msbuild. Exiting.
 @       exit /b %ERRORLEVEL%

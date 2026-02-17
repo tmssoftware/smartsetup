@@ -96,7 +96,7 @@ begin
   var IncludedCount := 0;
   for var Project in Projects do
   begin
-    Project.IncludeInBuild := Config.IsIncluded(Project.Application.Id);
+    Project.IncludeInBuild := Config.IsIncluded(Project.Application.Id) and (not Config.Unregistering);
     if Project.IncludeInBuild then Inc(IncludedCount);
   end;
   if (IncludedCount = Projects.Count) or (IncludedCount = 0) then exit; //no need to analyze further.
@@ -180,8 +180,8 @@ function TProjectAnalyzer.BackToFolder(const StartFolder: string; const PackageF
 begin
   for var PackageFolder in PackageFolders do
   begin
-    if PackageFolder = '' then continue;
-    if TPackageFinder.EndsInFolder(StartFolder, PackageFolder, Result) then exit;
+    if PackageFolder.Value = '' then continue;
+    if TPackageFinder.EndsInFolder(StartFolder, PackageFolder.Value, Result) then exit;
 
   end;
 
@@ -346,7 +346,7 @@ begin
     var Naming := Config.GetNaming(Project.Naming, Project.FullPath);
     if not Project.IsExe then
     begin
-      if not (TPackageFinder.PackagesExist(BasePackagesFolder, dv, Naming, false, Project.PackageFolders[dv])) then continue; //This is for the case user didn't specify "ide until". If the package doesn't exist, we ignore it.
+      if not (TPackageFinder.PackagesExist(BasePackagesFolder, dv, Naming, false, Project.PackageFolders[dv].Value)) then continue; //This is for the case user didn't specify "ide until". If the package doesn't exist, we ignore it.
     end;
 
 
@@ -384,7 +384,7 @@ begin
         continue;
       end;
 
-      var PackagesFolder := TPackageFinder.PackagesFolder(BasePackagesFolder, dv, Naming, Project.IsExe, Project.PackageFolders[dv]);
+      var PackagesFolder := TPackageFinder.PackagesFolder(BasePackagesFolder, dv, Naming, Project.IsExe, Project.PackageFolders[dv].Value);
       var BinaryHash := '';
       {$IFDEF MSWINDOWS}
       var IDEInfo: IDelphiIDEInfo := TDelphiIDEInfo.Create(dv, BuildInfo.CurrentProject.AlternateRegistryKey, '');
@@ -392,7 +392,7 @@ begin
       {$ELSE}
       {$message warn 'We need to review this for lazarus, even laz in windows. If we don''t put a binary hash, we can have https://github.com/tmssoftware/tms-smartsetup/issues/148'}
       {$ENDIF}
-      var ProductHash := TProductHash.Create(BuildInfo.CurrentProject.SourceCodeHash, BinaryHash);
+      var ProductHash := TProductHash.Create(BuildInfo.CurrentProject.SourceCodeHash, BinaryHash, BuildInfo.CurrentProject.SkipRegistering.ToInteger);
 
       for var Package in Project.Packages do
       begin
@@ -497,8 +497,13 @@ begin
     else if not Package.IsRuntime then exit;
   end;
 
-  if FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '')
-    or (dp in DepsCompiled[dv]) then //we check at project level, not package.
+  var ProductNeedsBuild := FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '')
+    or (dp in DepsCompiled[dv]); //we check at project level, not package.
+
+  BuildInfo.CurrentProject.NeedsBuild := ProductNeedsBuild;
+  var AddInfo := FileHasher.SkipRegistering(BuildInfo.CurrentProject.Project, dv, dp) <> BuildInfo.CurrentProject.SkipRegistering.ToInteger;
+
+  if ProductNeedsBuild or AddInfo then
   begin
     BuildInfo.CurrentProject.AddBuildInfo(dv, TPackageBuildInfo.Create(
         Package,
@@ -507,7 +512,7 @@ begin
         dv,
         dp,
         CppBuilderSupport));
-    BuildInfo.CurrentProject.Project.NeedsCompiling.Add(dv, dp);
+    if ProductNeedsBuild then BuildInfo.CurrentProject.Project.NeedsCompiling.Add(dv, dp);
   end else
   begin
     BuildInfo.CurrentProject.Skipped.Add(dv, dp);
@@ -546,7 +551,10 @@ begin
 
       for var proj: IUninstallInfo in Uninstaller.GetAllProjects do
       begin
-        if not ExistingProjects.ContainsKey(proj.ProjectId) then
+        var Unregistered := Config.Unregistering
+            and ExistingProjects.ContainsKey(proj.ProjectId)
+            and Config.IsIncluded(proj.ProjectId);
+        if not ExistingProjects.ContainsKey(proj.ProjectId) or Unregistered then
         begin
           BuildInfo.ProjectsToUninstall.Add(proj);
           continue;

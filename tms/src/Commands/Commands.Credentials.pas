@@ -83,7 +83,7 @@ end;
 
 procedure DoServerCredentials(const Data: TJSONObject; Folders: IBuildFolders; const ServerName, ServerUrl: string);
 begin
-  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions);
+  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions, ServerName);
   try
     var Credentials := Manager.ReadCredentials;
     try
@@ -107,11 +107,14 @@ begin
           if Check then
             Manager.UpdateAccessToken(Credentials, FetchOptions.RepositoryInfo(ServerUrl).AuthUrl);
 
+          //Only create the folder if we are using TMemIniFile to store it. In windows we are using Credential manager, so no need for it.
+          {$IFNDEF MSWINDOWS}
           // Create meta directory here, not inside SaveCredentials. This makes sure that it only works when
           // running credentials command. Otherwise, the meta folder should be created all the time.
           TDirectory_CreateDirectory(TPath.GetDirectoryName(Folders.CredentialsFile(ServerName)));
+          {$ENDIF}
 
-          Manager.SaveCredentials(Credentials);
+          Manager.SaveCredentials(Credentials, false);
         end;
       end;
     finally
@@ -138,7 +141,7 @@ begin
       var msg := 'No api server is enabled.';
       if ServerName <> '' then msg := 'Server ' + ServerName + ' isn''t defined or is not enabled.';
 
-      Writeln('There are no credentials to set or show. ' + msg);
+      raise Exception.Create('There are no credentials to set or show. ' + msg);
     end;
 
   end;
@@ -149,7 +152,7 @@ procedure RunCredentialsCommand;
 begin
   CheckAppAlreadyRunning;
 
-  var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
+  var Folders: IBuildFolders := ConfigNoCheck.Folders;
 
   var IsEmpty := true;
   var Data := TJSONObject.Create;

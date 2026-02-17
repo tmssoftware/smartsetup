@@ -5,7 +5,7 @@ unit URepositoryManager;
 interface
 
 uses
-  System.Generics.Collections, System.SysUtils, System.Net.HttpClient, Fetching.Options, UCredentials,
+  System.Generics.Collections, System.SysUtils, Fetching.OfflineHTTPClient, Fetching.Options, UCredentials,
   System.JSON, System.JSON.Serializers, System.JSON.Readers, System.JSON.Converters, System.JSON.Types;
 
 type
@@ -23,6 +23,15 @@ type
     property Version: string read FVersion write FVersion;
     property ReleaseDate: TDateTime read FReleaseDate write FReleaseDate;
     property FileHash: string read FFileHash write FFileHash;
+  end;
+
+  TRepositoryUserVersion = class(TRepositoryVersion)
+  private
+    [JsonName('license_status')]
+    [JsonConverter(TJsonEnumNameConverter)]
+    FLicenseStatus: TLicenseStatus;
+  public
+    property LicenseStatus: TLicenseStatus read FLicenseStatus write FLicenseStatus;
   end;
 
   TRepositoryProduct = class
@@ -70,7 +79,7 @@ type
     TMSSetupProductId = 'tms.smartsetup.macos';
   {$ENDIF}
   private
-    FClient: THTTPClient;
+    FClient: TOfflineHTTPClient;
     FAccessToken: string;
     FUrl: string;
     FServer: string;
@@ -80,13 +89,14 @@ type
     function GetEndpoint(const Path: string): string;
     procedure CheckResponse(Req: IHTTPRequest; Resp: IHTTPResponse);
     procedure CheckProductsLoaded;
+    function FindProductInList(const ProductId: string): TRepositoryProduct;
   public
     constructor Create;
     destructor Destroy; override;
 
     function Products: TEnumerable<TRepositoryProduct>;
-    function FindProduct(const ProductId: string): TRepositoryProduct;
     function GetDownloadInfo(const ProductId, Version: string): TDownloadInfo;
+    function GetProductVersions(const ProductId: string; Versions: TList<TRepositoryUserVersion>): Boolean;
     property Url: string read FUrl write FUrl;
     property Server: string read FServer write FServer;
     property AccessToken: string read FAccessToken write FAccessToken;
@@ -107,7 +117,7 @@ begin
   try
     Result.Url := Options.RepositoryInfo(RootUrl).ApiUrl;
     Result.Server := Server;
-    Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, Options.RepositoryInfo(RootUrl).AuthUrl);
+    Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, Options.RepositoryInfo(RootUrl).AuthUrl, Server);
   except
     Result.Free;
     if ThrowExceptions then raise else Result := nil;
@@ -153,12 +163,12 @@ begin
   FProductsLoaded := True;
 
   // Flat tms.smartsetup.* product as special. Hardcoded - do we want a "more dynamic, less hardcoded" way in future?
-  var SmartSetup := FindProduct(TMSSetupProductId);
+  var SmartSetup := FindProductInList(TMSSetupProductId);
   if SmartSetup <> nil then
     SmartSetup.Internal := True;
 
   // legacy product name, "tms.smartsetup", not used anymore but it's there in the repo
-  SmartSetup := FindProduct('tms.smartsetup');
+  SmartSetup := FindProductInList('tms.smartsetup');
   if SmartSetup <> nil then
     SmartSetup.Internal := True;
 end;
@@ -193,7 +203,7 @@ begin
   // Try to get a better error message if it's empty
   if Error = '' then
     case Resp.StatusCode of
-      401: Error := 'Credentials not provided. Use credentials command to provide your credentials to access repository';
+      401: Error := 'Credentials not provided. Use "tms credentials" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"';
       403: Error := 'Credentials expired or forbidden';
     else
       Error := 'Request failed';
@@ -204,7 +214,7 @@ end;
 constructor TRepositoryManager.Create;
 begin
   inherited;
-  FClient := THTTPClient.Create;
+  FClient := TOfflineHTTPClient.Create;
   FProducts := TObjectList<TRepositoryProduct>.Create;
 end;
 
@@ -222,7 +232,7 @@ begin
   inherited;
 end;
 
-function TRepositoryManager.FindProduct(const ProductId: string): TRepositoryProduct;
+function TRepositoryManager.FindProductInList(const ProductId: string): TRepositoryProduct;
 begin
   for var Product in Products do
     if Product.Id = ProductId then
@@ -250,6 +260,40 @@ end;
 function TRepositoryManager.GetEndpoint(const Path: string): string;
 begin
   Result := Url.TrimRight(['/']) + '/' + Path.TrimLeft(['/']);
+end;
+
+function TRepositoryManager.GetProductVersions(const ProductId: string; Versions: TList<TRepositoryUserVersion>): Boolean;
+begin
+  var Req := CreateRequest('GET', GetEndpoint(Format('setup/user/products/%s/versions?channel=%s',
+    [ProductId, 'production'])));
+  var Resp := FClient.Execute(Req);
+  if Resp.StatusCode = 404 then Exit(False);
+  CheckResponse(Req, Resp);
+
+  // Parse JSON into objects
+  var JObj := TJSONObject(TJSONObject.ParseJSONValue(Resp.ContentAsString));
+  try
+    var Serializer := TJsonSerializer.Create;
+    try
+      var Converter := TJsonListConverter<TRepositoryUserVersion>.Create;
+      try
+        Serializer.Converters.Add(Converter);
+        var Reader := TJsonObjectReader.Create(JObj.Values['value']);
+        try
+          Serializer.Populate(Reader, Versions);
+        finally
+          Reader.Free;
+        end;
+      finally
+        Converter.Free;
+      end;
+    finally
+      Serializer.Free;
+    end;
+  finally
+    JObj.Free;
+  end;
+  Result := True;
 end;
 
 function TRepositoryManager.Products: TEnumerable<TRepositoryProduct>;

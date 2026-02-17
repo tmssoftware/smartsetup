@@ -3,17 +3,14 @@
 . test.setup
 
 Remove-Item ".\tms.config.yaml" -Force
-try
- {
-    tms list-remote -server:community
-    Write-Output "The command 'tms list-remote shouldn't run in an empty folder."
-    exit -1
- }
- catch {
- }
+    
+mkdir .\emptyfolder #this will make sure tms list-remote fails.
+Test-CommandFails { tms list-remote -server:community} "*look like a valid folder for TMS Smart Setup. To use this folder anyway, run ""tms config"" on it." "The command 'tms list-remote shouldn't run in a folder not prepared for smart-setup."
 
+    
  #JSON
 tmscredentials
+tms config -print
 tms server-enable community
 $JsonCommunityProducts = tms list-remote -server:community -json | ConvertFrom-Json -AsHashtable
 

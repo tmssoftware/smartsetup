@@ -4,16 +4,18 @@ interface
 
 uses
   System.Generics.Collections, System.Generics.Defaults, System.SysUtils, Deget.Version, UConfigFolders, UProjectDefinition,
-  Deget.CoreTypes, UConfigDefinition;
+  Deget.CoreTypes, UConfigDefinition, Fetching.InfoFile;
 
 type
   TPlatformStatus = class
   private
     FIsBuilt: Boolean;
     FIsRegistered: Boolean;
+    FRegisteredItems: string;
   public
     property IsBuilt: Boolean read FIsBuilt write FIsBuilt;
     property IsRegistered: Boolean read FIsRegistered write FIsRegistered;
+    property RegisteredItems: string read FRegisteredItems write FRegisteredItems;
   end;
 
   TIDEStatus = class
@@ -29,9 +31,11 @@ type
   private
     FId: string;
     FName: string;
-    FVersion: TVersion;
+    FVersion: TLenientVersion;
+    FInstalledVersion: TLenientVersion; //For API products, this is the same as FVersion. For VCS, FVersion might be empty (head), but this field will have the commit so it can be restored.
     FChannel: string;
     FServer: string;
+    FPinned: boolean;
     FFetched: Boolean;
     FProject: TProjectDefinition;
     FIDEStatusMap: TDictionary<TIDEName, TIDEStatus>;
@@ -43,9 +47,11 @@ type
     function IDEStatus(const IDEName: TIDEName): TIDEStatus;
     property Id: string read FId write FId;
     property Name: string read FName write FName;
-    property Version: TVersion read FVersion write FVersion;
+    property Version: TLenientVersion read FVersion write FVersion;
+    property InstalledVersion: TLenientVersion read FInstalledVersion write FInstalledVersion;
     property Channel: string read FChannel write FChannel;
     property Server: string read FServer write FServer;
+    property Pinned: boolean read FPinned write FPinned;
     property Fetched: Boolean read FFetched write FFetched;
     property Project: TProjectDefinition read FProject write SetProject;
   end;
@@ -57,6 +63,7 @@ type
     procedure LoadRemoteProducts;
     procedure LoadBuildableProducts;
     procedure UpdateProductStatus(Product: TProductStatus);
+    function GetInstalledVersion(const Version: TLenientVersion; const ProductId: string): TLenientVersion;
   protected
     function FindProduct(const ProductId: string): TProductStatus;
   public
@@ -69,7 +76,7 @@ type
 implementation
 
 uses
-  Fetching.InfoFile, Fetching.InstallInfo, UProjectLoader, UProjectList, UFileHasher, UProjectInstaller;
+  Fetching.InstallInfo, UProjectLoader, UProjectList, UFileHasher, UProjectInstaller, VCS.Manager;
 
 { TStatusManager }
 
@@ -111,13 +118,25 @@ begin
 
       // override properties, use data from tmsbuild.yaml instead of fetch.info.txt
       Product.Name := Proj.Application.Name;
-      Product.Version := Proj.Application.Version;
+
+      //Prefer the info in fetch.info.txt for products that come from github. Those will have likely the tmsbuild.yaml version empty or wrong.
+      //We could also check if Proj.Application.Version = '' then... but the version in tmsbuild.yaml won't be at the commit level. Lots of commits would have the same version.
+      if (Product.Version = '') and (Proj.Application.Version <> '') then Product.Version := TLenientVersion.Create(Proj.Application.Version, TVersionType.Semantic); //versions allowed in the yaml are semantic.
+      if Product.InstalledVersion = '' then Product.InstalledVersion := GetInstalledVersion(Product.Version, Product.Id);
+
+
 
       Product.Project := Projs.All.Extract(Proj);
     end;
   finally
     Projs.Free;
   end;
+end;
+
+function TStatusManager.GetInstalledVersion(const Version: TLenientVersion; const ProductId: string): TLenientVersion;
+begin
+  if (Version <> '') and (Version <> '__latest') then exit(Version);
+  Result := TLenientVersion.Create(TVCSManager.GetCurrentCommit(ProductId), TVersionType.FreeForm);
 end;
 
 procedure TStatusManager.LoadRemoteProducts;
@@ -132,8 +151,10 @@ begin
       Product.Id := Item.ProductId;
       Product.Name := Item.DisplayName;
       Product.Version := Item.Version;
+      Product.InstalledVersion := GetInstalledVersion(Item.Version, Item.ProductId);
       Product.Channel := Item.Channel;
       Product.Server := Item.Server;
+      Product.Pinned := Item.Pinned;
       Product.Fetched := True;
     end;
   finally
@@ -171,8 +192,10 @@ begin
         for var Plat := Low(TPlatform) to High(TPlatform) do
         begin
           var PlatStatus := Product.IDEStatus(IDEName).PlatformStatus(Plat);
-          PlatStatus.IsRegistered := Installer.HasPlatformUninstallInfo(Product.Id, IDEName, Plat);
-          PlatStatus.IsBuilt := Hasher.GetStoredHash(Product.Project, IDEName, Plat, '').HasAllHashes;
+          var Hashes := Hasher.GetStoredHash(Product.Project, IDEName, Plat, '');
+          PlatStatus.IsRegistered := Installer.HasPlatformUninstallInfo(Product.Id, IDEName, Plat) and (Hashes.RegistrationHash <> TSkipRegistering.All.ToInteger);
+          PlatStatus.RegisteredItems := TSkipRegistering.FromInteger(Hashes.RegistrationHash).ToIncludedString;
+          PlatStatus.IsBuilt := Hashes.HasAllHashes;
         end;
       end;
     finally

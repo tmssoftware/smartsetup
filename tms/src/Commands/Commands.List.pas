@@ -27,9 +27,11 @@ begin
       var Item := TJSONObject.Create;
       Root.AddPair(Product.Id, Item);
 
-      Item.AddPair('version', TVersion(Product.Version).Normalized);
+      Item.AddPair('version', Product.Version.Normalized);
+      Item.AddPair('version_type', Product.Version.VersionTypeId);
       Item.AddPair('name', Product.Name);
       Item.AddPair('server', Product.Server);
+      Item.AddPair('pinned', Product.Pinned);
       if Product.Channel <> '' then
         Item.AddPair('channel', Product.Channel);
       if not Product.Fetched then
@@ -63,6 +65,7 @@ begin
 
               PlatItem.AddPair('built', PlatStatus.IsBuilt);
               PlatItem.AddPair('registered', PlatStatus.IsRegistered);
+              PlatItem.AddPair('registered_items', PlatStatus.RegisteredItems);
             end;
           end;
         end;
@@ -86,6 +89,7 @@ begin
     if Detailed then
     begin
       Writeln('server: ' + Product.Server);
+      Writeln('pinned: ' + BoolToStr(Product.Pinned, true));
       var IDEPrinted := False;
       for var IDEName := Low(TIDEName) to High(TIDEName) do
         for var Plat := Low(TPlatform) to High(TPlatform) do

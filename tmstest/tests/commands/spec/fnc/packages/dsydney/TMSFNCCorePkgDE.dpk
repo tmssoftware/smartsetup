@@ -1,0 +1,90 @@
+package TMSFNCCorePkgDE;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$IMPLICITBUILD OFF}
+{$DESCRIPTION 'TMS FNC Core for FMX/VCL Designtime'}
+{$DESIGNONLY}
+{$LIBSUFFIX '270'}
+
+requires
+  rtl,
+  designide,
+  dcldb,
+  FMXTMSFNCCorePkg,
+  VCLTMSFNCCorePkg,
+  TMSFNCCorePkg;
+
+contains
+  FMX.TMSFNCResponsiveManagerDE in '..\..\FMX.TMSFNCResponsiveManagerDE.pas',
+  FMX.TMSFNCResponsiveManagerRegDE in '..\..\FMX.TMSFNCResponsiveManagerRegDE.pas',
+  FMX.TMSFNCResponsiveManagerDimensionsEditor in '..\..\FMX.TMSFNCResponsiveManagerDimensionsEditor.pas',
+  VCL.TMSFNCResponsiveManagerDimensionsEditor in '..\..\VCL.TMSFNCResponsiveManagerDimensionsEditor.pas',
+  VCL.TMSFNCResponsiveManagerDE in '..\..\VCL.TMSFNCResponsiveManagerDE.pas',
+  VCL.TMSFNCResponsiveManagerRegDE in '..\..\VCL.TMSFNCResponsiveManagerRegDE.pas',
+  FMX.TMSFNCGeneralDE in '..\..\FMX.TMSFNCGeneralDE.pas',
+  FMX.TMSFNCGeneralRegDE in '..\..\FMX.TMSFNCGeneralRegDE.pas',
+  VCL.TMSFNCGeneralDE in '..\..\VCL.TMSFNCGeneralDE.pas',
+  VCL.TMSFNCGeneralRegDE in '..\..\VCL.TMSFNCGeneralRegDE.pas',
+  FMX.TMSFNCBitmapContainerDE in '..\..\FMX.TMSFNCBitmapContainerDE.pas',
+  FMX.TMSFNCBitmapContainerRegDE in '..\..\FMX.TMSFNCBitmapContainerRegDE.pas',
+  VCL.TMSFNCBitmapContainerDE in '..\..\VCL.TMSFNCBitmapContainerDE.pas',
+  VCL.TMSFNCBitmapContainerRegDE in '..\..\VCL.TMSFNCBitmapContainerRegDE.pas',
+  FMX.TMSFNCBitmapEditorDE in '..\..\FMX.TMSFNCBitmapEditorDE.pas',
+  FMX.TMSFNCBitmapEditorRegDE in '..\..\FMX.TMSFNCBitmapEditorRegDE.pas',
+  VCL.TMSFNCBitmapEditorDE in '..\..\VCL.TMSFNCBitmapEditorDE.pas',
+  VCL.TMSFNCBitmapEditorRegDE in '..\..\VCL.TMSFNCBitmapEditorRegDE.pas',
+  VCL.TMSFNCDataBindingDE in '..\..\VCL.TMSFNCDataBindingDE.pas',
+  VCL.TMSFNCDataBindingEditorDE in '..\..\VCL.TMSFNCDataBindingEditorDE.pas',
+  VCL.TMSFNCDataBindingEditorRegDE in '..\..\VCL.TMSFNCDataBindingEditorRegDE.pas',
+  VCL.TMSFNCDataBindingRegDE in '..\..\VCL.TMSFNCDataBindingRegDE.pas',
+  FMX.TMSFNCDataBindingDE in '..\..\FMX.TMSFNCDataBindingDE.pas',
+  FMX.TMSFNCDataBindingEditorDE in '..\..\FMX.TMSFNCDataBindingEditorDE.pas',
+  FMX.TMSFNCDataBindingEditorRegDE in '..\..\FMX.TMSFNCDataBindingEditorRegDE.pas',
+  FMX.TMSFNCDataBindingRegDE in '..\..\FMX.TMSFNCDataBindingRegDE.pas',
+  FMX.TMSFNCGraphicsAppearanceEditorDE in '..\..\FMX.TMSFNCGraphicsAppearanceEditorDE.pas',
+  FMX.TMSFNCGraphicsAppearanceEditorRegDE in '..\..\FMX.TMSFNCGraphicsAppearanceEditorRegDE.pas',
+  VCL.TMSFNCGraphicsAppearanceEditorDE in '..\..\VCL.TMSFNCGraphicsAppearanceEditorDE.pas',
+  VCL.TMSFNCGraphicsAppearanceEditorRegDE in '..\..\VCL.TMSFNCGraphicsAppearanceEditorRegDE.pas',
+  FMX.TMSFNCBitmapContainerEditorDE in '..\..\FMX.TMSFNCBitmapContainerEditorDE.pas',
+  FMX.TMSFNCBitmapContainerEditorRegDE in '..\..\FMX.TMSFNCBitmapContainerEditorRegDE.pas',
+  VCL.TMSFNCBitmapContainerEditorDE in '..\..\VCL.TMSFNCBitmapContainerEditorDE.pas',
+  VCL.TMSFNCBitmapContainerEditorRegDE in '..\..\VCL.TMSFNCBitmapContainerEditorRegDE.pas',
+  FMX.TMSFNCCustomDataLinkDE in '..\..\FMX.TMSFNCCustomDataLinkDE.pas',
+  FMX.TMSFNCCustomDataLinkRegDE in '..\..\FMX.TMSFNCCustomDataLinkRegDE.pas',
+  VCL.TMSFNCCustomDataLinkDE in '..\..\VCL.TMSFNCCustomDataLinkDE.pas',
+  VCL.TMSFNCCustomDataLinkRegDE in '..\..\VCL.TMSFNCCustomDataLinkRegDE.pas',
+  TMS.TMSFNCDataLinkJSONDE in '..\..\TMS.TMSFNCDataLinkJSONDE.pas',
+  TMS.TMSFNCDataLinkJSONRegDE in '..\..\TMS.TMSFNCDataLinkJSONRegDE.pas',
+  TMS.TMSFNCDataSetDE in '..\..\TMS.TMSFNCDataSetDE.pas',
+  TMS.TMSFNCDataSetRegDE in '..\..\TMS.TMSFNCDataSetRegDE.pas',
+  FMX.TMSFNCPopupMenuDE in '..\..\FMX.TMSFNCPopupMenuDE.pas',
+  FMX.TMSFNCPopupMenuRegDE in '..\..\FMX.TMSFNCPopupMenuRegDE.pas',
+  VCL.TMSFNCPopupMenuDE in '..\..\VCL.TMSFNCPopupMenuDE.pas',
+  VCL.TMSFNCPopupMenuRegDE in '..\..\VCL.TMSFNCPopupMenuRegDE.pas';
+
+end.
+

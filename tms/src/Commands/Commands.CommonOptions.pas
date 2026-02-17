@@ -29,7 +29,8 @@ type
 implementation
 
 uses
-  Commands.Logging, Commands.GlobalConfig, UMultiLogger, IOUTils, UTmsBuildSystemUtils;
+  Commands.Logging, Commands.GlobalConfig, UMultiLogger, IOUTils,
+  UTmsBuildSystemUtils, Testing.CommandLineOptions;
 
 procedure CheckAppAlreadyRunning;
 begin
@@ -117,6 +118,13 @@ begin
       SetConfigFileName(Value);
     end);
 
+  option := TOptionsRegistry.RegisterOption<string>(
+    'add-config', '', 'adds the options from a new config file to the existing ones',
+    procedure(const Value: string)
+    begin
+      AddConfigFileName(Value);
+    end);
+
   // log verbose mode
   option := TOptionsRegistry.RegisterOption<Boolean>(
     'verbose', '', 'shows more detailed information in the output',
@@ -149,6 +157,9 @@ begin
       AddConfigParameter(Value);
     end);
 
+  {$IFDEF DEBUG}
+  RegisterTestingOptions;
+  {$ENDIF}
 
   // default command
   AddCommand('', RunDefaultCommand);

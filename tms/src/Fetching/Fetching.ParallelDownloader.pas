@@ -9,7 +9,8 @@ uses
   WinApi.Windows,
 {$ENDIF}
   System.SysUtils, System.Threading, System.DateUtils, UAppTerminated, URepositoryManager,
-  Fetching.ParallelProjectInfo, Fetching.InfoFile, Fetching.FetchItem, Fetching.InstallInfo, UConfigFolders, UGenericDecompressor;
+  Fetching.ParallelProjectInfo, Fetching.InfoFile, Fetching.FetchItem, Fetching.InstallInfo,
+  UConfigFolders, UGenericDecompressor, Deget.Version;
 
 type
   TParallelDownloader = class
@@ -25,7 +26,7 @@ type
     procedure DownloadAndUnzip(const FetchItem: TFetchItem);
     procedure CreateInstallInfoFile(const Folder: string; const FetchItem: TFetchItem);
     function DownloadFile(Info: TDownloadInfo; const FileNameOnDisk: string; out DownloadFormat: TDownloadFormat): string;
-    function GetBestFileName(const FileNames: TArray<string>; const FetchItemFileHash: string): string;
+    function FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;
   public
     constructor Create(AItems: TFetchItems; ARepo: TRepositoryManager; AFolders: IBuildFolders);
     destructor Destroy; override;
@@ -34,15 +35,13 @@ type
 
 implementation
 uses
-  ULogger, UMultiLogger, System.Zip, System.Net.HttpClient, System.Generics.Collections, UTmsBuildSystemUtils,
+  ULogger, UMultiLogger, System.Zip, Fetching.OfflineHTTPClient, System.Generics.Collections, UTmsBuildSystemUtils,
   System.Classes, System.IOUtils, UHasher,
 {$IFDEF POSIX}
   Posix.UniStd, Posix.Stdio,
 {$ENDIF}
   Commands.GlobalConfig, Decompressor.ZSTD;
 
-const
-  KnownExtensions: Array[TDownloadFormat] of string =('', '.zip', '.tar.zst');
 
 
 { TParallelDownloader }
@@ -118,16 +117,27 @@ end;
 
 procedure TParallelDownloader.CreateInstallInfoFile(const Folder: string; const FetchItem: TFetchItem);
 begin
-  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, FetchItem.Version, FetchItem.Server);
+  //pinned must be false when downloading new products
+  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, TLenientVersion.Create(FetchItem.Version, TVersionType.Semantic), FetchItem.Server, false);
 end;
 
-function TParallelDownloader.GetBestFileName(const FileNames: TArray<string>; const FetchItemFileHash: string): string;
+function TParallelDownloader.FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;
 begin
   Result := '';
-  for var FileName in FileNames do
+
+  for var DownloadFormat := Low(TDownloadFormat) to High(TDownloadFormat) do
   begin
-    var ExistingFileHash := HashFile(FileName);
-    if (ExistingFileHash = FetchItemFileHash) then exit(FileName);
+    var ext := DownloadFormatExtension[DownloadFormat];
+
+    for var Folder in [Folders.DownloadsFolder, Folders.OldDownloadsFolder] do
+    begin
+      var FileName := CombinePath(Folder, FileNameWithoutExtension + ext);
+      if TFile.Exists(FileName) then
+      begin
+        var ExistingFileHash := HashFile(FileName);
+        if (ExistingFileHash = FetchItemFileHash) then exit(FileName);  //If hash doesn't match, corrupt, redownload.
+      end;
+    end;
   end;
 end;
 
@@ -136,13 +146,21 @@ begin
   // Check if the file is already locally downloaded, without hitting the server
   TDirectory_CreateDirectory(Folders.DownloadsFolder);
   
-  var FileNames := TDirectory.GetFiles(Folders.DownloadsFolder, FetchItem.UniqueName + '.*');
-  var ExistingFileName := GetBestFileName(FileNames, FetchItem.FileHash);
+  var DownloadInfo: TDownloadInfo;
+  var HasDownloadInfo := false;
+  if FetchItem.FileHash = '' then
+  begin
+    DownloadInfo := Repo.GetDownloadInfo(FetchItem.ProductId, FetchItem.Version);
+    FetchItem.FileHash := DownloadInfo.FileHash;
+    HasDownloadInfo := true;
+  end;
+
+  var ExistingFileName := FindFile(FetchItem.UniqueName, FetchItem.FileHash);
   
   var DownloadFormat := TDownloadFormat.Unknown;
   if ExistingFileName = '' then
   begin
-    var DownloadInfo := Repo.GetDownloadInfo(FetchItem.ProductId, FetchItem.Version);
+    if not HasDownloadInfo then DownloadInfo := Repo.GetDownloadInfo(FetchItem.ProductId, FetchItem.Version);
     ExistingFileName := DownloadFile(DownloadInfo, CombinePath(Folders.DownloadsFolder, FetchItem.UniqueName), DownloadFormat);
   end
   else
@@ -177,7 +195,7 @@ begin
   Result := '';
   var Aborted := False;
   var AddedSteps := 0;
-  var Client: THTTPClient := THTTPClient.Create;
+  var Client: TOfflineHTTPClient := TOfflineHTTPClient.Create;
   try
     // set receive data callback
     begin
@@ -240,7 +258,7 @@ begin
     end;
 
     DownloadFormat := TBundleDecompressor.GetFileFormat(TempFileName);
-    var FinalFileNameOnDisk := FileNameOnDisk + KnownExtensions[DownloadFormat];
+    var FinalFileNameOnDisk := FileNameOnDisk + DownloadFormatExtension[DownloadFormat];
     Result := FinalFileNameOnDisk; 
     DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FinalFileNameOnDisk);
     RenameFile(TempFileName, FinalFileNameOnDisk);

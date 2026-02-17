@@ -8,9 +8,10 @@ uses
   UConfigDefinition, UFullBuildInfo, ULogger, UMultiLogger, UProjectDefinition,
 {$IFDEF MSWINDOWS}
   Windows, SysUtils, TypInfo, JSON, IOUtils, Generics.Collections,
-  Deget.IDETypes, Deget.Compilation, Deget.IDEInfo, Deget.PackageConfig,
+  Deget.IDETypes, Deget.IDEInfo, Deget.PackageConfig,
 {$ENDIF}
-  UUninstallInfo, UInstaller, Classes, Megafolders.Definition;
+  UUninstallInfo, UInstaller, Classes, Megafolders.Definition,
+  Deget.Compilation, Deget.Compilation.Delphi, Deget.Compilation.Precompiled;
 
 {$IFDEF MSWINDOWS}
 type
@@ -153,7 +154,7 @@ uses
   Deget.Filer.DprojFile, Deget.Filer.DpkFile, Deget.Filer.DprFile, UIDEUtils,
   Deget.Filer.ProjectFactory, UEnvironmentPath, Megafolders.Manager,
   UWindowsPath, UTmsBuildSystemUtils, Commands.GlobalConfig, Deget.ResFile, Threading, UOSFileLinks,
-  ULoggerTask, UProjectInstallerConstants;
+  ULoggerTask, UProjectInstallerConstants, Deget.Compilation.DelphiSelector;
 
 { TDelphiInstaller }
 
@@ -601,6 +602,8 @@ end;
 
 procedure TDelphiInstaller.UnregisterMegafolders(const UninstallInfo: IUninstallInfo; const OtherEntries: TArray<string>);
 begin
+  if Config.Unregistering then exit;
+  
   var IDEInfo := CreateIDEInfo(UninstallInfo);
   var PlatformInfo := IDEInfo.GetPlatform(UninstallInfo.Platform);
   var AlternateRegistryKey := UninstallInfo.Value.ReadStr(UninstallConsts.AlternateRegistryKey);
@@ -1048,7 +1051,7 @@ begin
     var BuildConfig := BuildConfigs[BuildConfigIndex];
 
     var TempProjFolder := TempProjectDirectory(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
-    var TempPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, TempProjFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, false);
+    var TempPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, TempProjFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);
     var TempOutputFolder := TempPackageInfo.ExpandedDcuOutputDir(BuildConfig);
 
     var OutputPackageInfo: IDelphiPackageInfo := TPackageConfig.Create('DummyPackName', PlatformInfo, BuildInfo.Platform.PackagesFolder, BuildInfo.Project.Project.IsExe, 'dummyext', BuildInfo.Project.Project.LibSuffixes, BuildInfo.Project.Project.HasMultiIDEPackages);

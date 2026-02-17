@@ -3,7 +3,7 @@ unit UCredentials;
 interface
 
 uses
-  System.IniFiles, System.SysUtils, System.IOUtils, System.DateUtils, Fetching.Options;
+  System.IniFiles, System.SysUtils, System.IOUtils, System.DateUtils, Fetching.Options, Util.Credentials;
 
 type
   TCredentials = class
@@ -31,39 +31,44 @@ type
   private
     FCredentialsFile: string;
     FDefaultProfile: string;
+    FServerName: string;
     procedure LoadCredentials(Credentials: TCredentials; const Profile: string);
+    function AuthCredName(Profile: string): string;
+    function TokensCredName(Profile: string): string;
+    function CredName(Profile, Name: string): string;
   protected
     function RetrieveAccessToken(const AuthUrl: string; const Profile: string = ''): string;
   public
-    constructor Create(const ACredentialsFile, DefaultProfile: string);
+    constructor Create(const ACredentialsFile, DefaultProfile, ServerName: string);
     destructor Destroy; override;
 
     procedure UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 
-    procedure SaveCredentials(Credentials: TCredentials; const Profile: string = '');
+    procedure SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean; const Profile: string = '');
     function ReadCredentials(const Profile: string = ''): TCredentials;
   public
-    class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl: string): string;
+    class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
   end;
 
-function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions): TCredentialsManager;
+function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 
 implementation
 
 uses
-  System.Net.HttpClient, System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth;
+  System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals;
 
-function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions): TCredentialsManager;
+function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 begin
-  Result := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository);
+  Result := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository, ServerName);
 end;
 
 { TCredentialsManager }
 
-constructor TCredentialsManager.Create(const ACredentialsFile, DefaultProfile: string);
+constructor TCredentialsManager.Create(const ACredentialsFile, DefaultProfile, ServerName: string);
 begin
   FCredentialsFile := ACredentialsFile;
   FDefaultProfile := DefaultProfile;
+  FServerName := ServerName;
 end;
 
 destructor TCredentialsManager.Destroy;
@@ -71,9 +76,9 @@ begin
   inherited;
 end;
 
-class function TCredentialsManager.GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl: string): string;
+class function TCredentialsManager.GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
 begin
-  var Manager := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository);
+  var Manager := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository, Server);
   try
     Result := Manager.RetrieveAccessToken(AuthUrl);
   finally
@@ -85,11 +90,12 @@ function TCredentialsManager.RetrieveAccessToken(const AuthUrl: string; const Pr
 begin
   var Credentials := ReadCredentials(Profile);
   try
-    if (Credentials.AccessToken <> '') and (Now < Credentials.Expiration) then
+    // Use a 5-minute margin to check for token expiration. See https://github.com/tmssoftware/tms-smartsetup/issues/301
+    if (Credentials.AccessToken <> '') and (Now < IncMinute(Credentials.Expiration, -5)) then
       Exit(Credentials.AccessToken);
 
     if (Credentials.Email = '') or (Credentials.Code = '') then
-      raise Exception.Create('Credentials not provided. Use credentials command to provide your credentials to access repository');
+      raise Exception.Create('Credentials not provided. Use "tms credentials" to access the ' + FServerName + ' server, or disable it with "tms server-enable ' + FServerName + ' false"');
 
     // Retrieve access token using credentials
     if Credentials.AccessToken <> '' then
@@ -100,7 +106,7 @@ begin
     UpdateAccessToken(Credentials, AuthUrl);
 
     // Save access token
-    SaveCredentials(Credentials, Profile);
+    SaveCredentials(Credentials, true, Profile);
 
     // Return
     Result := Credentials.AccessToken;
@@ -109,8 +115,58 @@ begin
   end;
 end;
 
+function TCredentialsManager.CredName(Profile, Name: string): string;
+begin
+{$IFDEF DEBUG}
+  if TestParameters.CredentialsProfile <> '' then Profile := TestParameters.CredentialsProfile;
+{$ENDIF}
+  var ProfileDot := Profile; if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
+  Result := 'tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + Name;
+end;
+
+function TCredentialsManager.AuthCredName(Profile: string): string;
+begin
+  Result := CredName(Profile, '.auth');
+end;
+
+function TCredentialsManager.TokensCredName(Profile: string): string;
+begin
+  Result := CredName(Profile, '.tokens');
+end;
+
 procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials; const Profile: string);
 begin
+{$IFDEF MSWINDOWS}
+  var Email, Code: string;
+
+  var Error := CredReadGenericCredentials(AuthCredName(Profile), Email, Code, false);
+  if Error <> '' then
+  begin
+    Logger.Trace(Error);
+  end;
+  Credentials.Email := Email;
+  Credentials.Code := Code;
+
+  var Expiration, AccessToken: string;
+  var Error2 := CredReadGenericCredentials(TokensCredName(Profile), Expiration, AccessToken, false);
+  if Error2 <> '' then
+  begin
+    Logger.Trace(Error2);
+  end;
+
+  if Expiration <> ''
+    then Credentials.Expiration := ISO8601ToDate(Expiration, False)
+    else Credentials.Expiration := 0;
+
+  Credentials.AccessToken := AccessToken;
+  if Credentials.Email <> '' then
+  begin
+    if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
+    exit;
+  end;
+
+  //if no credentials, try reading legacy ones.
+{$ENDIF}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
     var IniSection := Profile;
@@ -127,6 +183,12 @@ begin
   finally
     IniFile.Free;
   end;
+
+{$IFDEF MSWINDOWS}
+  //found the legacy credentials. Delete them, and save them in the new place.
+  SaveCredentials(Credentials, false, Profile);
+  if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
+{$ENDIF}
 end;
 
 function TCredentialsManager.ReadCredentials(const Profile: string): TCredentials;
@@ -140,8 +202,30 @@ begin
   end;
 end;
 
-procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const Profile: string);
+procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean; const Profile: string);
 begin
+{$IFDEF MSWINDOWS}
+  if not OnlyToken then
+  begin
+    if String.IsNullOrWhiteSpace(Credentials.Email) or String.IsNullOrWhiteSpace(Credentials.Code) then
+    begin
+      var CmdResult := CredDeleteGenericCredential(AuthCredName(Profile), false);
+      if CmdResult <> '' then Logger.Trace(CmdResult);
+
+      CmdResult := CredDeleteGenericCredential(TokensCredName(Profile), false);
+      if CmdResult <> '' then Logger.Trace(CmdResult);
+      exit;
+    end;
+
+    CredWriteGenericCredentials(AuthCredName(Profile), Credentials.Email, Credentials.Code);
+  end;
+
+  var Expiration := '';
+  if YearOf(Credentials.Expiration) > 1900 then
+      Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
+
+  CredWriteGenericCredentials(TokensCredName(Profile), Expiration, Credentials.AccessToken);
+{$ELSE}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
     var IniSection := Profile;
@@ -161,6 +245,7 @@ begin
   finally
     IniFile.Free;
   end;
+{$ENDIF}
 end;
 
 procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);

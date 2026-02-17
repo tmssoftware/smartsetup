@@ -8,7 +8,7 @@ implementation
 
 uses
   System.StrUtils, System.Diagnostics, UCommandLine, Commands.CommonOptions, Commands.Logging, Actions.Fetch,
-  Actions.Build, Commands.GlobalConfig, Downloads.VersionManager, UMultiLogger;
+  Actions.Build, Commands.GlobalConfig, UMultiLogger;
 
 var
   NoBuild: Boolean = False;
@@ -22,8 +22,6 @@ begin
   AllStopWatch.Start;
 
   ExecuteFetchAction(ProductIds, TFetchMode.OnlyInstalled);
-
-  RotateDownloads(Config.MaxVersionsPerProduct);
 
   // Build
   if not NoBuild then

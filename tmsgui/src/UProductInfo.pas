@@ -31,9 +31,10 @@ type
     FChannel: string;
     FLocal: Boolean;
     FIDEInfoMap: TDictionary<TIDEName, TProductIDEInfo>;
-    FVersion: TVersion;
+    FVersion: TLenientVersion;
     FVendorId: string;
     FServer: string;
+    FPinned: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -41,11 +42,12 @@ type
     function HasIDEInfo: Boolean;
     property Id: string read FId write FId;
     property Name: string read FName write FName;
-    property Version: TVersion read FVersion write FVersion;
+    property Version: TLenientVersion read FVersion write FVersion;
     property Channel: string read FChannel write FChannel;
     property Local: Boolean read FLocal write FLocal;
     property VendorId: string read FVendorId write FVendorId;
     property Server: string read FServer write FServer;
+    property Pinned: Boolean read FPinned write FPinned;
   end;
 
   TProductInfoList = class(TObjectList<TProductInfo>)

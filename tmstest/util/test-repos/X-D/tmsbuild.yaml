@@ -1,0 +1,20 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmstest.x
+  name: "X"
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - tmstest_x: [runtime, rtl]
+
+dependencies:
+  - tmstest.d: tmstest.d 
+  - sglienke.spring4d: Spring4D
+
+

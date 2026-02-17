@@ -46,7 +46,7 @@ implementation
 constructor TPathFix.Create(const aMessage, aAction: string; const aSplitPaths: TArray<TSplitPath>;
             const aPositionInSplitPaths: integer);
 begin
-  inherited Create(aMessage, aAction, FixPath);
+  inherited Create(TFixType.YesNo, aMessage, aAction, FixPath);
   SplitPaths := aSplitPaths;
   PositionInSplitPaths := aPositionInSplitPaths;
 end;
@@ -98,7 +98,7 @@ begin
   var ItemsToFix := 0;
   for var i := Fixes.Count - 1 downto 0 do
   begin
-    if Fixes[i].Apply and (Assigned(Fixes[i].Fix)) then
+    if (Fixes[i].Apply > 0) and (Assigned(Fixes[i].Fix)) then
     begin
       Fixes[i].Fix();
       inc(ItemsToFix);

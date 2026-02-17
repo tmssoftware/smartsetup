@@ -3,12 +3,14 @@
   {
     "build cores": 4,
     "alternate registry key": "myProduct",
+    "working folder": "WorkingFolder",
     "prevent sleep": false,
     "versions to keep": 3,
     "error if skipped": true,
     "excluded products": ["tms-fnc","tms-fnc-cloud"],
     "included products": ["tms-fnc-cloud"],
     "additional products folders": ["..\\landgraf\\aws-sdk-delphi","..\\landgraf\\tms-biz","..\\tms\\delphi-graphql"],
+    "auto snapshot filenames": ["snapshot1","snapshot2","snapshot3"],
     "servers":
     {
       "tms":
@@ -61,6 +63,10 @@
     "compiler paths":
     {
       "delphi11": "C:\\Program Files (x86)\\Embarcadero\\Studio\\22.0\\bin"
+    },
+    "compiler parameters":
+    {
+      "delphi12": "-p:one"
     }
   },
   "configuration for test1":
@@ -86,6 +92,10 @@
     "compiler paths":
     {
       "delphi11": "C:\\Delphi11"
+    },
+    "compiler parameters":
+    {
+      "delphi12": "-p:two -p:three"
     }
   },
   "configuration for test2":
@@ -101,7 +111,7 @@
     "compilation options":
     {
       "debug dcus": true,
-      "defines": ["DEBUG","TEST"]
+      "defines": ["DEBUGO",{"TESTO": false}]
     },
     "advanced options":
     {

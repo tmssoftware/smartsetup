@@ -6,14 +6,20 @@
   href: gui-tool-usage.md
 - name: Configuration 
   href: configuration.md
+- name: Versioning 
+  href: versioning.md
 - name: Consuming SmartSetup bundles 
   href: consuming-bundles.md
 - name: Creating SmartSetup bundles 
   href: creating-bundles.md
 - name: Publishing SmartSetup bundles 
   href: publishing-bundles.md
+- name: Continuous Integration 
+  href: continuous-integration.md
 - name: Doctor command
   href: doctor.md
+- name: Troubleshooting
+  href: troubleshooting.md
 - name: Release notes
   href: release-notes.md
 - name: Copyright

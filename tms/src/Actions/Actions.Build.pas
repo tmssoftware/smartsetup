@@ -1,9 +1,10 @@
 unit Actions.Build;
 
 interface
+uses UConfigDefinition;
 
-procedure ExecuteBuildAction(FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
-procedure ExecuteBuildAction(ProductIds: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
+procedure ExecuteBuildAction(FullBuild: Boolean); overload;
+procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean); overload;
 procedure RemoveFromWindowsPathIfNoProducts; overload;
 
 implementation
@@ -11,8 +12,8 @@ implementation
 uses
   System.SysUtils, System.Diagnostics, System.Threading, System.IOUtils, ULogger, UMultiLogger, UFileHasher, UInsomnia,
   UConfigKeys, UProjectAnalyzer, Commands.GlobalConfig, Commands.Termination, UProjectList, UProjectLoader,
-  UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface, UConfigDefinition,
-  UParallelProjectBuilder, UWindowsPath, UEnvironmentPath,
+  UAppTerminated, UCheckForOldVersions, UProjectUninstaller, UProjectBuilderInterface,
+  UParallelProjectBuilder, UWindowsPath, UEnvironmentPath, Fetching.ProductVersion, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}
   Windows, Messages,
   {$ENDIF}
@@ -37,8 +38,28 @@ procedure RemoveFromWindowsPathIfNoProducts; overload;
 begin
   var Projects := TProjectList.Create;
   try
-    TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projects, 'root:minimum required tmsbuild version', true);
-    RemoveFromWindowsPathIfNoProducts(Projects.All.Count);
+    TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projects, 'root:application:id', true);
+    var FileHasher := TFileHasher.Create(Config);
+    try
+      for var Project in Projects.All do
+      begin
+        //can't use Config.GetIdeNames or Config.GetPlatforms because we haven't read them.
+        for var dv := Low(TIDEName) to High(TIDEName) do
+        begin
+          for var dp := Low(TPlatform) to High(TPlatform) do
+          begin
+            var Hash := FileHasher.GetStoredHash(Project, dv, dp, '');
+            if Hash.SourceCodeHash = '' then continue; //this hash doesn't exist.
+
+            var Skip := TSkipRegistering.FromInteger(Hash.RegistrationHash);
+            if not Skip.WindowsPath then exit;
+          end;
+        end;
+      end;
+      RemoveFromWindowsPathIfNoProducts(0);
+    finally
+      FileHasher.Free;
+    end;
   finally
     Projects.Free;
   end;
@@ -49,16 +70,20 @@ begin
   Result := TParallelProjectBuilder.Create(Config, FileHasher);
 end;
 
-procedure ExecuteBuildAction(ProductIds: TArray<string>; FullBuild: Boolean; OnlyUnregister: Boolean = False); overload;
+procedure ExecuteBuildAction(ProductIdsAndVersions: TArray<string>; FullBuild: Boolean); overload;
 begin
+  var ProductIds := ParseVersions(ProductIdsAndVersions);
   if Length(ProductIds) > 0 then
   begin
-    Config.ClearExcludedComponents;
+    //Do not clear Excluded, only included.
+    //Config.ClearExcludedComponents;
     Config.ClearIncludedComponents;
     for var ProductId in ProductIds do
-      Config.AddIncludedComponent(ProductId, '');
+    begin
+      Config.AddIncludedComponent(ProductId.IdMask, '');
+    end;
   end;
-  ExecuteBuildAction(FullBuild, OnlyUnregister);
+  ExecuteBuildAction(FullBuild);
 end;
 
 
@@ -100,7 +125,7 @@ begin
   PostWinMessage(tmsRefreshWindowID, RefreshMessageId);
 end;
 
-procedure ExecuteBuildAction(FullBuild: Boolean; OnlyUnregister: Boolean = False);
+procedure ExecuteBuildAction(FullBuild: Boolean);
 begin
   EnableCtrlCTermination;
 
@@ -143,13 +168,11 @@ begin
         end;
       end;
 
-      // if we are unregistering the products, the easiest way is to "simulate" the deletion of all projects
-      // This is done by simply not loading the list of existing projects
-      if not OnlyUnregister then
-        TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projs);
+      TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projs);
 
       Projs.ResolveDependencies;
 
+      //Most common case, not 100% needed but in case of an error later, we remove ourselves first.
       RemoveFromWindowsPathIfNoProducts(Projs.All.Count);
 
       CreatePackages(Projs);
@@ -211,7 +234,7 @@ begin
   finally
     Projs.Free;
   end;
-
+  RemoveFromWindowsPathIfNoProducts;
   StopWatch.Stop;
 
   Logger.Info('');

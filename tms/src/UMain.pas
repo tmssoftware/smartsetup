@@ -9,7 +9,9 @@ uses
   Commands.Update,
   Commands.List,
   Commands.ListRemote,
+  Commands.VersionsRemote,
   Commands.Credentials,
+  Commands.Spec,
   Commands.Config,
   Commands.ConfigWrite,
   Commands.ConfigRead,
@@ -23,7 +25,10 @@ uses
   Commands.Info,
   Commands.Doctor,
   Commands.LogView,
-  Commands.Uncompress;
+  Commands.Uncompress,
+  Commands.Pin,
+  Commands.Snapshot,
+  Commands.Restore;
 
 procedure Run;
 
@@ -31,7 +36,8 @@ implementation
 
 uses
   System.SysUtils, System.IOUtils, UCommandLine, Commands.Logging, Commands.GlobalConfig, UConfigDefinition,
-  UMultiLogger, UConsoleLogger, ULogger, UTmsBuildSystemUtils, Deget.CoreTypes, UConfigKeys, Diagnostics;
+  UMultiLogger, UConsoleLogger, ULogger, UTmsBuildSystemUtils, Deget.CoreTypes,
+  UConfigKeys, Diagnostics, UDelayedErrors, Fetching.InfoFile;
 
 procedure Cleanup;
 begin
@@ -73,12 +79,19 @@ begin
   RegisterFetchCommand;
   RegisterBuildCommand;
   RegisterUninstallCommand;
+  RegisterPinCommand;
+  RegisterUnpinCommand;
 
   RegisterListCommand;
   RegisterListRemoteCommand;
+  RegisterVersionsRemoteCommand;
   RegisterInfoCommand;
 
+  RegisterSnapshotCommand;
+  RegisterRestoreCommand;
+
   RegisterCredentialsCommand;
+  RegisterSpecCommand;
   RegisterConfigCommand;
   RegisterConfigWriteCommand;
   RegisterConfigReadCommand;
@@ -114,6 +127,32 @@ begin
     end);
 end;
 
+procedure SaveAutoSnapshots;
+begin
+  try
+    if not TFetchInfoFile.ProductsWereModified then exit;
+    for var Snapshot in Config.FullAutoSnapshotFileNames do
+    begin
+      var FileName := Snapshot.Trim;
+      if FileName = ''  then continue;
+      TakeSnapshot(FileName);
+    end;
+  except on ex: Exception do
+    raise Exception.Create('Error creating snapshot: ' + ex.message);
+  end;
+end;
+
+procedure LogDelayedErrors;
+begin
+  if (DelayedErrors = nil) or (DelayedErrors.Count = 0) then exit;
+  Logger.Error('');
+  for var Error in DelayedErrors do
+  begin
+    Logger.Error('Error: ' + Error);
+  end;
+  ExitCode := 1;
+end;
+
 procedure Run;
 begin
 {$IFDEF DEBUG}
@@ -126,6 +165,8 @@ begin
       Logger.Verbosity := TVerbosity.info;
       try
         Start;
+        SaveAutoSnapshots;
+        LogDelayedErrors;
       except
         on E: Exception do
         begin

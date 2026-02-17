@@ -7,7 +7,7 @@ uses ULogger,
   {$ELSE}
     Posix.Stdio,
   {$ENDIF}
-  System.Net.HttpClient;
+  Fetching.OfflineHTTPClient;
 type
   TDownloadLogger = reference to procedure(const Verbosity: TVerbosity; const msg: string);
 
@@ -22,6 +22,7 @@ type
       const ForceDownload: boolean; const DownloadLogger: TDownloadLogger;
       const NewETag, DownloadUrl: string); static;
     class procedure AddCustomHeaders(const Request: IHTTPRequest; const Server: string); static;
+    class function RemoveFilePrefix(const s: string): string; static;
 
   public
     //Downloads a full zipped repo to a file.
@@ -30,7 +31,7 @@ type
   end;
 
 implementation
-uses Classes, SysUtils, UTmsBuildSystemUtils,
+uses Classes, SysUtils, Character, UTmsBuildSystemUtils,
      IOUtils, Commands.GlobalConfig, UAppTerminated, UMultiLogger, System.Hash;
 
 const
@@ -78,19 +79,37 @@ begin
 
 end;
 
+class function ZipDownloader.RemoveFilePrefix(const s: string): string;
+const
+  FileProtocol = 'file://';
+begin
+  //Technically, the protocol would be file://c:/temp
+  //But, it is standard in many places to write it as file:///c:/temp
+  //(with an extra slash to signify an absolute path, which it is anyway because after that we have c:/
+  //We need to support both ways.
+
+  if not s.StartsWith(FileProtocol, true) then raise Exception.Create('Url "' + s + '" should start with file://');
+
+  Result := s.Substring(FileProtocol.Length);
+  if (Result.Length > 3)
+    and (Result[1] = '/') and (Result[2]).IsLetter and (Result[3] = ':') and (Result[4] = '/')
+    then Result := Result.Substring(1);
+
+end;
+
 class procedure ZipDownloader.GetFile(const DownloadUrl, FileNameOnDisk, Server: string;
   DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
 const
   FileProtocol = 'file://';
 begin
-  if DownloadUrl.StartsWith(FileProtocol, true) then GetLocalFile(DownloadUrl.Substring(FileProtocol.Length), FileNameOnDisk, DownloadLogger, ForceDownload)
+  if DownloadUrl.StartsWith(FileProtocol, true) then GetLocalFile(RemoveFilePrefix(DownloadUrl), FileNameOnDisk, DownloadLogger, ForceDownload)
   else GetHttpsFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload);
 end;
 
 //Code is from TParallelDownloader.DownloadFile. We could unify it, but for now I prefer to evolve it separately.
 class procedure ZipDownloader.GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
 begin
-  var Client: THTTPClient := THTTPClient.Create;
+  var Client: TOfflineHTTPClient := TOfflineHTTPClient.Create;
   try
     var Aborted := false;
     TDirectory_CreateDirectory(TPath.GetDirectoryName(FileNameOnDisk));
@@ -179,7 +198,8 @@ begin
   TDirectory_CreateDirectory(TPath.GetDirectoryName(FileNameOnDisk));
   var ETagFileName := FileNameOnDisk + '.etag';
   var ETag := ReadETag(ETagFileName, ForceDownload, DownloadLogger);
-  var FileHash := THashSHA2.GetHashStringFromFile(DownloadUrl);
+  var DownloadFile := TPath.GetFullPath(DownloadUrl);
+  var FileHash := THashSHA2.GetHashStringFromFile(DownloadFile);
 
   if FileHash = ETag then
   begin

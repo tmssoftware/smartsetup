@@ -3,7 +3,7 @@ unit VCS.Registry;
 
 interface
 uses Classes, SysUtils, Generics.Defaults, Generics.Collections, VCS.CoreTypes,
-  UProjectDefinition, UConfigDefinition;
+  UProjectDefinition, UConfigDefinition, Fetching.ProductVersion, Fetching.InstallInfo, Fetching.InfoFile;
 type
   //In the future, we might add more stuff to the registry, like an image or path files.
   //That data would go inside this record.
@@ -45,18 +45,40 @@ type
     function Equals(ProductB: TObject): boolean; override;
   end;
 
+  TRegisteredVersionedProduct = class
+  private
+    FProduct: TRegisteredProduct;
+    FVersion: string;
+    FPinned: boolean;
+  public
+    property Product: TRegisteredProduct read FProduct;
+    property Version: string read FVersion write FVersion;
+    property Pinned: boolean read FPinned write FPinned;
+
+    constructor Create(const aProduct: TRegisteredProduct; const aVersion: string; const aPinned: boolean);
+    destructor Destroy; override;
+    function Equals(ProductB: TObject): boolean; override;
+
+    function ProductIdAndVersion: string;
+  end;
+
+
   TProductRegistry = class
   private
     FProducts: TObjectDictionary<string, TRegisteredProduct>;
+    FPinned: THashSet<string>;
     function GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText: string): TRegisteredProduct;
     procedure LoadPreregisteredProducts(const aServerName: string);
     procedure LoadOnePreregisteredProduct(const FileName, Text, Server: string);
     procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
+    procedure ChangeVersion(
+      const List: TObjectList<TRegisteredVersionedProduct>; const ProductId,
+      NewVersion: string);
   public
     constructor Create(aServerName: string);
     destructor Destroy; override;
 
-    function GetProducts(const ProductIdMask: string; const List: TList<TRegisteredProduct>; const InstalledProducts: THashSet<string>): boolean;
+    function GetProducts(const ProductVersion: TProductVersion; const List: TObjectList<TRegisteredVersionedProduct>; const ListDict: TDictionary<string, string>; const InstalledProducts: THashSet<string>): boolean;
     function Contains(const ProductId: string): boolean;
 
     procedure Load(const aServerName: string);
@@ -133,26 +155,52 @@ end;
 constructor TProductRegistry.Create(aServerName: string);
 begin
   FProducts := TObjectDictionary<string, TRegisteredProduct>.Create([doOwnsValues], TIStringComparer.Ordinal);
+  FPinned := THashSet<string>.Create;
   Load(aServerName);
 end;
 
 destructor TProductRegistry.Destroy;
 begin
+  FPinned.Free;
   FProducts.Free;
   inherited;
 end;
 
-function TProductRegistry.GetProducts(const ProductIdMask: string; const List: TList<TRegisteredProduct>; const InstalledProducts: THashSet<string>): boolean;
+procedure TProductRegistry.ChangeVersion(const List: TObjectList<TRegisteredVersionedProduct>; const ProductId: string; const NewVersion: string);
+begin
+  for var Product in List do
+  begin
+    if Product.FProduct.ProductId = ProductId then Product.Version := NewVersion;
+
+  end;
+end;
+
+function TProductRegistry.GetProducts(const ProductVersion: TProductVersion; const List: TObjectList<TRegisteredVersionedProduct>; const ListDict: TDictionary<string, string>; const InstalledProducts: THashSet<string>): boolean;
 begin
   Result := false;
   for var ProductId in FProducts do
   begin
-    if MatchesMask(ProductId.Key, ProductIdMask) then
+    if Config.IsExcluded(ProductId.Key) then Logger.Trace('Ignoring ' + ProductId.Key + ' because it is in the "excluded products" section of tms.config.yaml');
+
+    if Config.IsIncluded(ProductId.Key, ProductVersion.IdMask) then
     begin
       if (InstalledProducts = nil) or (InstalledProducts.Contains(ProductId.Key)) then
       begin
-        List.Add(ProductId.Value);
-        Result := true;
+        var ExistingVersion: string;
+        if (ListDict <> nil) and ListDict.TryGetValue(ProductId.Value.ProductId, ExistingVersion) then
+        begin
+          if ExistingVersion <> ProductVersion.Version then
+          begin
+            if ExistingVersion = '*' then ChangeVersion(List, ProductId.Value.ProductId, ProductVersion.Version)
+            else if ProductVersion.Version = '*' then begin end
+            else raise Exception.Create('The product ' + ProductId.Value.ProductId +' was requested to be installed in versions "' + ExistingVersion + '" and "' + ProductVersion.Version + '" at the same time.');
+          end;
+        end else
+        begin
+          List.Add(TRegisteredVersionedProduct.Create(ProductId.Value, ProductVersion.Version, FPinned.Contains(ProductId.Key)));
+          if ListDict <> nil then ListDict.Add(ProductId.Value.ProductId, ProductVersion.Version);
+          Result := true;
+        end;
       end;
     end;
   end;
@@ -231,6 +279,12 @@ procedure TProductRegistry.Load(const aServerName: string);
 begin
   FProducts.Clear;
   LoadPreregisteredProducts(aServerName);
+  FPinned.Clear;
+  GetFetchedProducts(Config.Folders.ProductsFolder, FPinned,
+    function(item: TFetchInfoFile): boolean
+    begin
+      Result := item.Pinned;
+    end);
 end;
 
 { TPredefinedData }
@@ -248,6 +302,41 @@ end;
 function TPredefinedData.Equals(const obj: TPredefinedData): boolean;
 begin
   Result := obj.Tmsbuild_Yaml = Tmsbuild_Yaml;
+end;
+
+{ TRegisteredVersionedProduct }
+
+constructor TRegisteredVersionedProduct.Create(
+  const aProduct: TRegisteredProduct; const aVersion: string; const aPinned: boolean);
+begin
+  FProduct := aProduct;
+  FVersion := aVersion;
+  FPinned := aPinned;
+end;
+
+destructor TRegisteredVersionedProduct.Destroy;
+begin
+  // do not free FProduct, it is not owned by this class.
+  inherited;
+end;
+
+function TRegisteredVersionedProduct.Equals(ProductB: TObject): boolean;
+begin
+  if not (ProductB is TRegisteredVersionedProduct) then exit(false);
+  var b := TRegisteredVersionedProduct(ProductB);
+  if b.Version <> FVersion then exit(false);
+  if b.FProduct = nil then exit(FProduct = nil);
+  if not b.FProduct.Equals(FProduct) then exit(false);
+
+
+  exit(true);
+
+end;
+
+function TRegisteredVersionedProduct.ProductIdAndVersion: string;
+begin
+  if Version.Trim = '' then exit(Product.ProductId);
+  Result := Product.ProductId + ':' + Version;
 end;
 
 end.

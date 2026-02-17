@@ -47,7 +47,7 @@ type
 implementation
 
 uses
-  System.Masks, UTmsBuildSystemUtils, UProjectLoader, UProjectList;
+  System.Masks, UTmsBuildSystemUtils, UProjectLoader, UProjectList, UDelayedErrors, Commands.GlobalConfig;
 
 { TRemovalManager }
 
@@ -61,7 +61,7 @@ begin
       var ProjectFolder := TPath.GetDirectoryName(Project.FullPath);
       if TPath.GetDirectoryName(ProjectFolder) = '' then continue; //Don't remove projects at the root of a drive.
 
-      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, Project.Application.Version, 'unknown', ''));
+      Products.Add(TFetchInfoFile.Create(Project.Application.Id, ProjectFolder, TLenientVersion.Create(Project.Application.Version, TVersionType.FreeForm), 'unknown', '', false));
     end;
   finally
     Projects.Free;
@@ -76,7 +76,7 @@ begin
     GetAllProducts(FRootFolders, TmpInstalledProducts);
     for var Product in TmpInstalledProducts do
     begin
-      if MatchesMask(Product.ProductId, ProductIdMask) then exit (true);
+      if Config.IsIncluded(Product.ProductId, ProductIdMask) then exit (true);
     end;
   finally
     TmpInstalledProducts.Free;
@@ -89,7 +89,7 @@ begin
   Logger.Trace('Looking up products matching ' + ProductIdMask);
   var Found := False;
   for var InstalledProduct in InstalledProducts do
-    if MatchesMask(InstalledProduct.ProductId, ProductIdMask) then
+    if Config.IsIncluded(InstalledProduct.ProductId, ProductIdMask) then
     begin
       Found := True;
       if RemovalItems.Contains(InstalledProduct.ProductId, InstalledProduct.Version) then
@@ -99,7 +99,7 @@ begin
       end;
       var Item := TRemovalItem.Create(InstalledProduct.ProductId, InstalledProduct.ProductPath, InstalledProduct.Version);
       FRemovalItems.Add(Item);
-      Logger.Trace(Format('Product %s:%s flagged for removal', [InstalledProduct.ProductId, InstalledProduct.Version]));
+      Logger.Trace(Format('Product %s:%s flagged for removal', [InstalledProduct.ProductId, InstalledProduct.Version.ToString]));
     end;
 
   if not Found then
@@ -245,9 +245,9 @@ begin
   if not FForce then
     CheckDependents;
 
-  // Stop execution if something failed
-  if RemovalItems.ContainsStatus(TRemovalStatus.Failed) then
-    raise Exception.Create('Uninstall failed');
+  var Failed := RemovalItems.GetProductsWithStatus(TRemovalStatus.Failed);
+  if Failed <> '' then
+    DelayedErrors.Add('Uninstall failed: ' + Failed);
 end;
 
 end.

@@ -1,10 +1,18 @@
-# Makes sure we can't add a TMS server different from tms.
-# See https://github.com/tmssoftware/tms-smartsetup/issues/263
+# Checks that credentials can be set in an empty folder, or you wouldn't be able to set them in a new setup.
 
 . test.setup
 
-tms credentials -code:"test" -email:"test@example.com"
-$Credentials = tms credentials -print -json | ConvertFrom-Json
+Remove-Item -Path (Join-Path -Path (Get-Location) -ChildPath "tms.config.yaml")
+
+# delete existing credentials
+tms credentials -code:" " -email:" " -test-credentials-profile:temstest.emptycreds
+tms credentials -code:" " -email:" " -test-credentials-profile:temstest.emptycreds  #check deleting non-existing creds doesn't crash
+
+$existing = tms credentials -print -json -test-credentials-profile:temstest.emptycreds | ConvertFrom-Json -AsHashtable
+$existing.Count | Assert-ValueIs 0
+
+tms credentials -code:"test" -email:"test@example.com" -test-credentials-profile:temstest.emptycreds
+$Credentials = tms credentials -print -json -test-credentials-profile:temstest.emptycreds| ConvertFrom-Json
 if ($Credentials.code -ne "test") {
     Write-Error "The credentials code should be 'test'."
 }

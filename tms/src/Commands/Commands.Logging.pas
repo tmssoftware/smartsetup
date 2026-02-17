@@ -18,7 +18,8 @@ procedure AlertAboutDiskSpace;
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
 
 implementation
-uses Commands.GlobalConfig, commands.SelfUpdate, UTmsBuildSystemUtils, Deget.Version, Commands.CommonOptions, Threading;
+uses Commands.GlobalConfig, Commands.SelfUpdate,
+     UTmsBuildSystemUtils, Deget.Version, Commands.CommonOptions, Threading, BBYaml.Writer, UConfigWriter;
 const
   {$i ../../../Version.inc}
 
@@ -72,7 +73,13 @@ begin
   Logger.Trace(TOSVersion.ToString);
   Logger.Trace('File system: ' + GetFileSystemName(TDirectory.GetCurrentDirectory));
   Logger.Trace('Current dir: ' + TDirectory.GetCurrentDirectory);
+  Logger.Trace('Working dir: ' + Config.Folders.RootFolder);
   Logger.Trace('Build cores: ' + IntToStr(TThreadPool.Default.MaxWorkerThreads));
+  Logger.Trace('');
+  Logger.StartSection(TMessageType.Configuration, 'Configuration:');
+  Logger.Trace(TConfigWriter.GetProperty(Config, '', TWritingFormat.Minimal, false, false));
+  Logger.FinishSection(TMessageType.Configuration);
+
 
   Logger.FinishSection(TMessageType.BasicInfo);
 end;
@@ -145,9 +152,14 @@ end;
 procedure AlertAboutDiskSpace;
 begin
 {$IFDEF MSWINDOWS}
+  //If config wasn't loaded, we might try to load it here and crash (this code runs in a finally block)
+  //See config-must-run-with-invalid-config test.
+  //Anyway, if config wasn't ever loaded, this is a simple command, not a build or the ones where we care to show this message.
+  if not ConfigHasBeenLoaded then exit;
+
   var DiskSpaceWarningLimit := 500 * 1024 * 1024; // 500 MB
   var TotalFree, TotalSpace: TLargeInteger;
-  if GetDiskFreeSpaceEx(PChar(TPath.GetDirectoryName(ConfigFileName)), TotalFree, TotalSpace, nil) then
+  if GetDiskFreeSpaceEx(PChar(ConfigNoCheck.Folders.RootFolder), TotalFree, TotalSpace, nil) then
   begin
     // Warn if disk space is lower than 500 MB
     if TotalFree < DiskSpaceWarningLimit then

@@ -171,7 +171,7 @@ begin
   for var i := Fixes.Count - 1 downto 0 do
   begin
     var Fix := Fixes[i] as TLibPathFix;
-    if Fix.Apply and (Assigned(Fix.Fix)) and (Fix.PathType = PathType) and (Fix.Platform = Plat) then
+    if (Fix.Apply > 0) and (Assigned(Fix.Fix)) and (Fix.PathType = PathType) and (Fix.Platform = Plat) then
     begin
       Fixes[i].Fix();
       Inc(ItemsToFix);

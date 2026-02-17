@@ -297,9 +297,9 @@ end;
 
 function TProjectInstaller.GetCredentials(const ServerName: string; const RegCode: boolean): string;
 begin
-  var Folders: IBuildFolders := TBuildFolders.Create(TPath.GetDirectoryName(ConfigFileName));
+  var Folders: IBuildFolders := Config.Folders;
 
-  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions);
+  var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions, ServerName);
   try
     var Credentials := Manager.ReadCredentials;
     try
@@ -433,7 +433,7 @@ begin
                   + '": ' + ex.Message);
     end;
   end;
-  if not DryRun then Persist.Remove(ProjectId);
+  if not DryRun and not Config.Unregistering then Persist.Remove(ProjectId);
 end;
 
 procedure TProjectInstaller.UnRegisterWebCore(const ProjectId: string; const UninstallInfo: IUninstallInfo);
@@ -588,7 +588,7 @@ begin
                   + '" in IDE ' + IDEId[IDEName] + ': ' + ex.Message);
     end;
   end;
-  if not DryRun then Persist.Remove(ProjectId, IDEId[IDEName]);
+  if not DryRun and not Config.Unregistering then Persist.Remove(ProjectId, IDEId[IDEName]);
 
 end;
 
@@ -691,8 +691,11 @@ begin
           end;
         end;
 
-        MegafolderPersist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform]);
-        if TDirectory.IsEmpty(MegafolderBaseFolder) then TDirectory.Delete(MegafolderBaseFolder);
+        if (not Config.Unregistering) then
+        begin
+          MegafolderPersist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform]);
+          if TDirectory.IsEmpty(MegafolderBaseFolder) then TDirectory.Delete(MegafolderBaseFolder);
+        end;
 
       finally
         MegafolderPersist.Free;
@@ -749,7 +752,7 @@ begin
      end;
   end;
 
-  if not DryRun then Persist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform]);
+  if not DryRun and not Config.Unregistering then Persist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform]);
   UnregisterDcuMegafolders(DryRun, Installer, ProjectId, IDEName, Platform);
 end;
 
@@ -775,7 +778,7 @@ procedure TProjectInstaller.CleanAllBuildTemporaryFiles(const DryRun: boolean;
 begin
   try
     var data := Persist.Retrieve(ProjectId, IDEId[IDEName], PlatformId[Platform], Package);
-    if data <> '' then
+    if (data <> '') and not Config.Unregistering then
     begin
       var UninstallInfo: IUninstallInfo := TUninstallInfo.Create(data, DryRun, TEngineLevel.Platform,
         ProjectId, IDEName, Platform, Package, Config.CompilerPath(ProjectId, IDEName), Config.Folders.LockedFilesFolder);
@@ -798,8 +801,14 @@ begin
 
   if not DryRun then
   begin
-    Persist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform], Package);
-    FileHasher.RemoveHashesForPlatform(ProjectId, IDEId[IDEName], PlatformId[Platform]);
+    if (not Config.Unregistering) then
+    begin
+      Persist.Remove(ProjectId, IDEId[IDEName], PlatformId[Platform], Package);
+      FileHasher.RemoveHashesForPlatform(ProjectId, IDEId[IDEName], PlatformId[Platform]);
+    end else
+    begin
+      FileHasher.ReplaceHash(Config.Unregistering, ProjectId, IDEId[IDEName], PlatformId[Platform]);
+    end;
   end;
 end;
 

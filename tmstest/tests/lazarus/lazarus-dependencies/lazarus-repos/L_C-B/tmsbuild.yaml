@@ -1,0 +1,19 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmslaztest.c
+  name: "LC"
+  url: "file://lazarus-repos/L_C-B"
+
+supported frameworks:
+  rtl:
+    ide since: lazarus
+    platforms: 
+      - all
+  
+packages:
+  - l_c: [runtime, rtl]
+
+dependencies:
+  - tmslaztest.b: Lazarus B
+

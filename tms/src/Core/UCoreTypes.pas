@@ -7,7 +7,7 @@ type
   TEngineLevel = (Project, Ide, Platform, Package);
 
 type
-    TFramework = 0..10;
+    TFramework = 0..30;
     TFrameworkSet = set of TFramework;
 
     TOperatingSystem = (windows, linux, mac);

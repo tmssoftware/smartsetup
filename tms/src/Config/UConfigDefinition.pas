@@ -26,9 +26,9 @@ type
   TSkipRegistering = record
   private
     FOptions: TSkipRegisteringSet;
-    FOriginalOptions: string;
   public
-    constructor Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
+    constructor Create(const AOptions: TSkipRegisteringSet);
+    class function FromInteger(const AOptions: Integer): TSkipRegistering; static;
     function Packages: boolean;
     function StartMenu: boolean;
     function Help: boolean;
@@ -37,12 +37,16 @@ type
     function FileLinks: boolean;
     function Registry: boolean;
 
+    function ToInteger: integer;
+    function ToSkippedString: string;
+    function ToIncludedString: string;
+
     class function All: TSkipRegistering; static;
     class function None: TSkipRegistering; static;
   end;
 
   TGlobalPrefixedProperties = (ExcludedProducts, IncludedProducts, AdditionalProductsFolders,
-                             Servers, DcuMegafolders);
+                             Servers, DcuMegafolders, AutoSnapshotFilenames);
   TGlobalPrefixedPropertiesArray = Array[TGlobalPrefixedProperties] of TArrayOverrideBehavior;
 
   TProductPrefixedProperties =(DelphiVersions, Platforms, Defines);
@@ -176,7 +180,9 @@ type
 
   TConfigDefinition = class
   private
-    FRootFolder: string;
+    FConfigFolder: string;
+    FWorkingFolder: string;
+    FWorkingFolderUsed: boolean;
     FProducts: TProductConfigDefinitionDictionary;
     ExcludedComponents, IncludedComponents: TOrderedDictionary<string, string>;
     AdditionalProductsFolders: TOrderedDictionary<string, string>;
@@ -184,6 +190,7 @@ type
     FBuildCores: integer;
     FPreventSleep: boolean;
     FErrorIfSkipped: boolean;
+    FAutoSnapshotFileNames: TOrderedDictionary<string, string>;
     FAlternateRegistryKey: string;
     FMaxVersionsPerProduct: integer;
     FServerConfig: TServerConfigList;
@@ -191,6 +198,7 @@ type
     FSvnConfig: TSvnConfig;
     FPrefixedProperties: TGlobalPrefixedPropertiesArray;
     FDcuMegafolders: TMegafolderList;
+    FUnregistering: boolean;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -205,10 +213,9 @@ type
     procedure SetPrefixedProperties(index: TGlobalPrefixedProperties;
       const Value: TArrayOverrideBehavior);
   public
-    constructor Create(const ARootFolder: string);
+    constructor Create(const AConfigFolder: string);
     destructor Destroy; override;
     function Folders: IBuildFolders;
-//    property FullPath: string read FFullPath;
 
     function GetProduct(ProductId: string): TProductConfigDefinition;
 
@@ -241,17 +248,28 @@ type
 
     property DcuMegafolders: TMegafolderList read FDcuMegafolders;
 
+    //Not an option in the config file, but something you set externally with tms build -unregister
+    property Unregistering: boolean read FUnregistering write FUnregistering;
+
     property PrefixedProperties[index: TGlobalPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
 
     property ErrorIfSkipped: boolean read FErrorIfSkipped write FErrorIfSkipped;
 
+    property AutoSnapshotFileNames: TOrderedDictionary<string, string> read FAutoSnapshotFileNames;
+    function FullAutoSnapshotFileNames: TArray<string>;
+
     property Products: TProductConfigDefinitionDictionary read FProducts;
+
+    function GetWorkingFolder(const WithDefault: boolean): string;
+    procedure SetWorkingFolder(const value: string);
 
     function Verbosity(const ProductId: String; DefaultVerbosity: TVerbosity): TVerbosity;
     function SkipRegistering(const ProductId: String; DefaultValue: integer): integer;
     function SkipRegisteringExt(const ProductId: String; DefaultValue: string): string;
     function DryRun(const ProductId: String): boolean;
-    function IsIncluded(const ProductId: String): boolean;
+    function IsExcluded(const ProductId: String): boolean;
+    function IsIncluded(const ProductId: String): boolean; overload;
+    function IsIncluded(const ProductId, Mask: String): boolean; overload;
     function GetAllDefines(const ProductId: string): TArray<string>;
     function GetDefinesOnlyForProject(const ProductId: string): TArray<string>;
 
@@ -280,9 +298,9 @@ uses IOUtils, UTmsBuildSystemUtils;
 
 { TConfigDefinition }
 
-constructor TConfigDefinition.Create(const ARootFolder: string);
+constructor TConfigDefinition.Create(const AConfigFolder: string);
 begin
-  FRootFolder := ARootFolder;
+  FConfigFolder := AConfigFolder;
   FProducts := TProductConfigDefinitionDictionary.Create;
   ExcludedComponents := TOrderedDictionary<string, string>.Create;
   IncludedComponents := TOrderedDictionary<string, string>.Create;
@@ -294,10 +312,12 @@ begin
   FMaxVersionsPerProduct := -1;
   FErrorIfSkipped := false;
   FDcuMegafolders := TMegafolderList.Create;
+  FAutoSnapshotFileNames := TOrderedDictionary<string, string>.Create;
 end;
 
 destructor TConfigDefinition.Destroy;
 begin
+  FAutoSnapshotFileNames.Free;
   FDcuMegafolders.Free;
   Namings.Free;
   FServerConfig.Free;
@@ -321,7 +341,22 @@ end;
 
 function TConfigDefinition.Folders: IBuildFolders;
 begin
-  Result := TBuildFolders.Create(FRootFolder);
+  Result := TBuildFolders.Create(GetWorkingFolder(true));
+end;
+
+function TConfigDefinition.FullAutoSnapshotFileNames: TArray<string>;
+begin
+  Result := nil;
+  SetLength(Result, AutoSnapshotFileNames.Count);
+  for var i := Low(Result) to High(Result) do
+  begin
+    if TPath_IsPathRooted(AutoSnapshotFileNames.KeyList[i]) then
+    begin
+      Result[i] := TPath.GetFullPath(AutoSnapshotFileNames.KeyList[i].Trim);
+      continue;
+    end;
+    Result[i] := TPath.GetFullPath(TPath.Combine(FConfigFolder, AutoSnapshotFileNames.KeyList[i].Trim));
+  end;
 end;
 
 function TConfigDefinition.AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;
@@ -436,18 +471,14 @@ end;
 
 function TConfigDefinition.GetAllRootFolders: TArray<string>;
 begin
-  if AdditionalProductsFolders.Keys.Count = 0 then //Optimization for most common case.
-  begin
-    Result := [Folders.RootFolder];
-    exit;
-  end;
-
   var ResultList := TList<string>.Create;
   try
     ResultList.Add(Folders.RootFolder);
+    if Folders.RootFolder <> FConfigFolder then ResultList.Add(FConfigFolder);
+
     for var root in AdditionalProductsFolders do
     begin
-      AddPathsWithWildcards(ResultList, TPath.GetFullPath(TPath.Combine(Folders.RootFolder, root.Key)), root.Value,
+      AddPathsWithWildcards(ResultList, TPath.GetFullPath(TPath.Combine(FConfigFolder, root.Key)), root.Value,
         CheckSameDrive);
     end;
 
@@ -501,10 +532,18 @@ begin
 
 end;
 
-function TConfigDefinition.IsIncluded(const ProductId: String): boolean;
+function TConfigDefinition.IsExcluded(const ProductId: String): boolean;
 begin
   for var ExcludedId in ExcludedComponents.Keys do
     if MatchesMask(ProductId, ExcludedId) then
+      Exit(True);
+
+  Exit(False);
+ end;
+
+function TConfigDefinition.IsIncluded(const ProductId: String): boolean;
+begin
+  if IsExcluded(ProductId) then
       Exit(False);
 
   if IncludedComponents.Count = 0 then
@@ -514,6 +553,19 @@ begin
   for var IncludedId in IncludedComponents.Keys do
     if MatchesMask(ProductId, IncludedId) then
       Exit(True);
+end;
+
+function TConfigDefinition.IsIncluded(const ProductId, Mask: String): boolean;
+begin
+  //For tms update, we will come with an empty mask here if the user didn't set one (just run "tms update")
+  //We will then use the included products.
+  if Mask = '' then exit(IsIncluded(ProductId));
+
+  if not MatchesMask(ProductId, Mask) then exit(false);
+  if IsExcluded(ProductId) then Exit(False);
+
+  //We don't check included products when using masks
+   Exit(true);
 end;
 
 procedure TConfigDefinition.ClearAdditionalProductsFolders;
@@ -544,7 +596,11 @@ end;
 
 function TConfigDefinition.CompilerPath(const ProductId: String; const dv: TIDEName): string;
 begin
-  Result := ReadStringProperty(ProductId, ConfigKeys.CompilerPath + IDEId[dv], '');
+  Result := ReadStringProperty(ProductId, ConfigKeys.CompilerPath + IDEId[dv], '').Trim;
+  if Result = '' then exit;
+
+  if not TPath_IsPathRooted(Result) then Result := TPath.Combine(FConfigFolder, Result); //relative to where config is, not to working folder.
+  
 end;
 
 function TConfigDefinition.KeepParallelFolders(const ProductId: String): Boolean;
@@ -657,6 +713,20 @@ function TConfigDefinition.Match(const IdWithMask: string; const Projects: TDict
 begin
   for var p in Projects.Keys do if MatchesMask(p, IdWithMask) then exit(true);
   Result := false;
+end;
+
+function TConfigDefinition.GetWorkingFolder(const WithDefault: boolean): string;
+begin
+  FWorkingFolderUsed := true;
+  if (FWorkingFolder.Trim = '') and WithDefault then exit(FConfigFolder);
+  Result := FWorkingFolder;
+end;
+
+procedure TConfigDefinition.SetWorkingFolder(const value: string);
+begin
+  //Make sure we don't try to change MetaDataFolders after we read the value.
+  if FWorkingFolderUsed then raise Exception.Create('Internal error: Attempting to modify MetaData folders after they have been used.');
+  FWorkingFolder := value;
 end;
 
 procedure TConfigDefinition.Validate(const Projects: TDictionary<string, boolean>);
@@ -982,10 +1052,9 @@ end;
 
 { TSkipRegistering }
 
-constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet; const AOriginalOptions: string);
+constructor TSkipRegistering.Create(const AOptions: TSkipRegisteringSet);
 begin
   FOptions := AOptions;
-  FOriginalOptions := aOriginalOptions;
 end;
 
 function TSkipRegistering.Help: boolean;
@@ -1001,6 +1070,37 @@ end;
 function TSkipRegistering.StartMenu: boolean;
 begin
   Result := TSkipRegisteringOptions.StartMenu in FOptions;
+end;
+
+function TSkipRegistering.ToInteger: integer;
+begin
+  Result := Byte(FOptions);
+end;
+
+function TSkipRegistering.ToSkippedString: string;
+begin
+  Result := '';
+  for var Option := Low(TSkipRegisteringOptions) to High(TSkipRegisteringOptions) do
+  begin
+    if Option in FOptions then
+    begin
+      if Result <> '' then Result := Result + ', ';
+      Result := Result + TSkipRegisteringName[Option];
+    end;
+  end;
+end;
+
+function TSkipRegistering.ToIncludedString: string;
+begin
+  Result := '';
+  for var Option := Low(TSkipRegisteringOptions) to High(TSkipRegisteringOptions) do
+  begin
+    if not(Option in FOptions) then
+    begin
+      if Result <> '' then Result := Result + ', ';
+      Result := Result + TSkipRegisteringName[Option];
+    end;
+  end;
 end;
 
 function TSkipRegistering.WebCore: boolean;
@@ -1023,14 +1123,20 @@ begin
   Result := TSkipRegisteringOptions.FileLinks in FOptions;
 end;
 
+class function TSkipRegistering.FromInteger(
+  const AOptions: Integer): TSkipRegistering;
+begin
+  Result := TSkipRegistering.Create(TSkipRegisteringSet(byte(AOptions)));
+end;
+
 class function TSkipRegistering.All: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)], TSkipRegisteringOptionsExt_True);
+  Result := TSkipRegistering.Create([Low(TSkipRegisteringOptions)..High(TSkipRegisteringOptions)]);
 end;
 
 class function TSkipRegistering.None: TSkipRegistering;
 begin
-  Result := TSkipRegistering.Create([], TSkipRegisteringOptionsExt_False);
+  Result := TSkipRegistering.Create([]);
 end;
 
 { TServerConfigList }

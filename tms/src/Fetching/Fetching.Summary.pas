@@ -31,6 +31,7 @@ begin
   Logger.Info('=== Fetch Summary ===');
 
   LogItems(Items, [TFetchStatus.SkippedUpToDate], '-> SKIPPED (Up to date)', False);
+  LogItems(Items, [TFetchStatus.SkippedPinned], '-> SKIPPED (Pinned)', False);
   LogItems(Items, [TFetchStatus.SkippedManualVersionExists], '-> SKIPPED (A manually installed version exists)', False);
   LogItems(Items, [TFetchStatus.Downloaded], '-> UPDATED', True);
   LogItems(Items, [TFetchStatus.Failed], '-> FAILED', True);

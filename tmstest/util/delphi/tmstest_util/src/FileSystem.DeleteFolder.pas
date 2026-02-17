@@ -18,8 +18,11 @@ begin
   RootFolder := TPath.GetFullPath(RootFolder);
   var LockedFolder := TPath.GetFullPath(TPath.Combine(RootFolder, 'tmp', 'locked'));
   var TmpRunFolder := TPath.GetFullPath(TPath.Combine(RootFolder, 'tmp-run'));
+  var EnvTemp := GetEnvironmentVariable('Temp');
+  if EnvTemp = '' then raise Exception.Create('Environment Variable Temp is empty.');
 
-  if not StartsText(TmpRunFolder, TargetFolder) then raise Exception.Create('Folder to delete: "' + TargetFolder + '" is outside the root folder: "' + TmpRunFolder + '"');
+
+  if not StartsText(TmpRunFolder, TargetFolder) and not StartsText(EnvTemp, TargetFolder) then raise Exception.Create('Folder to delete: "' + TargetFolder + '" is outside the root folder: "' + TmpRunFolder + '"');
 
   WriteLn('Removing folder: "', TargetFolder, '" and moving locked files to "', LockedFolder, '"');
   DeleteFolderMovingToLocked(LockedFolder, TargetFolder, true, KeepRootFolder);

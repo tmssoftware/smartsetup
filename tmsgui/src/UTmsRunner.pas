@@ -5,7 +5,7 @@ interface
 uses
 //  WinApi.Windows,
   System.SysUtils, System.Classes, System.IOUtils, System.JSON, Deget.CommandLine, UProductInfo, UMultiLogger, Deget.Version,
-  UConfigInfo;
+  UCommonTypes;
 
 type
   TProgressInfo = record
@@ -190,12 +190,28 @@ type
     procedure RunServerRemove(const Name: string);
   end;
 
+  TTmsVersionsRemoteRunner = class(TTmsRunner)
+  public
+    procedure RunVersionsRemote(const ProductId: string; Items: TVersionInfoList);
+  end;
+
+  TTmsPinRunner = class(TTmsRunner)
+  public
+    procedure RunPin(const ProductIds: TArray<string>);
+  end;
+
+  TTmsUnpinRunner = class(TTmsRunner)
+  public
+    procedure RunUnpin(const ProductIds: TArray<string>);
+  end;
+
   ETmsRunner = class(Exception)
   end;
 
 implementation
 
 uses
+  System.DateUtils,
   Deget.CoreTypes;
 
 { TTmsRunner }
@@ -381,9 +397,10 @@ begin
     var JsonProduct := TJSONObject(Pair.JsonValue);
 
     Product.Name := JsonProduct.GetValue<string>('name');
-    Product.Version := JsonProduct.GetValue<string>('version', '');
+    Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.Channel := JsonProduct.GetValue<string>('channel', '');
     Product.Local := JsonProduct.GetValue<Boolean>('local', False);
+    Product.Pinned := JsonProduct.GetValue<Boolean>('pinned', False);
     var JsonIDEs: TJSONObject;
     if JsonProduct.TryGetValue('ides', JsonIDEs) then
       for var IDEPair in JsonIDEs do
@@ -512,7 +529,7 @@ begin
     var JsonProduct := TJSONObject(Pair.JsonValue);
 
     Product.Name := JsonProduct.GetValue<string>('name');
-    Product.Version := JsonProduct.GetValue<string>('version', '');
+    Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.VendorId := JsonProduct.GetValue<string>('vendor_id', '');
     Product.Server := JsonProduct.GetValue<string>('server', '');
 //    Product.LicenseStatus := JsonProduct.GetValue<string>('license-status', '');
@@ -598,7 +615,7 @@ begin
   if ProductProgress then
     Command := Command + ' -display-options:product-progress';
 
-  RunCommand(AddRepo(Command));
+  RunCommand(Command);
 end;
 
 { TTmsInstallRunner }
@@ -717,6 +734,53 @@ end;
 procedure TTmsServerRemoveRunner.RunServerRemove(const Name: string);
 begin
   var Command := Format('server-remove %s', [Name]);
+  Run(Command);
+end;
+
+{ TTmsVersionsRemoteRunner }
+
+procedure TTmsVersionsRemoteRunner.RunVersionsRemote(const ProductId: string; Items: TVersionInfoList);
+begin
+  var Command := Format('versions-remote %s -json', [ProductId]);
+  Run(AddRepo(Command));
+
+  // parse response
+  if not (JsonOutput is TJSONObject) then
+    raise ETmsRunner.Create('Could not parse versions-remote result as JSON object');
+
+  Items.Clear;
+  var Json := TJSONObject(JsonOutput);
+  for var Pair in Json do
+  begin
+    var Item := TVersionInfo.Create;
+    Items.Add(Item);
+    Item.Version := Pair.JsonString.Value;
+
+    if not (Pair.JsonValue is TJSONObject) then
+      raise ETmsRunner.CreateFmt('Could not parse version "%s" as JSON object from versions-remote command', [Item.Version]);
+    var JsonItem := TJSONObject(Pair.JsonValue);
+
+    var LocalReleaseDate: TDateTime;
+    if TryISO8601ToDate(JsonItem.GetValue<string>('release_date', ''), LocalReleaseDate, False) then
+      Item.ReleaseDate := LocalReleaseDate;
+  end;
+end;
+
+{ TTmsPinRunner }
+
+procedure TTmsPinRunner.RunPin(const ProductIds: TArray<string>);
+begin
+  var Command := 'pin';
+  Command := Command + ' ' + String.Join(' ', ProductIds);
+  Run(Command);
+end;
+
+{ TTmsUnpinRunner }
+
+procedure TTmsUnpinRunner.RunUnpin(const ProductIds: TArray<string>);
+begin
+  var Command := 'unpin';
+  Command := Command + ' ' + String.Join(' ', ProductIds);
   Run(Command);
 end;
 

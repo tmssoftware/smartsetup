@@ -3,16 +3,62 @@ uid: SmartSetup.ReleaseNotes
 ---
 
 # Release Notes
+## Version 3.0
+ - **New**: [Versioning](xref:SmartSetup.Versioning) support. You can now install any available version of any product
+
+ - **New**: [Snapshots](xref:SmartSetup.Versioning#snapshots). You can get a list of every component and version installed at any point in time, and restore that snapshot
+
+ - **New**: [Pinning](xref:SmartSetup.Versioning#pinning-versions) support. You can now pin a product to a specific version, and it won't update until you unpin it.
+
+- **New**: Support for unregistering products. Now you can do `tms build -unregister` in folder A, and `tms build` in folder B, and you can work with the components in folder B. IF you want to switch back to using folder A, just unregister B and build A again. The switch is instant, no need to wait for products to build.
+
+ - **New**: Support for dependencies for products in the community server. Now products in the community server can depend in other products in any other zipfile server.
+
+ - **New**: "working folder" configuration option. It allows you to keep the working folder for SmartSetup (where logs, products, etc go) in an arbitrary folder, not necessarily at the same folder where tms.config.yaml is.
+
+ - **New**: Now your tms credentials will be stored in the Windows Credential Manager, and apply to the whole machine. There is no need to enter the credentials for every folder where you use smartsetup anymore.
+
+ - **New**: Dark mode support in tmsgui
+
+ - **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
+
+ - **New**: new `tms spec` command allows to create tmsbuild.yaml file for new products that you want to add to smartsetup.
+ 
+ - **New**: New -cmd parameter in tms `config-write` shows the parameters in the [syntax you need to use when using the -p parameter](xref:SmartSetup.CommandLineUsage#-p-command-to-pass-a-configuration-to-tms).
+
+ - **New**: There is a global parameter `-add-config:<config-file-name>` that you can use to override the properties set in tms.config.yaml.
+
+ - **New**: tmsgui has a new column showing the status of the products.
+
+ - **Improved** Now the "excluded folders" in the config file apply also to fetching and uninstalling. Before, those products were only excluded from a build.
+
+ - **Improved** Better lazarus support for products that depend on other products.
+
+ - **Improved** Support for building in machines where IDEFixPack/FastDCC is installed. Older SmartSetup would detect an invalid compiler and compile as if this was a Rad Studio trial or community version. 
+
+ - **Fixed**: Products in the community server were failing to update some settings in corner cases.
+
+ - **Fixed**: Unified behavior between API and Community servers. Before, API servers would stop if some operation failed, but Community servers would skip the errors and try to build anyway. Now all servers stop if there is a fetching error.
+
+ - **Fixed**: Better detection of .zip/.tar.zstd files. The built-in TZipFile.IsValid doesn't work reliably.
+
+ - **Fixed**: Compilation for Dn+ packages on Rad Studio Trials/Community Editions. The "+" packages use the same package for different Rad Studio versions, and rely in the $(ProductVersion) macro being set by Rad Studio. But rad studio doesn't set this macro, so we needed to workaround it.
+
+ - **Fixed**: In some very rare cases, SmartSetup could ask for a token to the server, and the server be expired when returning, leading to a failure when downloading products from the api server.
+
+
 
 ## Version 2.3 (October, 2025)
- - **Fixed** `error :  failed to find / extract cached MinGW includes: PathAlreadyExists` could happen when trying to compile in a newly installed Delphi 13
+ - **Fixed**: `error :  failed to find / extract cached MinGW includes: PathAlreadyExists` could happen when trying to compile in a newly installed Delphi 13
 
 ## Version 2.2 (September, 2025)
-- **New** Delphi 13 official support.
-- **New** For security reasons, now SmartSetup won't run pre/post build events when installing. You can edit tms.config.yaml to allow pre/post build events for specific projects.
+- **New**: Delphi 13 official support.
+
+- **New**: For security reasons, now SmartSetup won't run pre/post build events when installing. You can edit tms.config.yaml to allow pre/post build events for specific projects.
 
 ## Version 2.1 (August, 2025)
-- **New** The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
+- **New**: The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
+
 - **Improved** Rewritten config-read command can now return the full configuration as a JSON object, and it can return from the full configuration to some sections, to a specific property.
 
 ## Version 2.0 (August, 2025)
