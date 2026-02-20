@@ -47,7 +47,7 @@ type
   end;
 implementation
 uses UIDEUtils, UMultiLogger, SysUtils, IOUtils, Generics.Defaults,
-     Xml.XMLDoc, Xml.XMLIntf, UTmsBuildSystemUtils,
+     Xml.XMLDoc, Xml.XMLIntf, Variants, UTmsBuildSystemUtils,
      {$IFDEF MSWINDOWS}
      Windows,
      ActiveX,
@@ -64,16 +64,10 @@ end;
 
 procedure AddLazarusPackagesToMap(const ProjectBI: TProjectBuildInfo; const Map: TDictionary<string, string>);
 begin
-  for var IDE in ProjectBI.IDEsBuildInfo do
+  for var Pkg in ProjectBI.Project.Packages do
   begin
-    if IDE.Name <> TIDEName.lazarus then continue;
-    for var Plat in IDE.PlatformsBuildInfo do
-      for var Pkg in Plat.PackagesBuildInfo do
-      begin
-        var PkgName := TPath.GetFileNameWithoutExtension(Pkg.PackageFileName);
-        if not Map.ContainsKey(PkgName) then
-          Map.Add(PkgName, Pkg.PackageFileName);
-      end;
+    var PackageFileName := TPath.Combine(ProjectBI.PackagesFolder(TIDEName.lazarus), Pkg.Name + '.lpk');
+    if TFile.Exists(PackageFileName) then Map.Add(Pkg.Name, PackageFileName);
   end;
 end;
 
@@ -81,7 +75,6 @@ function GetManagedPackageMap(const BuildInfo: TFullBuildInfo): TDictionary<stri
 begin
   Result := TDictionary<string, string>.Create(TIStringComparer.Ordinal);
   try
-    AddLazarusPackagesToMap(BuildInfo.Project, Result);
     for var Dep in BuildInfo.Project.Dependencies do
       AddLazarusPackagesToMap(Dep, Result);
   except
@@ -95,6 +88,7 @@ var
   XML: IXMLDocument;
 begin
   XML := TXMLDocument.Create(SourceFile);
+  XML.Options := XML.Options + [doNodeAutoIndent];
 
   var ConfigNode := XML.DocumentElement;
   if ConfigNode <> nil then
@@ -117,11 +111,21 @@ begin
           break;
         end;
 
-      if RequiredPkgsNode <> nil then
+      if RequiredPkgsNode = nil then
       begin
+        RequiredPkgsNode := PackageNode.AddChild('RequiredPkgs');
+        RequiredPkgsNode.Attributes['Count'] := '0';
+      end;
+
+      var ExistingNames := THashSet<string>.Create(TIStringComparer.Ordinal);
+      try
+      var ItemNodes := THashSet<string>.Create(TIStringComparer.Ordinal);
+      try
+        // Patch existing items
         for var i := 0 to RequiredPkgsNode.ChildNodes.Count - 1 do
         begin
           var ItemNode := RequiredPkgsNode.ChildNodes[i];
+          ItemNodes.Add(ItemNode.NodeName);
 
           var PkgNameNode: IXMLNode := nil;
           for var j := 0 to ItemNode.ChildNodes.Count - 1 do
@@ -133,6 +137,7 @@ begin
           if PkgNameNode = nil then continue;
 
           var PkgName: string := PkgNameNode.Attributes['Value'];
+          ExistingNames.Add(PkgName);
 
           var DepFileName: string;
           if not ManagedPackages.TryGetValue(PkgName, DepFileName) then continue;
@@ -152,7 +157,80 @@ begin
           DefaultFileNode.Attributes['Value'] := DepFileName;
           DefaultFileNode.Attributes['Prefer'] := 'True';
         end;
+
+        // Add managed packages not already in RequiredPkgs
+        var ItemCount := RequiredPkgsNode.ChildNodes.Count;
+        var ItemIndex := ItemCount;
+        for var ManagedPkg in ManagedPackages do
+        begin
+          if ExistingNames.Contains(ManagedPkg.Key) then continue;
+
+          Inc(ItemCount);
+          var NewNodeName := '';
+          repeat
+            Inc(ItemIndex);
+            NewNodeName := 'Item' + IntToStr(ItemIndex);
+          until not ItemNodes.Contains(NewNodeName);
+
+          Logger.Trace('Adding dependency ' + ManagedPkg.Key + ' -> ' + ManagedPkg.Value);
+
+          var NewItem := RequiredPkgsNode.AddChild(NewNodeName);
+          var PkgNameNode := NewItem.AddChild('PackageName');
+          PkgNameNode.Attributes['Value'] := ManagedPkg.Key;
+          var DefaultFileNode := NewItem.AddChild('DefaultFilename');
+          DefaultFileNode.Attributes['Value'] := ManagedPkg.Value;
+          DefaultFileNode.Attributes['Prefer'] := 'True';
+        end;
+
+        RequiredPkgsNode.Attributes['Count'] := IntToStr(ItemCount);
+      finally
+        ItemNodes.Free;
       end;
+      finally
+        ExistingNames.Free;
+      end;
+
+      // Add -Ur to CompilerOptions > Other > CustomOptions
+      // This is needed when a unit has a cirular dependency with another,
+      // as fpc will calculate the checksum wrong and try to recompile the dependent package.
+      // but it can't recompile it as it doesn't have the path to the pas files, only ppu.
+      // See https://forum.lazarus.freepascal.org/index.php?topic=70718.0
+      // Once this bug is fixed this could be removed, but it doesn't hurt anyway. Units are compiled as release, which means "never recompile"
+      var CompilerOptionsNode: IXMLNode := nil;
+      for var i := 0 to PackageNode.ChildNodes.Count - 1 do
+        if PackageNode.ChildNodes[i].LocalName = 'CompilerOptions' then
+        begin
+          CompilerOptionsNode := PackageNode.ChildNodes[i];
+          break;
+        end;
+      if CompilerOptionsNode = nil then
+        CompilerOptionsNode := PackageNode.AddChild('CompilerOptions');
+
+      var OtherNode: IXMLNode := nil;
+      for var i := 0 to CompilerOptionsNode.ChildNodes.Count - 1 do
+        if CompilerOptionsNode.ChildNodes[i].LocalName = 'Other' then
+        begin
+          OtherNode := CompilerOptionsNode.ChildNodes[i];
+          break;
+        end;
+      if OtherNode = nil then
+        OtherNode := CompilerOptionsNode.AddChild('Other');
+
+      var CustomOptionsNode: IXMLNode := nil;
+      for var i := 0 to OtherNode.ChildNodes.Count - 1 do
+        if OtherNode.ChildNodes[i].LocalName = 'CustomOptions' then
+        begin
+          CustomOptionsNode := OtherNode.ChildNodes[i];
+          break;
+        end;
+      if CustomOptionsNode = nil then
+        CustomOptionsNode := OtherNode.AddChild('CustomOptions');
+
+      var ExistingValue: string := VarToStr(CustomOptionsNode.Attributes['Value']);
+      if ExistingValue <> '' then
+        CustomOptionsNode.Attributes['Value'] := ExistingValue + ' -Ur'
+      else
+        CustomOptionsNode.Attributes['Value'] := '-Ur';
     end;
   end;
 
@@ -218,7 +296,7 @@ begin
   begin
     var PackageFileName := BuildInfo.Package.PackageFileName;
 
-    if SameText(TPath.GetExtension(PackageFileName), '.lpkk') then
+    if SameText(TPath.GetExtension(PackageFileName), '.lpk') then
     begin
       var BackupFileName := GetBackupFileName(PackageFileName);
 
