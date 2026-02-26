@@ -87,10 +87,19 @@ procedure DoPatchLpk(const SourceFile, DestFile: string; const ManagedPackages: 
 var
   XML: IXMLDocument;
 begin
-  XML := TXMLDocument.Create(SourceFile);
-  XML.Options := XML.Options + [doNodeAutoIndent];
+  //Lazarus has 2 formats for the packages. It changed in 2.2, see https://wiki.freepascal.org/fixlp
+  //In the old format, you would have a Count parameter, and then <item1>, <item2>... <itemCount>
+  //If the count was wrong, or the name of the items was wrong, it would fail. For example this wouldn't work:
+  //<RequiredPkgs Count=1><Item2>...</Item2></RequiredPkgs>
+  //The new format is simpler, and it just has <Item> entries and no count. This method will create a file of the newer format.
+  //If the file was in the old format, it will be converted.
+  XML := TXMLDocument.Create(nil);
+  //If we set autoindent, then AddChild will add more than one node (adds formatting nodes in the middle)
+  //This can cause trouble in loops when adding children.
+  XML.LoadFromFile(SourceFile);
 
   var ConfigNode := XML.DocumentElement;
+
   if ConfigNode <> nil then
   begin
     var PackageNode: IXMLNode := nil;
@@ -112,20 +121,14 @@ begin
         end;
 
       if RequiredPkgsNode = nil then
-      begin
         RequiredPkgsNode := PackageNode.AddChild('RequiredPkgs');
-        RequiredPkgsNode.Attributes['Count'] := '0';
-      end;
 
       var ExistingNames := THashSet<string>.Create(TIStringComparer.Ordinal);
-      try
-      var ItemNodes := THashSet<string>.Create(TIStringComparer.Ordinal);
       try
         // Patch existing items
         for var i := 0 to RequiredPkgsNode.ChildNodes.Count - 1 do
         begin
           var ItemNode := RequiredPkgsNode.ChildNodes[i];
-          ItemNodes.Add(ItemNode.NodeName);
 
           var PkgNameNode: IXMLNode := nil;
           for var j := 0 to ItemNode.ChildNodes.Count - 1 do
@@ -159,22 +162,13 @@ begin
         end;
 
         // Add managed packages not already in RequiredPkgs
-        var ItemCount := RequiredPkgsNode.ChildNodes.Count;
-        var ItemIndex := ItemCount;
         for var ManagedPkg in ManagedPackages do
         begin
           if ExistingNames.Contains(ManagedPkg.Key) then continue;
 
-          Inc(ItemCount);
-          var NewNodeName := '';
-          repeat
-            Inc(ItemIndex);
-            NewNodeName := 'Item' + IntToStr(ItemIndex);
-          until not ItemNodes.Contains(NewNodeName);
-
           Logger.Trace('Adding dependency ' + ManagedPkg.Key + ' -> ' + ManagedPkg.Value);
 
-          var NewItem := RequiredPkgsNode.AddChild(NewNodeName);
+          var NewItem := RequiredPkgsNode.AddChild('Item');
           var PkgNameNode := NewItem.AddChild('PackageName');
           PkgNameNode.Attributes['Value'] := ManagedPkg.Key;
           var DefaultFileNode := NewItem.AddChild('DefaultFilename');
@@ -182,10 +176,18 @@ begin
           DefaultFileNode.Attributes['Prefer'] := 'True';
         end;
 
-        RequiredPkgsNode.Attributes['Count'] := IntToStr(ItemCount);
-      finally
-        ItemNodes.Free;
-      end;
+        // Normalize to new Lazarus format: rename ItemN nodes to Item, remove Count
+        for var j := 0 to RequiredPkgsNode.ChildNodes.Count - 1 do
+        begin
+          var Node := RequiredPkgsNode.ChildNodes[j];
+          if (Node.LocalName <> 'Item') and (Node.LocalName <> '') then
+          begin
+            RequiredPkgsNode.ChildNodes.Delete(j);
+            var NewNode := RequiredPkgsNode.AddChild('Item', j);
+            for var n := 0 to Node.ChildNodes.Count - 1 do NewNode.ChildNodes.Add(Node.ChildNodes[n]);
+          end
+        end;
+        RequiredPkgsNode.Attributes['Count'] := Null;
       finally
         ExistingNames.Free;
       end;

@@ -17,19 +17,19 @@
         </ConfigFile>
       </Other>
     </CompilerOptions>
-    <Files>
-      <Item>
+    <Files Count="1">
+      <Item1>
         <Filename Value="../../source/l_c_unit.pas"/>
         <UnitName Value="L_C_Unit"/>
-      </Item>
+      </Item1>
     </Files>
-    <RequiredPkgs>
-      <Item>
+    <RequiredPkgs Count="2">
+      <Item1>
         <PackageName Value="L_B"/>
-      </Item>
-      <Item>
+      </Item1>
+      <Item2>
         <PackageName Value="FCL"/>
-      </Item>
+      </Item2>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
