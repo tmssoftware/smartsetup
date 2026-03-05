@@ -18,6 +18,8 @@ uses
 {$ENDIF}
   Deget.CoreTypes, BBYaml.Writer, XMLDoc, XMLIntf;
 
+{$IFDEF MSWINDOWS}
+
 type
   TPackageData = class
   public
@@ -816,5 +818,11 @@ begin
   Data.Free;
   inherited;
 end;
+{$ELSE}
+procedure RegisterSpecCommand;
+begin
+
+end;
+{$ENDIF}
 
 end.
