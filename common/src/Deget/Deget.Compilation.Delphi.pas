@@ -82,7 +82,7 @@ type
       const Settings: TBdsCompilationSettings);
     function GetEnvVariablesForCE(const Settings: TBdsCompilationSettings): TArray<string>;
   public
-    function BuildBdsParameters(IDEName: TIDEName; Settings: TBdsCompilationSettings; const ErrFile: string): string;
+    function BuildBdsParameters(IDEName: TIDEName; Settings: TBdsCompilationSettings; const ErrFile: string; const RegEntry: string): string;
     procedure DoCompile(const ProjectFile: string; IDEName: TIDEName; Settings: TBdsCompilationSettings);
     property TempFolder: string read FTempFolder write FTempFolder;
   public
@@ -149,6 +149,7 @@ implementation
 
 uses
   SyncObjs,
+  Windows,
   System.SysUtils, System.IOUtils,
   System.StrUtils, Generics.Collections,
   Deget.FileUtils,
@@ -162,6 +163,7 @@ uses
   Deget.Filer.CBprojFile,
   System.Masks,
   UOSFileLinks,
+  Deget.Registry,
   UMultiLogger;
 
 { TDelphiCompilationSettings }
@@ -1005,9 +1007,11 @@ end;
 end;
 
 function TBdsCompiler.BuildBdsParameters(IDEName: TIDEName;
-  Settings: TBdsCompilationSettings; const ErrFile: string): string;
+  Settings: TBdsCompilationSettings; const ErrFile: string; const RegEntry: string): string;
 begin
   Result := ' -b -ns -o"' + ErrFile + '" ';
+  if RegEntry <> '' then Result := ' "-r' + RegEntry + '" ' + Result;
+
 end;
 
 class constructor TBdsCompiler.Create;
@@ -1123,6 +1127,8 @@ end;
 
 procedure TBdsCompiler.DoCompile(const ProjectFile: string; IDEName: TIDEName;
   Settings: TBdsCompilationSettings);
+const
+  RegEntryRoot = '$tmssmartsetup-tmp';
 begin
   var HasErrors := false;
   var BdsBuild := Settings.TargetPlatform.IDEInfo.BdsFile;
@@ -1135,9 +1141,18 @@ begin
       ModifyConfig(IDEName, ProjectFile, Settings); //This will modify the file in Parallel folder, so it doesn't matter.
       var DummyOutput := '';
       var Env := GetEnvVariablesForCE(Settings);
-      if not ExecuteCommand(
-         BdsBuild + ' ' + BuildBdsParameters(IDEName, Settings, ErrFile) + ' "' + ProjectFile + '"',
-         '', DummyOutput, Env) then HasErrors :=true;
+      var RegEntry := RegEntryRoot + '\' + GuidToStringN(TGUID.NewGuid);
+      try
+        if not ExecuteCommand(
+           BdsBuild + ' ' + BuildBdsParameters(IDEName, Settings, ErrFile, RegEntry) + ' "' + ProjectFile + '"',
+           '', DummyOutput, Env) then HasErrors :=true;
+      finally
+        var RootReg := TPath.GetDirectoryName(TPath.GetDirectoryName(Settings.TargetPlatform.IDEInfo.BaseKey));
+        //Technically, we could just delete RegEntry, not RegEntryRoot.
+        //It might even be needed if we wanted to do parallel bds compiling.
+        //But deleting the full branch ensures we never have leftover from failed compilations
+        RegDeleteKey(HKEY_CURRENT_USER, PChar(RootReg + '\' + RegEntryRoot));
+      end;
 
       var Messages: string;
       if not TFile.Exists(ErrFile) then
@@ -1155,7 +1170,7 @@ begin
       TMonitor.Exit(BDSLock);
     end;
   finally
-    DeleteFile(ErrFile); //no real need to move to locked.
+    System.SysUtils.DeleteFile(ErrFile); //no real need to move to locked.
   end;
 end;
 
