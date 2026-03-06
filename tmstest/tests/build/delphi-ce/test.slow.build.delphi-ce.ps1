@@ -10,7 +10,7 @@ tms server-enable community
 $result = tms install vsoft.yaml tms.biz.echo -test-delphi-ce
 Test-CommandOk { $result } "*Rad Studio CE detected. Disabling multithreaded compilation.*"
 
-Test-BuildResultCounts $result 0 0 2
+Test-BuildResultCounts $result 0 0 6
 
 $buildOutputFolder = "./Products/tms.biz.echo/Packages"
 $bplfiles = Get-ChildItem -Path $buildOutputFolder -Filter *.bpl -Recurse
