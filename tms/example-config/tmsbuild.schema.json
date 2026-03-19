@@ -56,7 +56,8 @@
               "android64",
               "linux64",
               "iossimulator64arm",
-              "win64xintel"
+              "win64xintel",
+              "winarm64ec"
             ],
             "uniqueItems": true
           },
@@ -75,7 +76,8 @@
               "android64": { "type": "boolean" },
               "linux64": { "type": "boolean" },
               "iossimulator64arm": { "type": "boolean" },
-              "win64xintel": { "type": "boolean" }
+              "win64xintel": { "type": "boolean" },
+              "winarm64ec": { "type": "boolean" }
             },
             "uniqueItems": true
           }

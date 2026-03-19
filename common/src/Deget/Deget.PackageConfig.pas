@@ -492,7 +492,7 @@ begin
   case PlatformInfo.PlatType of
     Win32Intel: Result := Format('%s.lib', [PackageName]);
     Win64xIntel: Result := Format('%s.lib', [PackageName]);
-    Win64Intel, macOS32Intel, macOS64Intel: Result := Format('%s.a', [PackageName]);
+    Win64Intel, macOS32Intel, macOS64Intel, winarm64ec: Result := Format('%s.a', [PackageName]);
     iOSDevice32, Android32, iOSDevice64, Linux64, Android64:
       if PlatformInfo.IDEInfo.IDEName >= delphixe6 then
         Result := Format('lib%s.a', [PackageName])

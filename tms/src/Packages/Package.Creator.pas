@@ -241,6 +241,7 @@ begin
   if varName = 'plat-win32' then exit(HasPlatform(TPlatform.win32intel, PackagePlatforms));
   if varName = 'plat-win64' then exit(HasPlatform(TPlatform.win64intel, PackagePlatforms));
   if varName = 'plat-win64x' then exit(HasPlatform(TPlatform.win64Xintel, PackagePlatforms));
+  if varName = 'plat-winarm64ec' then exit(HasPlatform(TPlatform.winarm64ec, PackagePlatforms));
 
   //verinfo
   if varName = 'verinfo-package' then exit('com.' + GetFirstId(Project.Application.Id) + '.$(MSBuildProjectName)');
@@ -274,6 +275,7 @@ begin
   if varName = 'dcc-namespace-win32' then exit('Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)');
   if varName = 'dcc-namespace-win64' then exit('Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)');
   if varName = 'dcc-namespace-win64x' then exit('Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)');
+  if varName = 'dcc-namespace-winarm64ec' then exit('Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)');
 
   raise Exception.Create('Unknown variable: ' + varName);
 

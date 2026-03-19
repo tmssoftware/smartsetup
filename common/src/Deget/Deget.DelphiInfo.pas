@@ -688,7 +688,8 @@ begin
       Result := Format('%s%s.bpl', [BaseName, Suffix]);
     end;
     Win64Intel,
-    Win64XIntel:
+    Win64XIntel,
+    WinArm64EC:
     begin
       if IsExe then exit(Format('%s.exe', [BaseName]));
       Result := Format('%s%s.bpl', [BaseName, Suffix]);
@@ -770,7 +771,7 @@ end;
 
 function TDelphiIDEPlatformInfo.GeneratesPackage: boolean;
 begin
-  Result := PlatType in [Win32Intel, Win64Intel, Win64XIntel, macOS32Intel, macOS64Intel, Linux64];
+  Result := PlatType in [Win32Intel, Win64Intel, Win64XIntel, WinArm64EC, macOS32Intel, macOS64Intel, Linux64];
 end;
 
 function TDelphiIDEPlatformInfo.GetIDEName: TIDEName;
@@ -805,7 +806,7 @@ function TDelphiIDEPlatformInfo.IDEPathsRegistryKey(PathType: TDelphiPathType): 
 const
   _PlatformRegSubKey: array[TPlatform] of string =
     ('Win32', 'Win64', 'OSX32', 'OSX64', 'OSXARM64', 'iOSSimulator', 'iOSDevice32', 'iOSDevice64',
-     'Android32', 'Android64', 'Linux64', 'iOSSimARM64', 'Win64x');
+     'Android32', 'Android64', 'Linux64', 'iOSSimARM64', 'Win64x', 'WinARM64EC');
 
   function PlatSubKey: string;
   begin
@@ -1011,7 +1012,8 @@ begin
       macOS64Intel: Result := False; //Result := Version > dRio;
       macOS64Arm: Result := False; //Result := Version > dRio;
       iossimulator64arm: Result := False;
-      Win64xIntel: Result := IDEName >= delphi12
+      Win64xIntel: Result := IDEName >= delphi12;
+      winarm64ec: Result := False;
     end;
   end;
 end;

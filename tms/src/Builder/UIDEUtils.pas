@@ -245,6 +245,7 @@ begin
     TPlatform.win32intel: exit(true);
     TPlatform.win64intel: exit(true);
     TPlatform.win64Xintel: exit(true);
+    TPlatform.winarm64ec: exit(true);
     TPlatform.macos32intel: exit(true);
 
     TPlatform.macos64intel: exit(HasOSX64(ProductId, Config, dv));
@@ -291,6 +292,7 @@ const
                                                     '',
                                                     'linux64debugide',
                                                     '',
+                                                    '',
                                                     '');
 
     PlatPackageXE8ToTokyo: array[TPlatform] of string = (
@@ -306,7 +308,8 @@ const
                                                     'android64debugide',
                                                     'linux64debugide',
                                                     'macosxarm64debugide', // simulator arm 64
-                                                    'win64debugide' //Delphi 12 came with win64Xdebugide. But it was removed in 12.1 since the debugger now is the same as Win64
+                                                    'win64debugide', //Delphi 12 came with win64Xdebugide. But it was removed in 12.1 since the debugger now is the same as Win64
+                                                    ''
     );
 
     PlatPackagesRioOrNewer: array[TPlatform] of TArray<string> = (
@@ -322,7 +325,8 @@ const
                                                     ['android64debugide'],
                                                     ['linux64debugide'],
                                                     ['macosxarm64debugide', 'delphiios'], // simulator arm 64
-                                                    ['win64debugide'] //Delphi 12 came with win64Xdebugide. But it was removed in 12.1 since the debugger now is the same as Win64
+                                                    ['win64debugide'], //Delphi 12 came with win64Xdebugide. But it was removed in 12.1 since the debugger now is the same as Win64
+                                                    ['64*winarm64debugide']
     );
 
     Compilers: Array[TPlatform] of string = (
@@ -338,8 +342,8 @@ const
                                                     'dccaarm64.exe',
                                                     'dcclinux64.exe',
                                                     'dcciossimarm64.exe',
-                                                    '../bin64/bcc64x.exe' //there is no dcc64x.exe (even if we have bcc64x.exe, but in bin64, and only in d12.1 as in d12.0 it is in bin. and d12.0 doesn't support win64x)
-
+                                                    '../bin64/bcc64x.exe', //there is no dcc64x.exe (even if we have bcc64x.exe, but in bin64, and only in d12.1 as in d12.0 it is in bin. and d12.0 doesn't support win64x)
+                                                    '../bin64/dccarm64ec.exe'
     );
 
 function IsPlatformInstalled(const ProductId: string; const Config: TConfigDefinition; const dv: TIDEName; const dp: TPlatform; out ErrorMessage: string): boolean;
@@ -362,7 +366,9 @@ begin
   begin
     for var PlatPackage in PlatPackages do
     begin
-      Result := IsPlatAvailable(DelphiRegs(dv, Config) + '\Known IDE Packages', '$(BDS)\Bin\' + PlatPackage + TDelphiInstaller(Installer).DllSuffix + '.bpl');
+      if PlatPackage.StartsWith('64*')
+        then Result := IsPlatAvailable(DelphiRegs(dv, Config) + '\Known IDE Packages x64', '$(BDS)\Bin64\' + PlatPackage.Substring(3) + TDelphiInstaller(Installer).DllSuffix + '.bpl')
+        else Result := IsPlatAvailable(DelphiRegs(dv, Config) + '\Known IDE Packages', '$(BDS)\Bin\' + PlatPackage + TDelphiInstaller(Installer).DllSuffix + '.bpl');
       if not Result then
       begin
         ErrorMessage := PlatPackage + ' is not registered in Known IDE Packages.';

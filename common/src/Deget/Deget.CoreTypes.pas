@@ -92,7 +92,8 @@ type
         android64,
         linux64,
         iossimulator64arm,
-        win64Xintel
+        win64Xintel,
+        winarm64ec
   );
 
   TPlatformSet = Set of TPlatform;
@@ -113,7 +114,8 @@ const
         'android64',
         'linux64',
         'iossimulator64arm',
-        'win64xintel'
+        'win64xintel',
+        'winarm64ec'
     );
 
 type
@@ -152,7 +154,7 @@ function PlatformMacroString(const IDEName: TIDEName; const PlatType: TPlatform)
 const
     PlatformMacroValueStr: array[TPlatform] of string =
     ('Win32', 'Win64', 'OSX32', 'OSX64', 'OSXARM64', 'iOSSimulator', 'iOSDevice32', 'iOSDevice64',
-     'Android', 'Android64', 'Linux64', 'iOSSimARM64', 'Win64x');
+     'Android', 'Android64', 'Linux64', 'iOSSimARM64', 'Win64x', 'WinARM64EC');
 begin
   Result := PlatformMacroValueStr[PlatType];
   if (PlatType = TPlatform.iOSDevice32) and (IDEName <= delphixe7) then

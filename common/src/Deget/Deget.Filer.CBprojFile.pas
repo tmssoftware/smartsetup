@@ -105,7 +105,7 @@ begin
 
       end
       else
-      if Info.IsWin32 or Info.IsWin64 or Info.IsWin64x then
+      if Info.IsWin32 or Info.IsWin64 or Info.IsWin64x or Info.IsWinARM64EC then
       begin
         Node := Info.Node.ChildNodes.FindNode('DCC_Namespace');
         if Node <> nil then
@@ -114,7 +114,9 @@ begin
           else  if Info.IsWin64 then
             Data.Win64Namespaces := Node.NodeValue
           else  if Info.IsWin64x then
-            Data.Win64xNamespaces := Node.NodeValue;
+            Data.Win64xNamespaces := Node.NodeValue
+          else  if Info.IsWinARM64EC then
+            Data.FWinARM64ECNamespaces := Node.NodeValue;
       end;
 
       //This could be set in debug or release only. We will require a single setting for all the project.

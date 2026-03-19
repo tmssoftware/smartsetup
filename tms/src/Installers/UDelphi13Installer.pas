@@ -40,7 +40,7 @@ end;
 function TDelphi13Installer.SupportsCppBuilder(
   const platform: TPlatform): boolean;
 begin
-  Result := platform in [TPlatform.win32intel, TPlatform.win64intel, TPlatform.android32, TPlatform.iosdevice64, win64Xintel];
+  Result := platform in [TPlatform.win32intel, TPlatform.win64intel, TPlatform.android32, TPlatform.iosdevice64, win64Xintel, winarm64ec];
 end;
 
 end.

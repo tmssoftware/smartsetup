@@ -120,7 +120,7 @@ const
       [win32intel, win64intel, iOSSimulator, android32, iOSDevice64, Linux64, macos64intel, Android64],  // sydney
       [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm],  // d11
       [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm, iossimulator64arm, win64Xintel],  // d12
-      [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm, iossimulator64arm, win64Xintel]  // d13
+      [win32intel, win64intel, android32, iOSDevice64, Linux64, macos64intel, Android64, macos64arm, iossimulator64arm, win64Xintel, winarm64ec]  // d13
     );
 
 function TrySuffixToIDEName(const Suffix: string; var IDEName: TIDEName): Boolean;

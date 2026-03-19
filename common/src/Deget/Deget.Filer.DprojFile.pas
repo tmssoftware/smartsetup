@@ -51,6 +51,7 @@ type
     FWin32Namespaces: string;
     FWin64Namespaces: string;
     FWin64xNamespaces: string;
+    FWinARM64ECNamespaces: string;
     FProjectGuid: TGuid;
     FPackageName: string;
     FTargetedPlatforms: string;
@@ -80,6 +81,7 @@ type
     property Win32Namespaces: string read FWin32Namespaces write FWin32Namespaces;
     property Win64Namespaces: string read FWin64Namespaces write FWin64Namespaces;
     property Win64xNamespaces: string read FWin64xNamespaces write FWin64xNamespaces;
+    property WinARM64ECNamespaces: string read FWinARM64ECNamespaces write FWinARM64ECNamespaces;
     property CBuilderOutputMode: TCBuilderOutputMode read FCBuilderOutputMode write FCBuilderOutputMode;
     property ProjectVersion: string read FProjectVersion write FProjectVersion;
 //    property ProjectImports: TList<TProjectImport> read FProjectImports;
@@ -148,6 +150,7 @@ type
     IsWin32: boolean;
     IsWin64: boolean;
     IsWin64x: boolean;
+    IsWinARM64EC: boolean;
     Is2007Debug: boolean; // quick and dirty
   end;
 
@@ -156,6 +159,7 @@ type
     BaseConfigCondition = '''$(Base)''!=''''';
     BaseWin64ConfigCondition = '''$(Base_Win64)''!=''''';
     BaseWin64xConfigCondition = '''$(Base_Win64x)''!=''''';
+    BaseWinARM64ECConfigCondition = '''$(Base_WinARM64EC)''!=''''';
     BaseWin32ConfigCondition = '''$(Base_Win32)''!=''''';
   const
     D2007DebugConfigCondition = ' ''$(Configuration)|$(Platform)'' == ''Debug|AnyCPU'' ';
@@ -218,6 +222,7 @@ type
     procedure UpdateWin32UnitScopeNames(const Value: string);
     procedure UpdateWin64UnitScopeNames(const Value: string);
     procedure UpdateWin64xUnitScopeNames(const Value: string);
+    procedure UpdateWinARM64ECUnitScopeNames(const Value: string);
 
     procedure UpdateExeOutput(const Value: string);
     procedure UpdateDcuOutput(const Value: string);
@@ -330,7 +335,7 @@ const
   XmlBoolStr: array[boolean] of string = ('false', 'true');
   PlatformMap: array[TPlatform] of Integer = (pidWin32, pidWin64, pidOSX32, pidOSX64, pidOSXArm64,
     pidiOSSimulator32, pidiOSDevice32, pidiOSDevice64, pidAndroidArm32, pidAndroidArm64, pidLinux64,
-    pidiOSSimulatorArm64, pidWin64x);
+    pidiOSSimulatorArm64, pidWin64x, pidWinArm64EC);
 
 function IntegerToPlatforms(Value: Integer): TPlatformSet;
 begin
@@ -508,6 +513,7 @@ begin
         Info.IsWin32 := Info.Condition = BaseWin32ConfigCondition;
         Info.IsWin64 := (Info.Condition = BaseWin64ConfigCondition);
         Info.IsWin64x := (Info.Condition = BaseWin64xConfigCondition);
+        Info.IsWinARM64EC := (Info.Condition = BaseWinARM64ECConfigCondition);
         if Func(Info) then Exit;
       finally
         Info.Free;
@@ -691,6 +697,23 @@ begin
     begin
       Result := False;
       if Info.IsWin64x then
+      begin
+        UpdateNamespacesNode(Info.Node, Value);
+        Result := True;
+      end;
+    end
+  );
+end;
+
+procedure TDprojWriter.UpdateWinARM64ECUnitScopeNames(const Value: string);
+begin
+  if (IDEName < TIDEName.delphi13) then
+    exit;
+
+  IteratePropertyGroups(function(Info: TPropGroupInfo): Boolean
+    begin
+      Result := False;
+      if Info.IsWinARM64EC then
       begin
         UpdateNamespacesNode(Info.Node, Value);
         Result := True;
@@ -1516,7 +1539,7 @@ begin
           Data.DllSuffix := Node.NodeValue;
       end
       else
-      if Info.IsWin32 or Info.IsWin64 or Info.IsWin64x then
+      if Info.IsWin32 or Info.IsWin64 or Info.IsWin64x or Info.IsWinARM64EC then
       begin
         Node := Info.Node.ChildNodes.FindNode('DCC_Namespace');
         if Node <> nil then
@@ -1525,7 +1548,9 @@ begin
           else  if Info.IsWin64 then
             Data.Win64Namespaces := Node.NodeValue
           else  if Info.IsWin64x then
-            Data.Win64xNamespaces := Node.NodeValue;
+            Data.Win64xNamespaces := Node.NodeValue
+          else  if Info.IsWinARM64EC then
+            Data.FWinARM64ECNamespaces := Node.NodeValue;
       end;
 
 

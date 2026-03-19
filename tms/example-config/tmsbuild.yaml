@@ -26,7 +26,7 @@ application:
 #   lazarus
 
 # platforms you can write below:
-#  win32intel/win64intel/win64xintel/macos32intel/macos64intel/macos64arm/iossimulator/iosdevice32/iosdevice64/android32/android64/linux64
+#  win32intel/win64intel/win64xintel/winarm64ec/macos32intel/macos64intel/macos64arm/iossimulator/iosdevice32/iosdevice64/android32/android64/linux64
 
 # Frameworks are just a group of supported IDEs and platforms. You can define as much as you want
 # with any name you desire, and then combine them to specify what platforms and IDEs the packages support.
