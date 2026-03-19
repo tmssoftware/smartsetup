@@ -3,6 +3,7 @@ unit Util.Credentials;
 // To change/add the credentials, go to Control Panel\All Control Panel Items\Credential Manager
 // Add them with 'Add generic credential'
 interface
+uses SysUtils, Classes;
 {$IFDEF MSWINDOWS}
 type
   TWindowsCredential = record
@@ -14,15 +15,17 @@ type
     constructor Create(const aName, aUser, aPassword: string);
   end;
 
-function CredReadGenericCredentials(const Target: UnicodeString; out Username, Password: UnicodeString; const ThrowExceptions: boolean = true): string;
-procedure CredWriteGenericCredentials(const Target: UnicodeString; Username, Password: UnicodeString);
+function CredReadGenericCredentials(const Target: UnicodeString; out Username, Password: UnicodeString; const ThrowExceptions: boolean = true): string; overload;
+function CredReadGenericCredentials(const Target: UnicodeString; out Username: UnicodeString; out Password: TBytes; const ThrowExceptions: boolean = true): string; overload;
+procedure CredWriteGenericCredentials(const Target: UnicodeString; Username, Password: UnicodeString); overload;
+procedure CredWriteGenericCredentials(const Target: UnicodeString; Username: UnicodeString; Password: TBytes); overload;
 function CredDeleteGenericCredential(const Target: UnicodeString; const ThrowExceptions: boolean = true): string;
 function EnumerateGenericCredentials(const Filter: string): TArray<TWindowsCredential>;
 
 {$ENDIF}
 implementation
 {$IFDEF MSWINDOWS}
-uses SysUtils, Classes, Windows, Winapi.WinCred;
+uses Windows, Winapi.WinCred;
 
 function CredReadGenericCredentials(const Target: UnicodeString; out Username, Password: UnicodeString; const ThrowExceptions: boolean = true): string;
 var
@@ -51,6 +54,35 @@ begin
   end;
 end;
 
+function CredReadGenericCredentials(const Target: UnicodeString; out Username: UnicodeString; out Password: TBytes; const ThrowExceptions: boolean = true): string;
+var
+    Credential: PCREDENTIALW;
+    le: DWORD;
+begin
+  Result := '';
+  Credential := nil;
+  if not CredReadW(PWideChar(WideString(Target)), CRED_TYPE_GENERIC, 0, {var}Credential) then
+  begin
+    le := GetLastError;
+    Result := 'Could not get "'+ Target + '" generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le);
+    if ThrowExceptions then raise Exception.Create(Result) else
+    begin
+      UserName := '';
+      Password := nil;
+      exit;
+    end;
+  end;
+
+  try
+    Username := Credential.UserName;
+    SetLength(Password, Credential.CredentialBlobSize);
+    if Credential.CredentialBlobSize > 0 then
+      Move(Credential.CredentialBlob^, Password[0], Credential.CredentialBlobSize);
+  finally
+    CredFree(Credential);
+  end;
+end;
+
 procedure CredWriteGenericCredentials(const Target: UnicodeString; Username, Password: UnicodeString);
 var
   Credential: CREDENTIALW;
@@ -65,6 +97,25 @@ begin
   PassBytes := TEncoding.Unicode.GetBytes(Password);  //No trailing #0
   Credential.CredentialBlobSize := Length(PassBytes);
   if Length(PassBytes) > 0 then Credential.CredentialBlob := @(PassBytes[0]);
+  if not CredWriteW(@Credential, 0) then
+  begin
+    le := GetLastError;
+    raise Exception.Create('Could not write "'+ Target + '" in generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le));
+  end;
+end;
+
+procedure CredWriteGenericCredentials(const Target: UnicodeString; Username: UnicodeString; Password: TBytes);
+var
+  Credential: CREDENTIALW;
+  le: DWORD;
+begin
+  ZeroMemory(@Credential, SizeOf(Credential));
+  Credential.&Type := CRED_TYPE_GENERIC;
+  Credential.TargetName := PChar(Target);
+  Credential.UserName := PChar(UserName);
+  Credential.Persist := CRED_PERSIST_LOCAL_MACHINE;
+  Credential.CredentialBlobSize := Length(Password);
+  if Length(Password) > 0 then Credential.CredentialBlob := @(Password[0]);
   if not CredWriteW(@Credential, 0) then
   begin
     le := GetLastError;

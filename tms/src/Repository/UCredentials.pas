@@ -55,7 +55,62 @@ function CreateCredentialsManager(const CredentialsFile: string; Options: TFetch
 implementation
 
 uses
-  System.NetEncoding, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals;
+  System.Classes, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals, ZSTD;
+
+const
+  ZstdPrefix = 'zstd:';
+
+function CompressToken(const Token: string): TBytes;
+begin
+  Result := nil;
+  if Token = '' then Exit(nil);
+  var TokenBytes := TEncoding.UTF8.GetBytes(Token);
+  var Source := TBytesStream.Create(TokenBytes);
+  try
+    var Dest := TBytesStream.Create;
+    try
+      ZSTDCompressStream(Source, Dest, 8);
+      var ZstdBytes := TEncoding.UTF8.GetBytes(ZstdPrefix);
+      SetLength(Result, Length(ZstdBytes) + Dest.Size);
+      System.Move(ZstdBytes[0], Result[0], Length(ZstdBytes));
+      if Dest.Size > 0 then System.Move(Dest.Bytes[0], Result[Length(ZstdBytes)], Dest.Size);
+
+    finally
+      Dest.Free;
+    end;
+  finally
+    Source.Free;
+  end;
+end;
+
+function TokenIsZstd(const Token: TBytes): boolean;
+begin
+  var Prefix := TEncoding.UTF8.GetBytes(ZstdPrefix);
+  if Length(Token) < Length(Prefix) then Exit(False);
+  for var i := 0 to Length(Prefix) - 1 do
+    if Token[i] <> Prefix[i] then Exit(False);
+  Result := True;
+end;
+
+function DecompressToken(const Token: TBytes): string;
+begin
+  if Token = nil then Exit('');
+  if not TokenIsZstd(Token) then exit(TEncoding.Unicode.GetString(Token));
+
+  var Source := TBytesStream.Create(Token);
+  try
+    var Dest := TBytesStream.Create;
+    try
+      Source.Position := Length(TEncoding.UTF8.GetBytes(ZstdPrefix));
+      ZSTDDecompressStream(Source, Dest);
+      Result := TEncoding.UTF8.GetString(Dest.Bytes, 0, Dest.Size);
+    finally
+      Dest.Free;
+    end;
+  finally
+    Source.Free;
+  end;
+end;
 
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 begin
@@ -147,18 +202,21 @@ begin
   Credentials.Email := Email;
   Credentials.Code := Code;
 
-  var Expiration, AccessToken: string;
+  var Expiration: string;
+  var AccessToken: TBytes;
   var Error2 := CredReadGenericCredentials(TokensCredName(Profile), Expiration, AccessToken, false);
   if Error2 <> '' then
   begin
     Logger.Trace(Error2);
   end;
 
+  Credentials.Expiration := 0;
+  var ExpirationDate: TDateTime := Now;
   if Expiration <> ''
-    then Credentials.Expiration := ISO8601ToDate(Expiration, False)
-    else Credentials.Expiration := 0;
+    then if TryISO8601ToDate(Expiration, ExpirationDate, False)
+      then  Credentials.Expiration := ExpirationDate;
 
-  Credentials.AccessToken := AccessToken;
+  Credentials.AccessToken := DecompressToken(AccessToken);
   if Credentials.Email <> '' then
   begin
     if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
@@ -224,7 +282,7 @@ begin
   if YearOf(Credentials.Expiration) > 1900 then
       Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
 
-  CredWriteGenericCredentials(TokensCredName(Profile), Expiration, Credentials.AccessToken);
+  CredWriteGenericCredentials(TokensCredName(Profile), Expiration, CompressToken(Credentials.AccessToken));
 {$ELSE}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
