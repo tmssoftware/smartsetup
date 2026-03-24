@@ -332,6 +332,10 @@ uses
   System.IOUtils, Xml.XMLDoc, System.Variants, Deget.DelphiInfo, Deget.IDETypes, UTmsBuildSystemUtils;
 
 const
+{$IF CompilerVersion <= 37.0} //We will check for CompilerVersion = 37, which includes 3.1 which doesn't need it. But it doesn't matter, it will work anyway.
+  pidWinArm64EC     = $00200000; //Not needed in 13.1 or newer.
+{$ENDIF}
+
   XmlBoolStr: array[boolean] of string = ('false', 'true');
   PlatformMap: array[TPlatform] of Integer = (pidWin32, pidWin64, pidOSX32, pidOSX64, pidOSXArm64,
     pidiOSSimulator32, pidiOSDevice32, pidiOSDevice64, pidAndroidArm32, pidAndroidArm64, pidLinux64,
