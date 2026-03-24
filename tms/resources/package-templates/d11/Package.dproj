@@ -1,0 +1,230 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>%guid%</ProjectGuid>
+        <MainSource>%package-name%.dpk</MainSource>
+        <ProjectVersion>20.4</ProjectVersion>
+        <FrameworkType>%framework-type%</FrameworkType>
+        <Base>True</Base>
+        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
+        <TargetedPlatforms>%targeted-platforms%</TargetedPlatforms>
+        <AppType>Package</AppType>
+        <ProjectName Condition="'$(ProjectName)'==''">%package-name%</ProjectName>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Android' and '$(Base)'=='true') or '$(Base_Android)'!=''">
+        <Base_Android>true</Base_Android>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Android64' and '$(Base)'=='true') or '$(Base_Android64)'!=''">
+        <Base_Android64>true</Base_Android64>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='iOSDevice64' and '$(Base)'=='true') or '$(Base_iOSDevice64)'!=''">
+        <Base_iOSDevice64>true</Base_iOSDevice64>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='iOSSimARM64' and '$(Base)'=='true') or '$(Base_iOSSimARM64)'!=''">
+        <Base_iOSSimARM64>true</Base_iOSSimARM64>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
+        <Base_Win32>true</Base_Win32>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
+        <Base_Win64>true</Base_Win64>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win64x' and '$(Base)'=='true') or '$(Base_Win64x)'!=''">
+        <Base_Win64x>true</Base_Win64x>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='WinARM64EC' and '$(Base)'=='true') or '$(Base_WinARM64EC)'!=''">
+        <Base_WinARM64EC>true</Base_WinARM64EC>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_1)'!=''">
+        <Cfg_1>true</Cfg_1>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win32)'!=''">
+        <Cfg_1_Win32>true</Cfg_1_Win32>
+        <CfgParent>Cfg_1</CfgParent>
+        <Cfg_1>true</Cfg_1>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_2)'!=''">
+        <Cfg_2>true</Cfg_2>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base)'!=''">
+        <DCC_ExeOutput>.\%product-version%\$(Platform)\$(Config)</DCC_ExeOutput>
+        <DCC_BplOutput>.\%product-version%\$(Platform)\$(Config)</DCC_BplOutput>
+        <DCC_DcuOutput>.\%product-version%\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_DcpOutput>.\%product-version%\$(Platform)\$(Config)</DCC_DcpOutput>
+        <DCC_HppOutput>.\%product-version%\$(Platform)\$(Config)</DCC_HppOutput>
+        <DCC_BpiOutput>.\%product-version%\$(Platform)\$(Config)</DCC_BpiOutput>
+        <DCC_ObjOutput>.\%product-version%\$(Platform)\$(Config)</DCC_ObjOutput>
+        <BRCC_OutputDir>.\%product-version%\$(Platform)\$(Config)</BRCC_OutputDir>
+        <FinalOutputDir>.\%product-version%\$(Platform)\$(Config)</FinalOutputDir>
+        <IntermediateOutputDir>.\%product-version%\$(Platform)\$(Config)</IntermediateOutputDir>
+        <DCC_E>false</DCC_E>
+        <DCC_N>false</DCC_N>
+        <DCC_S>false</DCC_S>
+        <DCC_F>false</DCC_F>
+        <DCC_K>false</DCC_K>
+        <GenDll>true</GenDll>
+        <GenPackage>true</GenPackage>
+        <DCC_Namespace>%dcc-namespace-base%</DCC_Namespace>
+        <DCC_CBuilderOutput>%cpp-output%</DCC_CBuilderOutput>
+        <SanitizedProjectName>%package-name%</SanitizedProjectName>
+        <DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
+        <DCC_Description>%description%</DCC_Description>
+        <DesignOnlyPackage>%design-only%</DesignOnlyPackage>
+        <RuntimeOnlyPackage>%runtime-only%</RuntimeOnlyPackage>
+        <DllSuffix>%lib-suffix-dproj%</DllSuffix>
+        <DCC_UnitSearchPath>%unit-search-path%$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Android)'!=''">
+        <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
+        <EnabledSysJars></EnabledSysJars>
+        <VerInfo_Keys>package=%verinfo-package%;label=$(MSBuildProjectName);versionCode=%verinfo-version-code%;versionName=%verinfo-version-name%;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=;minSdkVersion=23;targetSdkVersion=35</VerInfo_Keys>
+        <BT_BuildType>Debug</BT_BuildType>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Android64)'!=''">
+        <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
+        <EnabledSysJars></EnabledSysJars>
+        <VerInfo_Keys>package=%verinfo-package%;label=$(MSBuildProjectName);versionCode=%verinfo-version-code%;versionName=%verinfo-version-name%;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=;minSdkVersion=23;targetSdkVersion=35</VerInfo_Keys>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_iOSDevice64)'!=''">
+        <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_iOSSimARM64)'!=''">
+        <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win32)'!=''">
+        <DCC_Namespace>%dcc-namespace-win32%</DCC_Namespace>
+        <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
+        <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
+        <VerInfo_Release>%verinfo-release%</VerInfo_Release>
+        <VerInfo_Build>%verinfo-build%</VerInfo_Build>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win64)'!=''">
+        <DCC_Namespace>%dcc-namespace-win64%</DCC_Namespace>
+        <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
+        <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
+        <VerInfo_Release>%verinfo-release%</VerInfo_Release>
+        <VerInfo_Build>%verinfo-build%</VerInfo_Build>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win64x)'!=''">
+        <DCC_Namespace>%dcc-namespace-win64x%</DCC_Namespace>
+        <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
+        <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
+        <VerInfo_Release>%verinfo-release%</VerInfo_Release>
+        <VerInfo_Build>%verinfo-build%</VerInfo_Build>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_WinARM64EC)'!=''">
+        <DCC_Namespace>%dcc-namespace-winarm64ec%</DCC_Namespace>
+        <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
+        <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
+        <VerInfo_Release>%verinfo-release%</VerInfo_Release>
+        <VerInfo_Build>%verinfo-build%</VerInfo_Build>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1)'!=''">
+        <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
+        <DCC_Optimize>false</DCC_Optimize>
+        <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+        <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+        <DCC_RemoteDebug>true</DCC_RemoteDebug>
+        <DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
+        <DCC_RangeChecking>true</DCC_RangeChecking>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+        <DCC_RemoteDebug>false</DCC_RemoteDebug>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_2)'!=''">
+        <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+        <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+        <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+        <DCC_DebugInformation>%debug-information-false%</DCC_DebugInformation>
+        <DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
+        <DCC_RangeChecking>true</DCC_RangeChecking>
+    </PropertyGroup>
+    <ItemGroup>
+        <DelphiCompile Include="$(MainSource)">
+            <MainSource>MainSource</MainSource>
+        </DelphiCompile>
+%dcc-references%
+        <BuildConfiguration Include="Base">
+            <Key>Base</Key>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Debug">
+            <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Release">
+            <Key>Cfg_2</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+        <Borland.ProjectType>Package</Borland.ProjectType>
+        <BorlandProject>
+            <Delphi.Personality>
+                <Source>
+                    <Source Name="MainSource">%package-name%.dpk</Source>
+                </Source>
+            </Delphi.Personality>
+            <Platforms>
+                <Platform value="Android">%plat-android%</Platform>
+                <Platform value="Android64">%plat-android64%</Platform>
+                <Platform value="iOSDevice64">%plat-iosdevice64%</Platform>
+                <Platform value="iOSSimARM64">%plat-iossimarm64%</Platform>
+                <Platform value="Linux64">%plat-linux64%</Platform>
+                <Platform value="OSX64">%plat-osx64%</Platform>
+                <Platform value="OSXARM64">%plat-osxarm64%</Platform>
+                <Platform value="Win32">%plat-win32%</Platform>
+                <Platform value="Win64">%plat-win64%</Platform>
+                <Platform value="Win64x">%plat-win64x%</Platform>
+                <Platform value="WinARM64EC">%plat-winarm64ec%</Platform>
+            </Platforms>
+        </BorlandProject>
+        <ProjectFileVersion>12</ProjectFileVersion>
+    </ProjectExtensions>
+    <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+    <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
+    <Import Project="$(MSBuildProjectName).deployproj" Condition="Exists('$(MSBuildProjectName).deployproj')"/>
+</Project>
