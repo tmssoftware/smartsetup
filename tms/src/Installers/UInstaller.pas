@@ -14,6 +14,8 @@ type
     function PlatformsSupported: TPlatformSet; virtual; abstract;
     function PackageExtension(const PackageType: TPackageType): TArray<string>; virtual; abstract;
     function PlatformsForDesign(const ProductId: string): TPlatformSet; virtual; abstract;
+
+    //https://docwiki.embarcadero.com/PlatformStatus/en/Main_Page
     function SupportsCppBuilder(const platform: TPlatform): boolean; virtual; abstract;
 
     procedure Build(const BuildInfo: TFullBuildInfo; const UninstallInfo: IUninstallInfo); virtual; abstract;
