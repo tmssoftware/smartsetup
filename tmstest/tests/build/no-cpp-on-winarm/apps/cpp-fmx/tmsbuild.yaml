@@ -1,0 +1,20 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: test.app.cpp.fmx
+  name: "Test C++ app fmx"
+
+supported frameworks:
+  rtl:
+    ide since: delphi12
+    platforms: 
+      - all
+    c++ builder support: true
+  
+packages:
+  - mycpp_app_fmx: [rtl, exe]
+
+package options:
+  ignore dproj platforms: true
+
+

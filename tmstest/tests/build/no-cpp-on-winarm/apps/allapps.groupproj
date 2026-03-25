@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{32DAEBA8-F5A2-4FF2-BD3A-7248E46D7638}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="cpp-fmx\mycpp_app_fmx.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="cpp-vcl\my_cpp_app_vcl.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="pas-bpl\packages\d11+\pas_bpl.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="mycpp_app_fmx">
+        <MSBuild Projects="cpp-fmx\mycpp_app_fmx.cbproj"/>
+    </Target>
+    <Target Name="mycpp_app_fmx:Clean">
+        <MSBuild Projects="cpp-fmx\mycpp_app_fmx.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="mycpp_app_fmx:Make">
+        <MSBuild Projects="cpp-fmx\mycpp_app_fmx.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="my_cpp_app_vcl">
+        <MSBuild Projects="cpp-vcl\my_cpp_app_vcl.cbproj"/>
+    </Target>
+    <Target Name="my_cpp_app_vcl:Clean">
+        <MSBuild Projects="cpp-vcl\my_cpp_app_vcl.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="my_cpp_app_vcl:Make">
+        <MSBuild Projects="cpp-vcl\my_cpp_app_vcl.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="pas_bpl">
+        <MSBuild Projects="pas-bpl\packages\d11+\pas_bpl.dproj"/>
+    </Target>
+    <Target Name="pas_bpl:Clean">
+        <MSBuild Projects="pas-bpl\packages\d11+\pas_bpl.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="pas_bpl:Make">
+        <MSBuild Projects="pas-bpl\packages\d11+\pas_bpl.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="mycpp_app_fmx;my_cpp_app_vcl;pas_bpl"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="mycpp_app_fmx:Clean;my_cpp_app_vcl:Clean;pas_bpl:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="mycpp_app_fmx:Make;my_cpp_app_vcl:Make;pas_bpl:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

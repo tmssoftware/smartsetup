@@ -1719,6 +1719,7 @@ begin
   if NodeName = 'RcItem' then exit(true);
   //Cpp
   if NodeName = 'CppCompile' then exit(true);
+  if NodeName = 'PCHCompile' then exit(true);
   if NodeName = 'FormResources' then exit(true);
 
   Result := false;
