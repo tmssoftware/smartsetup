@@ -1,6 +1,9 @@
 unit Deget.Compilation.Delphi;
 
+{$IFDEF MSWINDOWS}
+
 interface
+
 
 uses
   Deget.CoreTypes,
@@ -352,7 +355,6 @@ end;
 
 procedure TMSBuildCompiler.ReadLibPathsFromBCProj(const ProjectFileName: string; const IDEName: TIDEName; out CppProjectIncludePath, CppProjectLinkPath: string; out ClassicCompiler: boolean);
 begin
-{$IFDEF MSWINDOWS}
   // The include paths in the cbproj file must be passed to the command line, or it won't compile.
   // This is because when we specify a custom /p:IncludePath C++ builder ignores the paths in the project
   // and without them we can't compile. If we ever unify the metadata, we could read this just once.
@@ -370,7 +372,6 @@ begin
   finally
     PackData.Free;
   end;
-{$ENDIF}
 end;
 
 function TMSBuildCompiler.AddCPPBuilderParameters(const ProjectFileName: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings; LocalSearchPath: string): string;
@@ -1026,7 +1027,6 @@ end;
 
 procedure TBdsCompiler.ModifyConfig(const IDEName: TIDEName; const ProjectFile: string; const Settings: TBdsCompilationSettings);
 begin
-{$IFDEF MSWINDOWS}
   var LocalTargetConfig := '';
   if Settings.TargetConfig.IsNull then
   begin
@@ -1112,7 +1112,6 @@ begin
   finally
     DProjModifier.Free;
   end;
-{$ENDIF}
 end;
 
 function TBdsCompiler.GetEnvVariablesForCE(const Settings: TBdsCompilationSettings): TArray<string>;
@@ -1201,4 +1200,10 @@ begin
   end;
 
 end;
+
+{$ELSE}
+interface
+implementation
+{$ENDIF}
+
 end.
