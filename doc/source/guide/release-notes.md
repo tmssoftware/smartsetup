@@ -3,65 +3,69 @@ uid: SmartSetup.ReleaseNotes
 ---
 
 # Release Notes
+
 ## Version 3.0
- - **New**: [Versioning](xref:SmartSetup.Versioning) support. You can now install any available version of any product
 
- - **New**: [Snapshots](xref:SmartSetup.Versioning#snapshots). You can get a list of every component and version installed at any point in time, and restore that snapshot
+- **New**: [Versioning](xref:SmartSetup.Versioning) support. You can now install any available version of any product
 
- - **New**: [Pinning](xref:SmartSetup.Versioning#pinning-versions) support. You can now pin a product to a specific version, and it won't update until you unpin it.
+- **New**: [Snapshots](xref:SmartSetup.Versioning#snapshots). You can get a list of every component and version installed at any point in time, and restore that snapshot
+
+- **New**: [Pinning](xref:SmartSetup.Versioning#pinning-versions) support. You can now pin a product to a specific version, and it won't update until you unpin it.
 
 - **New**: Support for unregistering products. Now you can do `tms build -unregister` in folder A, and `tms build` in folder B, and you can work with the components in folder B. IF you want to switch back to using folder A, just unregister B and build A again. The switch is instant, no need to wait for products to build.
 
- - **New**: Support for dependencies for products in the community server. Now products in the community server can depend in other products in any other zipfile server.
+- **New**: Support for dependencies for products in the community server. Now products in the community server can depend in other products in any other zipfile server.
 
- - **New**: "working folder" configuration option. It allows you to keep the working folder for SmartSetup (where logs, products, etc go) in an arbitrary folder, not necessarily at the same folder where tms.config.yaml is.
+- **New**: "working folder" configuration option. It allows you to keep the working folder for SmartSetup (where logs, products, etc go) in an arbitrary folder, not necessarily at the same folder where tms.config.yaml is.
 
- - **New**: Now your tms credentials will be stored in the Windows Credential Manager, and apply to the whole machine. There is no need to enter the credentials for every folder where you use smartsetup anymore.
+- **New**: Now your tms credentials will be stored in the Windows Credential Manager, and apply to the whole machine. There is no need to enter the credentials for every folder where you use smartsetup anymore.
 
- - **New**: Dark mode support in tmsgui
+- **New**: Dark mode support in tmsgui
 
- - **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
+- **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
 
- - **New**: new `tms spec` command allows to create tmsbuild.yaml file for new products that you want to add to smartsetup.
- 
- - **New**: New -cmd parameter in tms `config-write` shows the parameters in the [syntax you need to use when using the -p parameter](xref:SmartSetup.CommandLineUsage#-p-command-to-pass-a-configuration-to-tms).
+- **New**: new `tms spec` command allows to create tmsbuild.yaml file for new products that you want to add to smartsetup.
 
- - **New**: There is a global parameter `-add-config:<config-file-name>` that you can use to override the properties set in tms.config.yaml.
+- **New**: New -cmd parameter in tms `config-write` shows the parameters in the [syntax you need to use when using the -p parameter](xref:SmartSetup.CommandLineUsage#-p-command-to-pass-a-configuration-to-tms).
 
- - **New**: tmsgui has a new column showing the status of the products.
+- **New**: There is a global parameter `-add-config:<config-file-name>` that you can use to override the properties set in tms.config.yaml.
 
- - **Improved** Now the "excluded folders" in the config file apply also to fetching and uninstalling. Before, those products were only excluded from a build.
+- **New**: tmsgui has a new column showing the status of the products.
 
- - **Improved** Better lazarus support for products that depend on other products.
+- **Improved** Now the "excluded folders" in the config file apply also to fetching and uninstalling. Before, those products were only excluded from a build.
 
- - **Improved** Support for building in machines where IDEFixPack/FastDCC is installed. Older SmartSetup would detect an invalid compiler and compile as if this was a Rad Studio trial or community version. 
+- **Improved** Better lazarus support for products that depend on other products.
 
- - **Fixed**: Products in the community server were failing to update some settings in corner cases.
+- **Improved** Support for building in machines where IDEFixPack/FastDCC is installed. Older SmartSetup would detect an invalid compiler and compile as if this was a Rad Studio trial or community version.
 
- - **Fixed**: Unified behavior between API and Community servers. Before, API servers would stop if some operation failed, but Community servers would skip the errors and try to build anyway. Now all servers stop if there is a fetching error.
+- **Fixed**: Products in the community server were failing to update some settings in corner cases.
 
- - **Fixed**: Better detection of .zip/.tar.zstd files. The built-in TZipFile.IsValid doesn't work reliably.
+- **Fixed**: Unified behavior between API and Community servers. Before, API servers would stop if some operation failed, but Community servers would skip the errors and try to build anyway. Now all servers stop if there is a fetching error.
 
- - **Fixed**: Compilation for Dn+ packages on Rad Studio Trials/Community Editions. The "+" packages use the same package for different Rad Studio versions, and rely in the $(ProductVersion) macro being set by Rad Studio. But rad studio doesn't set this macro, so we needed to workaround it.
+- **Fixed**: Better detection of .zip/.tar.zstd files. The built-in TZipFile.IsValid doesn't work reliably.
 
- - **Fixed**: In some very rare cases, SmartSetup could ask for a token to the server, and the server be expired when returning, leading to a failure when downloading products from the api server.
+- **Fixed**: Compilation for Dn+ packages on Rad Studio Trials/Community Editions. The "+" packages use the same package for different Rad Studio versions, and rely in the $(ProductVersion) macro being set by Rad Studio. But rad studio doesn't set this macro, so we needed to workaround it.
 
-
+- **Fixed**: In some very rare cases, SmartSetup could ask for a token to the server, and the server be expired when returning, leading to a failure when downloading products from the api server.
 
 ## Version 2.3 (October, 2025)
- - **Fixed**: `error :  failed to find / extract cached MinGW includes: PathAlreadyExists` could happen when trying to compile in a newly installed Delphi 13
+
+- **Fixed**: `error :  failed to find / extract cached MinGW includes: PathAlreadyExists` could happen when trying to compile in a newly installed Delphi 13
 
 ## Version 2.2 (September, 2025)
+
 - **New**: Delphi 13 official support.
 
 - **New**: For security reasons, now SmartSetup won't run pre/post build events when installing. You can edit tms.config.yaml to allow pre/post build events for specific projects.
 
 ## Version 2.1 (August, 2025)
+
 - **New**: The config file now comes with a yaml schema that provides autocompletion and syntax checking when you edit it in an editor with yaml scheme support like VSCode.
 
 - **Improved** Rewritten config-read command can now return the full configuration as a JSON object, and it can return from the full configuration to some sections, to a specific property.
 
 ## Version 2.0 (August, 2025)
+
 - **New**: [Smart Setup registry](https://github.com/tmssoftware/smartsetup-registry). This allows everyone to put new projects in Smart Setup.
 
 - **New**: Servers. You can now define multiple servers where SmartSetup will look for packages. A predefined "community" server comes built-in, and it is the registry mentioned above.
@@ -74,15 +78,15 @@ uid: SmartSetup.ReleaseNotes
 
 - **New**: [Dcu Megafolders](xref:SmartSetup.Configuration#using-dcu-megafolders) allow you to put the result of multiple products into a single folder. This way you can shorten the library path when you are installing tens of products.
 
-- **New**: [Delphi 13 Florence](https://blogs.embarcadero.com/help-us-choose-the-name-of-the-next-rad-studio/) beta support. This is a work in progress, but will allow you to test your components if you [have been invited to the beta](https://blogs.embarcadero.com/update-subscription-customers-invited-to-join-rad-studio-ganymede-beta/)  
+- **New**: [Delphi 13 Florence](https://blogs.embarcadero.com/help-us-choose-the-name-of-the-next-rad-studio/) beta support. This is a work in progress, but will allow you to test your components if you [have been invited to the beta](https://blogs.embarcadero.com/update-subscription-customers-invited-to-join-rad-studio-ganymede-beta/)
 
-- **Improved**: Documentation. We added documentation about how to create your own SmartSetup bundles, and much more. 
+- **Improved**: Documentation. We added documentation about how to create your own SmartSetup bundles, and much more.
 
-- **Improved**: **Breaking Change** Two new options added to `skip register` section of `tms.config.yaml`. You can now skip `registry`(adding registry entries) and `filelinks` (linking files). If you were using a form of skip registering like `skip register: [Packages, Start Menu]` you might need to review it to add the new entries. The new syntax `skip register: [All, -option1, -option2]` helps prevent breaking in the future if we add more options. 
+- **Improved**: **Breaking Change** Two new options added to `skip register` section of `tms.config.yaml`. You can now skip `registry`(adding registry entries) and `filelinks` (linking files). If you were using a form of skip registering like `skip register: [Packages, Start Menu]` you might need to review it to add the new entries. The new syntax `skip register: [All, -option1, -option2]` helps prevent breaking in the future if we add more options.
 
 - **Improved**: Exe compilation. Now you can specify that you don't want to compile a "Debug exe", and also to use the latest or earliest Delphi version available to compile the exe, instead of compiling it with all available Delphis.
 
-- **Fixed**: *Install* and *Uninstall* buttons in `tmsgui` are now enabled when the product is in status *available*.
+- **Fixed**: _Install_ and _Uninstall_ buttons in `tmsgui` are now enabled when the product is in status _available_.
 
 - **Breaking change**: Removed `repo-register`, `repo-unregister` and `repo-list` commands. The functionality they offered is now replaced by [servers](xref:SmartSetup.ConsumingBundles)
 
@@ -131,7 +135,7 @@ uid: SmartSetup.ReleaseNotes
 
 - **New**: The YAML build definition now allows for defining registry keys to be created at install time.
 
-- **Improved**: `tmsgui` now displays error messages in a more intuitive way: the errors are displayed in a list box, and if a specific error is clicked, more details will be displayed in a text box below. 
+- **Improved**: `tmsgui` now displays error messages in a more intuitive way: the errors are displayed in a list box, and if a specific error is clicked, more details will be displayed in a text box below.
 
 - **Improved**: Better error message when uninstalling a product that was previously installed manually (without fetching from remote repository).
 
@@ -141,7 +145,7 @@ uid: SmartSetup.ReleaseNotes
 
 - **Fixed**: Conditional defines used in the .dproj package are now being preserved and used when building them.
 
-- **Fixed**: `uninstall` command was rebuilding unrelated products. Now it's smarter and rebuilds only products affected by the uninstalled products. 
+- **Fixed**: `uninstall` command was rebuilding unrelated products. Now it's smarter and rebuilds only products affected by the uninstalled products.
 
 ## Version 1.3 (November, 2024)
 
