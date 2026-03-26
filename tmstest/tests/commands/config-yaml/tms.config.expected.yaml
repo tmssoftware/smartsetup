@@ -159,6 +159,7 @@ configuration for all products:
     #- linux64
     #- iossimulator64arm
     #- win64xintel
+    #- winarm64ec
 
   # Compilation options for the product.
   compilation options:
