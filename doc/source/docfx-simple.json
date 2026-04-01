@@ -5,6 +5,7 @@
         "files": [
           "guide/**.md",
           "download/**.md",
+          "reference/**.md",
           "toc.yml",
           "*.md"
         ],
@@ -29,12 +30,11 @@
     "dest": "chm/_site_chm",
     "globalMetadataFiles": [],
     "fileMetadataFiles": [],
-    
     "globalMetadata": {
       "_appTitle": "{{title}} documentation",
-      "_appFooter":"{{{product-version}}} <br /> &copy; 2022 - {{year}} tmssoftware.com",
+      "_appFooter": "{{{product-version}}} <br /> &copy; 2022 - {{year}} tmssoftware.com",
       "_appLogoPath": "images/{{ProductShortName}}.png",
-      "_appFaviconPath":"images/{{ProductShortName}}.ico",
+      "_appFaviconPath": "images/{{ProductShortName}}.ico",
       "_enableSearch": false,
       "_disableBreadcrumb": true,
       "_disableContribution": true,
@@ -44,8 +44,8 @@
     "template": [
       "default"
     ],
-      "theme": [
-        "docfx-theme"
+    "theme": [
+      "docfx-theme"
     ],
     "postProcessors": [],
     "noLangKeyword": false
