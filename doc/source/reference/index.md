@@ -18,6 +18,15 @@ This section documents all commands available in TMS Smart Setup. Run `tms help 
 
 - [config](xref:SmartSetup.Command.Config): Opens the configuration file in the default editor for YAML files.
 
+## Check and Repair
+
+- [doctor](xref:SmartSetup.Command.Doctor): Checks and optionally fixes common problems in your Delphi installation.
+
 ## Concerning tms tool itself
 
 - [version](xref:SmartSetup.Command.Version): Prints the current version of the tms utility.
+- [self-update](xref:SmartSetup.Command.SelfUpdate): Updates tms Smart Setup to the latest available version.
+
+## Other commands
+
+- [help](xref:SmartSetup.Command.Help): Displays usage information for a specific command.

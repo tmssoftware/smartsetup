@@ -14,5 +14,11 @@
   href: tms-log-view.md
 - name: tms config
   href: tms-config.md
+- name: tms doctor
+  href: tms-doctor.md
 - name: tms version
   href: tms-version.md
+- name: tms self-update
+  href: tms-self-update.md
+- name: tms help
+  href: tms-help.md
