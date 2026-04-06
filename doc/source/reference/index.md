@@ -6,6 +6,11 @@ uid: SmartSetup.Command.Index
 
 This section documents all commands available in TMS Smart Setup. Run `tms help <command>` at any time to see usage information directly in the terminal.
 
+## Installing and updating
+
+- [build](xref:SmartSetup.Command.Build): Builds, registers, and unregisters all locally available products.
+- [fetch](xref:SmartSetup.Command.Fetch): Downloads newer versions of currently installed products.
+
 ## Informative
 
 - [list](xref:SmartSetup.Command.List): Lists all products currently installed in the Smart Setup environment.
