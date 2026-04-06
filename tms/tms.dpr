@@ -221,7 +221,9 @@ uses
   Commands.Restore in 'src\Commands\Commands.Restore.pas',
   Util.Credentials in '..\common\src\System\Util.Credentials.pas',
   Commands.Spec in 'src\Commands\Commands.Spec.pas',
-  USpecWriter in 'src\Config\USpecWriter.pas';
+  USpecWriter in 'src\Config\USpecWriter.pas',
+  Commands.SBOMGenerate in 'src\Commands\Commands.SBOMGenerate.pas',
+  SBOM.Generator in 'src\SBOM\SBOM.Generator.pas';
 
 begin
   try

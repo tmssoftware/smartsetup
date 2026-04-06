@@ -441,6 +441,8 @@
         <DCCReference Include="..\common\src\System\Util.Credentials.pas"/>
         <DCCReference Include="src\Commands\Commands.Spec.pas"/>
         <DCCReference Include="src\Config\USpecWriter.pas"/>
+        <DCCReference Include="src\Commands\Commands.SBOMGenerate.pas"/>
+        <DCCReference Include="src\SBOM\SBOM.Generator.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

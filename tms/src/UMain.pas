@@ -28,7 +28,8 @@ uses
   Commands.Uncompress,
   Commands.Pin,
   Commands.Snapshot,
-  Commands.Restore;
+  Commands.Restore,
+  Commands.SBOMGenerate;
 
 procedure Run;
 
@@ -89,6 +90,8 @@ begin
 
   RegisterSnapshotCommand;
   RegisterRestoreCommand;
+
+  RegisterSBOMGenerateCommand;
 
   RegisterCredentialsCommand;
   RegisterSpecCommand;

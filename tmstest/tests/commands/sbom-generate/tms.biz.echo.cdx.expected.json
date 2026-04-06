@@ -1,0 +1,64 @@
+﻿{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:3133135b-ce87-4f9e-92a2-7c0b687be691",
+  "metadata": {
+    "timestamp": "2026-04-06T18:25:13Z",
+    "tools": [
+      {
+        "vendor": "TMS Software",
+        "name": "TMS Smart Setup"
+      }
+    ],
+    "component": {
+      "type": "library",
+      "name": "tms.biz.echo",
+      "version": "1.12.0.4",
+      "purl": "pkg:smartsetup/tms.biz.echo@1.12.0.4",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://doc.tmssoftware.com/biz/echo"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "tms.biz.bcl",
+      "purl": "pkg:smartsetup/tms.biz.bcl",
+      "description": "TMS BIZ Core Library"
+    },
+    {
+      "type": "library",
+      "name": "tms.biz.aurelius",
+      "purl": "pkg:smartsetup/tms.biz.aurelius",
+      "description": "TMS Aurelius"
+    },
+    {
+      "type": "library",
+      "name": "tms.biz.sparkle",
+      "purl": "pkg:smartsetup/tms.biz.sparkle",
+      "description": "TMS Sparkle"
+    },
+    {
+      "type": "library",
+      "name": "tms.biz.xdata",
+      "purl": "pkg:smartsetup/tms.biz.xdata",
+      "description": "TMS XData"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:smartsetup/tms.biz.echo@1.12.0.4",
+      "dependsOn": [
+        "pkg:smartsetup/tms.biz.bcl",
+        "pkg:smartsetup/tms.biz.aurelius",
+        "pkg:smartsetup/tms.biz.sparkle",
+        "pkg:smartsetup/tms.biz.xdata"
+      ]
+    }
+  ]
+}

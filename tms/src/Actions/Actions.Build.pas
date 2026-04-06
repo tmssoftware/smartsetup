@@ -145,9 +145,6 @@ begin
     try
       if Config.PreventSleep then
       begin
-        if not SleepIsAllowedByPolicy then Logger.Trace('Smart setup is configured to prevent sleep, but the Group Policies of this machine don''t seem to allow disabling sleep by apps.'+
-         ' For this to work you need to set "Allow applications to prevent automatic sleep (plugged in)" to true.');
-
         PreventSleep;
       end;
 
