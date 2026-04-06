@@ -1,5 +1,17 @@
 - name: Overview
   href: index.md
+- name: Global Options
+  href: tms-global-options.md
+- name: tms list
+  href: tms-list.md
+- name: tms list-remote
+  href: tms-list-remote.md
+- name: tms versions-remote
+  href: tms-versions-remote.md
+- name: tms info
+  href: tms-info.md
+- name: tms log-view
+  href: tms-log-view.md
 - name: tms config
   href: tms-config.md
 - name: tms version
