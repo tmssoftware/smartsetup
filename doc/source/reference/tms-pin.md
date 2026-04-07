@@ -16,8 +16,6 @@ tms pin <product-ids> [<global-options>]
 
 Marks one or more installed products as pinned. A pinned product is excluded from version updates when running [tms update](xref:SmartSetup.Command.Update). The product remains installed at its current version until it is explicitly unpinned with [tms unpin](xref:SmartSetup.Command.Unpin).
 
-Pinning does not affect [tms install](xref:SmartSetup.Command.Install) — installing a pinned product by name will still download the specified or latest version. Pin state is preserved when restoring from a snapshot if `-with-versions` is used with [tms restore](xref:SmartSetup.Command.Restore).
-
 ## Arguments
 
 | Argument        | Description                                                                                                                                                                 |
