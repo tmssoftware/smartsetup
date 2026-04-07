@@ -12,7 +12,7 @@ The command-line is self-explanatory; just run `tms` to list all available comma
 
 ## Setting up credentials
 
-Once in the folder, run `tms credentials` to initialize the folder and input your credentials:
+Once in the folder, run [tms credentials](xref:SmartSetup.Command.Credentials) to initialize the folder and input your credentials:
 
 ```shell
 tms credentials
@@ -20,7 +20,7 @@ tms credentials
 
 ## Installing products
 
-Then, use the `install` command to download new products from the remote repository to your local machine. 
+Then, use the [tms install](xref:SmartSetup.Command.Install) command to download new products from the remote repository to your local machine. 
 
 ```shell
 tms install tms.biz.aurelius
@@ -28,7 +28,7 @@ tms install tms.biz.aurelius
 
 It's worth noting that the above command will download and install TMS Aurelius and also all its dependencies (in this case, TMS BIZ Core Library ).
 
-To find out what the ids of the products you have available to install are, you can run `list-remote` command:
+To find out what the ids of the products you have available to install are, you can run [tms list-remote](xref:SmartSetup.Command.ListRemote) command:
 
 ```shell
 tms list-remote
@@ -42,7 +42,7 @@ tms install tms.biz.* tms.flexcel.vcl
 
 ## Updating products
 
-From time to time, you can run `update` command to download newest versions of the products, if available:
+From time to time, you can run [tms update](xref:SmartSetup.Command.Update) command to download newest versions of the products, if available:
 
 ```shell
 tms update
@@ -56,7 +56,7 @@ When installing or updating products, TMS Smart Setup only rebuilds what has bee
 
 But there are times that the build process might fail, for any reason (Delphi misconfiguration, antivirus in action, bugs, etc.). Here, you will have your products downloaded but not properly built and registered in the IDE. 
 
-To force a new rebuild to fix these issues, just call the `build` command:
+To force a new rebuild to fix these issues, just call the [tms build](xref:SmartSetup.Command.Build) command:
 
 ```shell
 tms build
@@ -68,24 +68,24 @@ This command will just try to rebuild what has been modified or failed, and quic
 tms build -full
 ```
 
-You can also use the `build` command if you updated the source code of TMS products yourself. After modifying the source code, call `build` command to update the installation properly.
+You can also use the [tms build](xref:SmartSetup.Command.Build) command if you updated the source code of TMS products yourself. After modifying the source code, call [tms build](xref:SmartSetup.Command.Build) command to update the installation properly.
 
 ## Uninstalling a product
 
-Uninstalling a product is as simple as installing. Just call `uninstall` passing the products to be uninstalled. It also accepts masks and comma-separated ids:
+Uninstalling a product is as simple as installing. Just call [tms uninstall](xref:SmartSetup.Command.Uninstall) passing the products to be uninstalled. It also accepts masks and comma-separated ids:
 
 ```shell
 tms uninstall tms.biz.aurelius
 tms uninstall tms.biz.*,tms.flexcel.vcl
 ```
 
-Note that `uninstall` command **does not** uninstall dependencies. Thus, if you ask to uninstall `tms.biz.aurelius` only, then `tms.biz.bcl`, which is a TMS Aurelius dependency, will remain installed. To uninstall a product and all its dependencies, use the `-cascade` option:
+Note that [tms uninstall](xref:SmartSetup.Command.Uninstall) command **does not** uninstall dependencies. Thus, if you ask to uninstall `tms.biz.aurelius` only, then `tms.biz.bcl`, which is a TMS Aurelius dependency, will remain installed. To uninstall a product and all its dependencies, use the `-cascade` option:
 
 ```shell
 tms uninstall tms.biz.aurelius -cascade
 ```
 
-It might be possible that you try to uninstall a product that another installed product depends on. For example, if you try to uninstall TMS BCL but not TMS Aurelius, which depends on BCL. In this case, `uninstall` will fail. You can bypass this check by adding the `-force` parameter. But we don't recommend it, because you will end up with broken products. **Only use `-force` if you really know what you are doing**.
+It might be possible that you try to uninstall a product that another installed product depends on. For example, if you try to uninstall TMS BCL but not TMS Aurelius, which depends on BCL. In this case, [tms uninstall](xref:SmartSetup.Command.Uninstall) will fail. You can bypass this check by adding the `-force` parameter. But we don't recommend it, because you will end up with broken products. **Only use `-force` if you really know what you are doing**.
 
 ## Custom configuration
 
@@ -93,7 +93,7 @@ TMS Smart Setup works smoothly out of the box. It automatically detects all your
 
 But if you want more control over its behavior, you can fully customize its behavior by using a YAML config file.
 
-You can ask the tool to create a pre-configured YAML configuration file by running the `config` command:
+You can ask the tool to create a pre-configured YAML configuration file by running the [tms config](xref:SmartSetup.Command.Config) command:
 
 ```shell
 tms config
@@ -105,7 +105,7 @@ The default YAML config file contains all the configuration options you can chan
 
 ## Check what is installed
 
-You can use the command `tms list` to check all products you have installed locally:
+You can use the command [tms list](xref:SmartSetup.Command.List) to check all products you have installed locally:
 
 ```shell
 C:\tms>tms list
@@ -148,7 +148,7 @@ tms.biz.xdata (5.13.0.1)
 
 `tms.exe` can update itself. It will regularly check for new versions, and if available, it will warn you about it.
 
-At any time, and especially if you get such warning, you can update `tms.exe` to a newer version by executing `self-update`:
+At any time, and especially if you get such warning, you can update `tms.exe` to a newer version by executing [tms self-update](xref:SmartSetup.Command.SelfUpdate):
 
 ```shell
 tms self-update
@@ -194,7 +194,7 @@ tms build -p:configuration-for-all-products:replace-platforms=[win32intel,win64i
 
 {{#Tip}}
 Sometimes it might not be easy to figure out the exact syntax to change a setting. **But there is a simple way**.
-`tms config-read` has a parameter: `-cmd`, which will list all the existing configuration options with the syntax `-p` uses.  So for example, you would do:
+[tms config-read](xref:SmartSetup.Command.ConfigRead) has a parameter: `-cmd`, which will list all the existing configuration options with the syntax `-p` uses.  So for example, you would do:
 
 ```
 tms config-read -cmd
@@ -273,9 +273,9 @@ it will replace [delphi11] array with the new one, and the result will be `delph
 {{/Note}}
 
 ### `tms config-read` and `tms config-write` to read and change tms.config.yaml
-These two commands allow you to read or update a setting from `tms.config.yaml`. Different from the `-p` parameter, `tms config-write` will modify the actual file. This can be useful, for example, when doing a GUI: You can use `tms config-read` to read a value from the config file and show it to the user. When the user modifies it, you can use `tms config-write` to write it back.
+These two commands allow you to read or update a setting from `tms.config.yaml`. Different from the `-p` parameter, [tms config-write](xref:SmartSetup.Command.ConfigWrite) will modify the actual file. This can be useful, for example, when doing a GUI: You can use [tms config-read](xref:SmartSetup.Command.ConfigRead) to read a value from the config file and show it to the user. When the user modifies it, you can use [tms config-write](xref:SmartSetup.Command.ConfigWrite) to write it back.
 
-The syntax for specifying the setting to read or write is the same as the one in the `-p` parameter above. In fact, `config-write`, when called alone, just reads your settings and writes them back, reformatting the config file. You need to use the `-p` parameter to alter that configuration, so what is written is different from the existing settings.
+The syntax for specifying the setting to read or write is the same as the one in the `-p` parameter above. In fact, [tms config-write](xref:SmartSetup.Command.ConfigWrite), when called alone, just reads your settings and writes them back, reformatting the config file. You need to use the `-p` parameter to alter that configuration, so what is written is different from the existing settings.
 
 Examples:
 ```shell
@@ -284,10 +284,10 @@ tms config-write -p:configuration-for-tms.flexcel.vcl:replace-platforms=[] -p:tm
 ```
 
 {{#Important}}
-`tms config-write` will reformat and remove all manually entered comments in tms.config.yaml. See [configuration](xref:SmartSetup.Configuration)
+[tms config-write](xref:SmartSetup.Command.ConfigWrite) will reformat and remove all manually entered comments in tms.config.yaml. See [configuration](xref:SmartSetup.Configuration)
 {{/Important}}
 
-`tms config-read` can be called with a full path to a property, like `tms config-read "tms smart setup options:build cores"`, or it can be called with a partial path or even no path at all. If you call `tms config-read` alone, it will output the full configuration file to the screen. By default, this will be in YAML format, but you can call `tms config-read -json` to get a JSON object with all the configuration, or `tms config-read -cmd` to get the properties in a syntax that you can copy and paste to use in the `-p` parameter.
+[tms config-read](xref:SmartSetup.Command.ConfigRead) can be called with a full path to a property, like `tms config-read "tms smart setup options:build cores"`, or it can be called with a partial path or even no path at all. If you call [tms config-read](xref:SmartSetup.Command.ConfigRead) alone, it will output the full configuration file to the screen. By default, this will be in YAML format, but you can call `tms config-read -json` to get a JSON object with all the configuration, or `tms config-read -cmd` to get the properties in a syntax that you can copy and paste to use in the `-p` parameter.
 
 ## Fixing problems
 To open a browser showing a complete log of the last command, you can type:

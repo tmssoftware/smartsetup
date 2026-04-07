@@ -96,7 +96,7 @@ ZipFiles are just what the name says, a zip file that contains all the product f
 Notes:
  * Despite the name, "ZipFiles" can be `.zip` or `.tar.zst` files. Zip files are the most widespread format, so we recommend it whenever files aren't too big. [ZStd](http://www.zstd.net) is a newer format that compresses more, and is faster for the same level of compression than zip. And while not as common as .zip, Windows 11 Explorer fully supports `.tar.zst` files, and also most modern file compression utilities will.
  
- * A drawback of using ZipFiles as the backend is that there isn't an obvious way to know if there is a new version of the component without downloading the file again and again every time we do some type of `tms update`. To fix this, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag). So if you want to use the ZipFile protocol to serve files, make sure that the web server that has them supports ETags. **GitHub supports ETags by default**, so you can link to any file in the GitHub releases or other parts without issues. For other web servers, you might need to configure them. SmartSetup won't refuse to serve zip files over a server that doesn't support ETags, but it will keep **constantly downloading the zip file** to check for newer versions, and will issue a warning in the logs. 
+ * A drawback of using ZipFiles as the backend is that there isn't an obvious way to know if there is a new version of the component without downloading the file again and again every time we do some type of [tms update](xref:SmartSetup.Command.Update). To fix this, we use [ETags](https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/ETag). So if you want to use the ZipFile protocol to serve files, make sure that the web server that has them supports ETags. **GitHub supports ETags by default**, so you can link to any file in the GitHub releases or other parts without issues. For other web servers, you might need to configure them. SmartSetup won't refuse to serve zip files over a server that doesn't support ETags, but it will keep **constantly downloading the zip file** to check for newer versions, and will issue a warning in the logs. 
 
  * ZipFile files might be hosted on a web server, or just by the file system. To use the filesystem, just set the url to be in the form `file://path-to-zip-file.zip` instead of `https://url-to-zip-file.zip`
 
@@ -134,7 +134,7 @@ For example, the command:
 will add a server named "myserver" as a zipfile in your machine. This zip file should contain a list of `tmsbuild.yaml`files, similar to the ones at https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip
 Look at [ZipFile Servers](#zipfile-servers) for more information in that file. You could also host the zip file on a web server instead of your file system: The command would be similar, but the url would start with `https://` instead of `file://`
 
-You can also list the servers you have with `tms server-remove` and `tms server-list`, but it might be simpler just to edit the file with `tms config` and manually change the values. So, for example, after you added the `myserver` above, `tms.config.yaml` will be:
+You can also list the servers you have with [tms server-list](xref:SmartSetup.Command.ServerList), and remove them with [tms server-remove](xref:SmartSetup.Command.ServerRemove), but it might be simpler just to edit the file with [tms config](xref:SmartSetup.Command.Config) and manually change the values. So, for example, after you added the `myserver` above, `tms.config.yaml` will be:
 
 ```yaml
   # Specify which servers SmartSetup will connect to.
@@ -169,7 +169,7 @@ tms server-enable community false
 ```
 
 {{#Note}}
-To avoid adding another command, there is no `server-disable` command. To disable a server, you call `server-enable` with the `enabled` parameter set to false.
+To avoid adding another command, there is no `server-disable` command. To disable a server, you call [tms server-enable](xref:SmartSetup.Command.ServerEnable) with the `enabled` parameter set to false.
 {{/Note}}
 
 As with [Adding and removing servers](#adding-and-removing-servers), you can just edit `tmsconfig.yaml` and change the server status there.

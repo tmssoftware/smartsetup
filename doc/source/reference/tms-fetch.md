@@ -18,7 +18,7 @@ Checks for new versions of installed products and downloads them locally. If no 
 
 If a product ID is specified that is not currently installed, it is downloaded anyway.
 
-`tms fetch` performs the download step of `tms update`. Running `tms update` is equivalent to running `tms fetch` followed by `tms build`.
+[tms fetch](xref:SmartSetup.Command.Fetch) performs the download step of [tms update](xref:SmartSetup.Command.Update). Running [tms update](xref:SmartSetup.Command.Update) is equivalent to running [tms fetch](xref:SmartSetup.Command.Fetch) followed by [tms build](xref:SmartSetup.Command.Build).
 
 For licensed products from a TMS API server, fetch contacts the server using stored credentials, checks for a newer version, and downloads a compressed bundle. The bundle is extracted into the products folder, making the full product contents — source code, documentation, and other files — available locally.
 

@@ -14,7 +14,7 @@ tms config [<options>] [<global-options>]
 
 ## Description
 
-Opens `tms.config.yaml` in the system's default YAML editor so you can review and modify the configuration. If the configuration file does not exist, `tms config` creates a new standard configuration file first and then opens it.
+Opens `tms.config.yaml` in the system's default YAML editor so you can review and modify the configuration. If the configuration file does not exist, [tms config](xref:SmartSetup.Command.Config) creates a new standard configuration file first and then opens it.
 
 ## Options
 

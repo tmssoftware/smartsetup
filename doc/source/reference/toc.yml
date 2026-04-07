@@ -4,25 +4,57 @@
   href: tms-global-options.md
 - name: tms build
   href: tms-build.md
+- name: tms config
+  href: tms-config.md
+- name: tms config-read
+  href: tms-config-read.md
+- name: tms config-write
+  href: tms-config-write.md
+- name: tms credentials
+  href: tms-credentials.md
+- name: tms doctor
+  href: tms-doctor.md
 - name: tms fetch
   href: tms-fetch.md
+- name: tms help
+  href: tms-help.md
+- name: tms info
+  href: tms-info.md
+- name: tms install
+  href: tms-install.md
 - name: tms list
   href: tms-list.md
 - name: tms list-remote
   href: tms-list-remote.md
-- name: tms versions-remote
-  href: tms-versions-remote.md
-- name: tms info
-  href: tms-info.md
 - name: tms log-view
   href: tms-log-view.md
-- name: tms config
-  href: tms-config.md
-- name: tms doctor
-  href: tms-doctor.md
-- name: tms version
-  href: tms-version.md
+- name: tms pin
+  href: tms-pin.md
+- name: tms restore
+  href: tms-restore.md
 - name: tms self-update
   href: tms-self-update.md
-- name: tms help
-  href: tms-help.md
+- name: tms server-add
+  href: tms-server-add.md
+- name: tms server-enable
+  href: tms-server-enable.md
+- name: tms server-list
+  href: tms-server-list.md
+- name: tms server-remove
+  href: tms-server-remove.md
+- name: tms snapshot
+  href: tms-snapshot.md
+- name: tms spec
+  href: tms-spec.md
+- name: tms uncompress
+  href: tms-uncompress.md
+- name: tms uninstall
+  href: tms-uninstall.md
+- name: tms unpin
+  href: tms-unpin.md
+- name: tms update
+  href: tms-update.md
+- name: tms version
+  href: tms-version.md
+- name: tms versions-remote
+  href: tms-versions-remote.md

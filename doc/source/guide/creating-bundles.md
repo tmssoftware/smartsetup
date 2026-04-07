@@ -216,7 +216,7 @@ To have your product compiled with both RTTI enabled and UNICODE support. In you
 
 ```
 
-When the user does a `tms build` or `tms install`, SmartSetup will automatically pass the defines RTTI and UNICODE to your library, so it will be compiled as the user expects. But, if you declare a `defines filename` in this section, the defines will also be saved to the file you specify, with the following contents:
+When the user does a [tms build](xref:SmartSetup.Command.Build) or [tms install](xref:SmartSetup.Command.Install), SmartSetup will automatically pass the defines RTTI and UNICODE to your library, so it will be compiled as the user expects. But, if you declare a `defines filename` in this section, the defines will also be saved to the file you specify, with the following contents:
 
 ```delphi
 // This file was generated automatically by TMS Smart Setup.
@@ -330,7 +330,7 @@ BinPackages
       └───Win32
           └───Release
 ```
-Note how there are packages for Win64 and Win32 for Delphi 12, because Delphi 12 comes with a 64bit IDE. When you run a `tms build -full` command in the root folder, the compiler will first remove the output folder, then take the binaries in the `BinPackages` folder, and link them to the output folder again. If you are compiling for D12 only, and only win32, it will only link the packages in `\BinPackages\d12\Win32\Release` into `\packages\d12\Win32\Release`
+Note how there are packages for Win64 and Win32 for Delphi 12, because Delphi 12 comes with a 64bit IDE. When you run a [tms build](xref:SmartSetup.Command.Build) `-full` command in the root folder, the compiler will first remove the output folder, then take the binaries in the `BinPackages` folder, and link them to the output folder again. If you are compiling for D12 only, and only win32, it will only link the packages in `\BinPackages\d12\Win32\Release` into `\packages\d12\Win32\Release`
 
 {{#Note}}
 The precompiled compiler creates hardlinks between the files in `BinPackages` and the output files, so there is no extra disk space needed. 
@@ -351,7 +351,7 @@ So what are the advantages of building your applications with SmartSetup instead
   * **Dependency Management**: Your application can depend on other SmartSetup libraries, and it won't be compiled until all other libraries are. If you change a library, then your app will be automatically recompiled to reflect the changes.
   * **Parallel Compiling**: All your applications can be compiled at the same time, once the libraries they depend on are compiled.
   * **No need to install the libraries that your application requires**: If they are SmartSetup-enabled libraries, you don't need to install them in the Delphi IDE. You can set *skip register" to true in [tms.config.yaml](xref:SmartSetup.Configuration#basic-configuration) and your app will be compiled changing nothing in Delphi itself. This is very good for build servers, where you might not want to install libraries.
-  * **One less tool to master**: You don't have to build your libraries using `tms build` and your app using `msbuild`. You can use the same tool for both.
+  * **One less tool to master**: You don't have to build your libraries using [tms build](xref:SmartSetup.Command.Build) and your app using `msbuild`. You can use the same tool for both.
 
 You can find an example of an application compiled with SmartSetup here: https://github.com/tmssoftware/smartsetup-registry/blob/main/amelander.map2pdb/tmsbuild.yaml
 
@@ -405,7 +405,7 @@ tms log-view
 ```
 
 This will open a browser showing a detailed log of what happened. Errors will be highlighted in red. 
-You can keep the browser open and just refresh it every time you try a new `tms build`
+You can keep the browser open and just refresh it every time you try a new [tms build](xref:SmartSetup.Command.Build)
 
 Once everything is looking good, it is time to go to the next step: [Publishing your bundle](xref:SmartSetup.PublishingBundles)
 
