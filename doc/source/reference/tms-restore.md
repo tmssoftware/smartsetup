@@ -16,7 +16,7 @@ tms restore [<filename>] [<options>] [<global-options>]
 
 Reads a snapshot file created by [tms snapshot](xref:SmartSetup.Command.Snapshot) and installs the products listed in it. By default, each product is installed at its latest available version. Use `-with-versions` to restore the exact versions recorded in the snapshot, including their pinned state.
 
-If no filename is provided, [tms restore](xref:SmartSetup.Command.Restore) uses the filename configured as the single automatic snapshot entry in `tms.config.yaml`. If no such entry is configured or there is more than one, the filename argument is required.
+If no filename is provided, `tms restore` uses the filename configured as the single automatic snapshot entry in `tms.config.yaml`. If no such entry is configured or there is more than one, the filename argument is required.
 
 Products without a server entry in the snapshot (local products) are skipped by default. Use `-include-local` to attempt to install them, though this will likely fail for products not available on any configured server.
 
@@ -62,6 +62,7 @@ tms restore -exclude:tms.biz.* -exclude:example.test.*
 
 ## See Also
 
+- [Versioning](xref:SmartSetup.Versioning#Snapshots)
 - [tms snapshot](xref:SmartSetup.Command.Snapshot)
 - [tms install](xref:SmartSetup.Command.Install)
 - [tms pin](xref:SmartSetup.Command.Pin)

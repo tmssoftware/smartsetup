@@ -36,5 +36,6 @@ tms snapshot c:\backups\tms.snapshot.yaml
 
 ## See Also
 
+- [Versioning](xref:SmartSetup.Versioning#Snapshots)
 - [tms restore](xref:SmartSetup.Command.Restore)
 - [tms list](xref:SmartSetup.Command.List)
