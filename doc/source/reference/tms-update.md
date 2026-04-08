@@ -14,7 +14,7 @@ tms update [<product-ids>] [<global-options>]
 
 ## Description
 
-Checks for newer versions of installed products, downloads them, and rebuilds the packages. Running [tms update](xref:SmartSetup.Command.Update) is equivalent to running [tms fetch](xref:SmartSetup.Command.Fetch) followed by [tms build](xref:SmartSetup.Command.Build).
+Checks for newer versions of installed products, downloads them, and rebuilds the packages. Running tms update is equivalent to running [tms fetch](xref:SmartSetup.Command.Fetch) followed by [tms build](xref:SmartSetup.Command.Build).
 
 If no product IDs are provided, all installed products are updated. If one or more product IDs are specified, only those products are updated. Specifying a product ID that is not currently installed raises an error.
 

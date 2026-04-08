@@ -18,7 +18,7 @@ Deletes the product files from the local products folder and then performs a bui
 
 Only products that were originally installed via [tms install](xref:SmartSetup.Command.Install) can be removed. If no products remain installed after uninstall, the BPL output folder is also removed from the Windows PATH.
 
-By default, [tms uninstall](xref:SmartSetup.Command.Uninstall) refuses to remove a product if other installed products depend on it. Use `-force` to override this check, or use `-cascade` to also remove the dependent products automatically.
+By default, tms uninstall refuses to remove a product if other installed products depend on it. Use `-force` to override this check, or use `-cascade` to also remove the dependent products automatically.
 
 ## Arguments
 

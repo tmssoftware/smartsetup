@@ -19,7 +19,7 @@ Runs a set of diagnostic checks against your Delphi installation and reports any
 By default, the command reports problems without making any changes. Pass `-fix` to apply corrections. When `-fix` is used, the command prompts for confirmation before applying each fix. Pass `-fix -do-not-confirm` to apply all yes/no fixes automatically without prompting.
 
 {{#Note}}
-Fixes that require selecting among multiple options cannot be applied automatically with `-do-not-confirm`. Run [tms doctor](xref:SmartSetup.Command.Doctor) `-fix` without `-do-not-confirm` to handle those interactively.
+Fixes that require selecting among multiple options cannot be applied automatically with `-do-not-confirm`. Run `tms doctor -fix` without `-do-not-confirm` to handle those interactively.
 {{/Note}}
 
 ## Options

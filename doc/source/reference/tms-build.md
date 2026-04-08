@@ -18,7 +18,7 @@ Rebuilds locally available products and registers them in the appropriate IDEs. 
 
 If one or more product IDs are specified, only those products are built. If no product IDs are provided, all installed products are processed.
 
-[tms build](xref:SmartSetup.Command.Build) performs the install step of [tms update](xref:SmartSetup.Command.Update). Running [tms update](xref:SmartSetup.Command.Update) is equivalent to running [tms fetch](xref:SmartSetup.Command.Fetch) followed by [tms build](xref:SmartSetup.Command.Build).
+tms build performs the install step of [tms update](xref:SmartSetup.Command.Update). Running [tms update](xref:SmartSetup.Command.Update) is equivalent to running [tms fetch](xref:SmartSetup.Command.Fetch) followed by tms build.
 
 Products are built in parallel where possible, respecting inter-product dependencies.
 
@@ -33,7 +33,7 @@ Products are built in parallel where possible, respecting inter-product dependen
 | Option        | Description                                                                                    |
 | ------------- | ---------------------------------------------------------------------------------------------- |
 | `-full`       | Forces all products to be rebuilt even if their files have not changed since the last build.   |
-| `-unregister` | Unregisters all products from the IDEs without deleting them. Running [tms build](xref:SmartSetup.Command.Build) afterwards will re-register them. |
+| `-unregister` | Unregisters all products from the IDEs without deleting them. Running tms build afterwards will re-register them. |
 
 ## Global Options
 
