@@ -199,6 +199,7 @@ type
     FPrefixedProperties: TGlobalPrefixedPropertiesArray;
     FDcuMegafolders: TMegafolderList;
     FUnregistering: boolean;
+    FForceSkipRegistering: boolean;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -250,6 +251,9 @@ type
 
     //Not an option in the config file, but something you set externally with tms build -unregister
     property Unregistering: boolean read FUnregistering write FUnregistering;
+
+    //not in the config file
+    property ForceSkipRegistering: boolean read FForceSkipRegistering write FForceSkipRegistering;
 
     property PrefixedProperties[index: TGlobalPrefixedProperties]: TArrayOverrideBehavior read GetPrefixedProperties write SetPrefixedProperties;
 
