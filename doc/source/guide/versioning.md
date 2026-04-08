@@ -173,3 +173,17 @@ It will unregister all the other components, and register Project2.
   * (-) It might make it more difficult to run two different Delphi versions at the same time with different component sets. We say "more difficult" because it would actually work: When you start the first instance it will read the library paths from Project1, when you launch the second it will read from Project2, but the first IDE instance will stay at the config for Project1. Still, it is not a nice thing to change the configuration of Delphi from behind, and might bring unexpected issues.
 
 ### Using the Registry
+
+A final option you have is to install the components in a different Registry branch, and start Delphi with bds /r:registry branch. This allows to have as many different Delphi installs as you want for different projects, without the overhead of a Virtual machine.
+
+  * (+) Scales very well, you can define as many Delphi configurations as you want or need. You might even configure each Delphi version differently, for example using a different theme, so it is clear instantly what version you are using.
+  * (+) No overhead. You have a single Delphi installed in a single OS.
+  * (+) You can have different Delphi instances with different component versions running at the same time, with zero issues.
+  * (-) Some components not in Smart Setup might not allow you to install them in an alternate registry key. As long as you stay in the Smart Setup ecosystem there should be no problems, but if you try to install other third parties with different setups, they might not play well with installing in a different registry key.
+
+To install in a different Registry branch, just edit the config file by typing  `tms config` and modify the setting "alternate registry key". You might also write `tms config-write -p:"tms smart setup options:alternate registry key=some-key"`
+To start the IDE using that registry key, start bds.exe using the /r parameter. You can find more information here: https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
+
+We provide a tool, MultIDE, that makes it simpler to manage multiple Delphi instances in different registry keys. You can download it from https://github.com/agallero/multide
+
+
