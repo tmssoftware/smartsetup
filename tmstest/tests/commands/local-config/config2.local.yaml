@@ -1,0 +1,9 @@
+tms smart setup options:
+
+  # 0 means use the optimum for the cores in the machine (default). 1 means single core. 2 two cores and so on.
+  build cores: 22
+
+configuration for all products:
+  delphi versions:
+      - delphi13
+

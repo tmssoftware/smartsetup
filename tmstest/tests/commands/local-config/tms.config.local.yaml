@@ -1,0 +1,19 @@
+tms smart setup options:
+
+  # 0 means use the optimum for the cores in the machine (default). 1 means single core. 2 two cores and so on.
+  build cores: 7
+
+  # installs the component in an alternate place so you can have different components installed in the same Delphi.
+  # see https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
+  alternate registry key: local-key
+
+configuration for all products:
+  options:
+    # can be info, messages or errors
+    verbosity: info
+
+    dry run: true
+
+  delphi versions:
+      - delphi2005
+
