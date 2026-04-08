@@ -32,7 +32,8 @@ type
   end;
 
 implementation
-uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils, Testing.Globals;
+uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils, Testing.Globals,
+     VCS.Sanitizer;
 
 { TSvnEngine }
 
@@ -52,6 +53,7 @@ function TSvnEngine.FileIsVersioned(const aFileName,
 begin
   if not TFile.Exists(aFileName) then exit(false); //svn status will return empty, not ? if the file doesn't exist.
 
+  ValidateVCSFilePath(aFileName);
   var Output := '';
   var Folder := TPath.GetFullPath(aWorkingFolder);
   var FullCommand := '"' + SvnCommandLine + '" --non-interactive status "' + aFileName + '"';
@@ -109,6 +111,7 @@ begin
 
   if aVersion <> '' then raise Exception.Create('Versioning not supported in SVN protocol.');
 
+  ValidateVCSUrl(aURL);
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
   var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + CloneCommand + ' "' + aURL + '" "' + CloneFolder + '"';

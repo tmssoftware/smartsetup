@@ -154,6 +154,7 @@ uses
   Doctor.CorePathCheck in 'src\Doctor\Doctor.CorePathCheck.pas',
   Doctor.MultiIDECheck in 'src\Doctor\Doctor.MultiIDECheck.pas',
   UConsoleUtil in '..\common\src\Logger\UConsoleUtil.pas',
+  VCS.Sanitizer in 'src\VCS\VCS.Sanitizer.pas',
   VCS.Engine.Git in 'src\VCS\VCS.Engine.Git.pas',
   VCS.Registry in 'src\VCS\VCS.Registry.pas',
   VCS.Manager in 'src\VCS\VCS.Manager.pas',
