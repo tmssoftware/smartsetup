@@ -3,6 +3,19 @@ uid: SmartSetup.ReleaseNotes
 ---
 
 # Release Notes
+
+## Version 3.2
+
+- **New**: SBOM generation support. There is a new `tms sbom-generate` command that can generate CycloneDX SBOMs for the installed components
+
+- **New**: SmartSetup will now automatically read "tms.config.local.yaml" files for added local configuration.
+
+- **Breaking**: We rewrote the parameters for the (tms restore)(xref:SmartSetup.Command.Restore) command. Now you need to specify if you want to restore with registering or not, and `-with-versions` is now the default, with a new `-latest` parameter to restore to the latest versions, instead of the versions in the snapshot.
+
+- **Improved**: When compiling in Delphi CE, we now rewrite the dprojs of components which have them incomplete, avoiding a "do you want to save changes" dialog for them.
+
+- **Improved**: Added a new "Reference" section in our documentation where we explain every command in detail. Also added guides about how to use versioning and how to use SmartSetup in a Continuous Integration environment.
+
 ## Version 3.1
 
 - **New**: Support for the Windows on ARM EC (WinARM64EC) platform in Delphi 13.1
