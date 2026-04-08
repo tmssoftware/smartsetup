@@ -1107,6 +1107,7 @@ begin
 
      // Avoid "Do you want to save changes" dialog when closing it.
     DProjModifier.SetAttIfExists('/#document/Project/ProjectExtensions/BorlandProject/Deployment', 'Version', '99');
+    DProjModifier.EnsureAllPlatforms; //with incomplete platforms, you get a "do you want to save changes" dialog too
     DProjModifier.Save(ProjectFile);
 
   finally

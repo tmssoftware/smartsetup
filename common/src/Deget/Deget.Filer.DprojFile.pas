@@ -319,6 +319,7 @@ type
     procedure AddBaseProjectNode(const Name,
       Value: string);
     procedure SetAttIfExists(const Path: string; const AttName: string; const AttValue: string);
+    procedure EnsureAllPlatforms;
   end;
 
   function GetNullableNodeValue(const Node: IXMLNode): Nullable<string>;
@@ -1899,6 +1900,25 @@ begin
   if Node <> nil then
   begin
     Node.Attributes[AttName] := AttValue;
+  end;
+end;
+
+procedure TDprojModifier.EnsureAllPlatforms;
+begin
+  var Node := PlatformsNode;
+  if Node = nil then exit;
+
+  for var PlatType := Low(TPlatform) to High(TPlatform) do
+  begin
+    if not (PlatType in PlatformsInDelphi[IDEName]) then continue;
+    var PlatBuildName := IDEInfo.GetPlatform(PlatType).BuildName;
+    var Existing := FindNodeByAtt(Node, 'Platform', 'value', PlatBuildName);
+    if Existing = nil then
+    begin
+      var N := Node.AddChild('Platform');
+      N.Attributes['value'] := PlatBuildName;
+      N.NodeValue := 'True';
+    end;
   end;
 end;
 
