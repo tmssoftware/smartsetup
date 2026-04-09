@@ -45,7 +45,7 @@ Test-RegistrationState -ShouldBeRegistered $false -RestoreOption "-skip-register
 # Restore with -auto-register should succeed and register components
 Test-RegistrationState -ShouldBeRegistered $false -RestoreOption "-auto-register" -HasSkip  "skip-register=true"
 
-tms config-write -p:configuration-for-test:options:skip-register=false
+tms config-write -p:configuration-for-all-products:options:skip-register=false
 
 # Restore with -skip-register should succeed and NOT register components
 Test-RegistrationState -ShouldBeRegistered $false -RestoreOption "-skip-register" -HasSkip  "skip-register=false"
