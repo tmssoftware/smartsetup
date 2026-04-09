@@ -43,7 +43,7 @@ type
 
 implementation
 uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils,
-     DateUtils, Testing.Globals, Character;
+     DateUtils, Testing.Globals, Character, VCS.Sanitizer;
 
 { TGitEngine }
 
@@ -61,6 +61,7 @@ end;
 
 function TGitEngine.FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 begin
+  ValidateVCSFilePath(aFileName);
   var Output := '';
   var FullCommand := '"' + GitCommandLine + '" ls-files "' + aFileName + '"';
   if not ExecuteCommand(FullCommand, TPath.GetFullPath(aWorkingFolder), Output, ['GIT_TERMINAL_PROMPT=0'])
@@ -113,6 +114,7 @@ begin
     if TDirectory.Exists(aTempFolder) then DeleteFolderMovingToLocked(aLockedFolder, aTempFolder, true, false);
     TDirectory.CreateDirectory(aTempFolder);
 
+    ValidateVCSUrl(aURL);
     FullCommand := '"' + GitCommandLine + '" clone --bare --filter=tree:0 ' + ' "' + aURL + '" "' + WorkingFolder + '"';
     if not ExecuteCommand(FullCommand, WorkingFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
       then raise Exception.Create('Error in git command: ' + FullCommand);
@@ -241,6 +243,7 @@ end;
 procedure TGitEngine.CheckoutVersion(const aCloneFolder, aVersion: string; const Detach: boolean);
 begin
   if (aVersion.Trim = '') or (aVersion.Trim = '*') then exit;
+  ValidateVCSVersion(aVersion);
 
   //git clean removes untracked files. It removes tmsbuild.yaml too if not in the repo, and tmsfetch.info.
   //git reset --hard removes tracked files, leaves untracked.
@@ -264,6 +267,8 @@ begin
 {$IFDEF DEBUG}
   TestParameters.CheckOffline('TGitEngine.Clone');
 {$ENDIF}
+  ValidateVCSUrl(aURL);
+  ValidateVCSVersion(aVersion);
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
   var FullCommand := '"' + GitCommandLine + '" ' + CloneCommand + ' "' + aURL + '" "' + CloneFolder + '"';

@@ -5,10 +5,10 @@ uid: SmartSetup.Configuration
 ---
 # Configuration
 
-Configuration in SmartSetup is done by editing a `tms.config.yaml` file. From the command line, you can just call `tms config` to open it in the default editor. From tmsgui, you can press the "Configuration" button. 
+Configuration in SmartSetup is done by editing a `tms.config.yaml` file. From the command line, you can just call [tms config](xref:SmartSetup.Command.Config) to open it in the default editor. From tmsgui, you can press the "Configuration" button. 
 
 {{#Note}}
-SmartSetup comes with no configuration file by default. To create it, you have to call `tms config` from the command line or the equivalent in the GUI. Once it is created, you can just edit it with your editor of choice.
+SmartSetup comes with no configuration file by default. To create it, you have to call [tms config](xref:SmartSetup.Command.Config) from the command line or the equivalent in the GUI. Once it is created, you can just edit it with your editor of choice.
 {{/Note}}
 
 Here is how it looks in Visual Studio Code. 
@@ -22,7 +22,7 @@ The file is self-commented, so you can find help about all the options just by r
 
 {{#Important}}
 **Do not store your own comments inside this configuration file.**
-Some commands like `tms server enable` or `tms config-write` will override the config file with a clean file (keeping your configuration). They will remove all your comments and reformat the file. GUI apps will also call those commands internally, so it is very likely that they will regenerate the config file.
+Some commands like [tms server-enable](xref:SmartSetup.Command.ServerEnable) or [tms config-write](xref:SmartSetup.Command.ConfigWrite) will override the config file with a clean file (keeping your configuration). They will remove all your comments and reformat the file. GUI apps will also call those commands internally, so it is very likely that they will regenerate the config file.
 {{/Important}}
 
 ## Updating your configuration file
@@ -33,7 +33,7 @@ There is a simple solution to this. Just type:
 ```shell
 tms config-write
 ```
-And the config file will be updated to the newest version, while keeping all your settings. This is the reason we can't preserve your own comments in the file: if you changed a comment and we changed it too, we would need to merge both versions and there might be conflicts. The simplest solution is just to regenerate the config file and discard your comments and white-space changes. Every time you do a `config-write` the file will be reformatted clean, and all metadata updated. The new properties that we added will also be added to the file. 
+And the config file will be updated to the newest version, while keeping all your settings. This is the reason we can't preserve your own comments in the file: if you changed a comment and we changed it too, we would need to merge both versions and there might be conflicts. The simplest solution is just to regenerate the config file and discard your comments and white-space changes. Every time you do a [tms config-write](xref:SmartSetup.Command.ConfigWrite) the file will be reformatted clean, and all metadata updated. The new properties that we added will also be added to the file. 
 
 ## Shared configuration and specific configuration for a single product
 
@@ -88,8 +88,8 @@ To enable them, follow the steps:
 
 1. **Verify that you can create symbolic links without admin rights**. Dcu Megafolders use symlinks, and in a default Windows configuration, symlinks require admin rights. If you haven't already, you need to enable [developer mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) in your Windows machine. See also https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/ 
 2. From the command line, cd to the folder where your SmartSetup installation is located.
-3. If you have an old `tms.config.yaml` file, which doesn't have a `dcu megafolders` section, **type `tms config-write`** to update your `tms.config.yaml` to the latest
-4. **Type `tms config`** to edit the config file. Search for the section "dcu megafolders". (If you can't find it, make sure you completed step 3 above.) 
+3. If you have an old `tms.config.yaml` file, which doesn't have a `dcu megafolders` section, **type [`tms config-write`](xref:SmartSetup.Command.ConfigWrite)** to update your `tms.config.yaml` to the latest
+4. **Type [`tms config`](xref:SmartSetup.Command.Config)** to edit the config file. Search for the section "dcu megafolders". (If you can't find it, make sure you completed step 3 above.) 
 5. Edit the section **"dcu megafolders"** to specify how you want those folders created. You can specify for every product where you want its dcus to go.
 
 {{#Important}}

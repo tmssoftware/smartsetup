@@ -29,11 +29,11 @@ And then you should arrive at the main view:
 4. **Status column**: shows if a product is outdated and/or pinned.
 5. **Server selection box**: this box is only visible if there is more than one active server, and it allows filtering the results by server.
 6. **Settings**: set general settings for tms/tmsgui.
-7. **Install**: download and install the selected products. Equivalent to `tms install` command.
-8. **Uninstall**: uninstall the selected products. Equivalent to `tms uninstall` command.
-9. **Full build/partial build**: rebuild the selected products. If no products are selected, rebuild everything. Equivalent to `tms build -full` and `tms build` commands.
-10. **Credentials**: ask for new credentials. Equivalent to `tms credentials` command.
-11. **Configure**: create (if missing) and open the YAML configuration file. Equivalent to `tms config` command.
+7. **Install**: download and install the selected products. Equivalent to [tms install](xref:SmartSetup.Command.Install) command.
+8. **Uninstall**: uninstall the selected products. Equivalent to [tms uninstall](xref:SmartSetup.Command.Uninstall) command.
+9. **Full build/partial build**: rebuild the selected products. If no products are selected, rebuild everything. Equivalent to [tms build](xref:SmartSetup.Command.Build) `-full` and [tms build](xref:SmartSetup.Command.Build) commands.
+10. **Credentials**: ask for new credentials. Equivalent to [tms credentials](xref:SmartSetup.Command.Credentials) command.
+11. **Configure**: create (if missing) and open the YAML configuration file. Equivalent to [tms config](xref:SmartSetup.Command.Config) command.
 12. **Output tab**: shows the output of the current command-line being executed. For long-running commands like installing and building, you can switch to it to follow the progress of the execution.
 13. **Status bar**: at the bottom of the main window, the GUI displays the current working folder, and the current Smart Setup version.
 

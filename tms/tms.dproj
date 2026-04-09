@@ -373,6 +373,7 @@
         <DCCReference Include="src\Doctor\Doctor.CorePathCheck.pas"/>
         <DCCReference Include="src\Doctor\Doctor.MultiIDECheck.pas"/>
         <DCCReference Include="..\common\src\Logger\UConsoleUtil.pas"/>
+        <DCCReference Include="src\VCS\VCS.Sanitizer.pas"/>
         <DCCReference Include="src\VCS\VCS.Engine.Git.pas"/>
         <DCCReference Include="src\VCS\VCS.Registry.pas"/>
         <DCCReference Include="src\VCS\VCS.Manager.pas"/>

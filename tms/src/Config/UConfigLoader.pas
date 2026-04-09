@@ -35,10 +35,23 @@ class procedure TConfigLoader.LoadIntoConfig(const Filename: string; const Confi
 var
   MainSection: TMainSectionConf;
 begin
+  var FullFilename := TPath.GetFullPath(Filename);
   MainSection := TMainSectionConf.Create(Config);
   try
-    MainSection.CreatedBy := 'Main: ' + Filename;
-    if (TFile.Exists(Filename)) then TBBYamlReader.ProcessFile(Filename, MainSection, aStopAt, aIgnoreOtherFiles);
+    if (TFile.Exists(FullFilename)) then
+    begin
+      MainSection.CreatedBy := 'Main: ' + Filename;
+      TBBYamlReader.ProcessFile(FullFilename, MainSection, aStopAt, aIgnoreOtherFiles);
+    end;
+
+    var LocalFilename := TPath.Combine(TPath.GetDirectoryName(FullFilename), TPath.GetFileNameWithoutExtension(FullFilename) + '.local.yaml');
+    if (TFile.Exists(LocalFilename)) then
+    begin
+      MainSection.CreatedBy := 'Local: ' + LocalFilename;
+      Logger.Trace('Loading local configuration from ' + LocalFilename);
+      TBBYamlReader.ProcessFile(LocalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
+    end;
+
 
     for var ExtraConfig in ExtraConfigFiles do
     begin

@@ -387,7 +387,7 @@ end;
 
 function TProjectBuildInfo.SkipRegistering: TSkipRegistering;
 begin
-  if Config.Unregistering then exit(TSkipRegistering.All);
+  if Config.Unregistering or Config.ForceSkipRegistering then exit(TSkipRegistering.All);
   
   var Settings := TSkipRegisteringSet(Byte((Config.SkipRegistering(ProjectId, 0))));
   if Project.IsExe then Settings := Settings + [TSkipRegisteringOptions.Packages];

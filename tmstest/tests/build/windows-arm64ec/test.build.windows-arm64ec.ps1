@@ -27,12 +27,12 @@ if (Test-Path $dcpPath) {
     Write-Error "Error: The file TomlDelphi.dcp for WinArm64EC in d12 shouldn't exist."
 }
 
-$dcpPath = ".\Products\tms.flexcel.vcl\src\packages\d12+\23.0\WinARM64EC\Release\FlexCel_Core.dcp"
+$dcpPath = ".\Products\tms.flexcel.vcl\packages\d12+\37.0\WinARM64EC\Release\FlexCel_Core.dcp"
 if (-Not (Test-Path $dcpPath)) {
     Write-Error "Test failed: The file FlexCel_Core.dcp for WinArm64EC was not generated."
 }
 
-$dcpPath = ".\Products\tms.flexcel.vcl\src\packages\d12+\23.0\WinARM64EC\Release\FlexCel_Core.dcp"
+$dcpPath = ".\Products\tms.flexcel.vcl\packages\d12+\23.0\WinARM64EC\Release\FlexCel_Core.dcp"
 if (Test-Path $dcpPath) {
     Write-Error "Error: The file FlexCel_Core.dcp for WinArm64EC in d12 shouldn't exist."
 }

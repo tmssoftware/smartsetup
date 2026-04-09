@@ -6,7 +6,7 @@ uid: SmartSetup.Doctor
 
 ## Overview
 
-The `doctor` command is a diagnostic tool included in TMS Smart Setup. It analyzes your system and Delphi IDE configuration to detect and optionally fix common issues that could affect TMS Smart Setup's operation, particularly during the installation or setup of Delphi packages.
+The [tms doctor](xref:SmartSetup.Command.Doctor) command is a diagnostic tool included in TMS Smart Setup. It analyzes your system and Delphi IDE configuration to detect and optionally fix common issues that could affect TMS Smart Setup's operation, particularly during the installation or setup of Delphi packages.
 
 This command is available via the command line:
 
@@ -110,6 +110,6 @@ All changes are logged and undo information is saved in a specific folder, so ma
 
 ## Troubleshooting Tips
 
-- If you're unsure about applying changes, run `tms doctor` without `-fix` to preview potential problems.
+- If you're unsure about applying changes, run [tms doctor](xref:SmartSetup.Command.Doctor) without `-fix` to preview potential problems.
 - For issues requiring admin access (like modifying local machine PATH), run your terminal as administrator.
 - After applying fixes, consider restarting the IDE and/or system to ensure all changes take effect.

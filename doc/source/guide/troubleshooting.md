@@ -61,12 +61,12 @@ indicates a classic TMS installation is still present.
 
 Many users rely only on **tmsgui.exe**, but troubleshooting often requires command-line commands such as:
 
-- `tms doctor`
+- [tms doctor](xref:SmartSetup.Command.Doctor)
 - `tms doctor -fix`
 - `tms doctor -fix -do-not-confirm`
-- `tms build -full`
-- `tms install`
-- `tms update`
+- [tms build](xref:SmartSetup.Command.Build) `-full`
+- [tms install](xref:SmartSetup.Command.Install)
+- [tms update](xref:SmartSetup.Command.Update)
 
 These commands must be run from the Smart Setup installation folder.
 
@@ -126,7 +126,7 @@ This scans for:
 - Locations of outdated package files  
 - Conditions that commonly prevent package loading
 
-`tms doctor` does **not** modify anything.
+[tms doctor](xref:SmartSetup.Command.Doctor) does **not** modify anything.
 
 ---
 
@@ -138,7 +138,7 @@ Run:
 tms doctor -fix
 ```
 
-This applies corrections for issues found by `tms doctor`.
+This applies corrections for issues found by [tms doctor](xref:SmartSetup.Command.Doctor).
 
 You will be prompted to confirm **each** change before it is applied.
 
@@ -181,7 +181,7 @@ This:
 - Recompiles all installed products  
 - Ensures your environment uses clean, consistent binaries  
 
-This step solves many “can’t load package” issues.
+This step solves many “can’t load package” issues. See [tms build](xref:SmartSetup.Command.Build) for details.
 
 ---
 
@@ -277,6 +277,8 @@ tms doctor -fix
 tms build -full
 ```
 
+See [tms doctor](xref:SmartSetup.Command.Doctor) and [tms build](xref:SmartSetup.Command.Build) for details.
+
 This gives you a clean Smart Setup-only environment.
 
 ---
@@ -317,7 +319,7 @@ Fix inside the IDE:
 PATH = $(PATH)
 ```
 
-`tms doctor` and `tms doctor -fix` commonly detect these issues.
+[tms doctor](xref:SmartSetup.Command.Doctor) and `tms doctor -fix` commonly detect these issues.
 
 ---
 
@@ -328,7 +330,7 @@ If you once manually copied BPL/DCP files into Delphi or Windows folders, they c
 Fix:
 
 1. Locate and remove the manual files  
-2. Rebuild everything running `tms build -full` command
+2. Rebuild everything running [tms build](xref:SmartSetup.Command.Build) `-full` command
 3. Check that Delphi’s Library Path does not refer to old or unintended folders
 
 ---
@@ -349,6 +351,8 @@ tms doctor
 tms doctor -fix
 tms build -full
 ```
+
+See [tms doctor](xref:SmartSetup.Command.Doctor) and [tms build](xref:SmartSetup.Command.Build) for details.
 
 If issues persist:
 

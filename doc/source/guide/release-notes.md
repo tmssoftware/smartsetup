@@ -4,13 +4,36 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
+## Version 3.2
+
+- **New**: SBOM generation support. There is a new `tms sbom-generate` command that can generate CycloneDX SBOMs for the installed components
+
+- **New**: SmartSetup will now automatically read "tms.config.local.yaml" files for added local configuration.
+
+- **Breaking**: We rewrote the parameters for the (tms restore)(xref:SmartSetup.Command.Restore) command. Now you need to specify if you want to restore with registering or not, and `-with-versions` is now the default, with a new `-latest` parameter to restore to the latest versions, instead of the versions in the snapshot.
+
+- **Improved**: When compiling in Delphi CE, we now rewrite the dprojs of components which have them incomplete, avoiding a "do you want to save changes" dialog for them.
+
+- **Improved**: Added a new "Reference" section in our documentation where we explain every command in detail. Also added guides about how to use versioning and how to use SmartSetup in a Continuous Integration environment.
+
+## Version 3.1
+
+- **New**: Support for the Windows on ARM EC (WinARM64EC) platform in Delphi 13.1
+
+- **Fixed**: In SmartSetup 3.0 we switched to the Windows Credential Manager to store the credentials, and in some cases we could hit the 1280 char size limit. Now the credentials are stored in a more efficient way that should never trigger a size limit error. 
+
+- **Improved**: When installing in Delphi Community or Trial Delphi versions, we now compile in a clean registry entry, to avoid crashes with installed packages. This will make Delphi CE installs much more solid.
+
+- **Improved**: Better support for building modern C++ applications. The newest C++ releases have some differences in precompiled headers and other areas and weren't compiled properly.
+
+
 ## Version 3.0
 
 - **New**: [Versioning](xref:SmartSetup.Versioning) support. You can now install any available version of any product
 
 - **New**: [Snapshots](xref:SmartSetup.Versioning#snapshots). You can get a list of every component and version installed at any point in time, and restore that snapshot
 
-- **New**: [Pinning](xref:SmartSetup.Versioning#pinning-versions) support. You can now pin a product to a specific version, and it won't update until you unpin it.
+- **New**: [Pinning](xref:SmartSetup.Versioning#version-pinning) support. You can now pin a product to a specific version, and it won't update until you unpin it.
 
 - **New**: Support for unregistering products. Now you can do `tms build -unregister` in folder A, and `tms build` in folder B, and you can work with the components in folder B. IF you want to switch back to using folder A, just unregister B and build A again. The switch is instant, no need to wait for products to build.
 
@@ -22,7 +45,7 @@ uid: SmartSetup.ReleaseNotes
 
 - **New**: Dark mode support in tmsgui
 
-- **New**: [tms doctor](xref:Smartsetup.Doctor) can now check for duplicated bpls.
+- **New**: [tms doctor](xref:SmartSetup.Doctor) can now check for duplicated bpls.
 
 - **New**: new `tms spec` command allows to create tmsbuild.yaml file for new products that you want to add to smartsetup.
 

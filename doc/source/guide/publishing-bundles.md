@@ -23,8 +23,8 @@ If you want to publish your product there, you need to follow the steps:
   tms server-add test zipfile https://github.com/your_name/smartsetup-registry/archive/refs/heads/main.zip
   ```
 
-  6. Disable the community server: `tms server-enable community false`
-  7. Try installing your product: `tms install product.id`
+  6. Disable the community server: [tms server-enable](xref:SmartSetup.Command.ServerEnable) `community false`
+  7. Try installing your product: [tms install](xref:SmartSetup.Command.Install) `product.id`
   8. If all is working, create a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork) to our community server
   9. Once approved, you can remove your **test** server, and re-enable the community server.
 
@@ -33,8 +33,8 @@ If you want to publish your product there, you need to follow the steps:
 Sometimes, you might just want to publish components for your organization only. For that, you need to start by creating a [zipfile server](xref:SmartSetup.ConsumingBundles##zipfile-servers). This is a zip file with folders named after your product IDs, and then inside each folder a `tmsbuild.yaml` file used to build that product.
 
 You can host the file in the following ways:
-  * You can put it in a shared folder that your organization can access. In this case, the users will have to do the command `tms server-add company_name zipfile file://path_to_the_zipfile`
-  * You can host it on a webserver. In this case, the command to register them would be `tms server-add company_name zipfile https://path_to_the_zipfile`
+  * You can put it in a shared folder that your organization can access. In this case, the users will have to do the command [tms server-add](xref:SmartSetup.Command.ServerAdd) `company_name zipfile file://path_to_the_zipfile`
+  * You can host it on a webserver. In this case, the command to register them would be [tms server-add](xref:SmartSetup.Command.ServerAdd) `company_name zipfile https://path_to_the_zipfile`
 
 
 If the server requires authentication, you can pass the extra headers needed by setting an environment variable named `SMARTSETUP_SERVER_<NameOfServer>`, where each header is separated by a semicolon (";")

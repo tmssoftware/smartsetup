@@ -49,8 +49,9 @@ begin
     
 end;
 
-procedure RestoreComponents(FileName: string; const RestoreVersions, NoBuild, IncludeLocalProducts: boolean; const IncludeMasks, ExcludeMasks: TArray<string>);
+procedure RestoreComponents(FileName: string; const LatestVersions, NoBuild, IncludeLocalProducts: boolean; const IncludeMasks, ExcludeMasks: TArray<string>; const SkipRegister: boolean);
 begin
+  Config.ForceSkipRegistering := SkipRegister;
   var Products := TObjectList<TProductStatus>.Create;
   try
     if (FileName.Trim = '') and (Config.AutoSnapshotFileNames.Count = 1) then FileName := Config.AutoSnapshotFileNames.KeyList[0]; 
@@ -78,10 +79,10 @@ begin
 
         
         var Version := '';
-        if RestoreVersions then Version := ':'+ String(Product.Version);
+        if not LatestVersions then Version := ':'+ String(Product.Version);
 
         ProductsToFetch.Add(Product.Id + Version);
-        if RestoreVersions then
+        if not LatestVersions then
         begin
           if Product.Pinned then ProductsToPin.Add(Product.Id)
           else ProductsToUnpin.Add(Product.Id);
@@ -105,16 +106,22 @@ end;
 
 
 var OptionFileName: string;
-var OptionRestoreVersions: boolean;
+var OptionLatestVersions: boolean;
 var OptionNoBuild: boolean;
 var OptionLocal: boolean;
+var OptionSkipRegister: boolean;
+var OptionRegister: boolean;
 var OptionInclude: TArray<string>;
 var OptionExclude: TArray<string>;
 
 procedure RunRestoreCommand;
 begin
   InitFolderBasedCommand(true);
-  RestoreComponents(OptionFileName, OptionRestoreVersions, OptionNoBuild, OptionLocal, OptionInclude, OptionExclude);
+  if OptionSkipRegister and OptionRegister then raise Exception.Create('Please specify only one of -auto-register or -skip-register.');
+  if not OptionSkipRegister and not OptionRegister then raise Exception.Create('Please specify -auto-register or -skip-register.');
+
+
+  RestoreComponents(OptionFileName, OptionLatestVersions, OptionNoBuild, OptionLocal, OptionInclude, OptionExclude, OptionSkipRegister);
 end;
 
 
@@ -122,11 +129,11 @@ procedure RegisterRestoreCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('restore', '', 'restore a list of components from a snapshot file.',
     '',
-    'restore [filename] [-full] [-nobuild] [-include:...] [-exclude:...]');
+    'restore [filename] <-auto-register/-skip-register> [-latest] [-nobuild] [-include:...] [-exclude:...]');
 
-  cmd.Examples.Add('restore');
-  cmd.Examples.Add('restore c:\test\tms.snapshot.yaml -full');
-  cmd.Examples.Add('restore -exclude:tms.biz.* -exclude:example.test.*');
+  cmd.Examples.Add('restore -auto-register');
+  cmd.Examples.Add('restore c:\test\tms.snapshot.yaml -skip-register -latest');
+  cmd.Examples.Add('restore -skip-register -exclude:tms.biz.* -exclude:example.test.*');
 
   var option := cmd.RegisterUnnamedOption<string>('File from where to load the snapshot. If not specified and there is a single "auto snapshot filenames" entry in the config file, it will load it.', 'filename',
     procedure(const Value : string)
@@ -135,10 +142,24 @@ begin
     end);
   option.Required := false;
 
-  option := cmd.RegisterOption<boolean>('with-versions', '', 'without this parameter, the components will be restored to their latest versions. with it, the components will be restored to the exact version saved in the snapshot, along with the pinned status.',
+  option := cmd.RegisterOption<boolean>('auto-register', '', 'register the components in the IDE according to the configuration.',
     procedure(const Value : boolean)
     begin
-      OptionRestoreVersions := true;
+      OptionRegister := true;
+    end);
+  option.HasValue := False;
+
+  option := cmd.RegisterOption<boolean>('skip-register', '', 'do NOT register the components in the IDE. only build them.',
+    procedure(const Value : boolean)
+    begin
+      OptionSkipRegister := true;
+    end);
+  option.HasValue := False;
+
+  option := cmd.RegisterOption<boolean>('latest', '', 'if you specify this option, components will be restored to their latest versions, not what is in the snapshot.',
+    procedure(const Value : boolean)
+    begin
+      OptionLatestVersions := true;
     end);
   option.HasValue := False;
 
