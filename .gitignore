@@ -96,3 +96,4 @@ tmstest/tmp-run
 tmstest/tests/build/no-cpp-on-winarm/apps/cpp-fmx/Win64x
 tmstest/tests/build/no-cpp-on-winarm/apps/cpp-vcl/Win64x
 tms/.claude/settings.local.json
+.claude/settings.local.json

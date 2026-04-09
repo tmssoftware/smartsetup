@@ -13,6 +13,8 @@ application:
   description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
   company name: TMS Software
   copyright: tmssoftware
+  license: MIT
+  license url: https://opensource.org/licenses/MIT
   url: https://www.tmssoftware.com/
   # vcs protocol: git  #might be git, svn or zipfile. If omitted, it will be git.
   docs: https://doc.tmssoftware.com/

@@ -7,6 +7,8 @@ application:
   name: TMS Smart Setup
   description: A tool to download, build and register components.
   copyright: tmssoftware
+  license: GPL3
+  license url: https://www.gnu.org/licenses/gpl-3.0.html
   url: https://www.tmssoftware.com/
   docs: https://doc.tmssoftware.com/
   #version file: VERSION.TXT  # if this line is present, then version.txt must exist, it must have at least one line, 

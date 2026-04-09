@@ -13,6 +13,8 @@ type
     FDescription: string;
     FUrl: string;
     FCopyright: string;
+    FLicense: string;
+    FLicenseUrl: string;
     FVersionFile: string;
     FVersion: string;
     FCompanyName: string;
@@ -25,6 +27,8 @@ type
     property Name: string read GetName write FName;
     property Description: string read FDescription write FDescription;
     property Copyright: string read FCopyright write FCopyright;
+    property License: string read FLicense write FLicense;
+    property LicenseUrl: string read FLicenseUrl write FLicenseUrl;
     property Url: string read FUrl write FUrl;
     property Docs: string read FDocs write FDocs;
     property VersionFile: string read FVersionFile write FVersionFile;
@@ -801,6 +805,8 @@ begin
   Result.FDescription := FDescription;
   Result.FUrl := FUrl;
   Result.FCopyright := FCopyright;
+  Result.FLicense := FLicense;
+  Result.FLicenseUrl := FLicenseUrl;
   Result.FVersion := FVersion;
   Result.FVCSProtocol := FVCSProtocol;
   Result.FCanAddSourceCodeToLibraryPath := FCanAddSourceCodeToLibraryPath;

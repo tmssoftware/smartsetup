@@ -400,6 +400,8 @@ begin
   Actions.Add('name', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Name := value; end);
   Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Description := value; end);
   Actions.Add('copyright', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Copyright := value; end);
+  Actions.Add('license', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.License := value; end);
+  Actions.Add('license url', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.LicenseUrl := value; end);
   Actions.Add('url', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Url := value; end);
   Actions.Add('docs', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Docs := value; end);
   Actions.Add('version file', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.VersionFile := value; Project.Application.Version := ReadVersionFile(value, ErrorInfo); end);

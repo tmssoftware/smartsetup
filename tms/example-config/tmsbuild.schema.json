@@ -116,6 +116,14 @@
           "type": "string",
           "description": "The copyright holder of the product."
         },
+        "license": {
+          "type": "string",
+          "description": "The license of the product (e.g. MIT, Apache-2.0, proprietary)."
+        },
+        "license url": {
+          "type": "string",
+          "description": "The URL where the full license text can be found."
+        },
         "url": {
           "type": "string",
           "description": "The URL where the product can be downloaded."

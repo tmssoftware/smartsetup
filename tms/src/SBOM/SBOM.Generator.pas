@@ -75,6 +75,19 @@ begin
     if App.CompanyName <> '' then
       ProjComp.AddPair('publisher', App.CompanyName);
 
+    if App.License <> '' then
+    begin
+      var Licenses := TJSONArray.Create;
+      var LicObj := TJSONObject.Create;
+      var Lic := TJSONObject.Create;
+      Lic.AddPair('name', App.License);
+      if App.LicenseUrl <> '' then
+        Lic.AddPair('url', App.LicenseUrl);
+      LicObj.AddPair('license', Lic);
+      Licenses.AddElement(LicObj);
+      ProjComp.AddPair('licenses', Licenses);
+    end;
+
     ProjComp.AddPair('purl', ProjPurl);
 
     // external references from application metadata
