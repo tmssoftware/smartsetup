@@ -10,6 +10,8 @@ uid: SmartSetup.ReleaseNotes
 
 - **New**: SmartSetup will now automatically read "tms.config.local.yaml" files for added local configuration.
 
+- **New**: `license` and `license url` fields in the tmsbuild.yaml definition file. Those fields, if filled, will be included in the SBOM.
+
 - **Breaking**: We rewrote the parameters for the (tms restore)(xref:SmartSetup.Command.Restore) command. Now you need to specify if you want to restore with registering or not, and `-with-versions` is now the default, with a new `-latest` parameter to restore to the latest versions, instead of the versions in the snapshot.
 
 - **Improved**: When compiling in Delphi CE, we now rewrite the dprojs of components which have them incomplete, avoiding a "do you want to save changes" dialog for them.
