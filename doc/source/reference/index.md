@@ -39,6 +39,7 @@ If you are new to TMS Smart Setup, these are the commands you will use most ofte
 - [info](xref:SmartSetup.Command.Info): Displays information about the current folder and the tms tool itself.
 - [snapshot](xref:SmartSetup.Command.Snapshot): Saves the list of currently installed products and their versions to a file.
 - [server-list](xref:SmartSetup.Command.ServerList): Lists the servers configured in Smart Setup.
+- [sbom-generate](xref:SmartSetup.Command.SbomGenerate): Generates a CycloneDX SBOM file for the specified products.
 - [log-view](xref:SmartSetup.Command.LogView): Opens the log file in the default viewer.
 
 ### Configuration

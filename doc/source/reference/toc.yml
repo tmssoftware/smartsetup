@@ -37,6 +37,8 @@ items:
         href: tms-snapshot.md
       - name: tms server-list
         href: tms-server-list.md
+      - name: tms sbom-generate
+        href: tms-sbom-generate.md
       - name: tms log-view
         href: tms-log-view.md
   - name: Configuration
