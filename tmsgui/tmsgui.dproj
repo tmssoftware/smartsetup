@@ -1,4 +1,4 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{4370724D-0E80-4873-8752-B430656E4E4B}</ProjectGuid>
         <ProjectVersion>20.4</ProjectVersion>
@@ -73,8 +73,8 @@
         <SanitizedProjectName>tmsgui</SanitizedProjectName>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup GUI;FileVersion=3.1.0.0;InternalName=TMS Smart Setup GUI;LegalCopyright=(c) 2023 - 2026 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. gui;ProductName=TMS Smart Setup GUI;ProductVersion=3.1.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
-        <VerInfo_MinorVer>1</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=TMS Software;FileDescription=TMS Smart Setup GUI;FileVersion=3.2.0.0;InternalName=TMS Smart Setup GUI;LegalCopyright=(c) 2023 - 2026 TMS Software;LegalTrademarks=;OriginalFilename=;ProgramID=com.tmssoftware.tmssmartsetup. gui;ProductName=TMS Smart Setup GUI;ProductVersion=3.2.0.0;Comments=The new generation of TMS products installer</VerInfo_Keys>
+        <VerInfo_MinorVer>2</VerInfo_MinorVer>
         <VerInfo_MajorVer>3</VerInfo_MajorVer>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
