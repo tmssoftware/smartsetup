@@ -229,6 +229,7 @@ dependencies:
   # write here the application ids for the *direct* dependencies.
   # if "A" depends on "B" and "B" on "C", you can just write "B" as the "A" dependency. 
   # You can also write "C" and it will still work, but it is not necessary. Only direct dependencies are needed.
+  # If this is an application and you want it to depend in all the installed components, you can write 'all.installed.components' here instead of listing them.
 
   # - appid: description
   # 

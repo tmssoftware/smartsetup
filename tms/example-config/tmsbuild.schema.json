@@ -772,7 +772,7 @@
     },
     "dependencies": {
       "type": ["array", "null"],
-      "description": "Write here the application ids for the *direct* dependencies.\nif \"A\" depends on \"B\" and \"B\" on \"C\", you can just write \"B\" as the \"A\" dependency.\nYou can also write \"C\" and it will still work, but it is not necessary. Only direct dependencies are needed.",
+      "description": "Write here the application ids for the *direct* dependencies.\nif \"A\" depends on \"B\" and \"B\" on \"C\", you can just write \"B\" as the \"A\" dependency.\nYou can also write \"C\" and it will still work, but it is not necessary. Only direct dependencies are needed.\nIf this is an application and you want it to depend in all the installed components, you can write 'all.installed.components' here instead of listing them.",
       "items": {
         "type": "object",
         "patternProperties": {

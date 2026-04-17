@@ -43,6 +43,10 @@ type
     function GetIDEs(const Project: TProjectDefinition): TIDENameArray;
     function FolderInPackageFolder(const ProjectNaming, StartFolder: string;
       const PackageFolders: TPackageFolders): boolean;
+    procedure AddAllInstalledComponents(const Projects: TProjectDefinitionList;
+      const Project: TProjectDefinition; const depIndex: integer);
+    procedure SolveAllInstalledComponents(
+      const Projects: TProjectDefinitionList);
 
   public
     constructor Create(const aConfig: TConfigDefinition; const aProjectList: TProjectList; const aFileHasher: TFileHasher);
@@ -133,6 +137,34 @@ begin
   end;
 end;
 
+procedure TProjectAnalyzer.AddAllInstalledComponents(const Projects: TProjectDefinitionList; const Project: TProjectDefinition; const depIndex: integer);
+begin
+  Project.Dependencies.Delete(depIndex);
+  for var Component in Projects do
+  begin
+    if Component.IsExe then continue;
+    if Component = Project then continue; //not really needed since Project is exe, so it will continue in previous line. But just in case someday we expand this to components too.
+    Project.Dependencies.Add(TDependency.Create(Component.Application.Id, Component.Application.Name));
+  end;
+end;
+
+procedure TProjectAnalyzer.SolveAllInstalledComponents(
+  const Projects: TProjectDefinitionList);
+begin
+  for var Project in Projects do
+  begin
+    for var i := Project.Dependencies.Count - 1 downto 0 do
+    begin
+      var dep := Project.Dependencies[i];
+      if (dep.Id = 'all.installed.components') and Project.IsExe then
+      begin
+        AddAllInstalledComponents(Projects, Project, i);
+        continue;
+      end;
+    end;
+  end;
+end;
+
 procedure TProjectAnalyzer.CheckAllDependenciesExist(
   const Projects: TProjectDefinitionList);
 begin
@@ -144,7 +176,7 @@ begin
     begin
       if not Project.IncludeInBuild then continue;
       for var dep in Project.Dependencies do
-      begin
+        begin
         if not Map.ContainsKey(dep.Id) then
         begin
           raise Exception.Create('The product "' + Project.Application.Name + '" requires the product "' + dep.Description + '" to build, and it isn''t present. Add product "' + dep.Id + '" to the list of installed products.' );
@@ -161,6 +193,7 @@ end;
 procedure TProjectAnalyzer.Analyze(const Projects: TProjectDefinitionList);
 begin
   Validate(Projects);
+  SolveAllInstalledComponents(Projects);
   AnalyzeProjectsToInclude(Projects);
   CheckAllDependenciesExist(Projects);
   for var Project in Projects do Project.NeedsCompiling.Clear;

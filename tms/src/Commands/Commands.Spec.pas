@@ -472,6 +472,30 @@ begin
   end;
 end;
 
+procedure DoDependencies(const Product: TProjectDefinition; const PackageManager: TPackageManager);
+begin
+  if (PackageManager.Exes.Count > 0) then
+  begin
+    var AllDeps := QuestionChoose('Depend in all installed components?', 'If you say "y", then the application will depend in all installed components and won''t start building until all of them are built. If you choose "n", then you will need to manually specify the dependencies for the app.', 'y', ['y', 'n']);
+    if AllDeps <> 'n' then
+    begin
+      Product.Dependencies.Add(TDependency.Create('all.installed.components', 'all installed components'));
+      exit;
+    end;
+
+  end;
+
+  var DepMsg := 'Enter a product id that this product depends on. You only need to write direct dependencies.';
+  while (True) do
+  begin
+    var Dep := Question('Dependency (leave empty if no more)', DepMsg);
+    if Dep.Trim = '' then break;
+    DepMsg := '';
+    Product.Dependencies.Add(TDependency.Create(Dep.Trim, Dep.Trim));
+  end;
+
+end;
+
 procedure AskQuestions(const Product: TProjectDefinition; const PackageManager: TPackageManager);
 begin
   Product.Application.Id := Question('Id for the product',
@@ -509,15 +533,7 @@ begin
     SetPackageOptions(Product, PackageManager);
   end;
 
-
-  var DepMsg := 'Enter a product id that this product depends on. You only need to write direct dependencies.';
-  while (True) do
-  begin
-    var Dep := Question('Dependency (leave empty if no more)', DepMsg);
-    if Dep.Trim = '' then break;
-    DepMsg := '';
-    Product.Dependencies.Add(TDependency.Create(Dep.Trim, Dep.Trim));
-  end;
+  DoDependencies(Product, PackageManager);
 end;
 
 procedure VerifyWeCanSave(const FileName: string);
