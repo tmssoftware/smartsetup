@@ -32,7 +32,7 @@ uses
   Testing.Globals,
   Deget.IDEUtils;
 
-function GetLibraryPaths(const RootFolder: string; const ExtraPaths: TCompilerPaths; const Plat: TPlatform): string;
+function GetDependencyLibraryPaths(const RootFolder: string; const ExtraPaths: TCompilerPaths; const Plat: TPlatform): string;
 begin
   var Paths := TCompilerPathsPerPlatform.Create;
   try
@@ -40,12 +40,14 @@ begin
     begin
       Paths.LibraryPathsBuildAndRegister.Add(TProjectBuildInfo.GetPlatformPaths(RootFolder, ex));
     end;
-    for var ex in ExtraPaths.LibraryPathsBuildOnly do
-    begin
-      Paths.LibraryPathsBuildOnly.Add(TProjectBuildInfo.GetPlatformPaths(RootFolder, ex));
-    end;
 
-    Result := Paths.GetLibraryPaths(Plat, true);
+    //We add the LibraryPathsBuildOnly only for the root project, not for deps
+    //  for var ex in ExtraPaths.LibraryPathsBuildOnly do
+    //  begin
+    //    Paths.LibraryPathsBuildOnly.Add(TProjectBuildInfo.GetPlatformPaths(RootFolder, ex));
+    //  end;
+
+    Result := Paths.GetLibraryPaths(Plat, false);
   finally
     Paths.Free;
   end;
@@ -162,7 +164,7 @@ begin
     if PlatformInfo.PlatType in [Linux64, macOS64Intel] then
       ExtraPath := AddPaths(ExtraPath, TPath.GetDirectoryName(DepPackInfo.BinaryPackageFileName(DepBuildConfig)));
 
-    ExtraPath := AddPaths(ExtraPath, GetLibraryPaths(Project.RootFolder, Project.ExtraPaths, PlatformInfo.PlatType));
+    ExtraPath := AddPaths(ExtraPath, GetDependencyLibraryPaths(Project.RootFolder, Project.ExtraPaths, PlatformInfo.PlatType));
 
   end;
 
