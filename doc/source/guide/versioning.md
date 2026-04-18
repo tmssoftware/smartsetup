@@ -180,14 +180,43 @@ It will unregister all the other components, and register Project2.
 
 A final option you have is to install the components in a different Registry branch, and start Delphi with bds /r:registry branch. This allows you to have as many different Delphi installs as you want for different projects, without the overhead of a virtual machine.
 
+The idea is to keep one SmartSetup install per "profile" you need, each one installing to its own registry branch. For example:
+
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 25, "rankSpacing": 35}}}%%
+graph LR
+    Root["c:\tms"] --> Dev["Development/<br/>tms.config.yaml<br/>alternate registry key: Development"]
+    Root --> Test["Test/<br/>tms.config.yaml<br/>alternate registry key: Test"]
+    Root --> Old["OldProject/<br/>tms.config.yaml<br/>alternate registry key: OldProject"]
+
+    Dev -. "bds.exe /r:Development" .-> DevIDE["Delphi (Development)<br/>latest components"]
+    Test -. "bds.exe /r:Test" .-> TestIDE["Delphi (Test)<br/>release-candidate components"]
+    Old -. "bds.exe /r:OldProject" .-> OldIDE["Delphi (OldProject)<br/>MyAwesomeComponent 1.0"]
+```
+
+Each folder under `c:\tms` contains its own independent SmartSetup install — its own `tms.config.yaml`, its own set of components and versions, its own snapshot — and each one registers into a different Delphi registry branch. Set that up in each folder with:
+
+```shell
+tms config-write -p:"tms smart setup options:alternate registry key=Development"
+```
+(replacing `Development` with the profile name for that folder).
+
+From that point on, the Delphi instance you launch is what decides which profile you are working with. To develop `OldProject`, you start Delphi with `bds.exe /r:OldProject` and it will see exactly the components installed in `c:\tms\OldProject`. Launch another Delphi at the same time with `bds.exe /r:Test` and you will get a second IDE running side-by-side with the components installed in `c:\tms\Test`, with no interference between the two. You don't need to register or unregister anything when you switch — each Delphi just reads from its own registry branch.
+
+{{#Tip}}
+Give each profile a distinct editor theme so you can tell at a glance which Delphi window is which.
+{{/Tip}}
+
   * (+) Scales very well; you can define as many Delphi configurations as you want or need. You might even configure each Delphi version differently, for example using a different theme, so it is instantly clear what version you are using.
   * (+) No overhead. You have a single Delphi installed in a single OS.
   * (+) You can have different Delphi instances with different component versions running at the same time, with zero issues.
   * (-) Some components not in Smart Setup might not allow you to install them in an alternate registry key. As long as you stay in the Smart Setup ecosystem there should be no problems, but if you try to install other third parties with different setups, they might not play well with installing in a different registry key.
 
-To install in a different Registry branch, just edit the config file by typing `tms config` and modify the setting "alternate registry key". You might also write `tms config-write -p:"tms smart setup options:alternate registry key=some-key"`.
-To start the IDE using that registry key, start bds.exe using the /r parameter. You can find more information here: https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
 
-We provide a tool, MultIDE, that makes it simpler to manage multiple Delphi instances in different registry keys. You can download it from https://github.com/agallero/multide
+We provide a tool, MultIDE, that makes it simpler to manage multiple Delphi instances in different registry keys. You pin it to the task bar, and you can easily start different Delphi environments in different registry keys, just by selecting from a list. 
+
+{{#image}}multide-main-screen.png{{/image}}
+
+Download it from https://github.com/agallero/multide
 
 
