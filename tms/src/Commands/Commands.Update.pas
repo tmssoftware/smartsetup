@@ -39,7 +39,8 @@ begin
     'You can optionally specify the ids of the products to be updated. '+
     'If no product id is provided, it will update all installed products.' + sLineBreak +
     'If you specify the id of a product that is not installed, an error will be raised.' + sLineBreak +
-    '''tms update'' downloads and installs the products. Calling ''tms update'' is the same as calling ''tms fetch'' and then ''tms build''.' + sLineBreak,
+    '''tms update'' downloads and installs the products. Calling ''tms update'' is the same as calling ''tms fetch'' and then ''tms build''.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-update.html',
     'update [<product-ids>] [options]');
 
   cmd.Examples.Add('update');

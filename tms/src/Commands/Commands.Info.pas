@@ -68,7 +68,7 @@ end;
 procedure RegisterInfoCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('info', '', 'display information about current folder and tms itself',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-info.html',
     'info');
 
   var option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',

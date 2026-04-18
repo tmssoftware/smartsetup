@@ -53,7 +53,8 @@ begin
   var cmd := TOptionsRegistry.RegisterCommand('doctor', '', 'Checks and optionally fixes common problems in your Delphi installation.',
     'Checks for common problems in your Delphi installation. ' +
     'By default this command will not modify anything in your system, unless you pass a -fix parameter. If you pass a -fix parameter, it will ' +
-    'still ask for confirmation for every change, unless you pass a -do-not-confirm parameter',
+    'still ask for confirmation for every change, unless you pass a -do-not-confirm parameter' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-doctor.html',
     'doctor [<options>]');
 
   var optionFix := cmd.RegisterOption<Boolean>('fix', '', 'Tries to fix the issues identified by the checks. It will ask you for confirmation before applying any check, unless you also specify -do-not-confirm.',

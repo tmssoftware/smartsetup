@@ -32,7 +32,8 @@ begin
   Print := False;
   AsText := False;
   var cmd := TOptionsRegistry.RegisterCommand('log-view', '', 'Opens the log file in the default viewer.',
-    'Opens the log file in the default viewer. Depending on the options it can the the html log or the text log.',
+    'Opens the log file in the default viewer. Depending on the options it can the the html log or the text log.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-log-view.html',
     'log-view [<options>]');
 
   var optionPrint := cmd.RegisterOption<Boolean>('print', '', 'Writes the log filename to the screen and do not open the log file',

@@ -38,7 +38,8 @@ end;
 procedure RegisterInstallCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('install', '', 'Installs the specified product(s)',
-    'Downloads all the specified products to the local computer, builds the packages and registers them in the IDEs.',
+    'Downloads all the specified products to the local computer, builds the packages and registers them in the IDEs.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-install.html',
     'install <product-ids>');
   cmd.Examples.Add('install tms.biz.*');
   cmd.Examples.Add('install tms.biz.aurelius tms.fnc.maps');

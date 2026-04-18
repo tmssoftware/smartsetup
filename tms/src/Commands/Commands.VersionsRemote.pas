@@ -143,7 +143,7 @@ end;
 procedure RegisterVersionsRemoteCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('versions-remote', '', 'List installable versions of a product',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-versions-remote.html',
     'versions-remote <product-id>');
 
   RegisterRepoOption(cmd);

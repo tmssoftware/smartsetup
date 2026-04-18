@@ -90,7 +90,8 @@ end;
 procedure RegisterUninstallCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('uninstall', '', 'uninstalls the specified product(s)',
-    'Uninstall removes the product(s) files from the disk and then perform a build to unregister the removed products from the IDEs.',
+    'Uninstall removes the product(s) files from the disk and then perform a build to unregister the removed products from the IDEs.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-uninstall.html',
     'uninstall <product-ids>');
   cmd.Examples.Add('uninstall tms.biz.aurelius');
   cmd.Examples.Add('uninstall tms.biz.aurelius tms.fnc.maps -cascade');

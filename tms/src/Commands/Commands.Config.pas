@@ -58,7 +58,8 @@ begin
   Reset := False;
   var cmd := TOptionsRegistry.RegisterCommand('config', '', 'Opens the config file in the default editor for yaml files',
     'Opens the config file in the default editor for yaml files, so you can configure it.' +
-    ' If the config file doesn''t exist, this command will create a new standard configuration file and then open it.',
+    ' If the config file doesn''t exist, this command will create a new standard configuration file and then open it.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-config.html',
     'config [<options>]');
 
   var optionPrint := cmd.RegisterOption<Boolean>('print', '', 'Writes the config filename to the screen and do not open config file',

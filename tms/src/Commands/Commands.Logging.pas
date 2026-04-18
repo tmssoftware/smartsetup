@@ -98,7 +98,7 @@ begin
         LogZipFileName := ZipLogLocation(TPath.GetDirectoryName(LogFile));
 
       if TFile.Exists(LogZipFileName) then
-        WriteLn('There were errors. If you need to contact support, please attach the logs at "'
+        WriteLn('There were errors. For troubleshooting, check https://doc.tmssoftware.com/smartsetup/guide/troubleshooting.html. Logs generated at "'
            + LogZipFileName + '".')
       else
         WriteLn('There were errors. No log files generated.');

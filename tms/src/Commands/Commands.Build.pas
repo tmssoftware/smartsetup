@@ -27,7 +27,8 @@ begin
     'will be rebuilt. Missing/removed products will be unregistered.'  + sLineBreak +
     'You can optionally specify the ids of the products to be built. '+
     'If no product id is provided, it will build all installed products.' + sLineBreak +
-    '''tms build'' does the "install" part of ''tms update''. Calling ''tms update'' is the same as calling ''tms fetch'' and then ''tms build''.' + sLineBreak,
+    '''tms build'' does the "install" part of ''tms update''. Calling ''tms update'' is the same as calling ''tms fetch'' and then ''tms build''.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-build.html',
     'build [<product-ids] [options]');
 
   var option := cmd.RegisterUnNamedOption<string>('the ids of the products to be built, optional', 'product-ids',

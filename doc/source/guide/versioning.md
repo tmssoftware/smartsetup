@@ -73,7 +73,7 @@ In many cases, you will have a set of components with specific versions that you
 
 ### Creating a snapshot
 A snapshot can be created in two ways:
-   * Manually, by issuing a [tms snapshot](xref:SmartSetup.Commands.Snapshot) command.
+   * Manually, by issuing a [tms snapshot](xref:SmartSetup.Command.Snapshot) command.
    * Automatically, by editing [the configuration file](xref:SmartSetup.Configuration) or by writing `tms config-write -p:"tms smart setup options:auto snapshot filenames = [tms.snapshot.yaml]"`
 
 Use the manual approach if you want to retain control of when the snapshots are updated. When you update your components to their newer versions, you take a new snapshot. Use the automatic snapshot method so the snapshot is always updated when you update components, and so you can't forget to do it manually. When automatic, the snapshot will always reflect what you have installed.

@@ -192,7 +192,7 @@ end;
 procedure RegisterVersionCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('version', '', 'prints current version of tms utility',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-version.html',
     '');
 
   AddCommand(cmd.Name, CommandGroups.Self, procedure

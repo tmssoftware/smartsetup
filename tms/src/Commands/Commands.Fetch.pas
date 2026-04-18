@@ -30,7 +30,8 @@ begin
     'You can optionally specify the ids of the products to be downloaded. '+
     'If no product id is provided, it will download all newer versions of the installed products.' + sLineBreak +
     'If you specify the id of a product that is not installed, it will download it.' + sLineBreak +
-    '''tms fetch'' does the "download" part of tms update. Calling ''tms update'' is the same as calling ''tms fetch'' and then ''tms build''.' + sLineBreak,
+    '''tms fetch'' does the "download" part of tms update. Calling ''tms update'' is the same as calling ''tms fetch'' and then ''tms build''.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-fetch.html',
     'fetch [<product-ids>] [options]');
 
   cmd.Examples.Add('fetch');

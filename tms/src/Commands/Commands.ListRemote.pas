@@ -158,7 +158,7 @@ end;
 procedure RegisterListRemoteCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('list-remote', '', 'list products in remote repository available to be installed',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-list-remote.html',
     'list-remote');
 
   RegisterRepoOption(cmd);

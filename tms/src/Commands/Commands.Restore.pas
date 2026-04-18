@@ -128,7 +128,7 @@ end;
 procedure RegisterRestoreCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('restore', '', 'restore a list of components from a snapshot file.',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-restore.html',
     'restore [filename] <-auto-register/-skip-register> [-latest] [-nobuild] [-include:...] [-exclude:...]');
 
   cmd.Examples.Add('restore -auto-register');

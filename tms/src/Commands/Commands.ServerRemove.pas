@@ -31,7 +31,8 @@ end;
 procedure RegisterServerRemoveCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('server-remove', '', 'Removes an existing server from the configuration.',
-    'This command alters the tms.config.yaml file to remove an exsting server. If the server doesn''t exist, it will return an error.',
+    'This command alters the tms.config.yaml file to remove an exsting server. If the server doesn''t exist, it will return an error.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-server-remove.html',
     'server-remove <name>');
   cmd.Examples.Add('server-remove myserver');
 

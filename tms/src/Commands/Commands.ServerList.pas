@@ -67,7 +67,8 @@ end;
 procedure RegisterServerListCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('server-list', '', 'List the servers available to smartsetup.',
-    'Provides a list of the servers registered in tms.config.yaml',
+    'Provides a list of the servers registered in tms.config.yaml' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-server-list.html',
     'server-list <name> [-json]');
   cmd.Examples.Add('server-list -json');
 

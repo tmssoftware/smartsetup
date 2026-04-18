@@ -128,7 +128,7 @@ end;
 procedure RegisterListCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('list', '', 'list installed products',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-list.html',
     'list');
 
   var option := cmd.RegisterOption<Boolean>('log', '', 'enable logging for this command',

@@ -71,7 +71,8 @@ end;
 procedure RegisterPinCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('pin', '', 'Keeps the specified products at their current versions',
-    'You can use this command to keep a specific product at a specific version, and not update when you do `tms update`.',
+    'You can use this command to keep a specific product at a specific version, and not update when you do `tms update`.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-pin.html',
     'pin [<product-ids>]');
 
   cmd.Examples.Add('pin tms.biz.*');
@@ -92,7 +93,8 @@ end;
 procedure RegisterUnpinCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('unpin', '', 'Removes the pin for the specified products',
-    'If you''ve previously pinned a product with `tms pin`, you can unpin it with this command.',
+    'If you''ve previously pinned a product with `tms pin`, you can unpin it with this command.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-unpin.html',
     'unpin [<product-ids>]');
 
 

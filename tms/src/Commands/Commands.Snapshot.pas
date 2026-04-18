@@ -38,7 +38,7 @@ end;
 procedure RegisterSnapshotCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('snapshot', '', 'save a list of the current products and versions to a file, so they can be recovered with tms restore.',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-snapshot.html',
     'snapshot <filename>');
 
   cmd.Examples.Add('snapshot c:\test\tms.snapshot.yaml');

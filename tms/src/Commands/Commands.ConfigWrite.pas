@@ -25,7 +25,8 @@ end;
 procedure RegisterConfigWriteCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('config-write', '', 'Saves a configuration to smart-setup configuration file.',
-    'Use the -p parameter to change the properties before saving them. IMPORTANT: This command will reformat the config file and remove any manually entered comments.',
+    'Use the -p parameter to change the properties before saving them. IMPORTANT: This command will reformat the config file and remove any manually entered comments.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-config-write.html',
     'config-write [<options>]');
   cmd.Examples.Add('config-write -p:configuration-for-all-products:delphi-versions=[delphixe,delphi12] -p:configuration-for-all-products:platforms=[win32intel,win64intel]');
   cmd.Examples.Add('config-write -p:tms-smart-setup-options:git:git-location=c:\git.exe');

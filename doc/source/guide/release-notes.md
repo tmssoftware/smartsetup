@@ -4,7 +4,7 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
-## Version 3.3
+## Version 3.3 (April, 2026)
 
 - **Improved**: Usage in CI environments or building by command line. 
    - A new "all.included.components" special dependency was added so your own projects can now depend on every installed component, instead of you having to specify your project dependencies by hand. [tms spec](xref:SmartSetup.Command.Spec) will suggest "all.included.components" by default when creating tmsbuild.yaml files for your own projects
@@ -14,7 +14,7 @@ uid: SmartSetup.ReleaseNotes
 
 - **Fixed**: The [build-only library paths](xref:SmartSetup.CreatingBundles#paths-section) wasn't working properly. When trying to compile another project that depended on a component with a build-only path, the build-only path would also be passed to that project, resulting in duplicated dcus.
 
-## Version 3.2
+## Version 3.2 (April, 2026)
 
 - **New**: SBOM generation support. There is a new `tms sbom-generate` command that can generate CycloneDX SBOMs for the installed components
 
@@ -28,7 +28,7 @@ uid: SmartSetup.ReleaseNotes
 
 - **Improved**: Added a new "Reference" section in our documentation where we explain every command in detail. Also added guides about how to use versioning and how to use SmartSetup in a Continuous Integration environment.
 
-## Version 3.1
+## Version 3.1 (March, 2026)
 
 - **New**: Support for the Windows on ARM EC (WinARM64EC) platform in Delphi 13.1
 
@@ -39,7 +39,7 @@ uid: SmartSetup.ReleaseNotes
 - **Improved**: Better support for building modern C++ applications. The newest C++ releases have some differences in precompiled headers and other areas and weren't compiled properly.
 
 
-## Version 3.0
+## Version 3.0 (March, 2026)
 
 - **New**: [Versioning](xref:SmartSetup.Versioning) support. You can now install any available version of any product
 
@@ -61,7 +61,7 @@ uid: SmartSetup.ReleaseNotes
 
 - **New**: new `tms spec` command allows to create tmsbuild.yaml file for new products that you want to add to smartsetup.
 
-- **New**: New -cmd parameter in tms `config-write` shows the parameters in the [syntax you need to use when using the -p parameter](xref:SmartSetup.CommandLineUsage#-p-command-to-pass-a-configuration-to-tms).
+- **New**: New -cmd parameter in tms `config-write` shows the parameters in the [syntax you need to use when using the -p parameter](xref:SmartSetup.ContinuousIntegration#-p-command-to-pass-a-configuration-to-tms).
 
 - **New**: There is a global parameter `-add-config:<config-file-name>` that you can use to override the properties set in tms.config.yaml.
 

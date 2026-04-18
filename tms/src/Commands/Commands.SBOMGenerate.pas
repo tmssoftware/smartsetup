@@ -66,7 +66,7 @@ end;
 procedure RegisterSBOMGenerateCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('sbom-generate', '', 'Generates a CycloneDX SBOM (.cdx.json) for selected products. By default, it won''t override existing sbom files.',
-    '',
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-sbom-generate.html',
     'sbom-generate <product-ids> [-force]');
 
   cmd.Examples.Add('sbom-generate *');

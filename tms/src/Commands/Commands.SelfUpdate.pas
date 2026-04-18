@@ -140,7 +140,8 @@ end;
 procedure RegisterSelfUpdateCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('self-update', '', 'Updates tms smart setup to the latest version',
-    'Checks if there is a new tms smart setup version available, and if there is, downloads it and installs it',
+    'Checks if there is a new tms smart setup version available, and if there is, downloads it and installs it' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-self-update.html',
     'self-update');
 
   RegisterNoFetchOption(cmd,

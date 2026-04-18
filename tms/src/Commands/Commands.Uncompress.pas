@@ -49,7 +49,8 @@ end;
 procedure RegisterUncompressCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('uncompress', '', 'Uncompresses a specific bundle',
-    'Uncompresses a smart setup bundle into a folder of your choosing, inside a folder with the product id. You can run tms build after that to build and register the bundle.',
+    'Uncompresses a smart setup bundle into a folder of your choosing, inside a folder with the product id. You can run tms build after that to build and register the bundle.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-uncompress.html',
     'uncompress <bundle-filenames> <target-folder>');
   cmd.Examples.Add('uncompress c:\bundles\tms.biz.* c:\tms\Products\');
 

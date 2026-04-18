@@ -35,7 +35,8 @@ end;
 procedure RegisterServerEnableCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('server-enable', '', 'Enables or disables an existing server to download libraries.',
-    'This command alters the tms.config.yaml file to enable/disable the given server, if it exists.',
+    'This command alters the tms.config.yaml file to enable/disable the given server, if it exists.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-server-enable.html',
     'server-enable <name> [enable]');
   cmd.Examples.Add('server-enable community');
   cmd.Examples.Add('server-enable community false');

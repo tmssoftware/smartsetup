@@ -25,7 +25,8 @@ end;
 procedure RegisterConfigReadCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('config-read', '', 'Reads one setting from the smart-setup configuration file.',
-    'The output of the command is the value of the variable if it has any set value.',
+    'The output of the command is the value of the variable if it has any set value.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-config-read.html',
     'config-read <variable-name>');
 
   cmd.Examples.Add('config-read tms-smart-setup-options:git:git-location');

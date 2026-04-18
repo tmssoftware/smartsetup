@@ -176,7 +176,8 @@ end;
 procedure RegisterCredentialsCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('credentials', '', 'set the credentials to access remote repository',
-    'This command asks and updates your credentials to access the remote repository',
+    'This command asks and updates your credentials to access the remote repository' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-credentials.html',
     '');
 
   RegisterRepoOption(cmd);

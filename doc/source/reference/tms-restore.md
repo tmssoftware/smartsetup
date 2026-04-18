@@ -66,7 +66,7 @@ tms restore -skip-register -exclude:tms.biz.* -exclude:example.test.*
 
 ## See Also
 
-- [Versioning](xref:SmartSetup.Versioning#Snapshots)
+- [Versioning](xref:SmartSetup.Versioning#snapshots)
 - [tms snapshot](xref:SmartSetup.Command.Snapshot)
 - [tms install](xref:SmartSetup.Command.Install)
 - [tms pin](xref:SmartSetup.Command.Pin)

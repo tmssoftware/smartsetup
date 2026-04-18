@@ -590,7 +590,8 @@ procedure RegisterSpecCommand;
 begin
   Interactive := true;
   var cmd := TOptionsRegistry.RegisterCommand('spec', '', 'Creates a new tmsbuild.yaml file for a new product',
-    'Creates a new tmsbuild file that can be used to adapt an existing product to be used with smartsetup.',
+    'Creates a new tmsbuild file that can be used to adapt an existing product to be used with smartsetup.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-spec.html',
     'spec [<options>]');
 
   var optionNonInteractive := cmd.RegisterOption<Boolean>('non-interactive', '', 'Creates a default file and doesn''t prompt for information. You will have to manually edit the file later, or provide the values with `-s:` parameters.',

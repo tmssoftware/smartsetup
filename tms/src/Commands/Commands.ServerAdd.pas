@@ -33,7 +33,8 @@ end;
 procedure RegisterServerAddCommand;
 begin
   var cmd := TOptionsRegistry.RegisterCommand('server-add', '', 'Adds a new server to download libraries.',
-    'This command alters the tms.config.yaml file to add a new server. If the server already exists, it will return an error.',
+    'This command alters the tms.config.yaml file to add a new server. If the server already exists, it will return an error.' + sLineBreak +
+    'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-server-add.html',
     'server-add <name> <type> <url> [enable]');
   cmd.Examples.Add('server-add myserver zipfile https://myurl');
   cmd.Examples.Add('server-add myserver zipfile file://c:\myzip.zip');
