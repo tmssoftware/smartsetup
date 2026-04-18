@@ -1,0 +1,28 @@
+# =====================================================================================================
+# TMS Smart Setup configuration file for product my.comp
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+# =====================================================================================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.2
+
+# General information about the product.
+application:
+  id: my.comp
+  name: my.comp
+
+# Frameworks are just a group of supported IDEs and platforms. You can define as much as you want with any name you desire, and then combine them to specify what platforms and IDEs the packages support.
+supported frameworks:
+  rtl:
+    ide since: delphi12
+    platforms:
+      - win32intel
+    c++ builder support: true
+
+# List of packages in the library. Each package must have a unique name, and must be listed only once.
+packages:
+  - mycomp: [runtime,rtl]
+
+paths:
+  build-only library paths:
+    - source-extra
