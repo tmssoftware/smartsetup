@@ -1,0 +1,32 @@
+# =====================================================================================================
+# TMS Smart Setup configuration file for product Acme MyApp
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+# =====================================================================================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.2
+
+# General information about the product.
+application:
+  id: acme.myapp
+  name: Acme MyApp
+
+# Frameworks are just a group of supported IDEs and platforms. You can define as much as you want with any name you desire, and then combine them to specify what platforms and IDEs the packages support.
+supported frameworks:
+  vcl:
+    ide since: delphi13
+    platforms:
+      - win32intel
+      - win64intel
+      - winarm64ec
+
+# List of packages in the library. Each package must have a unique name, and must be listed only once.
+packages:
+  - MyApp: [exe,vcl]
+
+# Write here the application ids for the *direct* dependencies.
+# if "A" depends on "B" and "B" on "C", you can just write "B" as the "A" dependency.
+# You can also write "C" and it will still work, but it is not necessary. Only direct dependencies are needed.
+# If this is an application and you want it to depend in all the installed components, you can write 'all.installed.components' here instead of listing them.
+dependencies:
+  - all.installed.components: all installed components

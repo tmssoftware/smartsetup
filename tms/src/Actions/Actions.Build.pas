@@ -166,6 +166,7 @@ begin
       end;
 
       TProjectLoader.LoadProjects(Config.GetAllRootFolders, Projs);
+      Projs.SolveAllInstalledComponents;
 
       Projs.ResolveDependencies;
 

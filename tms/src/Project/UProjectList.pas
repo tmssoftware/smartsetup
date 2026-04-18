@@ -11,6 +11,8 @@ type
       MaxNestedDeps = 30;
     procedure AddDepsToMap(const Map: TDictionary<string, TProjectDefinition>;
       const Uninstall: TList<TProjectDefinition>);
+    procedure AddAllInstalledComponents(const Projects: TProjectDefinitionList;
+      const Project: TProjectDefinition; const depIndex: integer);
     var
       FList: TObjectList<TProjectDefinition>;
       FResolved: TProjectDefinitionList;
@@ -24,6 +26,7 @@ type
 
     procedure Add(const Project: TProjectDefinition);
     function LastUnresolved: TProjectDefinition;
+    procedure SolveAllInstalledComponents;
     procedure ResolveDependencies;
 
     property Resolved: TProjectDefinitionList read FResolved;
@@ -122,6 +125,34 @@ begin
     Map.Free;
   end;
 end;
+
+procedure TProjectList.AddAllInstalledComponents(const Projects: TProjectDefinitionList; const Project: TProjectDefinition; const depIndex: integer);
+begin
+  Project.Dependencies.Delete(depIndex);
+  for var Component in Projects do
+  begin
+    if Component.IsExe then continue;
+    if Component = Project then continue; //not really needed since Project is exe, so it will continue in previous line. But just in case someday we expand this to components too.
+    Project.Dependencies.Add(TDependency.Create(Component.Application.Id, Component.Application.Name));
+  end;
+end;
+
+procedure TProjectList.SolveAllInstalledComponents;
+begin
+  for var Project in FList do
+  begin
+    for var i := Project.Dependencies.Count - 1 downto 0 do
+    begin
+      var dep := Project.Dependencies[i];
+      if (dep.Id = 'all.installed.components') and Project.IsExe then
+      begin
+        AddAllInstalledComponents(FList, Project, i);
+        continue;
+      end;
+    end;
+  end;
+end;
+
 
 procedure TProjectList.ResolveDependencies;
 var
