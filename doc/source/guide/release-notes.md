@@ -4,6 +4,16 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
+## Version 3.3
+
+- **Improved**: Usage in CI environments or building by command line. 
+   - A new "all.included.components" special dependency was added so your own projects can now depend on every installed component, instead of you having to specify your project dependencies by hand. [tms spec](xref:SmartSetup.Command.Spec) will suggest "all.included.components" by default when creating tmsbuild.yaml files for your own projects
+   - There is a [new document showing how to use Smart Setup in CI/Automated environments](xref:SmartSetup.ContinuousIntegration)
+
+- **Fixed**: The "working folder" option in tms.config.yaml worked only if the working folder was outside the root folder where tms.config.yaml is. Now it can also be a folder inside the root folder
+
+- **Fixed**: The [build-only library paths](xref:SmartSetup.CreatingBundles#paths-section) wasn't working properly. When trying to compile another project that depended on a component with a build-only path, the build-only path would also be passed to that project, resulting in duplicated dcus.
+
 ## Version 3.2
 
 - **New**: SBOM generation support. There is a new `tms sbom-generate` command that can generate CycloneDX SBOMs for the installed components
