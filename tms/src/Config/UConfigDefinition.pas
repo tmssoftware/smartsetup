@@ -479,19 +479,8 @@ begin
   try
     var FullRoot := IncludeTrailingPathDelimiter(TPath.GetFullPath(Folders.RootFolder));
     var FullConf := IncludeTrailingPathDelimiter(TPath.GetFullPath(FConfigFolder));
-    if FullRoot.StartsWith(FullConf) then
-    begin
-      ResultList.Add(FullConf);
-    end
-    else if FullConf.StartsWith(FullRoot) then
-    begin
-      ResultList.Add(FullRoot);
-    end
-    else
-    begin
-      ResultList.Add(FullRoot);
-      ResultList.Add(FullConf);
-    end;
+    ResultList.Add(FullRoot);
+    if FullRoot <> FullConf then ResultList.Add(FullConf);
 
 
     for var root in AdditionalProductsFolders do

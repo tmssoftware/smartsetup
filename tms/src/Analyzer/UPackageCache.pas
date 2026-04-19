@@ -41,7 +41,7 @@ begin
   begin
     var AllFiles := TList<string>.Create;
     try
-      FindProjects(BasePath, ext, AllFiles, true);
+      FindProjects(BasePath, ext, AllFiles, true, nil);
       FileDict := TDictionary<string, TArray<string>>.Create;
       for var f in AllFiles do
       begin

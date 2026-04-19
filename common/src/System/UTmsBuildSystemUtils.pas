@@ -18,7 +18,7 @@ procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCa
     const Recursive: boolean; const ExcludeDefault: boolean = true);
 
 function CombinePath(const RootPath, RelPath: string): string;
-procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean);
+procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean; const AlreadyVisited: THashSet<string>);
 procedure LaunchFile(const FileName: string);
 function FindProcessUsing(const FileName: string): string;
 function GuidToStringN(const Guid: TGuid): String;
@@ -221,7 +221,7 @@ begin
 
 end;
 
-procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean);
+procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean; const AlreadyVisited: THashSet<string>);
 var
   F: SysUtils.TSearchRec;
 begin
@@ -241,7 +241,17 @@ begin
             if SameText('RELEASE', F.Name) then continue;   //Avoid searching in the binary folders.
             if SameText('DEBUG', F.Name) then continue;
             if SameText('Temp', F.Name) then continue;
-            if AllowMany then FindProjects(TPath.Combine(FilePath, F.Name), FileExt, Files, AllowMany)
+
+            var NextPath := TPath.Combine(FilePath, F.Name);
+            if (AlreadyVisited <> nil) then
+            begin
+              //avoid searching more than once a folder branch when there are many roots that might overlap.
+              var FullNextPath := TPath.GetFullPath(NextPath);
+              if (AlreadyVisited.Contains(FullNextPath)) then continue;
+              AlreadyVisited.Add(FullNextPath);
+            end;
+
+            if AllowMany then FindProjects(NextPath, FileExt, Files, AllowMany, AlreadyVisited)
             else ChildFolders.Add(F.Name);
           end else
           begin
@@ -262,7 +272,7 @@ begin
 
     if (FilesInFolder = 0) then //ChildFolders only has data when AllowMany is false. In that case, we don't keep searching in other folders if we found the file.
     begin
-      for var Folder in ChildFolders do FindProjects(TPath.Combine(FilePath, Folder), FileExt, Files, AllowMany);
+      for var Folder in ChildFolders do FindProjects(TPath.Combine(FilePath, Folder), FileExt, Files, AllowMany, AlreadyVisited);
     end;
 
   finally

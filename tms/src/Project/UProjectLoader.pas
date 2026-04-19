@@ -107,24 +107,30 @@ class procedure TProjectLoader.LoadProjects(const Roots: TArray<string>;
 begin
   Logger.StartSection(TMessageType.Load, 'Project loading');
   try
-    for var Filepath in Roots do
-    begin
-      if (Filepath = '') or not TDirectory.Exists(Filepath) then continue;
+    var AlreadyVisited := THashSet<string>.Create;
+    try
+      for var Filepath in Roots do
+      begin
+        if (Filepath = '') or not TDirectory.Exists(Filepath) then continue;
 
-      var files := TList<string>.Create;
-      try
-        FindProjects(Filepath, TMSBuildDefinitionFile, files, false);
-        for var i := 0 to files.Count - 1 do
-        begin
-          Projects.Add(TProjectDefinition.Create(files[i]));
-          Logger.Trace('Loading project ' + files[i]);
-          LoadIntoProject(files[i], Projects.LastUnresolved, aStopAt, aIgnoreOtherFiles, nil);
-          Logger.Trace('Loaded project ' + Projects.LastUnresolved.Application.Id);
+        var files := TList<string>.Create;
+        try
+          FindProjects(Filepath, TMSBuildDefinitionFile, files, false, AlreadyVisited);
+          for var i := 0 to files.Count - 1 do
+          begin
+            Projects.Add(TProjectDefinition.Create(files[i]));
+            Logger.Trace('Loading project ' + files[i]);
+            LoadIntoProject(files[i], Projects.LastUnresolved, aStopAt, aIgnoreOtherFiles, nil);
+            Logger.Trace('Loaded project ' + Projects.LastUnresolved.Application.Id);
+          end;
+        finally
+          files.Free;
         end;
-      finally
-        files.Free;
       end;
+    finally
+      AlreadyVisited.Free;
     end;
+
   except
     Logger.FinishSection(TMessageType.Load, true);
     raise;
