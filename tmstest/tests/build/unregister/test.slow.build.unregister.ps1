@@ -1,4 +1,6 @@
 # Check that we can unregister and re-register products without rebuilding them.
+# Note: This tests installs in the main registry key and makes a live change of the windows path. 
+# It is not nice, but we need to test that we modify the windows PATH somewhere. At the end, it should remove itself.
 
 $regkey = "tmstest\unregistering"
 
@@ -108,7 +110,7 @@ tmscredentials
 tms server-enable community true
 tms server-add testserver zipfile "file:///$($tmsTestRootDir.Replace('\', '/'))/tmp-run/test-repos/tmsbuild_test_repos.zip"
 
-Set-AlternateRegistryKey -RegKey $regkey -RegisterAllDelphiVersions $true
+#Set-AlternateRegistryKey -RegKey $regkey -RegisterAllDelphiVersions $true
 
 tms config-write -p:"configuration for all products:options:skip register=false"
 
@@ -174,4 +176,6 @@ Test-ProductRegistration -buildResult $buildResult -expectedRegisteredStatus ([R
 # finally unregister all again
 $buildResult = tms build -unregister
 Test-ProductRegistration -buildResult $buildResult -expectedRegisteredStatus ([ResultStatus]::Unregistered)
+
+uninstall_and_check(0)
 
