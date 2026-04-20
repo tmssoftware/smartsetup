@@ -30,7 +30,7 @@ type
   public
     class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
     class function GetProductFolder(const ProductId: string): string; static;
-    class function GetCurrentCommit(const ProductId: string): string; static;
+    class function GetCurrentCommit(const ProductId, ProductFolder: string): string; static;
   end;
 
 implementation
@@ -152,7 +152,7 @@ begin
     //But, if we do it in that order, and DoFetchProduct fails, you will end up with an empty folder with just tmsfetch.info inside.
     //So instead, we ensure DoFetchProduct either returns a full thing, or nothing. Then we save tmsfetch.info only if DoFetchFolder succeeded.
     var ProductVersion := Product.Version; if ProductVersion = '*' then ProductVersion := '';
-    if ProductVersion = '' then ProductVersion := GetCurrentCommit(Product.Product.ProductId);
+    if ProductVersion = '' then ProductVersion := GetCurrentCommit(Product.Product.ProductId, GetProductFolder(Product.Product.ProductId));
 
 
     //When we fetch a new product, pinned is false
@@ -260,13 +260,21 @@ begin
   end;
 end;
 
-class function TVCSManager.GetCurrentCommit(const ProductId: string): string;
+class function TVCSManager.GetCurrentCommit(const ProductId, ProductFolder: string): string;
 begin
   Result := '';
   for var Protocol := Low(TVCSProtocol) to High(TVCSProtocol) do
   begin
-    var Engine := TVCSFactory.Instance.GetEngine(Protocol);
-    Result := Engine.GetCommitId(GetProductFolder(ProductId), true);
+    try
+      var Engine := TVCSFactory.Instance.GetEngine(Protocol);
+      Result := Engine.GetCommitId(ProductFolder, true);
+    except on ex: Exception do
+    begin
+      Logger.Trace('Error reading commit version: ' + ex.Message);
+      Result := '';
+    end;
+
+    end;
     if Result <> '' then exit;
   end;
 end;

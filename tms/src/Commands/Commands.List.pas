@@ -27,8 +27,11 @@ begin
       var Item := TJSONObject.Create;
       Root.AddPair(Product.Id, Item);
 
-      Item.AddPair('version', Product.Version.Normalized);
-      Item.AddPair('version_type', Product.Version.VersionTypeId);
+      var Ver := Product.Version;
+      if Ver.ToString = '' then Ver := Product.InstalledVersion;
+
+      Item.AddPair('version', Ver.Normalized);
+      Item.AddPair('version_type', Ver.VersionTypeId);
       Item.AddPair('name', Product.Name);
       Item.AddPair('server', Product.Server);
       Item.AddPair('pinned', Product.Pinned);

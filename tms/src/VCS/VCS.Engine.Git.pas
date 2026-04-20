@@ -21,10 +21,11 @@ type
     procedure AttachHead(const aRootFolder, aGitFolder: string);
     function GetBestTag(const Tags: string): string;
     function LooksLikeVersion(Tag: string): boolean;
+    function GetGitCommandLine: string;
   public
     constructor Create(const aGitCommandLine, aCloneCommand, aPullCommand: string);
 
-    property GitCommandLine: string read FGitCommandLine;
+    property GitCommandLine: string read GetGitCommandLine;
     property CloneCommand: string read FCloneCommand;
     property PullCommand: string read FPullCommand;
 
@@ -51,8 +52,6 @@ constructor TGitEngine.Create(const aGitCommandLine, aCloneCommand, aPullCommand
 begin
   if aGitCommandLine.Trim = '' then FGitCommandLine := GetEnvCommandLine
   else FGitCommandLine := aGitCommandLine;
-
-  if FGitCommandLine.Trim = '' then raise Exception.Create('Can''t find a valid git.exe specified in tms.config.yaml or the Windows PATH. Make sure you have git installed and configured.');
 
   if aCloneCommand.Trim = '' then FCloneCommand := 'clone' else FCloneCommand := aCloneCommand;
   if aPullCommand.Trim = '' then FPullCommand := 'pull --all' else FPullCommand := aPullCommand;
@@ -84,6 +83,12 @@ begin
 
   Path := GetUserWindowsPath;
   Result := FindExeInPath(Path, GitExe);
+end;
+
+function TGitEngine.GetGitCommandLine: string;
+begin
+  if FGitCommandLine.Trim = '' then raise Exception.Create('Can''t find a valid git.exe specified in tms.config.yaml or the Windows PATH. Make sure you have git installed and configured.');
+  Result := FGitCommandLine;
 end;
 
 function TGitEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;

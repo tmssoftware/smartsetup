@@ -4,7 +4,7 @@ interface
 
 uses
   System.Generics.Collections, System.Generics.Defaults, System.SysUtils, Deget.Version, UConfigFolders, UProjectDefinition,
-  Deget.CoreTypes, UConfigDefinition, Fetching.InfoFile;
+  Deget.CoreTypes, UConfigDefinition, Fetching.InfoFile, IOUtils;
 
 type
   TPlatformStatus = class
@@ -63,7 +63,7 @@ type
     procedure LoadRemoteProducts;
     procedure LoadBuildableProducts;
     procedure UpdateProductStatus(Product: TProductStatus);
-    function GetInstalledVersion(const Version: TLenientVersion; const ProductId: string): TLenientVersion;
+    function GetInstalledVersion(const Version: TLenientVersion; const ProductId, ProductFolder: string): TLenientVersion;
   protected
     function FindProduct(const ProductId: string): TProductStatus;
   public
@@ -122,7 +122,7 @@ begin
       //Prefer the info in fetch.info.txt for products that come from github. Those will have likely the tmsbuild.yaml version empty or wrong.
       //We could also check if Proj.Application.Version = '' then... but the version in tmsbuild.yaml won't be at the commit level. Lots of commits would have the same version.
       if (Product.Version = '') and (Proj.Application.Version <> '') then Product.Version := TLenientVersion.Create(Proj.Application.Version, TVersionType.Semantic); //versions allowed in the yaml are semantic.
-      if Product.InstalledVersion = '' then Product.InstalledVersion := GetInstalledVersion(Product.Version, Product.Id);
+      if Product.InstalledVersion = '' then Product.InstalledVersion := GetInstalledVersion(Product.Version, Product.Id, TPath.GetDirectoryName(Proj.FullPath));
 
 
 
@@ -133,10 +133,10 @@ begin
   end;
 end;
 
-function TStatusManager.GetInstalledVersion(const Version: TLenientVersion; const ProductId: string): TLenientVersion;
+function TStatusManager.GetInstalledVersion(const Version: TLenientVersion; const ProductId, ProductFolder: string): TLenientVersion;
 begin
   if (Version <> '') and (Version <> '__latest') then exit(Version);
-  Result := TLenientVersion.Create(TVCSManager.GetCurrentCommit(ProductId), TVersionType.FreeForm);
+  Result := TLenientVersion.Create(TVCSManager.GetCurrentCommit(ProductId, ProductFolder), TVersionType.FreeForm);
 end;
 
 procedure TStatusManager.LoadRemoteProducts;
@@ -151,7 +151,7 @@ begin
       Product.Id := Item.ProductId;
       Product.Name := Item.DisplayName;
       Product.Version := Item.Version;
-      Product.InstalledVersion := GetInstalledVersion(Item.Version, Item.ProductId);
+      Product.InstalledVersion := GetInstalledVersion(Item.Version, Item.ProductId, TVCSManager.GetProductFolder(Item.ProductId));
       Product.Channel := Item.Channel;
       Product.Server := Item.Server;
       Product.Pinned := Item.Pinned;
@@ -223,6 +223,8 @@ end;
 function TProductStatus.DisplayName: string;
 begin
   var FullVersion := Version.Normalized;
+  if Version.ToString = '' then FullVersion := InstalledVersion.Normalized;
+
   if (Channel <> '') and not SameText(Channel, 'production') then
     FullVersion := FullVersion + '-' + Channel;
   Result := Format('%s (%s)', [Id, FullVersion]);

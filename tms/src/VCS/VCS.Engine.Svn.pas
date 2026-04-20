@@ -12,10 +12,11 @@ type
     FPullCommand: string;
 
     function GetEnvCommandLine: string;
+    function GetSvnCommandLine: string;
   public
     constructor Create(const aSvnCommandLine, aCloneCommand, aPullCommand: string);
 
-    property SvnCommandLine: string read FSvnCommandLine;
+    property SvnCommandLine: string read GetSvnCommandLine;
     property CloneCommand: string read FCloneCommand;
     procedure AfterClone(const aRootFolder, aCloneFolder: string);
 
@@ -41,8 +42,6 @@ constructor TSvnEngine.Create(const aSvnCommandLine, aCloneCommand, aPullCommand
 begin
   if aSvnCommandLine.Trim = '' then FSvnCommandLine := GetEnvCommandLine
   else FSvnCommandLine := aSvnCommandLine;
-
-  if FSvnCommandLine.Trim = '' then raise Exception.Create('Can''t find a valid svn.exe specified in tms.config.yaml or the Windows PATH. Make sure you have svn installed and configured.');
 
   if aCloneCommand.Trim = '' then FCloneCommand := 'checkout' else FCloneCommand := aCloneCommand;
   if aPullCommand.Trim = '' then FPullCommand := 'update' else FPullCommand := aPullCommand;
@@ -86,6 +85,12 @@ end;
 function TSvnEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
 begin
   Result := false;
+end;
+
+function TSvnEngine.GetSvnCommandLine: string;
+begin
+  if FSvnCommandLine.Trim = '' then raise Exception.Create('Can''t find a valid svn.exe specified in tms.config.yaml or the Windows PATH. Make sure you have svn installed and configured.');
+  Result := FSvnCommandLine;
 end;
 
 function TSvnEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
