@@ -13,3 +13,5 @@ Test-BuildResultCounts -BuildResult $BuildResult -expectedNotModifiedCount 0 -ex
 
 $BuildResult = tms build yankovsky.delphi.ast -full
 Test-BuildResultCounts -BuildResult $BuildResult -expectedNotModifiedCount 1 -expectedIgnoreCount 0 -expectedOkCount 2
+
+uninstall_and_check(1)
