@@ -47,6 +47,23 @@ begin
     end);
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-no-svn', '', 'It is really not possible to test that svn isn''t findable, because tms reads the path from the registry, and we can''t change the registry in a test. Chaning $PATH from the test won''t work',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.NoSVN := Value;
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-no-git', '', 'It is really not possible to test that git isn''t findable, because tms reads the path from the registry, and we can''t change the registry in a test. Chaning $PATH from the test won''t work',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.NoGit := Value;
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
 
 end;
 

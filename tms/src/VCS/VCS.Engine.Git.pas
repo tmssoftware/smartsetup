@@ -77,6 +77,9 @@ const
   GitExe = 'git';
 {$ENDIF}
 begin
+{$IFDEF DEBUG}
+  if TestParameters.NoGit then exit('');
+{$ENDIF}
   var Path := GetLocalMachineWindowsPath;
   Result := FindExeInPath(Path, GitExe);
   if Result <> '' then exit;

@@ -74,6 +74,10 @@ const
   SvnExe = 'svn';
 {$ENDIF}
 begin
+{$IFDEF DEBUG}
+  if TestParameters.NoSVN then exit('');
+{$ENDIF}
+
   var Path := GetLocalMachineWindowsPath;
   Result := FindExeInPath(Path, SvnExe);
   if Result <> '' then exit;

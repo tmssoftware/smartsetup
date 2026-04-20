@@ -10,6 +10,8 @@ type
     FolderForCompanyName: string;
     DelphiCE: boolean;
     CredentialsProfile: string;
+    NoSVN: boolean;
+    NoGit: boolean;
 
 
     procedure CheckOffline(const Method: string);
