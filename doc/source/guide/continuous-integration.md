@@ -141,7 +141,7 @@ graph TD
         ProjectA["project-a/"]
         ProjectB["project-b/"]
     end
-    subgraph root2["d:/Work/external/"]
+    subgraph root2["c:/Work/external/"]
         ProjectC["project-c/"]
     end
     Config -. "additional products folders" .-> root1
@@ -160,7 +160,7 @@ tms smart setup options:
    working folder: __smartsetup
    additional products folders:
       - c:\Projects
-      - d:\Work\external
+      - c:\Work\external
 
 configuration for all products:
    options:
@@ -171,11 +171,15 @@ configuration for all products:
 You can also set the list from the command line, without editing the file by hand:
 
 ```shell
-tms config-write -p:"tms smart setup options:additional products folders = [c:\Projects, d:\Work\external]"
+tms config-write -p:"tms smart setup options:additional products folders = [c:\Projects, c:\Work\external]"
 ```
 
 See [the `-p` parameter](#-p-command-to-pass-a-configuration-to-tms) for the full syntax.
 {{/Tip}}
+
+{{#Important}}
+As before, everything must be in the same disk. You can't use `c:\Projects` and `d:\Work\external` in the same build, and SmartSetup won't let you do it if you try.
+{{/Important}}
 
 ### Global options and machine-dependent options
 
