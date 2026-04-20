@@ -10,6 +10,8 @@ uses Doctor.Check, SysUtils, Classes, Deget.CoreTypes, Deget.IDEInfo,
 type
 
   TDelphiEnvironmentPathCheck = class(TSingleIDECheck)
+  private
+    procedure AddFix(const Platform: TPlatform; const PathOverride: string);
   public
     procedure Check; override;
     function Name: string; override;
@@ -28,19 +30,25 @@ uses IOUtils, Deget.DelphiInfo;
 
 procedure TDelphiEnvironmentPathCheck.Check;
 begin
-  var PathOverride := IDEInfo.GetPathOverride;
-  if PathOverride = '' then
-    exit;
+  for var Platform in TDelphiIDEInfo.IDEPlatforms do
+  begin
+    var PathOverride := IDEInfo.GetPathOverride(Platform);
+    if PathOverride = '' then continue;
 
-  if (';' + PathOverride + ';').ToUpperInvariant.Contains(';$(PATH);') then
-    exit;
+    if (';' + PathOverride + ';').ToUpperInvariant.Contains(';$(PATH);') then continue;
 
-  Fixes.Add(TFix.Create(TFixType.YesNo, 'The override for PATH in ' + IDEId[IDEInfo.IDEName] + ': "' +
+    AddFix(Platform, PathOverride);
+  end;
+end;
+
+procedure TDelphiEnvironmentPathCheck.AddFix(const Platform: TPlatform; const PathOverride: string);
+begin
+  Fixes.Add(TFix.Create(TFixType.YesNo, 'The override for PATH in ' + IDEId[IDEInfo.IDEName] + '-' + PlatformId[Platform] + ': "' +
     PathOverride + '" lacks an entry for $(PATH).', 'Add it?',
-    procedure
-    begin
-      IDEInfo.AddFolderToPathOverride('$(PATH)', False);
-    end))
+  procedure
+  begin
+    IDEInfo.AddFolderToPathOverride('$(PATH)', Platform, False);
+  end));
 end;
 
 function TDelphiEnvironmentPathCheck.Description: string;

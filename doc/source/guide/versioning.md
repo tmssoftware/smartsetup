@@ -211,6 +211,17 @@ Give each profile a distinct editor theme so you can tell at a glance which Delp
   * (+) No overhead. You have a single Delphi installed in a single OS.
   * (+) You can have different Delphi instances with different component versions running at the same time, with zero issues.
   * (-) Some components not in Smart Setup might not allow you to install them in an alternate registry key. As long as you stay in the Smart Setup ecosystem there should be no problems, but if you try to install other third parties with different setups, they might not play well with installing in a different registry key.
+  * (-) The Windows Path might be a problem. See the `Important` section below.
+
+{{#Important}}
+While you can install components in a different registry key, the Windows PATH is only one. So if you are building with packages, and have different versions of the same bpls in different parts of the PATH, you might end up loading the wrong ones. 
+
+SmartSetup does the following:
+  * When installing in the main registry branch, it will modify the Windows Path. So the bpls in the Path will be the ones in the main registry branch.
+  * When installing in an alternate registry key, it will not change the Path, but will modify the Delphi Environment variables, and add its path there. So when you open Delphi in the alternate registry entry, it will have the alternate path. The apps you launch from Delphi will also inherit that path. **Even if you "Start without debugging"**.
+
+The only problem is, if you are building with runtime packages, and you start your app completely from outside the IDE, it will always use the bpls in the main registry branch. This will normally not be a problem, but if it is, then using the registry might not be an option.
+{{/Important}}
 
 
 We provide a tool, MultIDE, that makes it simpler to manage multiple Delphi instances in different registry keys. You pin it to the task bar, and you can easily start different Delphi environments in different registry keys, just by selecting from a list. 

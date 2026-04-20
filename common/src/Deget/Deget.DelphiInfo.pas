@@ -120,11 +120,12 @@ type
     function IsAndroidSDKInstalled: boolean;
     function IsAndroid64SDKInstalled: boolean;
     function IsSdkInRegistry(const SdkRegName: string): Boolean;
-    function GetEnvVarOverride(const VarName: string): string;
-    procedure SetEnvVarOverride(const VarName, Value: string);
+    function GetEnvVarOverride(const VarName: string; const IDEPlatform: TPlatform): string;
+    procedure SetEnvVarOverride(const VarName, Value: string; const IDEPlatform: TPlatform);
   private
     function InternalBaseKey(const SubKey: string): string;
   public
+    class function IDEPlatforms: TPlatformSet;
     function BaseKey64(const SubKey: string;
       const IDEPlatform: TPlatform): string;
     function BaseKey(const SubKey: string = ''): string;
@@ -143,8 +144,8 @@ type
     function IsPlatformInstalled(APlat: TPlatform): Boolean;
     procedure ForceIDEUpdate;
 
-    function GetPathOverride: string;
-    procedure AddFolderToPathOverride(const PathsToAdd: string; AddToBeginning: Boolean = True);
+    function GetPathOverride(const IDEPlatform: TPlatform): string;
+    procedure AddFolderToPathOverride(const PathsToAdd: string; const Platform: TPlatform; AddToBeginning: Boolean = True);
     procedure RemoveFolderFromPathOverride(const PathsToRemove: string);
 
     // Returns the location of Delphi Root Directory (install directory)
@@ -181,9 +182,9 @@ type
     // Retrieves the BDSCOMMONDIR for the specified IDE
     // If user has overriden it in Delphi IDE, it will return the overriden value (from registry)
     // otherwise it will return the default value, from the rsvars.bat file
-    function BdsCommonDir: string;
+    function BdsCommonDir(const IDEPlatform: TPlatform): string;
 
-    function GetEnvVarOverrides: TArray<TEnvVar>;
+    function GetEnvVarOverrides(const IDEPlatform: TPlatform): TArray<TEnvVar>;
 
 //    property Plats[Plat: TDelphiPlatformType]: TDelphiIDEPlatformInfo read GetPlats; default;
   end;
@@ -240,13 +241,13 @@ end;
 
 { TDelphiIDEInfo }
 
-procedure TDelphiIDEInfo.AddFolderToPathOverride(const PathsToAdd: string; AddToBeginning: Boolean = True);
+procedure TDelphiIDEInfo.AddFolderToPathOverride(const PathsToAdd: string; const Platform: TPlatform; AddToBeginning: Boolean = True);
 begin
   var Lock := TMutex.Create(nil, false, Mutex_PathOverride);
   try
     Lock.Acquire;
     try
-      SetEnvVarOverride('PATH', AddPaths(GetEnvVarOverride('PATH'), PathsToAdd, AddToBeginning));
+      SetEnvVarOverride('PATH', AddPaths(GetEnvVarOverride('PATH', Platform), PathsToAdd, AddToBeginning), Platform);
     finally
       Lock.Release;
     end;
@@ -274,6 +275,12 @@ end;
 function TDelphiIDEInfo.BaseKey64(const SubKey: string; const IDEPlatform: TPlatform): string;
 begin
   Result := InternalBaseKey(SubKey);
+
+  if (SubKey = 'Environment Variables') then //tricky one, added in d13, not present in d12
+  begin
+    if IDEName = TIDEName.delphi12 then exit;
+  end;
+
   case IDEPlatform of
     win32intel: ;
 
@@ -290,6 +297,7 @@ begin
     or (SubKey = 'Experts')
     or (SubKey = 'Disabled Packages')
     or (SubKey = 'Disabled IDE Packages')
+    or (SubKey = 'Environment Variables')
     then
     begin
       //Call BaseKey64 for this entries.
@@ -299,7 +307,7 @@ begin
   Result := InternalBaseKey(SubKey);
 end;
 
-function TDelphiIDEInfo.BdsCommonDir: string;
+function TDelphiIDEInfo.BdsCommonDir(const IDEPlatform: TPlatform): string;
 var
   RSVarsContent: string;
   P: integer;
@@ -307,7 +315,7 @@ begin
 //  Logger.Note('Retrieving BDS Common Dir');
 
   // Check if it was overriden in registry
-  if not RegQueryStringValue(BaseKey('Environment Variables'), 'BDSCOMMONDIR', Result) then
+  if not RegQueryStringValue(BaseKey64('Environment Variables', IDEPlatform), 'BDSCOMMONDIR', Result) then
   begin
     {Calling command line rsvars.bat worked on windows 7 but not on xp.
      So let's do a "workaround" approach which is just "parsing" the rsvars.bat}
@@ -381,6 +389,11 @@ begin
   Result := FIDEName;
 end;
 
+class function TDelphiIDEInfo.IDEPlatforms: TPlatformSet;
+begin
+  Result := [TPlatform.win32intel, TPlatform.win64intel];
+end;
+
 destructor TDelphiIDEInfo.Destroy;
 begin
   inherited;
@@ -397,18 +410,19 @@ begin
   end;
 end;
 
-function TDelphiIDEInfo.GetEnvVarOverride(const VarName: string): string;
+function TDelphiIDEInfo.GetEnvVarOverride(const VarName: string; const IDEPlatform: TPlatform): string;
 begin
-  RegReadString(HKEY_CURRENT_USER, BaseKey('\Environment Variables'), VarName, Result);
+  RegReadString(HKEY_CURRENT_USER, BaseKey64('Environment Variables', IDEPlatform), VarName, Result);
 end;
-function TDelphiIDEInfo.GetEnvVarOverrides: TArray<TEnvVar>;
+
+function TDelphiIDEInfo.GetEnvVarOverrides(const IDEPlatform: TPlatform): TArray<TEnvVar>;
 var
   R: TRegistry;
 begin
   R := TRegistry.Create;
   try
     R.RootKey := HKEY_CURRENT_USER;
-    var Ok := R.OpenKeyReadOnly(BaseKey('\Environment Variables'));
+    var Ok := R.OpenKeyReadOnly(BaseKey64('Environment Variables', IDEPlatform));
     if Ok then
     begin
       var Values := TStringList.Create;
@@ -432,9 +446,9 @@ begin
 
 end;
 
-function TDelphiIDEInfo.GetPathOverride: string;
+function TDelphiIDEInfo.GetPathOverride(const IDEPlatform: TPlatform): string;
 begin
-  Result := GetEnvVarOverride('PATH');
+  Result := GetEnvVarOverride('PATH', IDEPlatform);
 end;
 
 function TDelphiIDEInfo.GetPlatform(PlatType: TPlatform): IDelphiPlatformInfo;
@@ -602,7 +616,10 @@ begin
   try
     Lock.Acquire;
     try
-      SetEnvVarOverride('PATH', RemovePaths(GetEnvVarOverride('PATH'), PathsToRemove));
+      for var IDEPlatform in TDelphiIDEInfo.IDEPlatforms do
+      begin
+        SetEnvVarOverride('PATH', RemovePaths(GetEnvVarOverride('PATH', IDEPlatform), PathsToRemove), IDEPlatform);
+      end;
     finally
       Lock.Release;
     end;
@@ -626,9 +643,9 @@ begin
   Result := TPath.Combine(BinDir, 'rsvars.bat');
 end;
 
-procedure TDelphiIDEInfo.SetEnvVarOverride(const VarName, Value: string);
+procedure TDelphiIDEInfo.SetEnvVarOverride(const VarName, Value: string; const IDEPlatform: TPlatform);
 begin
-  var Key := BaseKey('\Environment Variables');
+  var Key := BaseKey64('Environment Variables', IDEPlatform);
   if RegKeyExists(HKEY_CURRENT_USER, Key) then
     RegWriteString(HKEY_CURRENT_USER, Key, VarName, Value);
 end;
@@ -913,77 +930,6 @@ begin
   end;
 end;
 
-//function TDelphiIDEPlatformInfo.RetrieveBplOutputDirUsingMSBuild(
-//  APlat: TPlatform): string;
-//const
-//  BplOutDirBuild =
-//    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> ' +
-//    '  <ItemGroup> ' +
-//    '  </ItemGroup> ' +
-//    ' <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists(''$(BDS)\Bin\CodeGear.Delphi.Targets'')"/> ' +
-//    '  <PropertyGroup> ' +
-//    '  <TMS_BplOutput Condition = " ''$(DCC_BplOutput)'' != ''''">$(DCC_BplOutput)</TMS_BplOutput> ' +
-//    '  <TMS_BplOutput Condition = " ''$(DCC_BplOutput)'' == ''''">$(CBuilderBPLOutputPath)</TMS_BplOutput> ' +
-//    '  </PropertyGroup> ' +
-//    '  <Target Name="BPLFOLDER"> ' +
-//    '    <Message Text="Folder:{$(TMS_BplOutput)}" /> ' +
-//    '  </Target> ' +
-//    '</Project> ' +
-//    '';
-//var
-//  BDSCommonDir: string;
-//  Batch: string;
-//  BatchFile: string;
-//  Output: string;
-//  Params: string;
-//  ProjectFile: string;
-//  P1, P2: integer;
-//begin
-//  Result := '';
-//
-//  // add parameters to call msbuild project
-//  Params := Format('/target:BPLFOLDER /p:Platform=%s', [BuildName]);
-//  if RegQueryStringValue(IDE.BaseKey('Environment Variables'), 'BDSCOMMONDIR', BDSCommonDir) then
-//    Params := Params + Format(' /p:BDSCOMMONDIR="%s"', [BdsCommonDir]);
-////    Params := Params + ' /verbosity:diag';
-//
-//  // create batch file and compile
-//  Batch := Format(
-//    'call "%s" '#13#10 +
-//    'cd /D %%FrameworkDir%% '#13#10 +
-//    'msbuild.exe %%1 %s',
-//    [IDE.RsvarsFile, Params]
-//  );
-////  Logger.Note('Batch file built');
-////  Logger.Note(Batch);
-//  {$MESSAGE WARN 'Use Config.TempDir'}
-//  BatchFile := GetTempFileNameExt('.bat');
-//  try
-//    TFile.WriteAllText(BatchFile, Batch);
-//
-//    // now create project file
-//    {$MESSAGE WARN 'Use Config.TempDir'}
-//    ProjectFile := GetTempFileNameExt('.msbuild');
-//    try
-//      TFile.WriteAllText(ProjectFile, BplOutDirBuild);
-//      if not ExecuteCommand(Format('cmd /C call "%s" "%s"', [BatchFile, ProjectFile]), '', Output) then
-//        raise Exception.Create('Could not execute command to retrieve BPL output folder');
-//      P1 := Pos('Folder:{', Output);
-//      P2 := Pos('}', Output, P1);
-//      if (P1 > 0) and (P2 > P1 + 1) then
-//      begin
-//        P1 := P1 + Length('Folder:{');
-//        Result := Copy(Output, P1, P2 - P1);
-//      end;
-//    finally
-//      if TFile.Exists(ProjectFile) then
-//        TFile.Delete(ProjectFile);
-//    end;
-//  finally
-//    if TFile.Exists(BatchFile) then
-//      TFile.Delete(BatchFile);
-//  end;
-//end;
 
 procedure TDelphiIDEPlatformInfo.SetIDEPath(PathType: TDelphiPathType; const Value: string);
 var

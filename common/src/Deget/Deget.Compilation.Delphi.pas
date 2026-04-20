@@ -101,7 +101,7 @@ type
     function FindMsBuildInPath(const Path: string; const Env: TArray<string>): string;
     function FindMsBuild(const Env: TArray<string>): string;
     function ParseRSVars(const RSVars: string): TArray<string>;
-    function AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo;
+    function AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform;
       const ExistingEnv: TArray<string>): TArray<string>;
     procedure DoCompileWithBat(const ProjectFile: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings);
     function DoCompileDirectly(const ProjectFile: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings): boolean;
@@ -646,9 +646,9 @@ begin
   end;
 end;
 
-function TMSBuildCompiler.AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const ExistingEnv: TArray<string>): TArray<string>;
+function TMSBuildCompiler.AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform; const ExistingEnv: TArray<string>): TArray<string>;
 begin
-  var EnvVarOverrides := IDEInfo.GetEnvVarOverrides;
+  var EnvVarOverrides := IDEInfo.GetEnvVarOverrides(Platform);
   Result := nil;
   SetLength(Result, Length(ExistingEnv) + Length(EnvVarOverrides));
   var iResult := 0;
@@ -697,7 +697,10 @@ begin
   //Do not add the environment override until we found the path for MsBuild.
   //We want to search for the msbuild path in whatever is in rsvars.bat, not in what
   //the IDE says.
-  Env := AddEnvironmentOverrides(Settings.TargetPlatform.IDEInfo, Env);
+  for var Platform in TDelphiIDEInfo.IDEPlatforms do
+  begin
+    Env := AddEnvironmentOverrides(Settings.TargetPlatform.IDEInfo, Platform, Env);
+  end;
 
   //To speed up bcc64 and other compilers. See https://github.com/tmssoftware/tms-smartsetup/issues/184
   var TMPFolder := TPath.Combine(TPath.GetDirectoryName(ProjectFile), GuidToStringN(TGUID.NewGuid));
@@ -724,10 +727,13 @@ begin
   //command window, if we don't add this fmxlinux will fail.
 
   Result := '';
-  var EnvOverrides := IDEInfo.GetEnvVarOverrides;
-  for var Env in EnvOverrides do
+  for var Platform in TDelphiIDEInfo.IDEPlatforms do
   begin
-    Result := Result + 'set ' + Env.Name + '=' + Env.Value + #13#10;
+    var EnvOverrides := IDEInfo.GetEnvVarOverrides(Platform);
+    for var Env in EnvOverrides do
+    begin
+      Result := Result + 'set ' + Env.Name + '=' + Env.Value + #13#10;
+    end;
   end;
 end;
 

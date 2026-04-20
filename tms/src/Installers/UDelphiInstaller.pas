@@ -37,7 +37,7 @@ type
     procedure AppendConsolidation(PackageInfo :IDelphiPackageInfo; var Consolidation: TPackagesConsolidation; DebugDCUs, SupportsCppBuilder, InMegafolder: Boolean);
     procedure RegisterPackage(BuildInfo: TFullBuildInfo; PackBuildInfo: TPackageBuildInfo; PackUninstall: TJSONObject);
     procedure LinkPackageFile(const ProductId, LinkedFileName, BinaryPackageFileName: string; PackUninstall: TJSONObject);
-    function AddPathOverride(IDEInfo: IDelphiIDEInfo; const AlternateRegistryKey, Folder: string): boolean;
+    function AddPathOverride(IDEInfo: IDelphiIDEInfo; const AlternateRegistryKey, Folder: string; const Platform: TPlatform): boolean;
     procedure CopyProjects(const Orig, Temp, OutputDir, ExeOutputDir: string; const BuildInfo: TFullBuildInfo);
     procedure UpdatePackageSource(const Orig, OutputDir: string; IDEName: TIDEName);
     procedure RegisterHelp(const ProductName, HelpFile: string; IDEName: TIDEName; const Config: TConfigDefinition; const UninstallInfo: IUninstallInfo);
@@ -159,7 +159,7 @@ uses
 { TDelphiInstaller }
 
 function TDelphiInstaller.AddPathOverride(IDEInfo: IDelphiIDEInfo;
-  const AlternateRegistryKey, Folder: string): boolean;
+  const AlternateRegistryKey, Folder: string; const Platform: TPlatform): boolean;
 begin
   var Lock := GetEnvironmentOptionsLock;
   try
@@ -167,17 +167,19 @@ begin
     try
       Result := false;
       //see https://github.com/tmssoftware/tms-smartsetup/issues/217
-      var SystemPath := IDEInfo.GetPathOverride;
+        
+      var SystemPath := IDEInfo.GetPathOverride(Platform);
 
       // check if $(PATH) is already in PATH system environment variable.
-      // If it is, we don't touch it, as we modified the Windows Path anyway.
-      if SystemPath <> AddPaths(SystemPath, '$(PATH)') then
+      // If it is, and we are in the main reg key, we don't touch it, as we modified the Windows Path anyway.
+      // alternate reg keys don't change the path, so we need to add them there.
+      if (SystemPath <> AddPaths(SystemPath, '$(PATH)')) or (AlternateRegistryKey.Trim <> '') then
       begin
         if SystemPath <> AddPaths(SystemPath, Folder) then
         begin
-          StoreDelphiEnviromnentOverrides(IDEInfo.IDEName, AlternateRegistryKey, Folder);
-          IDEInfo.AddFolderToPathOverride(Folder);
           Result := true;
+          StoreDelphiEnviromnentOverrides(IDEInfo.IDEName, AlternateRegistryKey, Folder, Platform);
+          IDEInfo.AddFolderToPathOverride(Folder, Platform);
         end;
       end;
     finally
@@ -669,17 +671,17 @@ begin
       PackUninstall.WriteStr(UninstallConsts.LinkedPackageFile, LinkedFileName);
 
       // Add to the PATH override environment variable (specific to Delphi IDE) if $(PATH) isn't there.
-      // See  issue 217. Only for Win32 (as this is only for the IDE)
+      // See  issue 217. Only for Win32/64 (as this is only for the IDE)
       if not BuildInfo.Project.SkipRegistering.WindowsPath and (PlatformInfo.PlatType in PlatformsForDesign(BuildInfo.Project.ProjectId)) then
       begin
-        if AddPathOverride(IDEInfo, BuildInfo.Project.AlternateRegistryKey, LinkedFolder)
-          then Logger.Info('Adding "' + LinkedFolder + '" to ' + IDEId[IDEInfo.IDEName] + ' path override, since $(PATH) isn''t there.');
+        if AddPathOverride(IDEInfo, BuildInfo.Project.AlternateRegistryKey, LinkedFolder, PlatformInfo.PlatType)
+          then Logger.Info('Adding "' + LinkedFolder + '" to ' + IDEId[IDEInfo.IDEName] + ' path override.');
       end;
 
       //Add to the windows path to win32 and win64, so we can use runtime packages.
       //Also other apps/dlls might be linked to this folder (like the dll of FlexCel dll),
-      //So we need to add it to the path.
-      if not BuildInfo.Project.SkipRegistering.WindowsPath then
+      //So we need to add it to the path. But only in the main reg branch, or we would have multiple versions of the same component in the path.
+      if not BuildInfo.Project.SkipRegistering.WindowsPath and (BuildInfo.Project.AlternateRegistryKey.Trim = '') then
       begin
         if AddToWindowsPath(LinkedFolder) then Logger.Info('Added "' + LinkedFolder + '" to the Windows Path');
       end;

@@ -79,10 +79,10 @@ type
     procedure UnregisterPackage(const BinaryFileName: string; const IDEPlatform: TPlatform);
 
 
-    function GetPathOverride: string;
+    function GetPathOverride(const IDEPlatform: TPlatform): string;
 
     // Modifies IDE PATH environment variable override by adding the Path to the list of paths (at the beginning by default)
-    procedure AddFolderToPathOverride(const PathsToAdd: string; AddToBeginning: Boolean = True);
+    procedure AddFolderToPathOverride(const PathsToAdd: string; const Platform: TPlatform; AddToBeginning: Boolean = True);
 
     // Modifies IDE PATH environment variable override by removing the Path from the list of paths
     procedure RemoveFolderFromPathOverride(const PathsToRemove: string);
@@ -113,7 +113,7 @@ type
 
     procedure ForceIDEUpdate;
 
-    function GetEnvVarOverrides: TArray<TEnvVar>;
+    function GetEnvVarOverrides(const IDEPlatform: TPlatform): TArray<TEnvVar>;
 
     function BaseKey(const SubKey: string = ''): string;
 
