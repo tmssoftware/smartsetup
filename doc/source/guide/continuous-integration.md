@@ -2,7 +2,7 @@
 uid: SmartSetup.ContinuousIntegration
 ---
 
-# Using SmartSetup in Continuous Integration (CI) environments
+# Using SmartSetup for Automated Builds and in Continuous Integration (CI) environments
 
 SmartSetup is two tools in one: It is a tool that downloads components from a server or a public repository (GitHub, Bitbucket, etc), but it is also a tool that builds Delphi components and full applications. 
 
@@ -12,42 +12,42 @@ In this document we will study how you can use SmartSetup to build your own proj
 
 While you can also use the classic msbuild (and even dcc32.exe) to build your applications, building them with SmartSetup has some advantages.
 
-  * No need to install any components. This is particularly useful in a server or CI environment, because installing a particular version of a component might break other builds running in the same server. I you are building only with SmartSetup, you don't have to worry about modifying Delphi in any way in the server.
-  * SmartSetup can build in parallel, taking dependencies in account. So if one of your products depends in Component A, it won't start building until Component A is compiled. But it might start before Component B finishes, if this product doesn't require Component B.
-  * Your project becomes aware of its dependencies. If you change Component A, and your project depends (directly or indirectly) in Component A, your project will be recompiled too. If Component B doesn't depend in A, it won't be touched.
+  * No need to install any components. This is particularly useful in a server or CI environment, because installing a particular version of a component might break other builds running on the same server. If you are building only with SmartSetup, you don't have to worry about modifying Delphi in any way on the server.
+  * SmartSetup can build in parallel, taking dependencies into account. So if one of your products depends on Component A, it won't start building until Component A is compiled. But it might start before Component B finishes, if this product doesn't require Component B.
+  * Your project becomes aware of its dependencies. If you change Component A, and your project depends (directly or indirectly) on Component A, your project will be recompiled too. If Component B doesn't depend on A, it won't be touched.
   * It is simpler to configure all build parameters from a single `tms.config.yaml`. If you now want to build in Delphi 13 instead of 12, you only need to modify that file, and all components and projects will be built with Delphi 13.
 
 ## Making your projects SmartSetup-aware
 
-To make your project build with smartsetup, you need to generate a tmsbuild.yaml file on its root folder. 
+To make your project build with SmartSetup, you need to generate a `tmsbuild.yaml` file in its root folder. 
 The simplest way to do this is to cd to the root folder, and type:
 ```
 tms spec
 ```
-[tms spec](xref:SmartSetup.Command.Spec) will ask you a few questions, and try to create a tmsbuild.yaml file for you. You can then edit that file and change it to your needs.
+[tms spec](xref:SmartSetup.Command.Spec) will ask you a few questions, and try to create a `tmsbuild.yaml` file for you. You can then edit that file and change it to your needs.
 
 {{#Tip}}
-If you edit the file with Visual Studio Code and the yaml extensions installed, you will get error highlight and autocomplete. We provide a [schema for the file](https://github.com/tmssoftware/smartsetup/blob/main/tms/example-config/tmsbuild.schema.json) so any editor that can understand that schema should be able to help.
+If you edit the file with Visual Studio Code and the YAML extensions installed, you will get error highlighting and autocomplete. We provide a [schema for the file](https://github.com/tmssoftware/smartsetup/blob/main/tms/example-config/tmsbuild.schema.json) so any editor that can understand that schema should be able to help.
 {{/Tip}}
 
-Or, if you prefer, you can [download a full empty tmsbuild.yaml](https://github.com/tmssoftware/smartsetup/blob/main/tms/example-config/tmsbuild.yaml) and modify it, without using `tms spec`. 
+Or, if you prefer, you can [download a fully empty `tmsbuild.yaml`](https://github.com/tmssoftware/smartsetup/blob/main/tms/example-config/tmsbuild.yaml) and modify it, without using `tms spec`. 
 
 You can find more information about editing this file [in the docs](xref:SmartSetup.CreatingBundles)
 And you can see an example of an app adapted to build with SmartSetup here: https://github.com/agallero/multide  
-This particular example doesn't depend in any components, but it can give you an idea of how to organize it.
+This particular example doesn't depend on any components, but it can give you an idea of how to organize it.
 
 ## Configuring the build
 
 ### Recommended folder structure
 
-The simplest way to use SmartSetup in CI is to place a `tms.config.yaml` at the root of the repository, keep each of your existing projects in its own subfolder with a `tmsbuild.yaml` inside, and reserve a `build` subfolder at the root for all files generated by SmartSetup (logs, compiled packages, downloaded components, etc). You should have a snapshot `tms.snapshot.yaml` at the root too. Put both `tms.config.yaml` into version control, but add the `build` folder to gitignore.  
+The simplest way to use SmartSetup in CI is to place a `tms.config.yaml` at the root of the repository, keep each of your existing projects in its own subfolder with a `tmsbuild.yaml` inside, and reserve a `__smartsetup` subfolder at the root for all files generated by SmartSetup (logs, compiled packages, downloaded components, etc). You should have a snapshot `tms.snapshot.yaml` at the root too. Put both `tms.config.yaml` and `tms.snapshot.yaml` into version control, but add the `__smartsetup` folder to gitignore.  
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 20, "rankSpacing": 30}}}%%
 graph TD
     Root["/ (repository root)"] --> Config(["tms.config.yaml"])
     Root --> Snapshot(["tms.snapshot.yaml"])
-    Root --> Build["build/"]
+    Root --> Build["__smartsetup/"]
     Root --> ProjectA["project-a/"]
     Root --> ProjectB["project-b/"]
     ProjectA --> BuildA(["tmsbuild.yaml"])
@@ -65,23 +65,29 @@ graph TD
 
 With this layout, `tms.config.yaml` describes how *every* project in the repository must be built, while each `tmsbuild.yaml` describes the shape of a single project (its packages, platforms, dependencies, etc). SmartSetup automatically picks up every project under the root, so you don't need to list them explicitly.
 
+{{#Tip}}
+We suggest using the same convention as here: a `__smartsetup` folder directly below the root for all tms working files, which should be added to gitignore. In the future, tools might automatically detect that name if we all use the same one. But you can of course use any name you like. Still, there are two restrictions to consider:
+  * The folder can have any name, but it can't start with a dot, like in `.smartsetup`. This is a limitation in Embarcadero's BRCC32 compiler, which crashes and generates empty resources if any folder in the path starts with a dot. SmartSetup will raise an error if you try to use a folder starting with a dot.
+  * Because we use hard links, the `__smartsetup` folder must be on the same disk as the rest of the projects. Again, SmartSetup will tell you if you try to use different disks. 
+{{/Tip}}
+
 To make this structure work well in CI, two settings in `tms.config.yaml` are important:
 
 - **`skip register: true`** — prevents SmartSetup from registering the built packages in any installed IDE. On a CI server you rarely want to modify Delphi's global state, and this also avoids failures on machines that don't have Delphi installed in the usual locations.
-- **`working folder: build`** — redirects all files that SmartSetup generates (logs, compiled output, downloaded components, intermediate files) to the `build` subfolder instead of scattering them around the repository root. This keeps the working tree clean and makes it trivial to wipe the output with a single `rm -rf build`.
+- **`working folder: __smartsetup`** — redirects all files that SmartSetup generates (logs, compiled output, downloaded components, intermediate files) to the `__smartsetup` subfolder instead of scattering them around the repository root. This keeps the working tree clean and makes it trivial to wipe the output with a single `rm -rf __smartsetup`.
 
 A minimal `tms.config.yaml` following this convention looks like:
 
 ```yaml
 tms smart setup options:
-   working folder: build
+   working folder: __smartsetup
 
 configuration for all products:
    options:
       skip register: true
 ```
 {{#Tip}}
-You can also put the `build` folder outside the folders if you don't want to have to add it to .gitignore. Just use a working folder like `..\build` or `c:\temp\build`.
+You can also put the `__smartsetup` folder outside the folders if you don't want to have to add it to .gitignore. Just use a working folder like `..\__smartsetup` or `c:\temp\__smartsetup`.
 {{/Tip}}
 
 
@@ -93,7 +99,7 @@ If you want different settings for CI than for normal building, you can store th
 
 Sometimes you can't (or don't want to) drop a `tms.config.yaml` at the root of an existing repository. The layout might be fixed by another tool, the projects might live in several repositories, or you might simply want to keep build configuration separate from source code.
 
-In that case, create a dedicated *builder folder* anywhere on disk. This folder plays the same role as the repository root in the previous section: it holds `tms.config.yaml`, `tms.snapshot.yaml`, and its own `build/` subfolder for generated files. Your existing projects stay exactly where they are, untouched. Same as before, `tms.config.yaml`, `tms.snapshot.yaml` should be in version control, but the `build` folder should be gitignored.
+In that case, create a dedicated *builder folder* anywhere on disk. This folder plays the same role as the repository root in the previous section: it holds `tms.config.yaml`, `tms.snapshot.yaml`, and its own `__smartsetup/` subfolder for generated files. Your existing projects stay exactly where they are, untouched. As before, `tms.config.yaml` and `tms.snapshot.yaml` should be in version control, but the `__smartsetup` folder should be gitignored.
 
 The link between the builder folder and your projects is the **`additional products folders`** setting. Each entry points to a folder where SmartSetup should look for projects. SmartSetup walks each entry recursively, so you only need one entry per *root* that contains projects, not one per project. If `project-a` and `project-b` both live under `c:\Projects`, a single entry `c:\Projects` is enough to pick up both.
 
@@ -103,7 +109,7 @@ graph TD
     subgraph builder["c:/builder/"]
         Config(["tms.config.yaml"])
         Snapshot(["tms.snapshot.yaml"])
-        Build["build/"]
+        Build["__smartsetup/"]
     end
     subgraph projects["c:/Projects/ (existing, unchanged)"]
         ProjectA["project-a/"]
@@ -126,7 +132,7 @@ graph TD
 If your projects live under several unrelated roots, add one entry per root:
 
 ```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 20, "rankSpacing": 30}}}%%
+
 graph TD
     subgraph builder["c:/builder/"]
         Config(["tms.config.yaml"])
@@ -151,7 +157,7 @@ A `tms.config.yaml` for this setup looks like:
 
 ```yaml
 tms smart setup options:
-   working folder: build
+   working folder: __smartsetup
    additional products folders:
       - c:\Projects
       - d:\Work\external
@@ -173,7 +179,7 @@ See [the `-p` parameter](#-p-command-to-pass-a-configuration-to-tms) for the ful
 
 ### Global options and machine-dependent options
 
-Sometimes, you might want to have some configuration options (like paths) that vary machine from machine. You can do this by adding an extra `tms.config.local.yaml` to the root folder and adding it to `.gitignore`, or specifying one with [-add-config](xref:SmartSetup.Command.GlobalOptions)
+Sometimes, you might want to have some configuration options (like paths) that vary from machine to machine. You can do this by adding an extra `tms.config.local.yaml` to the root folder and adding it to `.gitignore`, or specifying one with [-add-config](xref:SmartSetup.Command.GlobalOptions).
 
 See [below](#adding-extra-settings-to-an-existing-configuration-file) for more information.
 
@@ -186,15 +192,15 @@ In order to retrieve the exact same versions of all the components used, you nee
 Once you have the structure, configuration files and snapshots, the steps to build should be:
 
 1. Clone the repo (or pull the changes) in the build server. Note: if you are using an [external builder folder](#alternative-using-an-external-builder-folder), you will need to clone all the repos, including the `builder` folder, and keep the structure. 
-2. Restore the snapshot with `tms restore -skip-register snapshot.yaml`. This will ensure the correct versions of everything is used, and will build all your projects.
+2. Restore the snapshot with `tms restore -skip-register snapshot.yaml`. This will ensure the correct versions of everything are used, and will build all your projects.
 
 
-## Advanced: Automating command calls.
+## Advanced: Automating command calls
 
 When creating scripts to automate a build, the following commands might come handy:
 
 
-### `-json` parameter, to get the results in a json object instead of plain text. 
+### `-json` parameter, to get the results in a JSON object instead of plain text
 
 For example:
 ```shell
@@ -258,7 +264,7 @@ tms config-write -p:"tms smart setup options:auto snapshot filenames = [tms.snap
 
 ### Adding extra settings to an existing configuration file.
 
-As mentioned before, if you have am existing configuration, but you want to temporarily change a value, you can do it with `-p`. But if there are many `-p` parameters, the command line might become too complex. An alternative, which is 100% equivalent, is to use the `-add-config` command.
+As mentioned before, if you have an existing configuration, but you want to temporarily change a value, you can do it with `-p`. But if there are many `-p` parameters, the command line might become too complex. An alternative, which is 100% equivalent, is to use the `-add-config` command.
 
 Let's say you have an existing configuration, but you now want to build in a CI server, so you don't want to register any component.
 
@@ -307,11 +313,11 @@ it will replace [delphi11] array with the new one, and the result will be `delph
 {{/Note}}
 
 {{#Tip}}
-Since SmartSetup 3.2, you can also create a file named `tms.config.local.yaml` and this file will be automatically added to your config, similar as if you had specified `-add-config:tms.config.local.yaml`. But if you use that specific name, you won't need to add the `-add-config` parameter to every call, it will be loaded automatically.
+Since SmartSetup 3.2, you can also create a file named `tms.config.local.yaml` and this file will be automatically added to your config, as if you had specified `-add-config:tms.config.local.yaml`. But if you use that specific name, you won't need to add the `-add-config` parameter to every call — it will be loaded automatically.
 {{/Tip}}
 
 ### `tms config-read` and `tms config-write` to read and change tms.config.yaml
-These two commands allow you to read or update a setting from `tms.config.yaml`. Different from the `-p` parameter, [tms config-write](xref:SmartSetup.Command.ConfigWrite) will modify the actual file. This can be useful, for example, when doing a GUI: You can use [tms config-read](xref:SmartSetup.Command.ConfigRead) to read a value from the config file and show it to the user. When the user modifies it, you can use [tms config-write](xref:SmartSetup.Command.ConfigWrite) to write it back.
+These two commands allow you to read or update a setting from `tms.config.yaml`. Unlike the `-p` parameter, [tms config-write](xref:SmartSetup.Command.ConfigWrite) will modify the actual file. This can be useful, for example, when building a GUI: you can use [tms config-read](xref:SmartSetup.Command.ConfigRead) to read a value from the config file and show it to the user. When the user modifies it, you can use [tms config-write](xref:SmartSetup.Command.ConfigWrite) to write it back.
 
 The syntax for specifying the setting to read or write is the same as the one in the `-p` parameter above. In fact, [tms config-write](xref:SmartSetup.Command.ConfigWrite), when called alone, just reads your settings and writes them back, reformatting the config file. You need to use the `-p` parameter to alter that configuration, so what is written is different from the existing settings.
 

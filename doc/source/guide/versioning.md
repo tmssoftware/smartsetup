@@ -217,6 +217,21 @@ We provide a tool, MultIDE, that makes it simpler to manage multiple Delphi inst
 
 {{#image}}multide-main-screen.png{{/image}}
 
+{{#Tip}}
+MultIDE stores its registry entries inside a `multide` subkey in the registry key. All registry entries you need to specify to start the IDE are in the form `multide\<config-name>`. The `Default` configuration is of course special, that's the normal Delphi and doesn't use a special registry key.
+So if you created a `my-test` configuration in MultIDE, you need to add the following entry to tms.config.yaml:
+
+```yaml
+# General options that are not 'per product'.
+tms smart setup options:
+
+  # installs the component in an alternate place so you can have different components installed in the same Delphi.
+  # see https://stackoverflow.com/questions/9290131/starting-delphi-with-an-alternate-registry-key
+  alternate registry key: multide\my-test
+
+```
+{{/Tip}}
+
 Download it from https://github.com/agallero/multide
 
 
