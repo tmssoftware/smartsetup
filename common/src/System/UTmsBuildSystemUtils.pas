@@ -206,6 +206,7 @@ end;
 function CombinePath(const RootPath, RelPath: string): string;
 begin
   var FullRootPath := TPath.GetFullPath(RootPath);
+  var FullRootPathWithDelim := IncludeTrailingPathDelimiter(FullRootPath);
   var PathFixed := RelPath.Replace('\', PathDelim).Replace('/', PathDelim);
 
   Result := TPath.GetFullPath(TPath.Combine(FullRootPath, PathFixed));
@@ -214,7 +215,15 @@ begin
   //we could be passed something like folder/../../../something.pas and rewriting stuff they shouldn't.
   //that's the reason also why we don't try to create folders at all. the folder must exist.
 
-  if not (Result.StartsWith(FullRootPath)) then
+  {$IFDEF MSWINDOWS}
+  var IgnoreCase := true;
+  var IsRootPath := SameText(Result, FullRootPath);
+  {$ELSE}
+  var IgnoreCase := false;
+  var IsRootPath := Result = FullRootPath;
+  {$ENDIF}
+
+  if not (IsRootPath or Result.StartsWith(FullRootPathWithDelim, IgnoreCase)) then
   begin
     raise Exception.Create('The path for the file: "' + Result + '" is not valid. It must point to a file inside the project folder. (' + FullRootPath +')');
   end;
