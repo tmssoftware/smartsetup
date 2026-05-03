@@ -58,7 +58,7 @@ begin
   var ApiServer := FindApiServer;
   var ProductVersions := ParseVersions(AProductIdsAndVersions);
   var Repo: TRepositoryManager := nil;
-  if ApiServer.Enabled then Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, true);
+  if ApiServer.Enabled then Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, ApiServer.AllowInsecureConnections, true);
   try
     var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled);
     try

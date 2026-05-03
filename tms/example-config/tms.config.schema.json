@@ -164,6 +164,11 @@
             "enabled": {
               "type": "boolean",
               "default": false
+            },
+            "allow insecure connections": {
+              "type": "boolean",
+              "description": "Allow http:// URLs for this server. Set to true only when you trust the network path and cannot use https://. Defaults to false; with the default, http:// URLs are rejected.",
+              "default": false
             }
           },
           "additionalProperties": false

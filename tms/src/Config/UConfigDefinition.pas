@@ -138,14 +138,27 @@ type
     ServerType: TServerType;
     Url: string;
     Enabled: boolean;
+    AllowInsecureConnections: boolean;
 
-    constructor Create(const aName: string; const aServerType: TServerType; const aUrl: string; const aEnabled: boolean);
+    constructor Create(const aName: string; const aServerType: TServerType; const aUrl: string; const aEnabled: boolean; const aAllowInsecureConnections: boolean = false);
     constructor CreateInternalServer(const aName: string);
     function IsReservedName: boolean; overload;
     class function IsReservedName(const aName: string): boolean; overload; static;
 
     function ServerTypeString: string;
     class function ServerTypeFromString(const value: string; const ExtraInfo: string = ''): TServerType; static;
+
+    /// <summary>
+    /// Validates that <c>aUrl</c> uses an acceptable scheme for a server of
+    /// type <c>aServerType</c>. https:// is always allowed; file:// is allowed
+    /// for ZipFile servers only; http:// is allowed only when
+    /// <c>aAllowInsecureConnections</c> is true. Raises an exception otherwise.
+    /// </summary>
+    class function TryValidateUrlScheme(const aUrl: string; const aServerType: TServerType;
+      const aAllowInsecureConnections: boolean; const aServerName: string; out ErrorMessage: string): boolean; static;
+
+    class procedure ValidateUrlScheme(const aUrl: string; const aServerType: TServerType;
+      const aAllowInsecureConnections: boolean; const aServerName: string = ''); static;
   end;
 
   type
@@ -1254,12 +1267,13 @@ end;
 
 constructor TServerConfig.Create(const aName: string;
   const aServerType: TServerType; const aUrl: string;
-  const aEnabled: boolean);
+  const aEnabled: boolean; const aAllowInsecureConnections: boolean = false);
 begin
   Name := aName.Trim;
   ServerType := aServerType;
   Url := aUrl;
   Enabled := aEnabled;
+  AllowInsecureConnections := aAllowInsecureConnections;
 end;
 
 function TServerConfig.IsReservedName: boolean;
@@ -1294,4 +1308,45 @@ begin
   raise Exception.Create('Invalid Server Type.');
 end;
 
+class function TServerConfig.TryValidateUrlScheme(const aUrl: string; const aServerType: TServerType;
+  const aAllowInsecureConnections: boolean; const aServerName: string; out ErrorMessage: string): boolean;
+begin
+  Result := true;
+  var Url := aUrl.Trim;
+  var ForServer := '';
+  if aServerName <> '' then ForServer := ' for server "' + aServerName + '"';
+
+  if Url.StartsWith('https://', true) then exit;
+
+  if Url.StartsWith('file://', true) then
+  begin
+    if aServerType = TServerType.ZipFile then exit;
+    ErrorMessage := 'Invalid URL "' + aUrl + '"' + ForServer +
+      ': file:// URLs are only allowed for servers of type "zipfile".';
+    exit(false);
+  end;
+
+  if Url.StartsWith('http://', true) then
+  begin
+    if aAllowInsecureConnections then exit;
+    ErrorMessage := 'Refusing http:// URL "' + aUrl + '"' + ForServer +
+      '. Use https:// instead, or, if you trust the network and cannot use https://, ' +
+      'set "allow insecure connections: true" for this server in tms.config.yaml.';
+    exit(false);
+  end;
+
+  ErrorMessage := 'Unsupported URL scheme in "' + aUrl + '"' + ForServer +
+    '. Only https:// (always), file:// (for zipfile servers) and http:// (when "allow insecure connections" is true) are accepted.';
+  exit(false);
+end;
+
+class procedure TServerConfig.ValidateUrlScheme(const aUrl: string; const aServerType: TServerType;
+  const aAllowInsecureConnections: boolean; const aServerName: string = '');
+begin
+  var ErrorMessage := '';
+  if not TryValidateUrlScheme(aUrl, aServerType, aAllowInsecureConnections, aServerName, ErrorMessage)
+    then raise Exception.Create(ErrorMessage);
+
+
+end;
 end.

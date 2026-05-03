@@ -18,6 +18,11 @@ var
 
 procedure RunServerAddCommand;
 begin
+  //Reject http:// (and any other non-https/file scheme) at add time.
+  //The opt-in for http:// is "allow insecure connections: true" in tms.config.yaml,
+  //which can only be set by editing the YAML manually (no CLI flag).
+  TServerConfig.ValidateUrlScheme(ServerUrl, ServerType, false, ServerName);
+
   var ConfigWriter := TConfigWriter.Create(Config, false);
   try
    Config.EnsureAllProducts;

@@ -58,7 +58,7 @@ end;
 
 function AddApiVersions(const Server: TServerConfig; const ListedVersions: TList<TOutputVersion>): Boolean;
 begin
-  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(Server.Name), FetchOptions, Server.Url, Server.Name, true);
+  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(Server.Name), FetchOptions, Server.Url, Server.Name, Server.AllowInsecureConnections, true);
   try
     var Versions := TObjectList<TRepositoryUserVersion>.Create;
     try

@@ -851,6 +851,19 @@ begin
     Config.ServerConfig.SetInfo(Index, procedure (var Server: TServerConfig) begin Server.Enabled := GetBool(Value, ErrorInfo); end);
   end);
 
+  Actions.Add('allow insecure connections', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    var Index := Config.ServerConfig.EnsureServer(aName);
+    if not Config.ServerConfig.GetServer(Index).IsReservedName then
+    begin
+      Config.ServerConfig.SetInfo(Index,
+        procedure (var Server: TServerConfig)
+        begin
+          Server.AllowInsecureConnections := GetBool(Value, ErrorInfo);
+        end);
+    end;
+  end);
+
 end;
 
 function TServerSectionConf.GetServerType(const s: string;

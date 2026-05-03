@@ -32,7 +32,8 @@ type
 
 implementation
 uses Classes, SysUtils, Character, UTmsBuildSystemUtils,
-     IOUtils, Commands.GlobalConfig, UAppTerminated, UMultiLogger, System.Hash;
+     IOUtils, Commands.GlobalConfig, UAppTerminated, UMultiLogger, System.Hash,
+     UConfigDefinition;
 
 const
   ETagInvalid =  'invalid';
@@ -99,11 +100,18 @@ end;
 
 class procedure ZipDownloader.GetFile(const DownloadUrl, FileNameOnDisk, Server: string;
   DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
-const
-  FileProtocol = 'file://';
 begin
-  if DownloadUrl.StartsWith(FileProtocol, true) then GetLocalFile(RemoveFilePrefix(DownloadUrl), FileNameOnDisk, DownloadLogger, ForceDownload)
-  else GetHttpsFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload);
+  //Defensive scheme check: even if a tms.config.yaml was hand-edited or copied
+  //from elsewhere with an http:// URL, we refuse to download from it unless
+  //the server entry explicitly opts in with "allow insecure connections: true".
+  var ServerCfg := Config.ServerConfig.GetServer(Server);
+  TServerConfig.ValidateUrlScheme(DownloadUrl, ServerCfg.ServerType,
+    ServerCfg.AllowInsecureConnections, Server);
+
+  if DownloadUrl.StartsWith('file://', true) then
+    GetLocalFile(RemoveFilePrefix(DownloadUrl), FileNameOnDisk, DownloadLogger, ForceDownload)
+  else
+    GetHttpsFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload);
 end;
 
 //Code is from TParallelDownloader.DownloadFile. We could unify it, but for now I prefer to evolve it separately.

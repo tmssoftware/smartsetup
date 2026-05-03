@@ -102,16 +102,23 @@ type
     property AccessToken: string read FAccessToken write FAccessToken;
   end;
 
-function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const ThrowExceptions: boolean): TRepositoryManager;
+function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const AllowInsecureConnections: boolean; const ThrowExceptions: boolean): TRepositoryManager;
 
 implementation
 
 uses
-  UMultiLogger;
+  UMultiLogger, UConfigDefinition;
 
-function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const ThrowExceptions: boolean): TRepositoryManager;
+function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const AllowInsecureConnections: boolean; const ThrowExceptions: boolean): TRepositoryManager;
 begin
   if not ThrowExceptions and (RootUrl = '') then exit(nil);
+  var ErrorMessage: string;
+  if not TServerConfig.TryValidateUrlScheme(RootUrl, TServerType.Api, AllowInsecureConnections, Server, ErrorMessage) then
+  begin
+    if ThrowExceptions then raise Exception.Create(ErrorMessage);
+    exit(nil);
+  end;
+
 
   Result := TRepositoryManager.Create;
   try

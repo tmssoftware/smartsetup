@@ -203,6 +203,11 @@ begin
   if PropName = 'type:' then exit(Server.ServerTypeString);
   if PropName = 'url:' then exit(Server.Url);
   if PropName = 'enabled:' then exit(Server.Enabled);
+  if PropName = 'allow insecure connections:' then
+  begin
+    if (Server.AllowInsecureConnections) then exit(true);
+    exit(TYamlValue.MakeNull);
+  end;
 
   raise Exception.Create('Unexpected server property: ' + PropName);
 end;   
