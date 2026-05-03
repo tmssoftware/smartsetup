@@ -12,6 +12,7 @@ type
     CredentialsProfile: string;
     NoSVN: boolean;
     NoGit: boolean;
+    ForceSelfUpdate: boolean;
 
 
     procedure CheckOffline(const Method: string);

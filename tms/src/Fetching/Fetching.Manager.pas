@@ -55,7 +55,7 @@ implementation
 
 uses
   System.Masks, Fetching.ParallelDownloader, UTmsBuildSystemUtils, UProjectLoader, UProjectDefinition, UProjectList,
-  Commands.GlobalConfig;
+  Commands.GlobalConfig, Testing.Globals;
 
 { TFetchManager }
 
@@ -257,6 +257,9 @@ begin
     TMSSetupInfoFile.ProductPath := '';
     TMSSetupInfoFile.Channel := 'production';
     TMSSetupInfoFile.Version := TLenientVersion.Create(TMSVersion, TVersionType.Semantic);
+ {$IFDEF DEBUG}
+    if TestParameters.ForceSelfUpdate then TMSSetupInfoFile.Version := TLenientVersion.Create('0.0', TVersionType.Semantic);
+ {$ENDIF}
   end;
   Result := FInstalledProducts;
 end;

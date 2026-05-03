@@ -65,6 +65,15 @@ begin
   option.HasValue := False;
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-force-self-update', '', 'Force a self-update, even if we are up to date.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.ForceSelfUpdate := Value;
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
 end;
 
 {$ENDIF}

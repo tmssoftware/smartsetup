@@ -14,7 +14,7 @@ implementation
 uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
-  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager;
+  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager, UGenericDecompressor, Testing.Globals;
 
 
 const
@@ -40,6 +40,10 @@ begin
   if Length(Updated) = 0 then exit;
 
   var Current: TVersion := TMSVersion;
+{$IFDEF DEBUG}
+  if TestParameters.ForceSelfUpdate then Current := TVersion('0.0');
+{$ENDIF}
+
   var MaxVersion := Current;
   for var FileName in Updated do
   begin
@@ -65,25 +69,10 @@ begin
   end;
 end;
 
-procedure UnzipOneFile(const Zip: TZipFile; const RootFolder, NameOnZip: string);
-begin
-  if NameOnZip.EndsWith('/') then exit; //folder.
-
-  var FileName := TPath.Combine(RootFolder, NameOnZip);
-{$IFDEF MSWINDOWS} // ZIP stores files with '/', so translate to a relative Windows path.
-    FileName := StringReplace(FileName, '/', '\', [rfReplaceAll]);
-{$ENDIF}
-
-  DeleteFileOrMoveToLocked(TPath.Combine(RootFolder, '.locked'), FileName);
-
-  Zip.Extract(NameOnZip, RootFolder);
-
-end;
-
 procedure AutoUpdate;
 begin
   var NewVersion := GetNewVersion;
-  if NewVersion = '' then
+  if (NewVersion = '') then
   begin
     //Must go after we autoupdated, but before the logs.
     //Because if the user choose to keep 0 files, this would remove the downloaded file before it was extracted.
@@ -99,21 +88,7 @@ begin
   //We can't move this to the locked folder because tms.exe could be in a different hard disk than the meta folder. See discussion in issue #2
   var RootFolder := TPath.GetDirectoryName(ParamStr(0));
 
-
-  var Zip := TZipFile.Create;
-  try
-    Zip.Open(NewVersion, TZipMode.zmRead);
-    for var i := 0 to Zip.FileCount - 1 do
-    begin
-      UnzipOneFile(Zip, RootFolder, Zip.FileNames[i]);
-    end;
-  finally
-    Zip.Free;
-  end;
-  var FileName := '';
-      TZipFile.ExtractZipFile(NewVersion, RootFolder);
-
-
+  TBundleDecompressor.ExtractCompressedFile(NewVersion, RootFolder);
 
   //Must go after we autoupdated, but before the logs.
   //Because if the user choose to keep 0 files, this would remove the downloaded file before it was extracted.

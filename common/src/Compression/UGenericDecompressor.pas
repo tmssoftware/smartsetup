@@ -21,7 +21,7 @@ type
   end;
 
 implementation
-uses IOUtils;
+uses IOUtils, UTmsBuildSystemUtils, Commands.GlobalConfig;
 
 class function TBundleDecompressor.IsZipByLocalHeader(Stream: TStream): Boolean;
 var
@@ -75,7 +75,9 @@ begin
       for var i := 0 to Zip.FileCount - 1 do
       begin
         if Assigned(Skip) and Skip(Zip.FileNames[i]) then continue;
-        TZSTDDecompressor.CheckIsInside(TPath.Combine(ExtractFolder, Zip.FileNames[i]), ExtractFolder);
+        var FileName := TPath.Combine(ExtractFolder, Zip.FileNames[i]);
+        TZSTDDecompressor.CheckIsInside(FileName, ExtractFolder);
+        DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FileName);
 
         Zip.Extract(Zip.FileNames[i], ExtractFolder);
       end;
@@ -92,7 +94,7 @@ begin
 
   case DownloadFormat of
     TDownloadFormat.Zip: ExtractZipFile(FileName, ExtractFolder, Skip);
-    TDownloadFormat.Zstd: TZSTDDecompressor.Decompress(FileName, ExtractFolder, Skip);
+    TDownloadFormat.Zstd: TZSTDDecompressor.Decompress(FileName, ExtractFolder, Skip, Config.Folders.LockedFilesFolder);
     else raise Exception.Create('Unknown bundle format in file: "' + FileName + '"');
   end;
 end;

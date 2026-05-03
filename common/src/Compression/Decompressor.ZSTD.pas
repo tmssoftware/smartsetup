@@ -7,7 +7,7 @@ type
   TZSTDDecompressor = class
   public
     class procedure CheckIsInside(const FileName, Folder: string); static;
-    class procedure Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean> = nil);
+    class procedure Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean>; const LockedFilesFolder: string);
     class function IsValid(const FileName: string): boolean; overload;
     class function IsValid(const Stream: TStream): boolean; overload;
   end;
@@ -25,10 +25,10 @@ class procedure TZSTDDecompressor.CheckIsInside(const FileName, Folder: string);
 begin
  var FullFolder := TPath.GetFullPath(Folder);
  var FullFileName := TPath.GetFullPath(FileName);
- if not FullFileName.StartsWith(FullFolder, false) then raise Exception.Create('File "' + FileName + '" is outside the extract folder "' + FullFolder + '"');
+ if not FullFileName.StartsWith(IncludeTrailingPathDelimiter(FullFolder), false) then raise Exception.Create('File "' + FileName + '" is outside the extract folder "' + FullFolder + '"');
 end;
 
-class procedure TZSTDDecompressor.Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean> = nil);
+class procedure TZSTDDecompressor.Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean>; const LockedFilesFolder: string);
 begin
   var LastUpdate: TDateTime := Now - 1;
   var InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
@@ -70,7 +70,11 @@ begin
 {$ENDIF}
                 LastUpdate := now;
               end;
-              if (Assigned(Skip)) and Skip(DestFileName) then Tar.SkipFile(DirRec.Size) else Tar.ReadFile(DestFileName, DirRec.Size, DirRec.TimeStamp);
+              if (Assigned(Skip)) and Skip(DestFileName) then Tar.SkipFile(DirRec.Size) else
+              begin
+                if LockedFilesFolder <> '' then DeleteFileOrMoveToLocked(LockedFilesFolder, DestFileName);
+                Tar.ReadFile(DestFileName, DirRec.Size, DirRec.TimeStamp);
+              end;
             end
             else raise Exception.Create('Internal error reading tar file');
           end;
