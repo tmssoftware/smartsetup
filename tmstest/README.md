@@ -208,6 +208,7 @@ The following functions are defined in util.modules.psm1:
   * **Test-BuildResultCounts**: Checks the ok, not modified and ignored results from a build command.
   * **Test-FetchResultCounts**: Checks if the fetch summary is as expected.
   * **Set-AlternateRegistryKey**: Runs the test in an alternate registry key.
+  * **CheckLogHasString(message)**: Reads the most recent tms log (via `tms log-view -print`) and throws if it does not contain `message`. Useful for asserting that a specific message reached the log.
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

@@ -55,7 +55,8 @@ begin
   ValidateVCSFilePath(aFileName);
   var Output := '';
   var Folder := TPath.GetFullPath(aWorkingFolder);
-  var FullCommand := '"' + SvnCommandLine + '" --non-interactive status "' + aFileName + '"';
+  //'--' terminates option parsing so that a path starting with '-' cannot be interpreted as an svn option.
+  var FullCommand := '"' + SvnCommandLine + '" --non-interactive status -- "' + aFileName + '"';
   if not ExecuteCommand(FullCommand, Folder, Output)
     then raise Exception.Create('Error doing svn status in "' + aFileName + '"');
   Result := not Output.Trim.StartsWith('?');
@@ -123,7 +124,8 @@ begin
   ValidateVCSUrl(aURL);
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
-  var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + CloneCommand + ' "' + aURL + '" "' + CloneFolder + '"';
+  //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as an svn option.
+  var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + CloneCommand + ' -- "' + aURL + '" "' + CloneFolder + '"';
   if DirectoryExists(CloneFolder) then raise Exception.Create('Can''t svn checkout into an existing folder: "' + CloneFolder + '"');
   TDirectory_CreateDirectory(CloneFolder);
   if not ExecuteCommand(FullCommand, CloneFolder, Output)

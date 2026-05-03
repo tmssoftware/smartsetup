@@ -1,4 +1,4 @@
-unit VCS.Sanitizer;
+﻿unit VCS.Sanitizer;
 {$I ../../tmssetup.inc}
 
 interface
@@ -28,7 +28,7 @@ procedure ValidateVCSUrl(const aURL: string);
 procedure ValidateVCSFilePath(const aPath: string);
 
 implementation
-uses SysUtils;
+uses SysUtils, Testing.Globals;
 
 function IsAsciiLetterOrDigit(const ch: Char): boolean; inline;
 begin
@@ -75,10 +75,23 @@ begin
          or IsNonAscii(ch);
 end;
 
+function StartsWithMinus(const s: string): boolean;
+begin
+{$IFDEF DEBUG}
+  if TestParameters.AllowVCSCommandsStartingWithMinus then exit(false);
+{$ENDIF}
+  Result := s.TrimLeft.StartsWith('-');
+end;
+
 procedure ValidateVCSVersion(const aVersion: string);
 begin
   if aVersion.Trim = '' then exit;
   if aVersion.Trim = '*' then exit;
+
+  //Reject leading '-' to prevent the value from being parsed as an option by git/svn.
+
+  if StartsWithMinus(aVersion) then
+    raise Exception.CreateFmt('Invalid version "%s": must not start with "-".', [aVersion]);
 
   for var i := 1 to Length(aVersion) do
   begin
@@ -94,6 +107,11 @@ procedure ValidateVCSUrl(const aURL: string);
 begin
   if aURL.Trim = '' then exit;
 
+  //Reject leading '-' to prevent the URL from being parsed as an option by git/svn
+  //(e.g. "--upload-pack=cmd" would otherwise be executed as the upload-pack helper).
+  if StartsWithMinus(aURL) then
+    raise Exception.CreateFmt('Invalid repository URL "%s": must not start with "-".', [aURL]);
+
   for var i := 1 to Length(aURL) do
   begin
     if not IsAllowedUrlChar(aURL[i]) then
@@ -107,6 +125,11 @@ end;
 procedure ValidateVCSFilePath(const aPath: string);
 begin
   if aPath.Trim = '' then exit;
+
+  //Reject leading '-' to prevent the path from being parsed as an option
+  //(e.g. by "git ls-files" or "svn status").
+  if StartsWithMinus(aPath) then
+    raise Exception.CreateFmt('Invalid file path "%s": must not start with "-".', [aPath]);
 
   for var i := 1 to Length(aPath) do
   begin

@@ -74,6 +74,15 @@ begin
   option.HasValue := False;
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-allow-vcs-commands-starting-with-minus', '', 'Disable the check that doesn''t allow for example a version "-command". This is because we anyway fix it by passing "--" to git/svn command line, so it shouldn''t work anyway. If in the future we disable this check, we still can have tests that test "--" is also working.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.AllowVCSCommandsStartingWithMinus := Value;
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
 end;
 
 {$ENDIF}

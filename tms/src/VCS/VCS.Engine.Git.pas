@@ -62,7 +62,8 @@ function TGitEngine.FileIsVersioned(const aFileName, aWorkingFolder: string): bo
 begin
   ValidateVCSFilePath(aFileName);
   var Output := '';
-  var FullCommand := '"' + GitCommandLine + '" ls-files "' + aFileName + '"';
+  //'--' terminates option parsing so that a path starting with '-' cannot be interpreted as a git option.
+  var FullCommand := '"' + GitCommandLine + '" ls-files -- "' + aFileName + '"';
   if not ExecuteCommand(FullCommand, TPath.GetFullPath(aWorkingFolder), Output, ['GIT_TERMINAL_PROMPT=0'])
     then raise Exception.Create('Error in git command: ' + FullCommand);
 
@@ -123,7 +124,8 @@ begin
     TDirectory.CreateDirectory(aTempFolder);
 
     ValidateVCSUrl(aURL);
-    FullCommand := '"' + GitCommandLine + '" clone --bare --filter=tree:0 ' + ' "' + aURL + '" "' + WorkingFolder + '"';
+    //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as a git option.
+    FullCommand := '"' + GitCommandLine + '" clone --bare --filter=tree:0 -- "' + aURL + '" "' + WorkingFolder + '"';
     if not ExecuteCommand(FullCommand, WorkingFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
       then raise Exception.Create('Error in git command: ' + FullCommand);
   end;
@@ -261,7 +263,8 @@ begin
   if Detach then DetachStr :=  ' --detach';
   
   var Output := '';
-  var FullCommand := '"' + GitCommandLine + '" switch' + DetachStr + ' "' + aVersion + '"'; //add a --force to wipe local changes if we prefer it that way.
+  //'--' terminates option parsing so that a version starting with '-' cannot be interpreted as a git option.
+  var FullCommand := '"' + GitCommandLine + '" switch' + DetachStr + ' -- "' + aVersion + '"'; //add a --force to wipe local changes if we prefer it that way.
   if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
     then
     begin
@@ -279,7 +282,8 @@ begin
   ValidateVCSVersion(aVersion);
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
-  var FullCommand := '"' + GitCommandLine + '" ' + CloneCommand + ' "' + aURL + '" "' + CloneFolder + '"';
+  //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as a git option.
+  var FullCommand := '"' + GitCommandLine + '" ' + CloneCommand + ' -- "' + aURL + '" "' + CloneFolder + '"';
   if DirectoryExists(CloneFolder) then raise Exception.Create('Can''t git clone into an existing folder: "' + CloneFolder + '"');
   TDirectory_CreateDirectory(CloneFolder);
   if not ExecuteCommand(FullCommand, CloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])

@@ -13,6 +13,7 @@ type
     NoSVN: boolean;
     NoGit: boolean;
     ForceSelfUpdate: boolean;
+    AllowVCSCommandsStartingWithMinus: boolean;
 
 
     procedure CheckOffline(const Method: string);

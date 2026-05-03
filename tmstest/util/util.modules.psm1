@@ -178,13 +178,30 @@ function Test-Result {
         [string[]]$CommandResult,
         [string]$Message
     )
-    
-    foreach ($line in $CommandResult) {   
+
+    foreach ($line in $CommandResult) {
         if ($line -like $Message) {
             return $true
         }
     }
     return $false
+}
+
+function CheckLogHasString {
+    param(
+        [Parameter(Mandatory, Position=0)] [string] $Message
+    )
+    # Reads the most recent tms log and verifies it contains $Message.
+    # Useful for tests that assert that a specific message reached the log
+    # (for example, evidence that an injected payload was actually attempted
+    # against the underlying tool before being blocked by a second layer of defense).
+    $logFileHtml = tms log-view -print
+    #remove .html extension
+    $logFile = [System.IO.Path]::ChangeExtension($logFileHtml, $null)
+    $logContent = Get-Content -Path ($logFile) -Raw
+    if ($logContent -notmatch $Message) {
+        throw "Expected log content to contain '$Message', but it did not. Log content: $logContent"
+    }
 }
 
 function bds {
