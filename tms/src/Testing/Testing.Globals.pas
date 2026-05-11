@@ -13,6 +13,7 @@ type
     NoSVN: boolean;
     NoGit: boolean;
     ForceSelfUpdate: boolean;
+    SkipSelfUpdateSignatureVerification: boolean;
     AllowVCSCommandsStartingWithMinus: boolean;
 
 

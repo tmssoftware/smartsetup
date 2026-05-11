@@ -21,7 +21,7 @@ This will open your profile. Add the lines (adapting the paths for the machine)
 
 ```shell
 set-alias tms E:\tms\smartsetup\tms\bin\Win64\Debug\tms.exe
-
+set-alias signtool "C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\signtool.exe"
 $tmsTestRootDir = "E:\tms\tms-smartsetup\tmstest"
 $env:TMSTEST_CODE="<reg-code>"
 $env:TMSTEST_EMAIL="<reg-email>"

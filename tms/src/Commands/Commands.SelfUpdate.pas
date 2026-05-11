@@ -1,4 +1,4 @@
-unit Commands.SelfUpdate;
+﻿unit Commands.SelfUpdate;
 interface
 
 uses
@@ -14,7 +14,7 @@ implementation
 uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
-  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager, UGenericDecompressor, Testing.Globals;
+  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager, UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals;
 
 
 const
@@ -69,6 +69,18 @@ begin
   end;
 end;
 
+procedure MoveUpdatedFiles(const Source, Dest: string);
+begin
+  //We won't bother adding with files not at the top.
+  var Files := TDirectory.GetFiles(Source, '*.*', TSearchOption.soTopDirectoryOnly);
+  for var f in Files do
+  begin
+    var DestFile := TPath.Combine(Dest, TPath.GetFileName(f));
+    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, DestFile);
+    RenameAndCheck(f, DestFile);
+  end;
+end;
+
 procedure AutoUpdate;
 begin
   var NewVersion := GetNewVersion;
@@ -87,8 +99,20 @@ begin
   //It should be the place where tms.exe is, not the working folder.
   //We can't move this to the locked folder because tms.exe could be in a different hard disk than the meta folder. See discussion in issue #2
   var RootFolder := TPath.GetDirectoryName(ParamStr(0));
+  var TmpFolder := TPath.Combine(RootFolder, '$$$');
+  try
+    TBundleDecompressor.ExtractCompressedFile(NewVersion, TmpFolder);
 
-  TBundleDecompressor.ExtractCompressedFile(NewVersion, RootFolder);
+    //Verify the new tms.exe is signed by the same publisher as the running
+    //binary BEFORE overwriting it. The bundle's `file_hash` comes from the
+    //same server as the bundle, so the hash is not a trust anchor — only an
+    //offline-signed binary is. See Commands.SelfUpdate.Verify for details.
+    VerifySelfUpdateBundle(ParamStr(0), TmpFolder);
+    MoveUpdatedFiles(TmpFolder, RootFolder);
+  finally
+    DeleteFolderMovingToLocked(Config.Folders.LockedFilesFolder, TmpFolder, true, false);
+  end;
+
 
   //Must go after we autoupdated, but before the logs.
   //Because if the user choose to keep 0 files, this would remove the downloaded file before it was extracted.

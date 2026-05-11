@@ -6,6 +6,7 @@ unit TMSSystem.Signatures;
 interface
 procedure CheckIsCodeSigned(const Filename: string);
 procedure CheckIsCompanySigningCertificate(const Filename, CompanyName :string);
+function GetSigningCertificateSubject(const Filename: string): string;
 
 implementation
 {$IFDEF MSWINDOWS}
@@ -111,7 +112,7 @@ end;
 
 {-----------------------------------------------}
 
-procedure CheckIsCompanySigningCertificate(const Filename, CompanyName :string);
+function GetSigningCertificateSubject(const Filename: string): string;
 var
   hExe: HMODULE;
   Cert: PWinCertificate;
@@ -121,16 +122,18 @@ var
   CertNameLen: DWORD;
   VerifyParams: CRYPT_VERIFY_MESSAGE_PARA;
 begin
-  // Returns TRUE if the SubjectName on the certificate used to sign the exe is
-  // "Company Name".  Should prevent a cracker from modifying the file and
-  // re-signing it with their own certificate.
+  // Returns the SubjectName on the certificate used to sign the exe.  This
+  // also has the side effect of verifying that the embedded signature is
+  // valid for the embedded certificate (CryptVerifyMessageSignature), which
+  // helps prevent someone from re-signing a modified executable.
   //
   // Microsoft has an example that does this using CryptQueryObject and
   // CertFindCertificateInStore instead of CryptVerifyMessageSignature, but
   // CryptQueryObject is NT-only.  Using CertCreateCertificateContext doesn't work
   // either, though I don't know why.
 
-  // Verify that the exe was signed by our private key
+  Result := '';
+
   hExe := CreateFile(PChar(Filename), GENERIC_READ, FILE_SHARE_READ,
     nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or FILE_FLAG_RANDOM_ACCESS, 0);
   if hExe = INVALID_HANDLE_VALUE then
@@ -164,17 +167,16 @@ begin
          Cert.dwLength, nil, nil, @CertContext) then
         raise Exception.Create('Invalid signature for "' + FileName + '"');
       try
-        // Extract and compare the certificate's subject names.  Don't
-        // compare the entire certificate or the public key as those will
-        // change when the certificate is renewed.
+        // Extract the certificate's subject name.  Don't use the entire
+        // certificate or the public key as those will change when the
+        // certificate is renewed.
         CertNameLen := CertGetNameStringA(CertContext,
           CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nil, nil, 0);
         SetLength(CertName, CertNameLen - 1);
         CertGetNameStringA(CertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0,
           nil, PAnsiChar(CertName), CertNameLen);
 
-        if String(CertName) <> CompanyName then
-          raise Exception.Create('Invalid company name in "' + FileName + '". It is "' + String(CertName) + ' and it should be "' + CompanyName + '"');
+        Result := String(CertName);
       finally
         CertFreeCertificateContext(CertContext)
       end;
@@ -185,13 +187,25 @@ begin
     CloseHandle(hExe);
   end;
 end;
+
+procedure CheckIsCompanySigningCertificate(const Filename, CompanyName :string);
+begin
+  var Subject := GetSigningCertificateSubject(Filename);
+  if Subject <> CompanyName then
+    raise Exception.Create('Invalid company name in "' + FileName + '". It is "' + Subject + ' and it should be "' + CompanyName + '"');
+end;
 {$ELSE}
 procedure CheckIsCodeSigned(const Filename: string);
 begin
 end;
 
-procedure CheckIsCompanySigningCertificate(const Filename, CompanyName :string): Boolean;
+procedure CheckIsCompanySigningCertificate(const Filename, CompanyName :string);
 begin
+end;
+
+function GetSigningCertificateSubject(const Filename: string): string;
+begin
+  Result := '';
 end;
 
 {$ENDIF}
