@@ -45,6 +45,9 @@ type
     function HasSDK: boolean;
   end;
 
+  type
+  TIDEAndPlatBoolean = Array[TIDEName, TPlatform] of boolean;
+
   TProjectBuildInfo = class
   private
     FConfig: TConfigDefinition;
@@ -72,7 +75,7 @@ type
     FFileLinks: TObjectList<TFileLinkDefinition>;
     FBasePackagesFolder: string;
     FProgress: TProductProgressInfo;
-    FNeedsBuild: boolean;
+    FNeedsBuild: TIDEAndPlatBoolean;
 
     function EnsureIDE(const IDEName: TIDEName): TIDEBuildInfo;
     function EnsurePlatform(const IDEName: TIDEName; const dp: TPlatform): TPlatformBuildInfo;
@@ -80,6 +83,11 @@ type
     function GetCompilerPaths: TCompilerPathsPerPlatform;
     function GetShortcuts: TObjectList<TShortcutDefinition>;
     function GetFileLinks: TObjectList<TFileLinkDefinition>;
+    function GetNeedsBuild(const IDEName: TIDEName;
+      const Platform: TPlatform): Boolean;
+    procedure SetNeedsBuild(const IDEName: TIDEName; const Platform: TPlatform;
+      const Value: Boolean);
+    function GetNeedsAnyBuild: boolean;
 
   public
     constructor Create(const aConfig: TConfigDefinition; const aProject: TProjectDefinition);
@@ -131,7 +139,8 @@ type
 
     class function GetPlatformPaths(const RootFolder, ExtraPath:string): TPlatformPaths;
 
-    property NeedsBuild: boolean read FNeedsBuild write FNeedsBuild;
+    property NeedsBuild[const IDEName: TIDEName; const Platform: TPlatform]: Boolean read GetNeedsBuild write SetNeedsBuild;
+    property NeedsAnyBuild: boolean read GetNeedsAnyBuild;
 
   end;
 implementation
@@ -367,6 +376,24 @@ begin
   end;
 end;
 
+function TProjectBuildInfo.GetNeedsAnyBuild: boolean;
+begin
+  Result := false;
+  for var dv := Low(TIDEName) to High(TIDEName) do
+  begin
+    for var dp := Low(TPlatform) to High(TPlatform) do
+    begin
+      if FNeedsBuild[dv, dp] then exit(true);
+    end;
+  end;
+end;
+
+function TProjectBuildInfo.GetNeedsBuild(const IDEName: TIDEName;
+  const Platform: TPlatform): Boolean;
+begin
+  Result := FNeedsBuild[IDEName, Platform];
+end;
+
 function TProjectBuildInfo.GetProjectId: string;
 begin
   Result := Project.Application.Id;
@@ -383,6 +410,12 @@ begin
   var DelphiFolder := Naming.GetPackageNaming(IdeName, Project.IsExe, Project.PackageFolders[IdeName].Value);
 
   Result := TPath.Combine(BasePackagesFolder, DelphiFolder);
+end;
+
+procedure TProjectBuildInfo.SetNeedsBuild(const IDEName: TIDEName;
+  const Platform: TPlatform; const Value: Boolean);
+begin
+  FNeedsBuild[IDEName, Platform] := Value;
 end;
 
 function TProjectBuildInfo.SkipRegistering: TSkipRegistering;

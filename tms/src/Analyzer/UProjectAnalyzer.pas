@@ -518,7 +518,7 @@ begin
   var ProductNeedsBuild := FileHasher.ProductModified(ProductHash, BuildInfo.CurrentProject.Project, Config, dv, dp, '')
     or (dp in DepsCompiled[dv]); //we check at project level, not package.
 
-  BuildInfo.CurrentProject.NeedsBuild := ProductNeedsBuild;
+  BuildInfo.CurrentProject.NeedsBuild[dv, dp] := ProductNeedsBuild;
   var AddInfo := FileHasher.SkipRegistering(BuildInfo.CurrentProject.Project, dv, dp) <> BuildInfo.CurrentProject.SkipRegistering.ToInteger;
 
   if ProductNeedsBuild or AddInfo then

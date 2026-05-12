@@ -142,7 +142,7 @@ begin
   begin
     if (proj.IDEsBuildInfo.Count > 0) and proj.AllOk then
     begin
-      if not proj.NeedsBuild then
+      if not proj.NeedsAnyBuild then
         begin
           if Config.Unregistering or (Config.SkipRegistering(proj.ProjectId, 0) = TSkipRegistering.All.ToInteger)
             then Logger.Info('  - ' + proj.Project.Application.NameAndVersion + ' -> UNREGISTERED.')

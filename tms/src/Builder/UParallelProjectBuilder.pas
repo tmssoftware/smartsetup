@@ -323,7 +323,7 @@ begin
   ParallelProjects.SetRun(BuildInfo.Project.ProjectId, IDEId[BuildInfo.IDE.Name],
       PlatformID[BuildInfo.Platform.Name],  procedure
   begin
-    var NeedsBuild := BuildInfo.Project.NeedsBuild;
+    var NeedsBuild := BuildInfo.Project.NeedsBuild[BuildInfo.IDE.Name, BuildInfo.Platform.Name];
     Logger.StartSection(TMessageType.Build, BuildInfo.Project.ProjectId + '->' + IDEId[BuildInfo.IDE.Name] + '.' + PlatformID[BuildInfo.Platform.Name]);
     ProjectInstaller.UnRegisterAtPlatformLevel(BuildInfo.Project.DryRun, Installer, BuildInfo.Project.ProjectId, BuildInfo.IDE.Name, BuildInfo.Platform.Name);
     var ProcessedInPlatform := 0;
@@ -362,6 +362,10 @@ begin
         end;
         ProjectInstaller.MoveDataFromTempProjects(Installer, BuildInfo, UsedDcuMegafolders);
         ProjectInstaller.RemoveTempProjects(Installer, BuildInfo);
+      end else
+      begin
+        Logger.Trace('Skipping compiling ' + BuildInfo.Project.ProjectId + ' in ' + IDEId[BuildInfo.IDE.Name]
+          + '.' + PlatformId[BuildInfo.Platform.Name] + ' because it wasn''t modified')
       end;
 
       ProjectInstaller.RegisterAtPlatformLevel(Installer, BuildInfo);
