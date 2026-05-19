@@ -8,9 +8,12 @@ type
   TVersion = record
   strict private
     FNumbers: TVersionNumbers;
+    FPreRelease: string;
   private
     function GetNumber(I: integer): integer;
     procedure SetNumber(I: integer; const Value: integer);
+    procedure SetPreRelease(const Value: string);
+    class function ComparePreRelease(const Left, Right: string): integer; static;
   public
     class operator Implicit(Value: string): TVersion;
     class operator Implicit(Value: TVersion): string;
@@ -25,8 +28,10 @@ type
   public
     function ToString: string;
     function Normalized: string;
-    class function Make(const AMajor, AMinor, ARelease, ABuild: Integer): TVersion; static;
+    class function Make(const AMajor, AMinor, ARelease, ABuild: Integer): TVersion; overload; static;
+    class function Make(const AMajor, AMinor, ARelease, ABuild: Integer; const APreRelease: string): TVersion; overload; static;
     class function TryFromString(const S: string; var Version: TVersion): Boolean; static;
+    class function IsValidPreRelease(const S: string): Boolean; static;
     procedure FromString(const S: string);
     function IsNull: boolean;
     procedure Clear;
@@ -35,6 +40,7 @@ type
     property Release: integer index 2 read GetNumber write SetNumber;
     property Build: integer index 3 read GetNumber write SetNumber;
     property Numbers[I: integer]: integer read GetNumber write SetNumber; default;
+    property PreRelease: string read FPreRelease write SetPreRelease;
   end;
 
   TVersionType = (
@@ -85,11 +91,62 @@ begin
   FNumbers[1] := 0;
   FNumbers[2] := 0;
   FNumbers[3] := 0;
+  FPreRelease := '';
 end;
 
 class operator TVersion.Equal(Left, Right: TVersion): Boolean;
 begin
-  Result := (Left[0] = Right[0]) and (Left[1] = Right[1]) and (Left[2] = Right[2]) and (Left[3] = Right[3]);
+  Result := (Left[0] = Right[0]) and (Left[1] = Right[1]) and (Left[2] = Right[2]) and (Left[3] = Right[3])
+    and (Left.FPreRelease = Right.FPreRelease);
+end;
+
+// Semver 2.0 prerelease precedence. Returns <0 if Left has lower precedence,
+// >0 if greater, 0 if equal. A missing (empty) prerelease ranks HIGHER than
+// any non-empty prerelease.
+class function TVersion.ComparePreRelease(const Left, Right: string): integer;
+var
+  LeftParts, RightParts: TArray<string>;
+  LeftId, RightId: string;
+  LeftNum, RightNum: integer;
+  LeftIsNum, RightIsNum: Boolean;
+  I, Count: integer;
+begin
+  if Left = Right then Exit(0);
+  if Left = '' then Exit(1);
+  if Right = '' then Exit(-1);
+
+  LeftParts := Left.Split(['.']);
+  RightParts := Right.Split(['.']);
+
+  Count := Length(LeftParts);
+  if Length(RightParts) < Count then Count := Length(RightParts);
+
+  for I := 0 to Count - 1 do
+  begin
+    LeftId := LeftParts[I];
+    RightId := RightParts[I];
+    LeftIsNum := TryStrToInt(LeftId, LeftNum);
+    RightIsNum := TryStrToInt(RightId, RightNum);
+    if LeftIsNum and RightIsNum then
+    begin
+      if LeftNum < RightNum then Exit(-1);
+      if LeftNum > RightNum then Exit(1);
+    end
+    else if LeftIsNum then
+      Exit(-1) // numeric identifiers always rank lower than alphanumeric
+    else if RightIsNum then
+      Exit(1)
+    else
+    begin
+      Result := CompareStr(LeftId, RightId);
+      if Result <> 0 then Exit;
+    end;
+  end;
+
+  // All shared identifiers are equal; the one with more identifiers wins.
+  if Length(LeftParts) < Length(RightParts) then Exit(-1);
+  if Length(LeftParts) > Length(RightParts) then Exit(1);
+  Result := 0;
 end;
 
 procedure TVersion.FromString(const S: string);
@@ -115,7 +172,7 @@ begin
     else
     if Left[I] < Right[I] then
       Exit(false);
-  Result := false;
+  Result := ComparePreRelease(Left.FPreRelease, Right.FPreRelease) > 0;
 end;
 
 class operator TVersion.GreaterThanOrEqual(Left, Right: TVersion): Boolean;
@@ -128,7 +185,7 @@ begin
     else
     if Left[I] < Right[I] then
       Exit(false);
-  Result := true;
+  Result := ComparePreRelease(Left.FPreRelease, Right.FPreRelease) >= 0;
 end;
 
 class operator TVersion.Implicit(Value: string): TVersion;
@@ -143,7 +200,31 @@ end;
 
 function TVersion.IsNull: boolean;
 begin
-  Result := (FNumbers[0] = 0) and (FNumbers[1] = 0) and (FNumbers[2] = 0) and (FNumbers[3] = 0);
+  Result := (FNumbers[0] = 0) and (FNumbers[1] = 0) and (FNumbers[2] = 0) and (FNumbers[3] = 0)
+    and (FPreRelease = '');
+end;
+
+class function TVersion.IsValidPreRelease(const S: string): Boolean;
+var
+  Parts: TArray<string>;
+  Part: string;
+  C: Char;
+  AllDigits: Boolean;
+begin
+  if S = '' then Exit(True);
+  Parts := S.Split(['.']);
+  for Part in Parts do
+  begin
+    if Part = '' then Exit(False);
+    AllDigits := True;
+    for C in Part do
+    begin
+      if not CharInSet(C, ['0'..'9', 'A'..'Z', 'a'..'z', '-']) then Exit(False);
+      if not CharInSet(C, ['0'..'9']) then AllDigits := False;
+    end;
+    if AllDigits and (Length(Part) > 1) and (Part[1] = '0') then Exit(False);
+  end;
+  Result := True;
 end;
 
 class operator TVersion.LessThan(Left, Right: TVersion): Boolean;
@@ -162,11 +243,23 @@ begin
   Result.Minor := AMinor;
   Result.Release := ARelease;
   Result.Build := ABuild;
+  Result.FPreRelease := '';
+end;
+
+class function TVersion.Make(const AMajor, AMinor, ARelease, ABuild: Integer; const APreRelease: string): TVersion;
+begin
+  Result.Major := AMajor;
+  Result.Minor := AMinor;
+  Result.Release := ARelease;
+  Result.Build := ABuild;
+  Result.PreRelease := APreRelease;
 end;
 
 function TVersion.Normalized: string;
 begin
   Result := IntToStr(FNumbers[0]) + '.' + IntToStr(FNumbers[1]) + '.' + IntToStr(FNumbers[2]) + '.' + IntToStr(FNumbers[3]);
+  if FPreRelease <> '' then
+    Result := Result + '-' + FPreRelease;
 end;
 
 class operator TVersion.NotEqual(Left, Right: TVersion): Boolean;
@@ -181,6 +274,13 @@ begin
   FNumbers[I] := Value;
 end;
 
+procedure TVersion.SetPreRelease(const Value: string);
+begin
+  if not IsValidPreRelease(Value) then
+    raise EConvertError.CreateFmt('''%s'' is not a valid semver 2.0 prerelease', [Value]);
+  FPreRelease := Value;
+end;
+
 function TVersion.ToString: string;
 begin
   if IsNull then Exit('');
@@ -191,6 +291,8 @@ begin
   else
   if FNumbers[2] <> 0 then
     Result := Result + '.' + IntToStr(FNumbers[2]);
+  if FPreRelease <> '' then
+    Result := Result + '-' + FPreRelease;
 end;
 
 class function TVersion.TryFromString(const S: string; var Version: TVersion): Boolean;
@@ -199,10 +301,28 @@ var
   Digit: integer;
   I: integer;
   Temp: TVersionNumbers;
+  HyphenPos: integer;
+  NumericPart, PreReleasePart: string;
 begin
+  // Build metadata (the '+' suffix) is not supported yet.
+  if S.IndexOf('+') >= 0 then Exit(False);
+
+  HyphenPos := S.IndexOf('-');
+  if HyphenPos >= 0 then
+  begin
+    NumericPart := S.Substring(0, HyphenPos);
+    PreReleasePart := S.Substring(HyphenPos + 1);
+    if not IsValidPreRelease(PreReleasePart) then Exit(False);
+  end
+  else
+  begin
+    NumericPart := S;
+    PreReleasePart := '';
+  end;
+
   // quick and dirty
   I := 0;
-  for StrNumber in SplitString(S, '.') do
+  for StrNumber in SplitString(NumericPart, '.') do
   begin
     if not TryStrToInt(StrNumber, Digit) or (I > 3) then
       Exit(False);
@@ -215,6 +335,7 @@ begin
     Inc(I);
   end;
   Version.FNumbers := Temp;
+  Version.FPreRelease := PreReleasePart;
   Result := True;
 end;
 
@@ -397,7 +518,51 @@ begin
 end;
 
 {$IFDEF DEBUG}
+procedure AssertSemverOrder;
+var
+  A, B: TVersion;
+  Tmp: TVersion;
+begin
+  // Round-trip parsing keeps the prerelease tag.
+  Assert(TVersion.TryFromString('1.2.3.4-alpha.1', Tmp));
+  Assert(Tmp.PreRelease = 'alpha.1');
+  Assert(Tmp.ToString = '1.2.3.4-alpha.1');
+  Assert(Tmp.Normalized = '1.2.3.4-alpha.1');
+
+  // Numeric parts win first.
+  A := TVersion.Make(1, 2, 3, 4, 'beta'); B := TVersion.Make(1, 2, 3, 5);
+  Assert(A < B);
+
+  // When numeric parts are equal, no-prerelease ranks higher.
+  A := TVersion.Make(1, 0, 0, 0, 'alpha'); B := TVersion.Make(1, 0, 0, 0);
+  Assert(A < B);
+  Assert(B > A);
+  Assert(A <> B);
+
+  // Semver 2.0 sample chain: alpha < alpha.1 < alpha.beta < beta < beta.2 < beta.11 < rc.1 < (no prerelease)
+  Assert(TVersion.Make(1, 0, 0, 0, 'alpha')   < TVersion.Make(1, 0, 0, 0, 'alpha.1'));
+  Assert(TVersion.Make(1, 0, 0, 0, 'alpha.1') < TVersion.Make(1, 0, 0, 0, 'alpha.beta'));
+  Assert(TVersion.Make(1, 0, 0, 0, 'alpha.beta') < TVersion.Make(1, 0, 0, 0, 'beta'));
+  Assert(TVersion.Make(1, 0, 0, 0, 'beta')    < TVersion.Make(1, 0, 0, 0, 'beta.2'));
+  Assert(TVersion.Make(1, 0, 0, 0, 'beta.2')  < TVersion.Make(1, 0, 0, 0, 'beta.11'));
+  Assert(TVersion.Make(1, 0, 0, 0, 'beta.11') < TVersion.Make(1, 0, 0, 0, 'rc.1'));
+  Assert(TVersion.Make(1, 0, 0, 0, 'rc.1')    < TVersion.Make(1, 0, 0, 0));
+
+  // Numeric identifier is always lower than alphanumeric.
+  Assert(TVersion.Make(1, 0, 0, 0, '1') < TVersion.Make(1, 0, 0, 0, 'alpha'));
+
+  // Validation: leading zeros in numeric identifiers, empty identifiers and invalid chars are rejected.
+  Assert(not TVersion.IsValidPreRelease('01'));
+  Assert(not TVersion.IsValidPreRelease('alpha..1'));
+  Assert(not TVersion.IsValidPreRelease('alpha_1'));
+  Assert(TVersion.IsValidPreRelease('0'));
+  Assert(TVersion.IsValidPreRelease('x-y-z'));
+  Assert(not TVersion.TryFromString('1.2.3-01', Tmp));
+  Assert(not TVersion.TryFromString('1.2.3+meta', Tmp));
+end;
+
 initialization
+  AssertSemverOrder;
   Assert(TLenientVersion.Create('v2.0-rc3', TVersionType.FreeForm) < TLenientVersion.Create('v2.0', TVersionType.FreeForm));
   Assert(TLenientVersion.Create('v12.0-rc3', TVersionType.FreeForm) > TLenientVersion.Create('v2.0', TVersionType.FreeForm));
   Assert(not (TLenientVersion.Create('v12.0-rc3', TVersionType.FreeForm) < TLenientVersion.Create('v2.0', TVersionType.FreeForm)));
