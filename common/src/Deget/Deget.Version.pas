@@ -539,6 +539,12 @@ begin
   Assert(B > A);
   Assert(A <> B);
 
+  // Make sure normalized and ToString works with and without pre-release part
+  Assert(TVersion('1.2.0').Normalized = '1.2.0.0');
+  Assert(TVersion('1.2.0-alpha.1').Normalized = '1.2.0.0-alpha.1');
+  Assert(TVersion('1.2.0').ToString = '1.2');
+  Assert(TVersion('1.2.0-alpha.1').ToString = '1.2-alpha.1');
+
   // Semver 2.0 sample chain: alpha < alpha.1 < alpha.beta < beta < beta.2 < beta.11 < rc.1 < (no prerelease)
   Assert(TVersion.Make(1, 0, 0, 0, 'alpha')   < TVersion.Make(1, 0, 0, 0, 'alpha.1'));
   Assert(TVersion.Make(1, 0, 0, 0, 'alpha.1') < TVersion.Make(1, 0, 0, 0, 'alpha.beta'));
