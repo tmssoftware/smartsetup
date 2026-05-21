@@ -43,6 +43,7 @@ type
     property Numbers[I: integer]: integer read GetNumber write SetNumber; default;
     property PreRelease: string read FPreRelease write SetPreRelease;
 
+    function IsPreRelease: boolean;
     function AsInteger: integer;
   end;
 
@@ -211,6 +212,11 @@ function TVersion.IsNull: boolean;
 begin
   Result := (FNumbers[0] = 0) and (FNumbers[1] = 0) and (FNumbers[2] = 0) and (FNumbers[3] = 0)
     and (FPreRelease = '');
+end;
+
+function TVersion.IsPreRelease: boolean;
+begin
+  Result := PreRelease <> '';
 end;
 
 class function TVersion.IsValidPreRelease(const S: string): Boolean;

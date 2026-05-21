@@ -261,6 +261,8 @@ begin
   if varName  = 'verinfo-release' then exit(IntToStr(TVersion(ApplicationVersion).Release));
   if varName  = 'verinfo-build' then exit(IntToStr(TVersion(ApplicationVersion).Build));
 
+  if varName  = 'verinfo-is-prerelease' then exit(BoolToStr(TVersion(ApplicationVersion).IsPreRelease, true).ToLowerInvariant);
+
   if varName = 'dcc-namespace-base' then
   begin
     if SameText(Package.DelphiFrameworkType.Trim, 'vcl')
