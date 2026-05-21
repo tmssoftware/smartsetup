@@ -32,20 +32,20 @@ type
     FCredentialsFile: string;
     FDefaultProfile: string;
     FServerName: string;
-    procedure LoadCredentials(Credentials: TCredentials; const Profile: string);
+    procedure LoadCredentials(Credentials: TCredentials);
     function AuthCredName(Profile: string): string;
     function TokensCredName(Profile: string): string;
     function CredName(Profile, Name: string): string;
   protected
-    function RetrieveAccessToken(const AuthUrl: string; const Profile: string = ''): string;
+    function RetrieveAccessToken(const AuthUrl: string): string;
   public
     constructor Create(const ACredentialsFile, DefaultProfile, ServerName: string);
     destructor Destroy; override;
 
     procedure UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 
-    procedure SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean; const Profile: string = '');
-    function ReadCredentials(const Profile: string = ''): TCredentials;
+    procedure SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
+    function ReadCredentials: TCredentials;
   public
     class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
   end;
@@ -141,9 +141,9 @@ begin
   end;
 end;
 
-function TCredentialsManager.RetrieveAccessToken(const AuthUrl: string; const Profile: string): string;
+function TCredentialsManager.RetrieveAccessToken(const AuthUrl: string): string;
 begin
-  var Credentials := ReadCredentials(Profile);
+  var Credentials := ReadCredentials;
   try
     // Use a 5-minute margin to check for token expiration. See https://github.com/tmssoftware/tms-smartsetup/issues/301
     if (Credentials.AccessToken <> '') and (Now < IncMinute(Credentials.Expiration, -5)) then
@@ -161,7 +161,7 @@ begin
     UpdateAccessToken(Credentials, AuthUrl);
 
     // Save access token
-    SaveCredentials(Credentials, true, Profile);
+    SaveCredentials(Credentials, true);
 
     // Return
     Result := Credentials.AccessToken;
@@ -175,7 +175,10 @@ begin
 {$IFDEF DEBUG}
   if TestParameters.CredentialsProfile <> '' then Profile := TestParameters.CredentialsProfile;
 {$ENDIF}
-  var ProfileDot := Profile; if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
+  var ProfileDot := Profile;
+  if Profile = 'production' then ProfileDot := ''; //backwards compat, also production is the most common case.
+  
+  if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
   Result := 'tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + Name;
 end;
 
@@ -189,12 +192,12 @@ begin
   Result := CredName(Profile, '.tokens');
 end;
 
-procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials; const Profile: string);
+procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials);
 begin
 {$IFDEF MSWINDOWS}
   var Email, Code: string;
 
-  var Error := CredReadGenericCredentials(AuthCredName(Profile), Email, Code, false);
+  var Error := CredReadGenericCredentials(AuthCredName(FDefaultProfile), Email, Code, false);
   if Error <> '' then
   begin
     Logger.Trace(Error);
@@ -204,7 +207,7 @@ begin
 
   var Expiration: string;
   var AccessToken: TBytes;
-  var Error2 := CredReadGenericCredentials(TokensCredName(Profile), Expiration, AccessToken, false);
+  var Error2 := CredReadGenericCredentials(TokensCredName(FDefaultProfile), Expiration, AccessToken, false);
   if Error2 <> '' then
   begin
     Logger.Trace(Error2);
@@ -227,9 +230,7 @@ begin
 {$ENDIF}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
-    var IniSection := Profile;
-    if IniSection = '' then
-      IniSection := FDefaultProfile;
+    var IniSection := FDefaultProfile;
     Credentials.Email := IniFile.ReadString(IniSection, IniEmail, '');
     Credentials.Code := IniFile.ReadString(IniSection, IniCode, '');
     Credentials.AccessToken := IniFile.ReadString(IniSection, IniToken, '');
@@ -244,45 +245,45 @@ begin
 
 {$IFDEF MSWINDOWS}
   //found the legacy credentials. Delete them, and save them in the new place.
-  SaveCredentials(Credentials, false, Profile);
+  SaveCredentials(Credentials, false);
   if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
 {$ENDIF}
 end;
 
-function TCredentialsManager.ReadCredentials(const Profile: string): TCredentials;
+function TCredentialsManager.ReadCredentials: TCredentials;
 begin
   Result := TCredentials.Create;
   try
-    LoadCredentials(Result, Profile);
+    LoadCredentials(Result);
   except
     Result.Free;
     raise;
   end;
 end;
 
-procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean; const Profile: string);
+procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
 begin
 {$IFDEF MSWINDOWS}
   if not OnlyToken then
   begin
     if String.IsNullOrWhiteSpace(Credentials.Email) or String.IsNullOrWhiteSpace(Credentials.Code) then
     begin
-      var CmdResult := CredDeleteGenericCredential(AuthCredName(Profile), false);
+      var CmdResult := CredDeleteGenericCredential(AuthCredName(FDefaultProfile), false);
       if CmdResult <> '' then Logger.Trace(CmdResult);
 
-      CmdResult := CredDeleteGenericCredential(TokensCredName(Profile), false);
+      CmdResult := CredDeleteGenericCredential(TokensCredName(FDefaultProfile), false);
       if CmdResult <> '' then Logger.Trace(CmdResult);
       exit;
     end;
 
-    CredWriteGenericCredentials(AuthCredName(Profile), Credentials.Email, Credentials.Code);
+    CredWriteGenericCredentials(AuthCredName(FDefaultProfile), Credentials.Email, Credentials.Code);
   end;
 
   var Expiration := '';
   if YearOf(Credentials.Expiration) > 1900 then
       Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
 
-  CredWriteGenericCredentials(TokensCredName(Profile), Expiration, CompressToken(Credentials.AccessToken));
+  CredWriteGenericCredentials(TokensCredName(FDefaultProfile), Expiration, CompressToken(Credentials.AccessToken));
 {$ELSE}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
