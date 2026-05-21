@@ -24,12 +24,13 @@ begin
     // XE2 or newer also don't include them anymore.
 
     var Version: TVersion := Application.Version;
-    var VersionDots := Version.Normalized;
-    var VersionCommas := VersionDots.Replace('.',',', [rfReplaceAll]);
+    var WindowsVersionDots := Version.NormalizedWindowsFormat;
+    var SemVerVersionDots := Version.Normalized;
+    var WindowsVersionCommas := WindowsVersionDots.Replace('.',',', [rfReplaceAll]);
 
     Writer.WriteLine('1 VERSIONINFO');
-    Writer.WriteLine('FILEVERSION ' + VersionCommas);
-    Writer.WriteLine('PRODUCTVERSION ' + VersionCommas);
+    Writer.WriteLine('FILEVERSION ' + WindowsVersionCommas);
+    Writer.WriteLine('PRODUCTVERSION ' + WindowsVersionCommas);
     Writer.WriteLine('FILEOS 0x4');
     Writer.WriteLine('FILETYPE 0x1');
     Writer.WriteLine('{');
@@ -39,13 +40,13 @@ begin
     Writer.WriteLine('	{');
     Writer.WriteLine('		VALUE "CompanyName", "' + '' +'\0"');
     Writer.WriteLine('		VALUE "FileDescription", "' + Escape(Application.Description) +'\0"');
-    Writer.WriteLine('		VALUE "FileVersion", "' + VersionDots + '\0"');
+    Writer.WriteLine('		VALUE "FileVersion", "' + WindowsVersionDots + '\0"');
     Writer.WriteLine('		VALUE "InternalName", "\0"');
     Writer.WriteLine('		VALUE "LegalCopyright", "' + Escape(Application.Copyright) +'\0"');
     Writer.WriteLine('		VALUE "LegalTrademarks", "\0"');
     Writer.WriteLine('		VALUE "OriginalFilename", "\0"');
     Writer.WriteLine('		VALUE "ProductName", "' + Escape(Application.Name) +'\0"');
-    Writer.WriteLine('		VALUE "ProductVersion", "' + VersionDots + '\0"');
+    Writer.WriteLine('		VALUE "ProductVersion", "' + SemVerVersionDots + '\0"');
     Writer.WriteLine('		VALUE "Comments", "\0"');
     Writer.WriteLine('	}');
     Writer.WriteLine('}');

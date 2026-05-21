@@ -28,6 +28,7 @@ type
   public
     function ToString: string;
     function Normalized: string;
+    function NormalizedWindowsFormat: string;
     class function Make(const AMajor, AMinor, ARelease, ABuild: Integer): TVersion; overload; static;
     class function Make(const AMajor, AMinor, ARelease, ABuild: Integer; const APreRelease: string): TVersion; overload; static;
     class function TryFromString(const S: string; var Version: TVersion): Boolean; static;
@@ -41,6 +42,8 @@ type
     property Build: integer index 3 read GetNumber write SetNumber;
     property Numbers[I: integer]: integer read GetNumber write SetNumber; default;
     property PreRelease: string read FPreRelease write SetPreRelease;
+
+    function AsInteger: integer;
   end;
 
   TVersionType = (
@@ -84,6 +87,12 @@ uses
   System.SysUtils, System.StrUtils, Generics.Defaults;
 
 { TVersion }
+
+function TVersion.AsInteger: integer;
+begin
+  //We won't include build, to avoid the number potentially becoming negative.
+  Result := (Major shl 16) + (Minor shl 8) + Release;
+end;
 
 procedure TVersion.Clear;
 begin
@@ -253,6 +262,11 @@ begin
   Result.Release := ARelease;
   Result.Build := ABuild;
   Result.PreRelease := APreRelease;
+end;
+
+function TVersion.NormalizedWindowsFormat: string;
+begin
+  Result := IntToStr(FNumbers[0]) + '.' + IntToStr(FNumbers[1]) + '.' + IntToStr(FNumbers[2]) + '.' + IntToStr(FNumbers[3]);
 end;
 
 function TVersion.Normalized: string;

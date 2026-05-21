@@ -244,26 +244,22 @@ begin
   if varName = 'plat-winarm64ec' then exit(HasPlatform(TPlatform.winarm64ec, PackagePlatforms));
 
   //verinfo
-  if varName = 'verinfo-package' then exit('com.' + GetFirstId(Project.Application.Id) + '.$(MSBuildProjectName)');
-  if varName = 'verinfo-version-code' then
-      begin
-        if Project.Application.Version = '' then exit('0');
-        exit(TVersion(Project.Application.Version).Normalized);
-      end;
+  var ApplicationVersion := Project.Application.Version;
+  if ApplicationVersion = '' then ApplicationVersion := '0.0';
 
-  if varName = 'verinfo-version-name' then
-      begin
-        if Project.Application.Version = '' then exit(TVersion('0.0').Normalized);
-        exit(TVersion(Project.Application.Version).Normalized);
-      end;
+  if varName = 'verinfo-package' then exit('com.' + GetFirstId(Project.Application.Id) + '.$(MSBuildProjectName)');
+  if varName = 'verinfo-version-code' then exit(IntToStr(TVersion(ApplicationVersion).AsInteger));
+  if varName = 'verinfo-version-name' then exit(TVersion(ApplicationVersion).Normalized);
+  if varName = 'verinfo-windows-version' then exit(TVersion(ApplicationVersion).NormalizedWindowsFormat);
+
   if varName = 'verinfo-company-name' then exit(Project.Application.CompanyName);
   if varName = 'verinfo-copyright' then exit(Project.Application.Copyright);
   if varName = 'verinfo-program-id' then exit('com.' + Project.Application.Id);
 
-  if varName  = 'verinfo-major-ver' then exit(IntToStr(TVersion(Project.Application.Version).Major));
-  if varName  = 'verinfo-minor-ver' then exit(IntToStr(TVersion(Project.Application.Version).Minor));
-  if varName  = 'verinfo-release' then exit(IntToStr(TVersion(Project.Application.Version).Release));
-  if varName  = 'verinfo-build' then exit(IntToStr(TVersion(Project.Application.Version).Build));
+  if varName  = 'verinfo-major-ver' then exit(IntToStr(TVersion(ApplicationVersion).Major));
+  if varName  = 'verinfo-minor-ver' then exit(IntToStr(TVersion(ApplicationVersion).Minor));
+  if varName  = 'verinfo-release' then exit(IntToStr(TVersion(ApplicationVersion).Release));
+  if varName  = 'verinfo-build' then exit(IntToStr(TVersion(ApplicationVersion).Build));
 
   if varName = 'dcc-namespace-base' then
   begin

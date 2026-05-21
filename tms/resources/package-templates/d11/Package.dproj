@@ -119,7 +119,7 @@
         <DCC_Namespace>%dcc-namespace-win32%</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
@@ -130,7 +130,7 @@
         <DCC_Namespace>%dcc-namespace-win64%</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
@@ -141,7 +141,7 @@
         <DCC_Namespace>%dcc-namespace-win64x%</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
@@ -152,7 +152,7 @@
         <DCC_Namespace>%dcc-namespace-winarm64ec%</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-version-name%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
