@@ -27,6 +27,7 @@ type
     class operator LessThanOrEqual(Left, Right: TVersion): Boolean;
   public
     function ToString: string;
+    function ToStringWindowsFormat: string;
     function Normalized: string;
     function NormalizedWindowsFormat: string;
     class function Make(const AMajor, AMinor, ARelease, ABuild: Integer): TVersion; overload; static;
@@ -301,7 +302,7 @@ begin
   FPreRelease := Value;
 end;
 
-function TVersion.ToString: string;
+function TVersion.ToStringWindowsFormat: string;
 begin
   if IsNull then Exit('');
 
@@ -311,6 +312,11 @@ begin
   else
   if FNumbers[2] <> 0 then
     Result := Result + '.' + IntToStr(FNumbers[2]);
+end;
+
+function TVersion.ToString: string;
+begin
+  Result := ToStringWindowsFormat;
   if FPreRelease <> '' then
     Result := Result + '-' + FPreRelease;
 end;
