@@ -120,7 +120,7 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_PreRelease>%verinfo-is-prerelease%</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-windows-version%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
@@ -132,7 +132,7 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_PreRelease>%verinfo-is-prerelease%</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-windows-version%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
@@ -144,7 +144,7 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_PreRelease>%verinfo-is-prerelease%</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-windows-version%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
@@ -156,7 +156,7 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_PreRelease>%verinfo-is-prerelease%</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-version-name%;Comments=</VerInfo_Keys>        
+        <VerInfo_Keys>CompanyName=%verinfo-company-name%;FileDescription=$(MSBuildProjectName);FileVersion=%verinfo-windows-version%;InternalName=;LegalCopyright=%verinfo-copyright%;LegalTrademarks=;OriginalFilename=;ProgramID=%verinfo-program-id%;ProductName=$(MSBuildProjectName);ProductVersion=%verinfo-windows-version%;Comments=</VerInfo_Keys>        
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>%verinfo-major-ver%</VerInfo_MajorVer>
         <VerInfo_MinorVer>%verinfo-minor-ver%</VerInfo_MinorVer>
