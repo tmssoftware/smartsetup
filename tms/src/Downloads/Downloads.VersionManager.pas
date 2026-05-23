@@ -11,7 +11,7 @@ uses SysUtils, Generics.Defaults, Generics.Collections, Commands.GlobalConfig,
   Posix.UniStd, Posix.Stdio,
 {$ENDIF}
 Deget.Version, IOUtils, UMultiLogger, Math, UTmsBuildSystemUtils,
-Fetching.InstallInfo, Fetching.InfoFile, Fetching.FetchItem, UGenericDecompressor;
+Fetching.InstallInfo, Fetching.InfoFile, Fetching.FetchItem, UGenericDecompressor, Downloads.FileNameManager;
 
 type
 TProductInfo = record
@@ -23,37 +23,6 @@ end;
 
 TProductInfoList = TList<TProductInfo>;
 TAllProductsInfo = TObjectDictionary<string, TProductInfoList>;
-
-//Review where this method goes. It is similar to the one in Commands.SelfUpdate and should be in a common place.
-//But right now I don't know where that should be. It could also be made a little more robust.
-function ExtractVersion(const FileName: string): string;
-begin
-  var OnlyFileName := TPath.GetFileNameWithoutExtension(FileName);
-  Result := OnlyFileName.Substring(OnlyFileName.LastIndexOf('_') + 1);
-
-  //.tar.zstd files have 2 extensions, and GetFileNameWithoutExtension will only remove the first.
-  //this should be indeed made more robust.
-  var i := Result.Length;
-  while (i > 0) and not (CharInSet(Result[i], ['0'..'9'])) do dec(i);
-  if i < Result.Length then SetLength(Result, i);
-end;
-
-function ExtractProduct(const FileName: string): string;
-begin
-  var OnlyFileName := TPath.GetFileNameWithoutExtension(FileName);
-  Result := OnlyFileName.Substring(0, OnlyFileName.LastIndexOf('_production_'));
-end;
-
-function GetFetchFileName(const ProductId: string; const Version: TVersion): string;
-begin
-  var FetchItem := TFetchItem.Create(ProductId, Version, '', true);
-  try
-    Result := FetchItem.UniqueName;
-  finally
-    FetchItem.Free;
-  end;
-end;
-
 
 //This method could be made simpler using TDirectory.GetFiles, but would also generate a lot more temporary objects.
 function GetProducts(const Folder: string): TAllProductsInfo;
@@ -70,14 +39,14 @@ begin
           begin
             var FileName := TPath.Combine(Folder, F.Name);
               try
-              var ProductName := ExtractProduct(FileName);
+              var ProductName := TDownloadFileName.ExtractProduct(FileName);
               var TmpList: TProductInfoList := nil;
               if not Result.TryGetValue(ProductName, TmpList) then
               begin
                 TmpList := TProductInfoList.Create;
                 Result.Add(ProductName, TmpList);
               end;
-              TmpList.Add(TProductInfo.Create(FileName, ExtractVersion(FileName)));
+              TmpList.Add(TProductInfo.Create(FileName, TDownloadFileName.ExtractVersion(FileName)));
             except
               Logger.Info(Format('Can''t process downloaded file "%s", looks invalid. You might need to delete it manually.', [FileName]));
             end;
@@ -203,7 +172,7 @@ procedure MoveFromOldBackToCurrent(const InstalledProducts: TDictionary<string, 
 begin
   for var Product in InstalledProducts do
   begin
-    var FileName := GetFetchFileName(Product.Key, Product.Value);
+    var FileName := TDownloadFileName.GenerateFileName(Product.Key, Product.Value);
     if (FileName <> '') then
     begin
       var OldFileName := TPath.Combine(Config.Folders.OldDownloadsFolder, FileName);

@@ -446,6 +446,7 @@
         <DCCReference Include="src\SBOM\SBOM.Generator.pas"/>
         <DCCReference Include="src\Commands\Commands.SelfUpdate.Verify.pas"/>
         <DCCReference Include="..\common\src\System\TMSSystem.Signatures.pas"/>
+        <DCCReference Include="src\Downloads\Downloads.FileNameManager.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

@@ -48,6 +48,7 @@ type
   end;
 
 implementation
+uses Downloads.FileNameManager;
 
 { TFetchItem }
 
@@ -61,8 +62,7 @@ end;
 
 function TFetchItem.UniqueName: string;
 begin
-//   Channel is hard-coded for now (production), as there is no channel information about latest version
-  Result := Format('%s_%s_%s', [ProductId, 'production', Version.Normalized]);
+  Result := TDownloadFileName.GenerateFileName(ProductId, Version);
 end;
 
 { TFetchItems }

@@ -226,7 +226,8 @@ uses
   Commands.SBOMGenerate in 'src\Commands\Commands.SBOMGenerate.pas',
   SBOM.Generator in 'src\SBOM\SBOM.Generator.pas',
   Commands.SelfUpdate.Verify in 'src\Commands\Commands.SelfUpdate.Verify.pas',
-  TMSSystem.Signatures in '..\common\src\System\TMSSystem.Signatures.pas';
+  TMSSystem.Signatures in '..\common\src\System\TMSSystem.Signatures.pas',
+  Downloads.FileNameManager in 'src\Downloads\Downloads.FileNameManager.pas';
 
 begin
   try

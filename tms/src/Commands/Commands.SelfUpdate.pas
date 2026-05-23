@@ -14,29 +14,18 @@ implementation
 uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
-  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager, UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals;
+  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager,
+  UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
 
 
 const
   {$i ../../../Version.inc}
 
-function RootFileName: string;
-begin
-  Result := TRepositoryManager.TMSSetupProductId + '_production_';
-end;
-
-function ExtractVersion(const FileName: string): string;
-begin
-  var OnlyFileName := TPath.GetFileNameWithoutExtension(FileName);
-  Result := OnlyFileName.Substring(Length(RootFileName))
-end;
-
-
 function GetNewVersion: string;
 begin
   Result := '';
   if not TDirectory.Exists(Config.Folders.DownloadsFolder) then Exit;
-  var Updated := TDirectory.GetFiles(Config.Folders.DownloadsFolder, RootFileName + '*.zip');
+  var Updated := TDirectory.GetFiles(Config.Folders.DownloadsFolder, TDownloadFileName.GenerateRootFileName(TRepositoryManager.TMSSetupProductId) + '*.zip');
   if Length(Updated) = 0 then exit;
 
   var Current: TVersion := TMSVersion;
@@ -47,7 +36,7 @@ begin
   var MaxVersion := Current;
   for var FileName in Updated do
   begin
-    var NextVersion: TVersion := ExtractVersion(FileName);
+    var NextVersion: TVersion := TDownloadFileName.ExtractVersion(FileName);
     if NextVersion > MaxVersion then
     begin
       MaxVersion := NextVersion;
@@ -63,7 +52,7 @@ begin
 
     var NewVersion := GetNewVersion;
     if NewVersion = '' then exit('');
-    Result := ExtractVersion(NewVersion);
+    Result := TDownloadFileName.ExtractVersion(NewVersion);
   except on ex: Exception do
     //no log here, as it might not be initialized yet.
   end;
@@ -119,7 +108,7 @@ begin
   RotateDownloads(Config.MaxVersionsPerProduct);
   Logger.Info('');
 
-  Logger.Info(Format('TMS Smart Setup has been updated from version %s to version %s', [TMSVersion, ExtractVersion(NewVersion)]));
+  Logger.Info(Format('TMS Smart Setup has been updated from version %s to version %s', [TMSVersion, TDownloadFileName.ExtractVersion(NewVersion)]));
   SmartSetupUpdated := true;
 end;
 
