@@ -4,7 +4,7 @@
 
 function Normalize-Version {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Version
     )
     # Split version and prerelease
@@ -28,7 +28,7 @@ function Normalize-Version {
 
 function New-Bundles {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ProductVersion
     )
     $fileName = "test.double.trouble-$ProductVersion.zip"
@@ -40,7 +40,7 @@ function New-Bundles {
 
     Copy-Item -Path ".Components\yaml\tmsbuild.template.yaml" -Destination $sourceDir\tmsbuild.yaml -Force
     
-     if (Test-Path $fileName) {
+    if (Test-Path $fileName) {
         Remove-Item $fileName
     }
 
@@ -53,7 +53,7 @@ function New-Bundles {
 
 function New-ProductInSandbox {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ProductVersion,
         [boolean]$Release = $false
     )
@@ -119,7 +119,7 @@ if ($currentVersion -ne "1.1.0.0") {
     throw "Expected version 1.1.0.0, but got $currentVersion"
 }
 
- foreach ($dir in $directories) {
+foreach ($dir in $directories) {
     $version = $dir.Name -replace '^v', ''
     $versionNormalized = Normalize-Version -Version $version
     if ($versionNormalized -eq "1.0.0.0-rc") {
@@ -136,12 +136,12 @@ if ($currentVersion -ne "1.1.0.0") {
 }
 
 $expectedOutput = @{
-    "1.0.0.0" = "2.000000 | -2.000000 | 0.000000";
-    "1.0.0.0-beta" = "123.456000 | -2.000000 | 0.000000";
-    "1.0.0.0-beta.2" = "2.000000 | -2.000000 | NAN";
-    "1.0.0.0-rc" = "2.000000 | 2.000000 | 0.000000";
-    "1.1.0.0" = "2.000000 | -2.000000 | 0.000000";
-    "1.1.0.0-beta.1" = "3.000000 | -3.000000 | 0.000000";
+    "1.0.0.0"         = "2.000000 | -2.000000 | 0.000000";
+    "1.0.0.0-beta"    = "123.456000 | -2.000000 | 0.000000";
+    "1.0.0.0-beta.2"  = "2.000000 | -2.000000 | NAN";
+    "1.0.0.0-rc"      = "2.000000 | 2.000000 | 0.000000";
+    "1.1.0.0"         = "2.000000 | -2.000000 | 0.000000";
+    "1.1.0.0-beta.1"  = "3.000000 | -3.000000 | 0.000000";
     "1.2.0.0-alpha.1" = "17.000000 | -17.000000 | 0.000000";
 
 }
@@ -206,6 +206,20 @@ foreach ($dir in $directories) {
         }
         if ($versionInfo.ProductVersion -ne $expectedProductVersion) {
             throw "File '$($bpl.FullName)' has ProductVersion='$($versionInfo.ProductVersion)', expected '$expectedProductVersion'"
+        }
+        if ($expectedPrerelease) {
+            if (-not $versionInfo.IsSpecialBuild) {
+                throw "File '$($bpl.FullName)' has IsSpecialBuild=$($versionInfo.IsSpecialBuild), expected True"
+            }
+            if ($versionInfo.SpecialBuild -ne $versionNormalized) {
+                throw "File '$($bpl.FullName)' has SpecialBuild='$($versionInfo.SpecialBuild)', expected '$versionNormalized'"
+            }
+        }
+        else
+        {
+            if ($versionInfo.IsSpecialBuild) {
+                throw "File '$($bpl.FullName)' has IsSpecialBuild=$($versionInfo.IsSpecialBuild), expected False"
+            }
         }
     }
 }

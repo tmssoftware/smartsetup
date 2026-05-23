@@ -262,6 +262,14 @@ begin
   if varName  = 'verinfo-build' then exit(IntToStr(TVersion(ApplicationVersion).Build));
 
   if varName  = 'verinfo-is-prerelease' then exit(BoolToStr(TVersion(ApplicationVersion).IsPreRelease, true).ToLowerInvariant);
+  if varName  = 'verinfo-is-specialbuild' then exit(BoolToStr(TVersion(ApplicationVersion).IsPreRelease, true).ToLowerInvariant);
+
+  if varName = 'verinfo-special-build' then
+  begin
+    if TVersion(ApplicationVersion).IsPreRelease then exit(';SpecialBuild='+TVersion(ApplicationVersion).Normalized);
+    exit('');
+  end;
+
 
   if varName = 'dcc-namespace-base' then
   begin
