@@ -1,0 +1,39 @@
+# TMS Smart Setup definition file for Double Trouble.
+# Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
+minimum required tmsbuild version: 3.3
+  
+application:
+  id: test.double.trouble
+  name: Test Double Trouble
+  description: Sometimes, even a triple trouble.
+  version file: version.txt  # if this line is present, then version.txt must exist, it must have at least one line, 
+                             # and the line must be "something: version". like for example "tms.example: 1.0.3". 
+                             # The text after ":" will be used as version number to display along the name.
+
+supported frameworks:
+  vcl:
+    ide since: delphisydney
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+      - winarm64ec
+    c++ builder support: true
+
+  fmx:
+    ide since: delphisydney
+    platforms:
+      - all
+
+packages:
+  - DoubleTrouble: [runtime, vcl, fmx]
+
+package definitions:
+  DoubleTrouble:
+    framework type: NONE # can be NONE, FMX or VCL
+    description: Double Trouble Engine
+    requires: rtl   #write the dcp packages this package requires. don't include the dcp extension.
+    files:
+      - source:
+          folder: src
+          include file mask: '*'  

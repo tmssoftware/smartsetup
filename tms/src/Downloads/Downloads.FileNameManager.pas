@@ -43,7 +43,7 @@ begin
 
   if FileName.EndsWith(Extension, true) then
   begin
-    FileNameWithoutExtension := FileName.Substring(0, Length(FileName) - Extension.Length);
+    FileNameWithoutExtension := TPath.GetFileName(FileName.Substring(0, Length(FileName) - Extension.Length));
     exit(true);
   end;
 end;
@@ -73,7 +73,7 @@ begin
   var OnlyFileName := GetFileNameWithoutExtension(FileName);
   var SeparatorIndex := OnlyFileName.LastIndexOf(Separator);
   if (SeparatorIndex <= 0) then raise Exception.Create('Invalid filename: "' + FileName + '". It must include "' + Separator + '".');
-  Result := OnlyFileName.Substring(SeparatorIndex + 1);
+  Result := OnlyFileName.Substring(SeparatorIndex + Separator.Length);
 end;
 
 end.
