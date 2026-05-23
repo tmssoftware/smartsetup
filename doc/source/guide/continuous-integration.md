@@ -183,7 +183,7 @@ As before, everything must be in the same disk. You can't use `c:\Projects` and 
 
 ### Global options and machine-dependent options
 
-Sometimes, you might want to have some configuration options (like paths) that vary from machine to machine. You can do this by adding an extra `tms.config.local.yaml` to the root folder and adding it to `.gitignore`, or specifying one with [-add-config](xref:SmartSetup.Command.GlobalOptions).
+Sometimes, you might want to have some configuration options (like paths) that vary from machine to machine. You can do this by adding an extra `tms.config.local.yaml` to the root folder and adding it to `.gitignore`, or specifying one with [-add-config](xref:SmartSetup.Command.GlobalOptions). If you want the same settings to apply to every project on the machine, you can instead put them in `tms.config.global.yaml` inside the `.smartsetup` folder of your user profile (for example, `C:\Users\<you>\.smartsetup\tms.config.global.yaml` on Windows, or `~/.smartsetup/tms.config.global.yaml` on macOS and Linux).
 
 See [below](#adding-extra-settings-to-an-existing-configuration-file) for more information.
 
@@ -318,6 +318,8 @@ it will replace [delphi11] array with the new one, and the result will be `delph
 
 {{#Tip}}
 Since SmartSetup 3.2, you can also create a file named `tms.config.local.yaml` and this file will be automatically added to your config, as if you had specified `-add-config:tms.config.local.yaml`. But if you use that specific name, you won't need to add the `-add-config` parameter to every call — it will be loaded automatically.
+
+Additionally, SmartSetup will also automatically load `tms.config.global.yaml` if it exists in the `.smartsetup` folder of your user profile (for example, `C:\Users\<you>\.smartsetup\tms.config.global.yaml` on Windows, or `~/.smartsetup/tms.config.global.yaml` on macOS and Linux). This file is loaded with the lowest priority, so settings in `tms.config.yaml`, `tms.config.local.yaml`, any `-add-config` files, and the command line will all override it. It is useful for machine-wide defaults that apply to every project.
 {{/Tip}}
 
 ### `tms config-read` and `tms config-write` to read and change tms.config.yaml

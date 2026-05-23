@@ -9,6 +9,7 @@ type
   private
     class procedure LoadIntoConfig(const Filename: string; const Config: TConfigDefinition; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
     class procedure SetMaxCores(const Config: TConfigDefinition); static;
+    class function GetGlobalConfigFilename: string; static;
 
   public
     class function LoadConfig(const ConfigFile: string; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TConfigDefinition;
@@ -29,6 +30,17 @@ begin
   end;
 end;
 
+class function TConfigLoader.GetGlobalConfigFilename: string;
+begin
+  {$IFDEF MSWINDOWS}
+  var UserFolder := GetEnvironmentVariable('USERPROFILE');
+  {$ELSE}
+  var UserFolder := GetEnvironmentVariable('HOME');
+  {$ENDIF}
+  if UserFolder = '' then exit('');
+  Result := TPath.Combine(TPath.Combine(UserFolder, '.smartsetup'), 'tms.config.global.yaml');
+end;
+
 class procedure TConfigLoader.LoadIntoConfig(const Filename: string; const Config: TConfigDefinition;
    const ExtraConfigFiles: TArray<string>;
    const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -38,6 +50,14 @@ begin
   var FullFilename := TPath.GetFullPath(Filename);
   MainSection := TMainSectionConf.Create(Config);
   try
+    var GlobalFilename := GetGlobalConfigFilename;
+    if (GlobalFilename <> '') and (TFile.Exists(GlobalFilename)) then
+    begin
+      MainSection.CreatedBy := 'Global: ' + GlobalFilename;
+      Logger.Trace('Loading global configuration from ' + GlobalFilename);
+      TBBYamlReader.ProcessFile(GlobalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
+    end;
+
     if (TFile.Exists(FullFilename)) then
     begin
       MainSection.CreatedBy := 'Main: ' + Filename;
