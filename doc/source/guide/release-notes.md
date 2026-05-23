@@ -4,6 +4,20 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
+## Version 3.4 (May, 2026)
+- **New**: Support for Semantic Versioning for products in the API server. We can now release a product like `tms.product:1.0-beta` and SmartSetup will handle it with semver rules. Note that this is only for products hosted in servers; for products hosted in git you could already use any versioning string.
+
+- **New**: SmartSetup will now automatically load a `tms.config.global.yaml` file from the `.smartsetup` folder of your user profile (for example, `C:\Users\<you>\.smartsetup\tms.config.global.yaml` on Windows, or `~/.smartsetup/tms.config.global.yaml` on macOS and Linux). It is loaded with the lowest priority, so it is suitable for machine-wide defaults that can be overridden by `tms.config.yaml`, `tms.config.local.yaml`, `-add-config`, or the command line.
+
+- **Security**: SmartSetup will now check if the files it got from an autoupdate are correctly signed, to avoid man-in-the-middle attacks with a fake server that could provide a malicious update.
+
+- **Security**: Disabled all other protocols except `https://` and `file://` from servers. To avoid man-in-the-middle attacks, where a http server can impersonate our actual server.
+
+- **Security**: Disabled git commands starting with "-" to avoid git injection.
+
+- **Security**: While we were already not allowing to uncompress bundles outside the folder where they were being uncompressed (which Delphi's TZipFile doesn't check), we weren't checking the slash at the end. So a malicious zip file being uncompressed to `c:\tms\components` could not uncompress a file to `c:\windows32`, but it could to `c:\tms\components2` or other sibling folder starting with the same characters as the folder where it was being uncompressed. Now it can only uncompress files inside `c:\tms\components`
+
+
 ## Version 3.3 (April, 2026)
 
 - **Improved**: Usage in CI environments or building by command line. 
