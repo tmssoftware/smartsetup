@@ -130,7 +130,7 @@ end;
 
 constructor TRepositoryInfo.Create(const aRootUrl: string);
 begin
-    if RootUrl.EndsWith('/')
+    if aRootUrl.EndsWith('/')
       then RootUrl := aRootUrl
       else RootUrl := aRootUrl + '/';
 end;
