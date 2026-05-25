@@ -60,6 +60,7 @@ const
   WINTRUST_ACTION_GENERIC_VERIFY_V2: TGUID = '{00AAC56B-CD44-11d0-8CC2-00C04FC295EE}';
   WTD_CHOICE_FILE = 1;
   WTD_REVOKE_NONE = 0;
+  WTD_REVOKE_WHOLECHAIN = 1;
   WTD_UI_NONE = 2;
 
 type
@@ -103,7 +104,10 @@ begin
   FillChar(trust_data, SizeOf(trust_data), 0);
   trust_data.cbStruct := sizeof(trust_data);
   trust_data.dwUIChoice := WTD_UI_NONE;
-  trust_data.fdwRevocationChecks := WTD_REVOKE_NONE;
+  // Check revocation across the whole chain so a revoked TMS code-signing
+  // certificate blocks self-update. The bundle was just downloaded over the
+  // network, so reaching the CRL/OCSP responder is normally not a problem.
+  trust_data.fdwRevocationChecks := WTD_REVOKE_WHOLECHAIN;
   trust_data.dwUnionChoice := WTD_CHOICE_FILE;
   trust_data.pFile := @file_info;
   if WinVerifyTrust(INVALID_HANDLE_VALUE, WINTRUST_ACTION_GENERIC_VERIFY_V2,
