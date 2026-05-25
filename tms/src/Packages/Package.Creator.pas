@@ -11,7 +11,7 @@ procedure CreatePackages(const Projects: TProjectList);
 
 implementation
 uses SysUtils, Classes, Zip, System.Types, Util.Replacer, Deget.Filer.DprojFile,
-     Deget.Version, Generics.Collections, Commands.GlobalConfig;
+     Deget.Version, Generics.Collections, Commands.GlobalConfig, Status.Manager;
 
 //No need to escape non-ascii characters, this will be saved as utf-8
 function XmlEscape(const s: string): string;
@@ -244,29 +244,47 @@ begin
   if varName = 'plat-winarm64ec' then exit(HasPlatform(TPlatform.winarm64ec, PackagePlatforms));
 
   //verinfo
-  var ApplicationVersion := Project.Application.Version;
-  if ApplicationVersion = '' then ApplicationVersion := '0.0';
+  var ApplicationVersionString := Project.Application.Version;
+  if ApplicationVersionString = '' then ApplicationVersionString := TStatusManager.GetInstalledVersion(TLenientVersion.Create('', TVersionType.FreeForm), Project.Application.Id, TPath.GetDirectoryName(Project.FullPath));
+  if ApplicationVersionString = '' then ApplicationVersionString := '0.0';
+  var ApplicationVersion: TLenientVersion;
+
+  var IsSpecialBuild := false;
+  var SemVer: TVersion;
+  if TVersion.TryFromString(ApplicationVersionString, SemVer)
+    then
+    begin
+      ApplicationVersion := TLenientVersion.Create(ApplicationVersionString, TVersionType.Semantic);
+      IsSpecialBuild := SemVer.IsPreRelease;
+    end
+    else
+    begin
+      ApplicationVersion := TLenientVersion.Create(ApplicationVersionString, TVersionType.FreeForm);
+      SemVer := '0.0';
+      IsSpecialBuild := true;
+    end;
+
 
   if varName = 'verinfo-package' then exit('com.' + GetFirstId(Project.Application.Id) + '.$(MSBuildProjectName)');
-  if varName = 'verinfo-version-code' then exit(IntToStr(TVersion(ApplicationVersion).AsInteger));
-  if varName = 'verinfo-version-name' then exit(TVersion(ApplicationVersion).Normalized);
-  if varName = 'verinfo-windows-version' then exit(TVersion(ApplicationVersion).NormalizedWindowsFormat);
+  if varName = 'verinfo-version-code' then exit(IntToStr(SemVer.AsInteger));
+  if varName = 'verinfo-version-name' then exit(ApplicationVersion.Normalized);
+  if varName = 'verinfo-windows-version' then exit(SemVer.NormalizedWindowsFormat);
 
   if varName = 'verinfo-company-name' then exit(Project.Application.CompanyName);
   if varName = 'verinfo-copyright' then exit(Project.Application.Copyright);
   if varName = 'verinfo-program-id' then exit('com.' + Project.Application.Id);
 
-  if varName  = 'verinfo-major-ver' then exit(IntToStr(TVersion(ApplicationVersion).Major));
-  if varName  = 'verinfo-minor-ver' then exit(IntToStr(TVersion(ApplicationVersion).Minor));
-  if varName  = 'verinfo-release' then exit(IntToStr(TVersion(ApplicationVersion).Release));
-  if varName  = 'verinfo-build' then exit(IntToStr(TVersion(ApplicationVersion).Build));
+  if varName  = 'verinfo-major-ver' then exit(IntToStr(SemVer.Major));
+  if varName  = 'verinfo-minor-ver' then exit(IntToStr(SemVer.Minor));
+  if varName  = 'verinfo-release' then exit(IntToStr(SemVer.Release));
+  if varName  = 'verinfo-build' then exit(IntToStr(SemVer.Build));
 
-  if varName  = 'verinfo-is-prerelease' then exit(BoolToStr(TVersion(ApplicationVersion).IsPreRelease, true).ToLowerInvariant);
-  if varName  = 'verinfo-is-specialbuild' then exit(BoolToStr(TVersion(ApplicationVersion).IsPreRelease, true).ToLowerInvariant);
+  if varName  = 'verinfo-is-prerelease' then exit(BoolToStr(SemVer.IsPreRelease, true).ToLowerInvariant);
+  if varName  = 'verinfo-is-specialbuild' then exit(BoolToStr(IsSpecialBuild, true).ToLowerInvariant);
 
   if varName = 'verinfo-special-build' then
   begin
-    if TVersion(ApplicationVersion).IsPreRelease then exit(';SpecialBuild='+TVersion(ApplicationVersion).Normalized);
+    if IsSpecialBuild then exit(';SpecialBuild='+ ApplicationVersion.Normalized);
     exit('');
   end;
 

@@ -73,6 +73,10 @@ try {
 Remove-Item -Path (Join-Path -Path $testReposTarget -ChildPath "E-F\tmsbuild.yaml") -Force
 Remove-Item -Path (Join-Path -Path $testReposTarget -ChildPath "F\tmsbuild.yaml") -Force
 
+$betaVersions = @{
+    "DoubleTrouble" = @("1.0.1-beta.1", "1.0.1-beta.2", "1.0.1", "1.1.0_beta+1", "v1.1.0_beta.2", "1.1.0")
+}
+
 # loop over all products in the folder and create git repos for each one
 $productFolders = Get-ChildItem -Path $testReposTarget -Directory
 foreach ($productFolder in $productFolders) {
@@ -84,12 +88,14 @@ foreach ($productFolder in $productFolders) {
     git config user.email "testuser@example.com"
     git add .
     git commit -m "Initial commit"
-    #create a v1.0.0 tag
-    git tag v1.0.0
+    git tag "v1.0.0"
 }
 
 # create a new version for the products by changing the .pas files to be all in uppercase
 foreach ($productFolder in $productFolders) {
+    if ($betaVersions.ContainsKey($productFolder.Name)) {
+        continue
+    }
     Write-Output "Creating new version for product: $($productFolder.Name)"
     Set-Location -Path $productFolder.FullName
 
@@ -110,5 +116,29 @@ foreach ($productFolder in $productFolders) {
     git tag "a_lot_of_tags.on.this.commit"
 }
 
+foreach ($productFolder in $productFolders) {
+    if (-not $betaVersions.ContainsKey($productFolder.Name)) {
+        continue
+    }
+    Write-Output "Creating new version for product: $($productFolder.Name)"
+    Set-Location -Path $productFolder.FullName
+
+    $pasFiles = Get-ChildItem -Path $productFolder.FullName -Filter *.pas -Recurse
+    foreach ($version in $betaVersions[$productFolder.Name]) {
+        foreach ($pasFile in $pasFiles) {
+            $content = Get-Content -Path $pasFile.FullName
+            $contentUpper = $content -replace "Result := '.*';", "Result := '$version';"
+            Set-Content -Path $pasFile.FullName -Value $contentUpper
+        }
+        #create version.txt
+        #$versionTxtPath = Join-Path -Path $productFolder.FullName -ChildPath "version.txt"
+        #"version: $version" | Out-File -FilePath $versionTxtPath -Encoding utf8
+
+        git add .
+        git commit -m "Updated .pas files to uppercase for new version $version"
+        git tag "$version"
+    }
+
+}
 Write-Output "Test repositories created at: $testReposTarget"
 Write-Output "Zip file created at: $zipFilePath"

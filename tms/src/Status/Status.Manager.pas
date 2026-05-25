@@ -63,7 +63,6 @@ type
     procedure LoadRemoteProducts;
     procedure LoadBuildableProducts;
     procedure UpdateProductStatus(Product: TProductStatus);
-    function GetInstalledVersion(const Version: TLenientVersion; const ProductId, ProductFolder: string): TLenientVersion;
   protected
     function FindProduct(const ProductId: string): TProductStatus;
   public
@@ -71,6 +70,7 @@ type
     destructor Destroy; override;
     procedure Update;
     property Products: TList<TProductStatus> read FProducts;
+    class function GetInstalledVersion(const Version: TLenientVersion; const ProductId, ProductFolder: string): TLenientVersion;
   end;
 
 implementation
@@ -133,7 +133,7 @@ begin
   end;
 end;
 
-function TStatusManager.GetInstalledVersion(const Version: TLenientVersion; const ProductId, ProductFolder: string): TLenientVersion;
+class function TStatusManager.GetInstalledVersion(const Version: TLenientVersion; const ProductId, ProductFolder: string): TLenientVersion;
 begin
   if (Version <> '') and (Version <> '__latest') then exit(Version);
   Result := TLenientVersion.Create(TVCSManager.GetCurrentCommit(ProductId, ProductFolder), TVersionType.FreeForm);
