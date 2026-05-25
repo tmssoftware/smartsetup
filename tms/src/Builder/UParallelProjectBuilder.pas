@@ -323,6 +323,7 @@ begin
   ParallelProjects.SetRun(BuildInfo.Project.ProjectId, IDEId[BuildInfo.IDE.Name],
       PlatformID[BuildInfo.Platform.Name],  procedure
   begin
+    BuildInfo.Platform.Ok := false;
     var NeedsBuild := BuildInfo.Project.NeedsBuild[BuildInfo.IDE.Name, BuildInfo.Platform.Name];
     Logger.StartSection(TMessageType.Build, BuildInfo.Project.ProjectId + '->' + IDEId[BuildInfo.IDE.Name] + '.' + PlatformID[BuildInfo.Platform.Name]);
     ProjectInstaller.UnRegisterAtPlatformLevel(BuildInfo.Project.DryRun, Installer, BuildInfo.Project.ProjectId, BuildInfo.IDE.Name, BuildInfo.Platform.Name);

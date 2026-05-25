@@ -100,6 +100,7 @@ begin
   ParallelProjects.SetRun(FetchItem.ProductId,
     procedure
     begin
+      FetchItem.Status := TFetchStatus.Failed;
       Logger.StartSection(TMessageType.Fetch, FetchItem.UniqueName);
       try
         CheckAppTerminated;
