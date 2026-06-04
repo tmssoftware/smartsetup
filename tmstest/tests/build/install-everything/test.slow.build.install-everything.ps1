@@ -39,11 +39,11 @@ Write-Output "Now testing with bds.exe"
 Set-Location testapp-no-tmsbuild
 
 # msbuild # msbuild uses EnvOptions.dproj, which hasn't been updated yet as we didn't launch the ide.
-bds "testapp.dproj" $regkey
+bds -ProjectFile "testapp.dproj" -RegistryKey $regkey
 
 $Result = & .\Win32\Debug\testapp.exe
 if ($Result -ne $expectedResult) {
-    Write-Error "Install everything failed at msbuild: Result was '$Result' and should have been '$expectedResult'."
+    Write-Error "Install everything failed at bds: Result was '$Result' and should have been '$expectedResult'."
 }
 
 Set-Location -

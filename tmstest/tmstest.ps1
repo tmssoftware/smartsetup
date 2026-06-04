@@ -7,17 +7,22 @@ param(
     [Alias("failed")]
     [switch]$openFailedFiles = $false,
     [Alias("working-folder")]
-    [switch]$useWorkingFolder = $false # uses a working folder based on temp. If temp is in a different drive, it will be a better test.
+    [switch]$useWorkingFolder = $false, # uses a working folder based on temp. If temp is in a different drive, it will be a better test.
+    [Alias("edit")]
+    [switch]$openEditor = $false # opens the tmstest workspace in Visual Studio Code.
 )
+
+if ($openEditor) {
+    code "$PSScriptRoot/tmstest.code-workspace"
+    Exit 0
+}
+
 . $PSScriptRoot/util/util.errors.ps1
 
 if (-not $tmsTestRootDir) {
     Write-Error "The variable 'tmsTestRootDir' is not set. You need to setup the environment, see $($PSScriptRoot)/README.md."
 }
 
-if (! $env:TMSTEST_CODE -or ! $env:TMSTEST_EMAIL) {
-    Write-Error "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
-}
 . $PSScriptRoot/util/util.set_tmstest_util.ps1
 
 $Global:tmsUseWorkingFolder = $useWorkingFolder

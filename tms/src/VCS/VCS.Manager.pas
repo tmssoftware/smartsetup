@@ -27,6 +27,7 @@ type
       const AlreadyProcessed, InstalledProducts: THashSet<string>): boolean; static;
     class procedure GetDependencies(
       const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>); static;
+    class function GetCurrentCommitInternal(const ProductId, ProductFolder: string): string; static;
   public
     class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
     class function GetProductFolder(const ProductId: string): string; static;
@@ -42,6 +43,8 @@ uses ULogger, UMultiLogger, UAppTerminated, VCS.Engine.Virtual,
      Removal.FolderDeleter, UProjectLoader;
 
 { TVCSManager }
+var
+  CachedProductId, CachedProductFolder, CachedResult: string;
 
 procedure DeleteFolder(const Folder: string);
 begin
@@ -260,9 +263,10 @@ begin
   end;
 end;
 
-class function TVCSManager.GetCurrentCommit(const ProductId, ProductFolder: string): string;
+class function TVCSManager.GetCurrentCommitInternal(const ProductId, ProductFolder: string): string;
 begin
   Result := '';
+
   for var Protocol := Low(TVCSProtocol) to High(TVCSProtocol) do
   begin
     try
@@ -277,6 +281,15 @@ begin
     end;
     if Result <> '' then exit;
   end;
+end;
+
+class function TVCSManager.GetCurrentCommit(const ProductId, ProductFolder: string): string;
+begin
+  if (ProductId = CachedProductId) and (ProductFolder = CachedProductFolder) then exit(CachedResult);
+  Result := GetCurrentCommitInternal(ProductId, ProductFolder);
+  CachedResult := Result;
+  CachedProductId := ProductId;
+  CachedProductFolder := ProductFolder;
 end;
 
 class procedure TVCSManager.GetDependencies(const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>);

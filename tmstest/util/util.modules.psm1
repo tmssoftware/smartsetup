@@ -210,14 +210,11 @@ function bds {
         [Parameter(Mandatory = $false, Position=1)] [string[]] $RegistryKey = ""
     )
 
-    Start-Process -FilePath $Env:TMS_BDS -ArgumentList @("-ns", "-r$RegistryKey", "-b", $ProjectFile) -NoNewWindow -Wait
+    Start-Process -FilePath "$Env:TMS_BDS" -ArgumentList @("$ProjectFile", "-ns", "-r $RegistryKey", "-b") -NoNewWindow -Wait
 }
 
 function tmscredentials {
-  #  if (-not $env:TMSTEST_CODE -or -not $env:TMSTEST_EMAIL) {
-  #      throw "The environment variables TMSTEST_CODE and TMSTEST_EMAIL must be set to run the tests."
-  #  }
-  #  tms credentials -code:$env:TMSTEST_CODE -email:$env:TMSTEST_EMAIL
+#Not used anymore. now tms credentials are stored globally, and should be set before running the tests.
 }
 
 function uninstall_and_check {
