@@ -287,9 +287,7 @@ begin
 {$ELSE}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
-    var IniSection := Profile;
-    if IniSection = '' then
-      IniSection := FDefaultProfile;
+    var IniSection := FDefaultProfile;
     IniFile.WriteString(IniSection, IniEmail, Credentials.Email);
     IniFile.WriteString(IniSection, IniCode, Credentials.Code);
     if Credentials.AccessToken <> '' then
