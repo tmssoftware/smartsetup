@@ -1,7 +1,7 @@
 unit Doctor.DuplicatedBplCheck;
 interface
 {$IFDEF MSWINDOWS}
-uses Doctor.Check, SysUtils, Classes, Generics.Collections,
+uses Doctor.Check, SysUtils, Classes, Generics.Collections, Generics.Defaults,
      UFileProperties, Doctor.DuplicatedFiles, Deget.CoreTypes;
 
 type
@@ -15,6 +15,7 @@ TBplCollection = class
     Bit32: TBplBitCollection;
     Bit64: TBplBitCollection;
     Folders: THashSet<string>;
+    DuplicatedFolders: THashSet<string>;
     Corrupt: TList<string>;
 
     constructor Create;
@@ -226,6 +227,8 @@ end;
 procedure TBplCollection.AddFolder(const FolderPath: string);
 begin
   if not TDirectory.Exists(FolderPath) then exit;
+  if DuplicatedFolders.Contains(TPath.GetFullPath(FolderPath)) then exit;
+  DuplicatedFolders.Add(TPath.GetFullPath(FolderPath));
 
   var Files := TDirectory.GetFiles(FolderPath, '*.bpl', TSearchOption.soTopDirectoryOnly);
   for var f in Files do
@@ -248,6 +251,7 @@ begin
   Bit32 := TBplBitCollection.Create;
   Bit64 := TBplBitCollection.Create;
   Folders := THashSet<string>.Create;
+  DuplicatedFolders := THashSet<string>.Create(TIStringComparer.Ordinal);
   Corrupt := TList<string>.Create;
 end;
 
@@ -256,6 +260,7 @@ begin
   Bit32.Free;
   Bit64.Free;
   Folders.Free;
+  DuplicatedFolders.Free;
   Corrupt.Free;
   inherited;
 end;

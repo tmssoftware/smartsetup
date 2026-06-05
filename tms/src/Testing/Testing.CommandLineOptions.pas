@@ -92,6 +92,15 @@ begin
   option.HasValue := False;
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<string>(
+    'test-windows-path', '', 'Fakes a different windows path, without having to change the registry.',
+    procedure(const Value: String)
+    begin
+      TestParameters.WindowsPath := Value
+    end);
+  option.Hidden := true;
+
+
 end;
 
 {$ENDIF}

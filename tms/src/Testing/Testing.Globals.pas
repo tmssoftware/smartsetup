@@ -15,6 +15,7 @@ type
     ForceSelfUpdate: boolean;
     SkipSelfUpdateSignatureVerification: boolean;
     AllowVCSCommandsStartingWithMinus: boolean;
+    WindowsPath: string;
 
 
     procedure CheckOffline(const Method: string);

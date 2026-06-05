@@ -15,7 +15,7 @@ function ExpandWindowsPath(const Path: string): string;
 
 implementation
 {$IFDEF MSWINDOWS}
-uses Classes, Windows, Registry, Messages, SysUtils, StrUtils, SyncObjs, IOUtils;
+uses Classes, Windows, Registry, Messages, SysUtils, StrUtils, SyncObjs, Testing.Globals, IOUtils;
 
 procedure SetUserEnv(const name, value: string);
 var
@@ -110,6 +110,10 @@ end;
 function GetUserWindowsPath: string;
 begin
   Result := '';
+{$IFDEF DEBUG}
+  if TestParameters.WindowsPath <> '' then exit(TestParameters.WindowsPath);
+{$ENDIF}
+
 
   var Lock := TMutex.Create(nil, false, 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A');
   try
@@ -127,6 +131,9 @@ end;
 function GetLocalMachineWindowsPath: string;
 begin
   Result := '';
+{$IFDEF DEBUG}
+  if TestParameters.WindowsPath <> '' then exit; //we will only set the user windows path
+{$ENDIF}
 
   var Lock := TMutex.Create(nil, false, 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A');
   try
