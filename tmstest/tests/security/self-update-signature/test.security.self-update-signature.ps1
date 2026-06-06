@@ -27,6 +27,25 @@ $tmsexe = Get-Alias tms
 # clobber the binary the test runner is using.
 Copy-Item $tmsexe.Definition "./tms.exe" -Force
 
+# Tamper with our copy so it still loads and runs but its Authenticode
+# signature no longer validates. Appending bytes to the end of the PE file
+# puts them in the overlay, which the Windows loader ignores when running the
+# image -- but those bytes fall outside the range covered by the signed
+# digest, so WinVerifyTrust now fails with a bad-digest error. This makes the
+# test exercise the real "signature present but tampered" path instead of only
+# "no signature at all", so the gate is still verified even when the fixtures
+# happen to be signed.
+$tmsexePath = (Resolve-Path "./tms.exe").ProviderPath
+$tampered = [System.IO.File]::ReadAllBytes($tmsexePath)
+$tampered += [byte]0
+[System.IO.File]::WriteAllBytes($tmsexePath, $tampered)
+
+# Sanity check: the tampered binary must still run.
+$null = ./tms.exe version
+if ($LASTEXITCODE -ne 0) {
+    throw "Tampered tms.exe failed to run (exit $LASTEXITCODE); the test fixture is invalid."
+}
+
 # Verify the binary on disk wasn't modified.
 $beforeUpdateTime = (Get-Item "./tms.exe").LastWriteTime
 

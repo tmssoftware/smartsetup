@@ -43,7 +43,7 @@ else {
 }
 
 Copy-Item $tmsexe.Definition "./tms.exe" -Force
-signtool sign /tr http://rfc3161timestamp.globalsign.com/advanced /td SHA256 "./tms.exe"
+#signtool sign /tr http://rfc3161timestamp.globalsign.com/advanced /td SHA256 /fd SHA256 "./tms.exe"
 
 $log = ./tms.exe self-update -test-force-self-update
 if ($log -like "*TMS Smart Setup has been updated from version*") {
