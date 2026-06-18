@@ -112,7 +112,9 @@ begin
   end;
   while True do
   begin
-    var Answer := Question(Ask, Description, IntToStr(DefaultAnswer)).Trim.ToLowerInvariant;
+    var DefaultAnswerStr := '';
+    if DefaultAnswer > 0 then DefaultAnswerStr := IntToStr(DefaultAnswer);
+    var Answer := Question(Ask, Description, DefaultAnswerStr).Trim.ToLowerInvariant;
     Result := -1;
     if TryStrToInt(Answer, Result) and (Result > 0) and (Result <= Length(Options)) then exit;
     Logger.Message(TLogMessageKind.Text, 'Please write a number between 1 and ' + IntToStr(Length(Options)));
@@ -510,14 +512,14 @@ begin
 
   if (PackageManager.Exes.Count > 0) and (PackageManager.Packages.Count > 0) then
   begin
-    var IsExe := QuestionChoose('Is this definition for an (E)xe or a (P)ackage', 'The folder contains dprojs for both Applications and Packages. You can either have a single exe, or multiple packages.', 'P', ['E', 'P']) = 'e';
+    var IsExe := QuestionChoose('Is this definition for an (E)xe or a (P)ackage', 'The folder contains dprojs for both Applications and Packages. You can either have a single exe, or multiple packages.', 'P', ['E', 'P']).ToLowerInvariant = 'e';
     if IsExe then PackageManager.Packages.Clear else PackageManager.Exes.Clear;
   end;
 
   if (PackageManager.Exes.Count > 0) then
   begin
     var ExeIndex := 0;
-    if PackageManager.Exes.Count > 1 then ExeIndex := QuestionNumber('Select the application to include', '', 1, PackageManager.Exes.ToArray) - 1;
+    if PackageManager.Exes.Count > 1 then ExeIndex := QuestionNumber('Select the application to include', '', 0, PackageManager.Exes.ToArray) - 1;
     Logger.Message(TLogMessageKind.Text, 'Using Application ' + PackageManager.Exes[ExeIndex]);
 
     var PackageData := PackageManager.GetPackageData(PackageManager.Exes[ExeIndex]);
