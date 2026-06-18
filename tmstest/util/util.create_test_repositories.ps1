@@ -75,6 +75,11 @@ Remove-Item -Path (Join-Path -Path $testReposTarget -ChildPath "F\tmsbuild.yaml"
 
 $betaVersions = @{
     "DoubleTrouble" = @("1.0.1-beta.1", "1.0.1-beta.2", "1.0.1", "1.1.0_beta+1", "v1.1.0_beta.2", "1.1.0")
+    "TagTagAndBranch" = @("2.0.0-beta.1", "2.0.0-beta.2", "2.0.0", "2.1.0_beta+1", "v2.1.0_beta.2", "2.1.0")
+}
+
+$branches = @{
+    "TagTagAndBranch" = @("", "2.1.0", "", "", "main", "")
 }
 
 # loop over all products in the folder and create git repos for each one
@@ -91,7 +96,7 @@ foreach ($productFolder in $productFolders) {
     git tag "v1.0.0"
 }
 
-# create a new version for the products by changing the .pas files to be all in uppercase
+# create a new version for the products
 foreach ($productFolder in $productFolders) {
     if ($betaVersions.ContainsKey($productFolder.Name)) {
         continue
@@ -133,10 +138,18 @@ foreach ($productFolder in $productFolders) {
         #create version.txt
         #$versionTxtPath = Join-Path -Path $productFolder.FullName -ChildPath "version.txt"
         #"version: $version" | Out-File -FilePath $versionTxtPath -Encoding utf8
+        
+        if ($branches.ContainsKey($productFolder.Name)) {
+            $branchName = $branches[$productFolder.Name][[Array]::IndexOf($betaVersions[$productFolder.Name], $version)]
+            if ($branchName -ne "") {
+                git branch $branchName | Out-Null
+            }
+        }
 
         git add .
         git commit -m "Updated .pas files to uppercase for new version $version"
         git tag "$version"
+
     }
 
 }
