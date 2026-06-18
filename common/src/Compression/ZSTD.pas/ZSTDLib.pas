@@ -205,8 +205,8 @@ type
 {$ENDIF}
   int = Integer;
 
-function ZSTD_versionNumber: unsigned; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS} delayed{$ENDIF}{$ENDIF};
-function ZSTD_versionString: PAnsiChar; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_versionNumber: unsigned; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS} delayed{$ENDIF}{$ENDIF};
+function ZSTD_versionString: PAnsiChar; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (***************************************
 *  Default constant
@@ -237,7 +237,7 @@ const
  *  Hint : compression runs faster if `dstCapacity` >=  `ZSTD_compressBound(srcSize)`.
  *  @return : compressed size written into `dst` (<= `dstCapacity),
  *            or an error code if it fails (which can be tested using ZSTD_isError()). *)
-function ZSTD_compress(dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; compressionLevel: int): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compress(dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; compressionLevel: int): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_decompress() :
  *  `compressedSize` : must be the _exact_ size of some number of compressed and/or skippable frames.
@@ -245,7 +245,7 @@ function ZSTD_compress(dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize:
  *  If user cannot imply a maximum upper bound, it's better to use streaming mode to decompress data.
  *  @return : the number of bytes decompressed into `dst` (<= `dstCapacity`),
  *            or an errorCode if it fails (which can be tested using ZSTD_isError()). *)
-function ZSTD_decompress(dst: Pointer; dstCapacity: size_t; src: Pointer; compressedSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_decompress(dst: Pointer; dstCapacity: size_t; src: Pointer; compressedSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_getFrameContentSize() : requires v1.3.0+
  *  `src` should point to the start of a ZSTD encoded frame.
@@ -275,7 +275,7 @@ const
   ZSTD_CONTENTSIZE_UNKNOWN = -1;
   ZSTD_CONTENTSIZE_ERROR   = -2;
 
-function ZSTD_getFrameContentSize(src: Pointer; srcSize: size_t): Int64; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_getFrameContentSize(src: Pointer; srcSize: size_t): Int64; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_getDecompressedSize() :
  *  NOTE: This function is now obsolete, in favor of ZSTD_getFrameContentSize().
@@ -283,7 +283,7 @@ function ZSTD_getFrameContentSize(src: Pointer; srcSize: size_t): Int64; externa
  *  "empty", "unknown" and "error" results to the same return value (0),
  *  while ZSTD_getFrameContentSize() gives them separate return values.
  * @return : decompressed size of `src` frame content _if known and not empty_, 0 otherwise. *)
-function ZSTD_getDecompressedSize(src: Pointer; srcSize: size_t): Int64; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_getDecompressedSize(src: Pointer; srcSize: size_t): Int64; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_findFrameCompressedSize() :
  * `src` should point to the start of a ZSTD frame or skippable frame.
@@ -291,15 +291,15 @@ function ZSTD_getDecompressedSize(src: Pointer; srcSize: size_t): Int64; externa
  * @return : the compressed size of the first frame starting at `src`,
  *           suitable to pass as `srcSize` to `ZSTD_decompress` or similar,
  *        or an error code if input is invalid *)
-function ZSTD_findFrameCompressedSize(src: Pointer; srcSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_findFrameCompressedSize(src: Pointer; srcSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*======  Helper functions  ======*)
 
-function ZSTD_compressBound(srcSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};(*!< maximum compressed size in worst case single-pass scenario *)
-function ZSTD_isError(code: size_t): unsigned; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};       (*!< tells if a `size_t` function result is an error code *)
-function ZSTD_getErrorName(code: size_t): PAnsiChar; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (*!< provides readable string from an error code *)
-function ZSTD_minCLevel: int; (*!< minimum negative compression level allowed *) external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_maxCLevel: int; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compressBound(srcSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};(*!< maximum compressed size in worst case single-pass scenario *)
+function ZSTD_isError(code: size_t): unsigned; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};       (*!< tells if a `size_t` function result is an error code *)
+function ZSTD_getErrorName(code: size_t): PAnsiChar; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (*!< provides readable string from an error code *)
+function ZSTD_minCLevel: int; (*!< minimum negative compression level allowed *) cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_maxCLevel: int; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (***************************************
 *  Explicit context
@@ -319,14 +319,14 @@ function ZSTD_maxCLevel: int; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDO
 type
   ZSTD_CCtx = type Pointer;
 
-function ZSTD_createCCtx: ZSTD_CCtx; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_freeCCtx(cctx: ZSTD_CCtx): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_createCCtx: ZSTD_CCtx; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_freeCCtx(cctx: ZSTD_CCtx): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_compressCCtx() :
  *  Same as ZSTD_compress(), using an explicit ZSTD_CCtx
  *  The function will compress at requested compression level,
  *  ignoring any other parameter *)
-function ZSTD_compressCCtx(ctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; compressionLevel: int): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compressCCtx(ctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; compressionLevel: int): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*= Decompression context
  *  When decompressing many times,
@@ -338,15 +338,15 @@ function ZSTD_compressCCtx(ctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; sr
 type
   ZSTD_DCtx = type Pointer;
 
-function ZSTD_createDCtx: ZSTD_DCtx; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_freeDCtx(dctx: ZSTD_DCtx): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_createDCtx: ZSTD_DCtx; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_freeDCtx(dctx: ZSTD_DCtx): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_decompressDCtx() :
  *  Same as ZSTD_decompress(),
  *  requires an allocated ZSTD_DCtx.
  *  Compatible with sticky parameters.
  *)
-function ZSTD_decompressDCtx(dctx: ZSTD_DCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_decompressDCtx(dctx: ZSTD_DCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (***************************************
 *  Advanced compression API
@@ -537,7 +537,7 @@ type
  *         - an error status field, which must be tested using ZSTD_isError()
  *         - lower and upper bounds, both inclusive
  *)
-function ZSTD_cParam_getBounds(cParam: ZSTD_cParameter): ZSTD_bounds; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_cParam_getBounds(cParam: ZSTD_cParameter): ZSTD_bounds; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_CCtx_setParameter() :
  *  Set one compression parameter, selected by enum ZSTD_cParameter.
@@ -550,7 +550,7 @@ function ZSTD_cParam_getBounds(cParam: ZSTD_cParameter): ZSTD_bounds; external {
  *              new parameters will be active for next job only (after a flush()).
  * @return : an error code (which can be tested using ZSTD_isError()).
  *)
-function ZSTD_CCtx_setParameter(cctx: ZSTD_CCtx; param: ZSTD_cParameter; value: int): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_CCtx_setParameter(cctx: ZSTD_CCtx; param: ZSTD_cParameter; value: int): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_CCtx_setPledgedSrcSize() :
  *  Total input data size to be compressed as a single frame.
@@ -567,7 +567,7 @@ function ZSTD_CCtx_setParameter(cctx: ZSTD_CCtx; param: ZSTD_cParameter; value: 
  *           or invoking immediately ZSTD_compressStream2(,,,ZSTD_e_end),
  *           this value is automatically overridden by srcSize instead.
  *)
-function ZSTD_CCtx_setPledgedSrcSize(cctx: ZSTD_CCtx; pledgedSrcSize: Int64): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_CCtx_setPledgedSrcSize(cctx: ZSTD_CCtx; pledgedSrcSize: Int64): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 type
   ZSTD_ResetDirective = (
@@ -590,7 +590,7 @@ type
  *                  otherwise the reset fails, and function returns an error value (which can be tested using ZSTD_isError())
  *  - Both : similar to resetting the session, followed by resetting parameters.
  *)
-function ZSTD_CCtx_reset(cctx: ZSTD_CCtx; reset: ZSTD_ResetDirective): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_CCtx_reset(cctx: ZSTD_CCtx; reset: ZSTD_ResetDirective): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_compress2() :
  *  Behave the same as ZSTD_compressCCtx(), but compression parameters are set using the advanced API.
@@ -602,7 +602,7 @@ function ZSTD_CCtx_reset(cctx: ZSTD_CCtx; reset: ZSTD_ResetDirective): size_t; e
  * @return : compressed size written into `dst` (<= `dstCapacity),
  *           or an error code if it fails (which can be tested using ZSTD_isError()).
  *)
-function ZSTD_compress2(cctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compress2(cctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (***************************************
 *  Advanced decompression API
@@ -642,7 +642,7 @@ type
  *         - an error status field, which must be tested using ZSTD_isError()
  *         - both lower and upper bounds, inclusive
  *)
-function ZSTD_dParam_getBounds(dParam: ZSTD_dParameter): ZSTD_bounds; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_dParam_getBounds(dParam: ZSTD_dParameter): ZSTD_bounds; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_DCtx_setParameter() :
  *  Set one compression parameter, selected by enum ZSTD_dParameter.
@@ -651,7 +651,7 @@ function ZSTD_dParam_getBounds(dParam: ZSTD_dParameter): ZSTD_bounds; external {
  *  Setting a parameter is only possible during frame initialization (before starting decompression).
  * @return : 0, or an error code (which can be tested using ZSTD_isError()).
  *)
-function ZSTD_DCtx_setParameter(dctx: ZSTD_DCtx; param: ZSTD_dParameter; value: int): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_DCtx_setParameter(dctx: ZSTD_DCtx; param: ZSTD_dParameter; value: int): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_DCtx_reset() :
  *  Return a DCtx to clean state.
@@ -659,7 +659,7 @@ function ZSTD_DCtx_setParameter(dctx: ZSTD_DCtx; param: ZSTD_dParameter; value: 
  *  Parameters can only be reset when no active frame is being decompressed.
  * @return : 0, or an error code, which can be tested with ZSTD_isError()
  *)
-function ZSTD_DCtx_reset(dctx: ZSTD_DCtx; reset: ZSTD_ResetDirective): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_DCtx_reset(dctx: ZSTD_DCtx; reset: ZSTD_ResetDirective): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (****************************
 *  Streaming
@@ -742,8 +742,8 @@ type
   ZSTD_CStream = type ZSTD_CCtx;
 
 (*===== ZSTD_CStream management functions =====*)
-function ZSTD_createCStream: ZSTD_CStream; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_freeCStream(zcs: ZSTD_CStream): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_createCStream: ZSTD_CStream; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_freeCStream(zcs: ZSTD_CStream): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*===== Streaming compression functions =====*)
 type
@@ -781,7 +781,7 @@ type
  *            Before starting a new compression job, or changing compression parameters,
  *            it is required to fully flush internal buffers.
  *)
-function ZSTD_compressStream2(cctx: ZSTD_CCtx; var output: ZSTD_outBuffer; var input: ZSTD_inBuffer; endOp: ZSTD_EndDirective): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compressStream2(cctx: ZSTD_CCtx; var output: ZSTD_outBuffer; var input: ZSTD_inBuffer; endOp: ZSTD_EndDirective): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (* These buffer sizes are softly recommended.
  * They are not required : ZSTD_compressStream*() happily accepts any buffer size, for both input and output.
@@ -797,8 +797,8 @@ function ZSTD_compressStream2(cctx: ZSTD_CCtx; var output: ZSTD_outBuffer; var i
  * for both input and output, to reduce the nb of roundtrips.
  *)
 
-function ZSTD_CStreamInSize: size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (**< recommended size for input buffer *)
-function ZSTD_CStreamOutSize: size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (**< recommended size for output buffer. Guarantee to successfully flush at least one complete compressed block in all circumstances. *)
+function ZSTD_CStreamInSize: size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (**< recommended size for input buffer *)
+function ZSTD_CStreamOutSize: size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (**< recommended size for output buffer. Guarantee to successfully flush at least one complete compressed block in all circumstances. *)
 
 (* *****************************************************************************
  * This following is a legacy streaming API.
@@ -815,18 +815,18 @@ function ZSTD_CStreamOutSize: size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF 
  *     ZSTD_CCtx_refCDict(zcs, NULL); // clear the dictionary (if any)
  *     ZSTD_CCtx_setParameter(zcs, ZSTD_c_compressionLevel, compressionLevel);
  *)
-function ZSTD_initCStream(zcs: ZSTD_CStream; compressionLevel: int): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_initCStream(zcs: ZSTD_CStream; compressionLevel: int): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 (**
  * Alternative for ZSTD_compressStream2(zcs, output, input, ZSTD_e_continue).
  * NOTE: The return value is different. ZSTD_compressStream() returns a hint for
  * the next read size (if non-zero and not an error). ZSTD_compressStream2()
  * returns the minimum nb of bytes left to flush (if non-zero and not an error).
  *)
-function ZSTD_compressStream(zcs: ZSTD_CStream; var output: ZSTD_outBuffer; var input: ZSTD_inBuffer): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compressStream(zcs: ZSTD_CStream; var output: ZSTD_outBuffer; var input: ZSTD_inBuffer): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 (** Equivalent to ZSTD_compressStream2(zcs, output, &emptyInput, ZSTD_e_flush). *)
-function ZSTD_flushStream(zcs: ZSTD_CStream; var output: ZSTD_outBuffer): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_flushStream(zcs: ZSTD_CStream; var output: ZSTD_outBuffer): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 (** Equivalent to ZSTD_compressStream2(zcs, output, &emptyInput, ZSTD_e_end). *)
-function ZSTD_endStream(zcs: ZSTD_CStream; var output: ZSTD_outBuffer): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_endStream(zcs: ZSTD_CStream; var output: ZSTD_outBuffer): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*-***************************************************************************
 *  Streaming decompression - HowTo
@@ -859,8 +859,8 @@ type
   ZSTD_DStream = type ZSTD_DCtx;
 
 (*===== ZSTD_DStream management functions =====*)
-function ZSTD_createDStream: ZSTD_DStream; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_freeDStream(zds: ZSTD_DStream): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_createDStream: ZSTD_DStream; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_freeDStream(zds: ZSTD_DStream): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*===== Streaming decompression functions =====*)
 
@@ -872,8 +872,8 @@ function ZSTD_freeDStream(zds: ZSTD_DStream): size_t; external {$IFDEF ZSTD_DLL}
 function ZSTD_initDStream(zds: ZSTD_DStream): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 function ZSTD_decompressStream(zds: ZSTD_DStream; var output: ZSTD_outBuffer; var input: ZSTD_inBuffer): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
-function ZSTD_DStreamInSize: size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (*!< recommended size for input buffer *)
-function ZSTD_DStreamOutSize: size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (*!< recommended size for output buffer. Guarantee to successfully flush at least one complete block in all circumstances. *)
+function ZSTD_DStreamInSize: size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (*!< recommended size for input buffer *)
+function ZSTD_DStreamOutSize: size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF}; (*!< recommended size for output buffer. Guarantee to successfully flush at least one complete block in all circumstances. *)
 
 (**************************
 *  Simple dictionary API
@@ -886,7 +886,7 @@ function ZSTD_DStreamOutSize: size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF 
  *  Note : This function loads the dictionary, resulting in significant startup delay.
  *         It's intended for a dictionary used only once.
  *  Note 2 : When `dict == NULL || dictSize < 8` no dictionary is used. *)
-function ZSTD_compress_usingDict(ctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; dict: Pointer; dictSize: size_t; compressionLevel: int): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compress_usingDict(ctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; dict: Pointer; dictSize: size_t; compressionLevel: int): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_decompress_usingDict() :
  *  Decompression using a known Dictionary.
@@ -894,7 +894,7 @@ function ZSTD_compress_usingDict(ctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size
  *  Note : This function loads the dictionary, resulting in significant startup delay.
  *         It's intended for a dictionary used only once.
  *  Note : When `dict == NULL || dictSize < 8` no dictionary is used. *)
-function ZSTD_decompress_usingDict(dctx: ZSTD_DCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; dict: Pointer; dictSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_decompress_usingDict(dctx: ZSTD_DCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; dict: Pointer; dictSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (**********************************
  *  Bulk processing dictionary API
@@ -910,18 +910,18 @@ type
  * `dictBuffer` can be released after ZSTD_CDict creation, because its content is copied within CDict.
  *  Consider experimental function `ZSTD_createCDict_byReference()` if you prefer to not duplicate `dictBuffer` content.
  *  Note : A ZSTD_CDict can be created from an empty dictBuffer, but it is inefficient when used to compress small data. *)
-function ZSTD_createCDict(dictBuffer: Pointer; dictSize: size_t; compressionLevel: int): ZSTD_CDict; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_createCDict(dictBuffer: Pointer; dictSize: size_t; compressionLevel: int): ZSTD_CDict; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_freeCDict() :
  *  Function frees memory allocated by ZSTD_createCDict(). *)
-function ZSTD_freeCDict(CDict: ZSTD_CDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_freeCDict(CDict: ZSTD_CDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_compress_usingCDict() :
  *  Compression using a digested Dictionary.
  *  Recommended when same dictionary is used multiple times.
  *  Note : compression level is _decided at dictionary creation time_,
  *     and frame parameters are hardcoded (dictID=yes, contentSize=yes, checksum=no) *)
-function ZSTD_compress_usingCDict(cctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; cdict: ZSTD_CDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_compress_usingCDict(cctx: ZSTD_CCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; cdict: ZSTD_CDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 type
   ZSTD_DDict = type Pointer;
@@ -929,16 +929,16 @@ type
 (*! ZSTD_createDDict() :
  *  Create a digested dictionary, ready to start decompression operation without startup delay.
  *  dictBuffer can be released after DDict creation, as its content is copied inside DDict. *)
-function ZSTD_createDDict(dictBuffer: Pointer; dictSize: size_t): ZSTD_DDict; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_createDDict(dictBuffer: Pointer; dictSize: size_t): ZSTD_DDict; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_freeDDict() :
  *  Function frees memory allocated with ZSTD_createDDict() *)
-function ZSTD_freeDDict(ddict: ZSTD_DDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_freeDDict(ddict: ZSTD_DDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_decompress_usingDDict() :
  *  Decompression using a digested Dictionary.
  *  Recommended when same dictionary is used multiple times. *)
-function ZSTD_decompress_usingDDict(dctx: ZSTD_DCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; ddict: ZSTD_DDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_decompress_usingDDict(dctx: ZSTD_DCtx; dst: Pointer; dstCapacity: size_t; src: Pointer; srcSize: size_t; ddict: ZSTD_DDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (********************************
  *  Dictionary helper functions
@@ -948,13 +948,13 @@ function ZSTD_decompress_usingDDict(dctx: ZSTD_DCtx; dst: Pointer; dstCapacity: 
  *  Provides the dictID stored within dictionary.
  *  if @return == 0, the dictionary is not conformant with Zstandard specification.
  *  It can still be loaded, but as a content-only dictionary. *)
-function ZSTD_getDictID_fromDict(dict: Pointer; dictSize: size_t): unsigned; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_getDictID_fromDict(dict: Pointer; dictSize: size_t): unsigned; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_getDictID_fromDDict() :
  *  Provides the dictID of the dictionary loaded into `ddict`.
  *  If @return == 0, the dictionary is not conformant to Zstandard specification, or empty.
  *  Non-conformant dictionaries can still be loaded, but as content-only dictionaries. *)
-function ZSTD_getDictID_fromDDict(ddict: ZSTD_DDict): unsigned; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_getDictID_fromDDict(ddict: ZSTD_DDict): unsigned; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_getDictID_fromFrame() :
  *  Provides the dictID required to decompressed the frame stored within `src`.
@@ -966,7 +966,7 @@ function ZSTD_getDictID_fromDDict(ddict: ZSTD_DDict): unsigned; external {$IFDEF
  *  - `srcSize` is too small, and as a result, the frame header could not be decoded (only possible if `srcSize < ZSTD_FRAMEHEADERSIZE_MAX`).
  *  - This is not a Zstandard frame.
  *  When identifying the exact failure cause, it's possible to use ZSTD_getFrameHeader(), which will provide a more precise error code. *)
-function ZSTD_getDictID_fromFrame(src: Pointer; srcSize: size_t): unsigned; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_getDictID_fromFrame(src: Pointer; srcSize: size_t): unsigned; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*******************************************************************************
  * Advanced dictionary and prefix API
@@ -994,7 +994,7 @@ function ZSTD_getDictID_fromFrame(src: Pointer; srcSize: size_t): unsigned; exte
  *           In such a case, dictionary buffer must outlive its users.
  *  Note 4 : Use ZSTD_CCtx_loadDictionary_advanced()
  *           to precisely select how dictionary content must be interpreted. *)
-function ZSTD_CCtx_loadDictionary(cctx: ZSTD_CCtx; dict: Pointer; dictSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_CCtx_loadDictionary(cctx: ZSTD_CCtx; dict: Pointer; dictSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_CCtx_refCDict() :
  *  Reference a prepared dictionary, to be used for all next compressed frames.
@@ -1008,7 +1008,7 @@ function ZSTD_CCtx_loadDictionary(cctx: ZSTD_CCtx; dict: Pointer; dictSize: size
  *  Note 1 : Currently, only one dictionary can be managed.
  *           Referencing a new dictionary effectively "discards" any previous one.
  *  Note 2 : CDict is just referenced, its lifetime must outlive its usage within CCtx. *)
-function ZSTD_CCtx_refCDict(cctx: ZSTD_CCtx; cdict: ZSTD_CDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_CCtx_refCDict(cctx: ZSTD_CCtx; cdict: ZSTD_CDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_CCtx_refPrefix() :
  *  Reference a prefix (single-usage dictionary) for next compressed frame.
@@ -1028,7 +1028,7 @@ function ZSTD_CCtx_refCDict(cctx: ZSTD_CCtx; cdict: ZSTD_CDict): size_t; externa
  *           If there is a need to use the same prefix multiple times, consider loadDictionary instead.
  *  Note 4 : By default, the prefix is interpreted as raw content (ZSTD_dm_rawContent).
  *           Use experimental ZSTD_CCtx_refPrefix_advanced() to alter dictionary interpretation. *)
-function ZSTD_CCtx_refPrefix(cctx: ZSTD_CCtx; prefix: Pointer; prefixSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_CCtx_refPrefix(cctx: ZSTD_CCtx; prefix: Pointer; prefixSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_DCtx_loadDictionary() :
  *  Create an internal DDict from dict buffer,
@@ -1045,7 +1045,7 @@ function ZSTD_CCtx_refPrefix(cctx: ZSTD_CCtx; prefix: Pointer; prefixSize: size_
  *  Note 3 : Use ZSTD_DCtx_loadDictionary_advanced() to take control of
  *           how dictionary content is loaded and interpreted.
  *)
-function ZSTD_DCtx_loadDictionary(dctx: ZSTD_DCtx; dict: Pointer; dictSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_DCtx_loadDictionary(dctx: ZSTD_DCtx; dict: Pointer; dictSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_DCtx_refDDict() :
  *  Reference a prepared dictionary, to be used to decompress next frames.
@@ -1056,7 +1056,7 @@ function ZSTD_DCtx_loadDictionary(dctx: ZSTD_DCtx; dict: Pointer; dictSize: size
  *  Special: referencing a NULL DDict means "return to no-dictionary mode".
  *  Note 2 : DDict is just referenced, its lifetime must outlive its usage from DCtx.
  *)
-function ZSTD_DCtx_refDDict(dctx: ZSTD_DCtx; ddict: ZSTD_DDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_DCtx_refDDict(dctx: ZSTD_DCtx; ddict: ZSTD_DDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (*! ZSTD_DCtx_refPrefix() :
  *  Reference a prefix (single-usage dictionary) to decompress next frame.
@@ -1074,19 +1074,19 @@ function ZSTD_DCtx_refDDict(dctx: ZSTD_DCtx; ddict: ZSTD_DDict): size_t; externa
  *  Note 4 : Referencing a raw content prefix has almost no cpu nor memory cost.
  *           A full dictionary is more costly, as it requires building tables.
  *)
-function ZSTD_DCtx_refPrefix(dctx: ZSTD_DCtx; prefix: Pointer; prefixSize: size_t): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_DCtx_refPrefix(dctx: ZSTD_DCtx; prefix: Pointer; prefixSize: size_t): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 (* ===   Memory management   === *)
 
 (*! ZSTD_sizeof_*() :
  *  These functions give the _current_ memory usage of selected object.
  *  Note that object memory usage can evolve (increase or decrease) over time. *)
-function ZSTD_sizeof_CCtx(cctx: ZSTD_CCtx): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_sizeof_DCtx(dctx: ZSTD_DCtx): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_sizeof_CStream(zcs: ZSTD_CStream ): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_sizeof_DStream(zds: ZSTD_DStream): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_sizeof_CDict(cdict: ZSTD_CDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
-function ZSTD_sizeof_DDict(ddict: ZSTD_DDict): size_t; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_sizeof_CCtx(cctx: ZSTD_CCtx): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_sizeof_DCtx(dctx: ZSTD_DCtx): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_sizeof_CStream(zcs: ZSTD_CStream ): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_sizeof_DStream(zds: ZSTD_DStream): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_sizeof_CDict(cdict: ZSTD_CDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
+function ZSTD_sizeof_DDict(ddict: ZSTD_DDict): size_t; cdecl; external {$IFDEF ZSTD_DLL}libzstd {$IFDEF  MSWINDOWS}delayed{$ENDIF}{$ENDIF};
 
 implementation
 {$IFNDEF ZSTD_DLL}
