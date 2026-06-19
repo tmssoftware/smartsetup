@@ -1312,6 +1312,12 @@ begin
   FPackage := aPackage;
   FName := aPackage.Name;
   Actions := TListOfActions.Create;
+  Actions.Add('generate from', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      aPackage.GenerateFrom := value;
+      aPackage.GenerateFromFullFileName := CombinePath(Project.RootFolder, value);
+      if not TFile.Exists(aPackage.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + aPackage.GenerateFromFullFileName + '". ' + ErrorInfo.ToString);
+    end);
   Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo)
     begin
       aPackage.Description := value;

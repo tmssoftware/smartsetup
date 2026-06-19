@@ -485,6 +485,10 @@
         "^.*$": {
           "type": "object",
           "properties": {
+            "generate from": {
+              "type": "string",
+              "description": "The name of the dpk file to use to generate the dproj. Use only when a project provides dpks but not dprojs."
+            },
             "framework type": {
               "type": "string",
               "enum": ["NONE", "FMX", "VCL"],

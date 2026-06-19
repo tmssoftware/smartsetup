@@ -67,6 +67,9 @@ type
     function DeleteSection(const Section: string): Integer; // returns the position of the deleted section, if existed
   public
     class procedure GenerateEmptyFile(const TargetDpkFile: string; IDEName: TIDEName; DeleteExisting: Boolean);
+  private
+    function Adapt(
+      const NameAdapter: TFunc<string, string>; const Name: string): string;
   public
     procedure UpdatePackageName(const PackageName: string);
     procedure UpdateDescription(const Description: string);
@@ -74,9 +77,10 @@ type
     procedure UpdateDllSuffix(const Value: string);
     procedure UpdateExplicitRebuild(ExplicitRebuild: boolean);
 
-    procedure UpdatePasFiles(PasFiles: TPasIncludeFiles);
+    procedure UpdatePasFiles(PasFiles: TPasIncludeFiles; const NameAdapter: TFunc<string, string> = nil);
     procedure UpdateRequires(Requires: TStrings);
-    procedure UpdateDcrFiles(DcrFiles: TIncludeFiles);
+    procedure UpdateDcrFiles(DcrFiles: TIncludeFiles; const NameAdapter: TFunc<string, string> = nil);
+    procedure RemoveDeprecatedRes;
 
     procedure Flush;
   end;
@@ -298,6 +302,7 @@ begin
     begin
       Value := Value.DeQuotedString('''');
       if Value.ToLower = '*.res' then Continue;
+      if Value.ToLower = '*.otares' then Continue;
       if Value.ToLower = '*.dres' then Continue;
 
       // it will fail if it's not a .dcr file
@@ -471,7 +476,32 @@ begin
      Lines.Delete(Index);
 end;
 
-procedure TDpkWriter.UpdateDcrFiles(DcrFiles: TIncludeFiles);
+function TDpkWriter.Adapt(const NameAdapter: TFunc<string, string>; const Name: string): string;
+begin
+  if not Assigned(NameAdapter) then exit(Name);
+  exit(NameAdapter(Name));
+end;
+
+procedure TDpkWriter.RemoveDeprecatedRes;
+begin
+  // Delete all .otares and .dres includes. Those are artifacts when converting versions, and can make the build fail.
+  var Index := 0;
+  while Index < Lines.Count - 1 do
+  begin
+    var Value: string;
+    if IsDirective(Lines[Index], 'R', Value) and
+    (
+       (ExtractFileExt(Value.DeQuotedString('''')).ToLower = '.otares')
+       or
+       (ExtractFileExt(Value.DeQuotedString('''')).ToLower = '.dres')
+    ) then
+      Lines.Delete(Index)
+    else
+      Inc(Index);
+  end;
+end;
+
+procedure TDpkWriter.UpdateDcrFiles(DcrFiles: TIncludeFiles; const NameAdapter: TFunc<string, string>);
 begin
   // Delete all .dcr includes (and $R directive that includes a .dcr file)
   var Index := 0;
@@ -496,7 +526,7 @@ begin
   // Add all DCR at the position
   for var DcrFile in DcrFiles do
   begin
-    Lines.Insert(Index, Format('{$R ''%s''}', [DcrFile.FileName]));
+    Lines.Insert(Index, Format('{$R ''%s''}', [Adapt(NameAdapter, DcrFile.FileName)]));
     Inc(Index);
   end;
 end;
@@ -557,7 +587,7 @@ begin
   Lines[Index] := Format('package %s;', [PackageName]);
 end;
 
-procedure TDpkWriter.UpdatePasFiles(PasFiles: TPasIncludeFiles);
+procedure TDpkWriter.UpdatePasFiles(PasFiles: TPasIncludeFiles; const NameAdapter: TFunc<string, string>);
 begin
   var Index := DeleteSection('contains');
   if Index = -1 then
@@ -572,7 +602,7 @@ begin
   for var I := 0 to PasFiles.Count - 1 do
   begin
     var PasFile := PasFiles[I];
-    var LineContent := Format('%s in ''%s''', [TPath.GetFileNameWithoutExtension(PasFile.FileName), PasFile.FileName]);
+    var LineContent := Format('%s in ''%s''', [TPath.GetFileNameWithoutExtension(PasFile.FileName), Adapt(NameAdapter, PasFile.FileName)]);
     if PasFile.FormName <> '' then
       LineContent := LineContent + ' {' + PasFile.FormName + '}';
     if I < PasFiles.Count - 1 then

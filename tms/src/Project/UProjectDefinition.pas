@@ -67,6 +67,7 @@ type
 
     property Last: TFileMasks read GetLast write SetLast;
   public
+    constructor Create(const aFileMasks: TArray<TFileMasks>);
     procedure AddFolder(const aBaseFolder: string);
     procedure SetIncludeFolders(const Masks: TArray<string>);
     procedure SetExcludeFolders(const Masks: TArray<string>);
@@ -86,6 +87,8 @@ type
     FIsRuntime: boolean;
     FIsDesign: boolean;
     FPackageType: TPackageType;
+    FGenerateFrom: string;
+    FGenerateFromFullFileName: string;
     FDescription: string;
     FDelphiFrameworkType: string;
     FRequires: TArray<string>;
@@ -100,6 +103,8 @@ type
     property Frameworks: TFrameworkSet read FFrameworks write FFrameworks;
 
     //For creating packages
+    property GenerateFrom: string read FGenerateFrom write FGenerateFrom;
+    property GenerateFromFullFileName: string read FGenerateFromFullFileName write FGenerateFromFullFileName;
     property Description: string read FDescription write FDescription;
     property DelphiFrameworkType: string read FDelphiFrameworkType write FDelphiFrameworkType;
     property Requires: TArray<string> read FRequires write FRequires;
@@ -645,16 +650,12 @@ begin
     if (Package.Frameworks = [])
       then raise Exception.Create('The Package "' + Package.Name + '" in Project "' + FullPath + '" doesn''t use any framework.' );
   end;
-
-
-
-
 end;
 
 { TPackage }
 function TPackage.AutoGenerate: boolean;
 begin
-  Result := not FileMasks.Empty;
+  Result := not FileMasks.Empty or (GenerateFrom <> '');
 end;
 
 constructor TPackage.Create(const aName: string);
@@ -950,6 +951,11 @@ end;
 procedure TFileMasksList.ClearFolders;
 begin
   FFileMasks := nil;
+end;
+
+constructor TFileMasksList.Create(const aFileMasks: TArray<TFileMasks>);
+begin
+  FFileMasks := aFileMasks;
 end;
 
 function TFileMasksList.Empty: boolean;

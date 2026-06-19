@@ -11,7 +11,18 @@ procedure CreatePackages(const Projects: TProjectList);
 
 implementation
 uses SysUtils, Classes, Zip, System.Types, Util.Replacer, Deget.Filer.DprojFile,
-     Deget.Version, Generics.Collections, Commands.GlobalConfig, Status.Manager;
+     Deget.Version, Generics.Collections, Commands.GlobalConfig, Status.Manager,
+     Deget.Filer.DpkFile, Deget.Filer.Types;
+
+type
+TPackageAndDpk = class(TPackage)
+public
+  PackData: TDpkData;
+  AllFiles: TArray<string>;
+  destructor Destroy; override;
+end;
+var
+  ExistingPackage: TPackageAndDpk;
 
 //No need to escape non-ascii characters, this will be saved as utf-8
 function XmlEscape(const s: string): string;
@@ -193,11 +204,17 @@ begin
   Result := GuidToString(CreateUUIDv5(DNS_NAMESPACE,s));
 end;
 
+function GetDescription(const Description: string): string;
+begin
+  if Description <> '' then exit(Description);
+  exit(ExistingPackage.Description);
+end;
+
 function ReplaceVariable(const varName: string; const IDEName: TIDEName; const Project: TProjectDefinition; const Package: TPackage; out IsEscaped: boolean): string;
 begin
   IsEscaped := false;
   if varName = 'package-name' then exit(Package.Name);
-  if varName = 'description' then exit(Package.Description);
+  if varName = 'description' then exit(GetDescription(Package.Description));
   if varName = 'design-or-runtime-dpk' then
     if Package.IsRuntime then
       if Package.IsDesign then exit('')
@@ -210,14 +227,14 @@ begin
 
   if varName = 'lib-suffix-dpk' then begin IsEscaped := true; exit(GetLibSuffix(IDEName, true).ToUpperInvariant); end;
   if varName = 'lib-suffix-dproj' then exit(GetLibSuffixDproj(IDEName));
-  if varName = 'requires' then begin IsEscaped := true; exit(GetDpkSection(Package.Requires, function(s: string): string begin Result := DelphiEscape(TPath.GetFileNameWithoutExtension(s)); end)); end;
+  if varName = 'requires' then begin IsEscaped := true; exit(GetDpkSection(ExistingPackage.Requires + Package.Requires, function(s: string): string begin Result := DelphiEscape(TPath.GetFileNameWithoutExtension(s)); end)); end;
   if varName = 'unit-search-path' then exit(GetUnitSearchPath(Project));
   
   if varName  = 'product-version' then if IDEName < TIDEName.delphixe2 then exit(DelphiProductVersion[IDEName]) else exit('$(ProductVersion)');
   if varName = 'debug-information-false' then if IDEName <= TIDEName.delphixe4 then exit('false') else exit('0');                                              
   
   var PackagePlatforms := GetPackagePlatforms(Project, Package);
-  var PackageFiles := GetFiles(Project, Package.FileMasks);
+  var PackageFiles := ExistingPackage.AllFiles;
   if varName = 'contains' then begin IsEscaped := true; exit(GetDpkSection(PackageFiles, function(s: string): string begin Result := GetDpkContain(s); end));end;
 
   //If we always return a new guid, the projects will recompile every time we recreate them.
@@ -332,6 +349,25 @@ begin
   Result := TIDEName.delphi11; //currently this is the only folder in the zip.
 end;
 
+procedure CopyDpk(const Source, Target: string; const IDEName: TIDEName);
+begin
+  TFile.Copy(Source, Target, true);
+  if ExistingPackage.PackData = nil then exit;
+
+  var Writer := TDpkWriter.Create(Target, IDEName);
+  try
+    // Package files
+    Writer.RemoveDeprecatedRes;
+    Writer.UpdateDcrFiles(ExistingPackage.PackData.DcrFiles, function(FileName: string): string begin Result := TPath.Combine('..','..', FileName); end);
+    Writer.UpdatePasFiles(ExistingPackage.PackData.PasFiles, function(FileName: string): string begin Result := TPath.Combine('..','..', FileName); end);
+    Writer.UpdateDllSuffix(GetLibSuffix(IDEName, false));
+    Writer.Flush;
+  finally
+    Writer.Free;
+  end;
+
+end;
+
 procedure ProcessTemplates(const TargetIDEName: TIDEName; const Project: TProjectDefinition; const Package: TPackage; const BaseFileName: string);
 begin
   var PackageTemplates := TResourceStream.Create(HInstance, 'PackageTemplates', RT_RCDATA);
@@ -340,8 +376,16 @@ begin
     try
       Zip.Open(PackageTemplates, TZipMode.zmRead);
       var Template: TBytes;
-      Zip.Read(DelphiSuffixes[TemplateFolder(TargetIDEName)] + '/Package.dpk', Template);
-      ReplaceData(TargetIDEName, Template, false, Project, Package, BaseFileName + '.dpk');
+
+      if (Package.GenerateFromFullFileName <> '') then
+      begin
+        CopyDpk(Package.GenerateFromFullFileName, BaseFileName + '.dpk', TargetIDEName);
+      end else
+      begin
+        Zip.Read(DelphiSuffixes[TemplateFolder(TargetIDEName)] + '/Package.dpk', Template);
+        ReplaceData(TargetIDEName, Template, false, Project, Package, BaseFileName + '.dpk');
+      end;
+
       Zip.Read(DelphiSuffixes[TemplateFolder(TargetIDEName)] + '/Package.dproj', Template);
       ReplaceData(TargetIDEName, Template, true, Project, Package, BaseFileName + '.dproj');
     finally
@@ -365,6 +409,72 @@ begin
   for var ide in BreakingIDEs do if Project.SupportsIDE(ide) then Result := Result + [ide];
 end;
 
+
+function GetFileMasks(const PasFiles: TPasIncludeFiles; const DcrFiles: TIncludeFiles): TFileMasksList;
+begin
+  Result := TFileMasksList.Create(nil);
+  var LastFolder := '';
+  for var Pas in PasFiles do
+  begin
+    var FileName := Pas.FileName;
+    var NextFolder := TPath.GetDirectoryName(FileName);
+    if NextFolder <> LastFolder then Result.AddFolder(NextFolder);
+    NextFolder := LastFolder;
+    Result.SetIncludeFiles([TPath.GetFileName(FileName)]);
+    Result.SetRecursive(false);
+  end;
+
+  for var Dcr in DcrFiles do
+  begin
+    var FileName := Dcr.FileName;
+    var NextFolder := TPath.GetDirectoryName(FileName);
+    if NextFolder <> LastFolder then Result.AddFolder(NextFolder);
+    NextFolder := LastFolder;
+    Result.SetIncludeFiles([TPath.GetFileName(FileName)]);
+    Result.SetRecursive(false);
+  end;
+end;
+
+procedure AdaptPaths(const SourceDir, TargetDir: string; const Data: TDpkData);
+begin
+  for var Pas in Data.PasFiles do
+  begin
+    Pas.FileName := ExtractRelativePath(
+      IncludeTrailingPathDelimiter(TargetDir),
+      TPath.GetFullPath(TPath.Combine(SourceDir, Pas.FileName)));
+  end;
+  for var Dcr in Data.DcrFiles do
+  begin
+    Dcr.FileName := ExtractRelativePath(
+      IncludeTrailingPathDelimiter(TargetDir),
+      TPath.GetFullPath(TPath.Combine(SourceDir, Dcr.FileName)));
+  end;
+end;
+
+
+function ReadPackage(const Project: TProjectDefinition; const Package: TPackage): TPackageAndDpk;
+begin
+  Result := TPackageAndDpk.Create('');
+  var FileName := Package.GenerateFromFullFileName;
+  if FileName = '' then exit;
+  var ProjectFolder := TPath.GetDirectoryName(Project.FullPath);
+
+  Result.PackData := TDpkData.Create;
+
+  var Reader := TDpkReader.Create(FileName, TIDEName.delphi6);
+  try
+    Reader.ReadData(Result.PackData);
+    AdaptPaths(TPath.GetDirectoryName(FileName), ProjectFolder, Result.PackData);
+    Result.Description := Result.PackData.Description;
+    Result.Requires := Result.PackData.Requires.ToStringArray;
+
+    Result.FileMasks := GetFileMasks(Result.PackData.PasFiles, Result.PackData.DcrFiles);
+    Result.AllFiles := GetFiles(Project, Result.FileMasks) + GetFiles(Project, Package.FileMasks)
+  finally
+    Reader.Free;
+  end;
+end;
+
 procedure CreatePackages(const Projects: TProjectList);
 begin
   for var Project in Projects.All do
@@ -372,13 +482,26 @@ begin
     for var Package in Project.Packages do
     begin
       if not Package.AutoGenerate then continue;
-      for var IDEName in IDESupported(Project) do
-      begin
-        var Naming := Config.GetNaming(Project.Naming, Project.FullPath);
-        var FolderName := Naming.GetPackageNamingPlus(IDEName);
-        ProcessTemplates(IDEName, Project, Package, TPath.Combine(Project.RootFolder, 'packages', FolderName, Package.Name));
+      ExistingPackage := ReadPackage(Project, Package);
+      try
+        for var IDEName in IDESupported(Project) do
+        begin
+          var Naming := Config.GetNaming(Project.Naming, Project.FullPath);
+          var FolderName := Naming.GetPackageNamingPlus(IDEName);
+          ProcessTemplates(IDEName, Project, Package, TPath.Combine(Project.RootFolder, 'packages', FolderName, Package.Name));
+        end;
+      finally
+        ExistingPackage.Free;
       end;
     end;
   end;
 end;
+{ TPackageAndDpk }
+
+destructor TPackageAndDpk.Destroy;
+begin
+  PackData.Free;
+  inherited;
+end;
+
 end.
