@@ -760,6 +760,32 @@
       },
       "uniqueItems": true
     },
+    "resources": {
+      "type": ["array", "null"],
+      "description": "By default, we copy all dfms/dcr/res/etc to the output folder, so those files are in the library path.\nBut in some cases, for example if you have a directive like {$R resources\resource.dcr}, you need to copy the resources from the resources folder to output\resources. \nYou can specify those files to be copied here. But this section shouldn't be needed in most cases.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "object",
+            "properties": {
+              "copy from": {
+                "type": "string",
+                "description": "The source folder to copy, relative to the root of the project. Only resources in this folder will be copied."
+              },
+              "copy to": {
+                "type": ["string", "null"],
+                "description": "The destination folder using the output folder as root. Leave it empty if you want to copy the files directly to the output folder."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["resource"],
+        "additionalProperties": false
+      },
+      "uniqueItems": true
+    },
     "other versions": {
       "type": ["array", "null"],
       "description": "For checking if older products installed with a different method exist.",

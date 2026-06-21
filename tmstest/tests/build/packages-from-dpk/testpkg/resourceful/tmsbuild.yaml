@@ -36,4 +36,8 @@ package definitions:
 paths:
   build-only library paths:
     - pkg-source
-    - src/dcr
+
+resources:
+  - resource:
+     copy from: src/dcr
+     copy to: dcr

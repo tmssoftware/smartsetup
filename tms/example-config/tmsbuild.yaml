@@ -222,6 +222,15 @@ file links:
       link to folder: #optional. If you don't specify it, it will link to bpl folder (32 bit). You can use the variable %bpl-folder-64% to link to the correct bpl folder according to the OS and platform. For example, if you want to link to the 64 bit bpl folder in windows, you can write %bpl-folder-64%. Note that you can't use someting like %bpl-folder64\Lib. If you use %bpl-folder% it should be used alone. 
       os: [linux, windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
 
+# Copy resource files to specific locations inside the output folder. 
+# This section is not normally needed, because we copy most resources automatically, 
+# but can be used to support a directive like {$R resources\resource.res}, where the resource must
+# be copied to the output folder\resources.
+resources:
+#  - resource:
+#      copy from: src\resources  # relative to the root of the project.
+#      copy to: resources              # destination folder or file path.
+
 # For checking if older products installed with a different method exist.
 other versions: # if the registry key exists, it means the product is already installed with other setup, and tms smart setup will refuse to run.
   - reg: HKEY_CURRENT_USER\SOFTWARE\tmssoftware\Example 

@@ -241,6 +241,16 @@ type
     constructor Create(const AFileToLink, ALinkToFolder: string; const AOS: TOperatingSystemSet); overload;
   end;
 
+  TResourceCopyDefinition = class
+  private
+    FCopyFrom: string;
+    FCopyTo: string;
+  public
+    property CopyFrom: string read FCopyFrom write FCopyFrom;
+    property CopyTo: string read FCopyTo write FCopyTo;
+    constructor Create;
+  end;
+
   TPlatformSetArray = Array[TIDEName] of TPlatformSet;
 
   TPlatsCompiled = record
@@ -299,6 +309,7 @@ type
     FSearchPathsToPreserve: TArray<string>;
     FShortcuts: TObjectList<TShortcutDefinition>;
     FFileLinks: TObjectList<TFileLinkDefinition>;
+    FResourceCopies: TObjectList<TResourceCopyDefinition>;
     FOtherRegistryKeys: TList<string>;
     FRootPackageFolder: string;
     FPackageFolders: TPackageFolders;
@@ -362,6 +373,7 @@ type
 
     property Shortcuts: TObjectList<TShortcutDefinition> read FShortcuts;
     property FileLinks: TObjectList<TFileLinkDefinition> read FFileLinks;
+    property ResourceCopies: TObjectList<TResourceCopyDefinition> read FResourceCopies;
     property OtherRegistryKeys: TList<string> read FOtherRegistryKeys;
 
     property PackageExtraDefines: TList<string> read FPackageExtraDefines;
@@ -428,6 +440,7 @@ begin
   FExtraPaths := TCompilerPaths.Create;
   FShortcuts := TObjectList<TShortcutDefinition>.Create;
   FFileLinks := TObjectList<TFileLinkDefinition>.Create;
+  FResourceCopies := TObjectList<TResourceCopyDefinition>.Create;
   FOtherRegistryKeys := TList<string>.Create;
   FPackageExtraDefines := TList<string>.Create;
   FExeOptions := TExeOptions.Create;
@@ -447,6 +460,7 @@ begin
   FExtraPaths.Free;
   FShortcuts.Free;
   FFileLinks.Free;
+  FResourceCopies.Free;
   FOtherRegistryKeys.Free;
   FPackageExtraDefines.Free;
   FExeOptions.Free;
@@ -904,6 +918,12 @@ end;
 constructor TFileLinkDefinition.Create;
 begin
 
+end;
+
+{ TResourceCopyDefinition }
+
+constructor TResourceCopyDefinition.Create;
+begin
 end;
 
 { TPlatformPaths }

@@ -292,6 +292,18 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TResourceCopiesSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
+  TResourceCopySectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
   TOtherVersionsSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
@@ -347,6 +359,7 @@ begin
   ChildSections.Add(TPathsSectionDef.SectionNameStatic, TPathsSectionDef.Create(Self, aProject));
   ChildSections.Add(TLinksSectionDef.SectionNameStatic, TLinksSectionDef.Create(Self, aProject));
   ChildSections.Add(TFileLinksSectionDef.SectionNameStatic, TFileLinksSectionDef.Create(Self, aProject));
+  ChildSections.Add(TResourceCopiesSectionDef.SectionNameStatic, TResourceCopiesSectionDef.Create(Self, aProject));
   ChildSections.Add(TOtherVersionsSectionDef.SectionNameStatic, TOtherVersionsSectionDef.Create(Self, aProject));
 
   Actions := TListOfActions.Create;
@@ -1254,6 +1267,49 @@ end;
 class function TFileLinkSectionDef.SectionNameStatic: string;
 begin
   Result := 'link';
+end;
+
+{ TResourceCopiesSectionDef }
+
+constructor TResourceCopiesSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  ContainsArrays := true;
+  ChildSections.Add(TResourceCopySectionDef.SectionNameStatic, TResourceCopySectionDef.Create(Self, aProject));
+  ClearArrayValues := procedure begin Project.ResourceCopies.Clear; end;
+
+  ChildSectionAction :=
+    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    begin
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
+      begin
+        Project.ResourceCopies.Add(TResourceCopyDefinition.Create);
+        exit;
+      end;
+      Result := nil;
+    end;
+end;
+
+class function TResourceCopiesSectionDef.SectionNameStatic: string;
+begin
+  Result := 'resources';
+end;
+
+{ TResourceCopySectionDef }
+
+constructor TResourceCopySectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Actions := TListOfActions.Create;
+  Actions.Add('copy from', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.ResourceCopies.Last.CopyFrom := value; end);
+  Actions.Add('copy to', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.ResourceCopies.Last.CopyTo := value; end);
+end;
+
+class function TResourceCopySectionDef.SectionNameStatic: string;
+begin
+  Result := 'resource';
 end;
 
 { TOtherVersionsSectionDef }

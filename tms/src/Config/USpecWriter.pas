@@ -37,6 +37,9 @@ type
     function GetFileLink(const ArrayIndex: integer;
       const PropName: string): TYamlValue;
     function GetFileLinks: TArray<TYamlValue>;
+    function GetResource(const ArrayIndex: integer;
+      const PropName: string): TYamlValue;
+    function GetResources: TArray<TYamlValue>;
     function GetOtherVersions: TArray<TYamlValue>;
     function GetOtherVersion(const ArrayIndex: integer;
       const PropName: string): TYamlValue;
@@ -367,6 +370,16 @@ begin
   end;
 end;
 
+function TSpecWriter.GetResources: TArray<TYamlValue>;
+begin
+  Result := nil;
+  SetLength(Result, FProduct.ResourceCopies.Count);
+  for var i := Low(Result) to High(Result) do
+  begin
+    Result[i] := TYamlValue.MakeObject();
+  end;
+end;
+
 function GetOS(const os: TOperatingSystemSet): TYamlValue;
 begin
   var Items: TArray<string>;
@@ -389,6 +402,15 @@ begin
   if PropName = 'os:' then exit(GetOS(s.OS));
 
   raise Exception.Create('Unknown property in file link: ' + PropName);
+end;
+
+function TSpecWriter.GetResource(const ArrayIndex: integer; const PropName: string): TYamlValue;
+begin
+  var s := FProduct.ResourceCopies[ArrayIndex];
+  if PropName = 'copy from:' then exit(s.CopyFrom);
+  if PropName = 'copy to:' then exit(s.CopyTo);
+
+  raise Exception.Create('Unknown property in resource: ' + PropName);
 end;
 
 function TSpecWriter.GetOtherVersions: TArray<TYamlValue>;
@@ -633,6 +655,11 @@ begin
   if FullName = 'file links:' then exit(TYamlValue.MakeArray(GetFileLinks, false));
   if FullName = 'file links:link:' then exit(TYamlValue.MakeObject);
   if FullName.StartsWith('file links:link:') then exit(GetFileLink(ArrayIndex, FullName.Substring(Length('file links:link:'))));
+
+  //resources:
+  if FullName = 'resources:' then exit(TYamlValue.MakeArray(GetResources, false));
+  if FullName = 'resources:resource:' then exit(TYamlValue.MakeObject);
+  if FullName.StartsWith('resources:resource:') then exit(GetResource(ArrayIndex, FullName.Substring(Length('resources:resource:'))));
 
   //other versions:
   if FullName = 'other versions:' then exit(TYamlValue.MakeArray(GetOtherVersions, false));
