@@ -346,13 +346,14 @@ begin
     if not BuildInfo.Project.Project.IsExe and not BuildInfo.Project.AddSourceCodeToLibraryPath then
     begin
       //var DestinationDir := PackageDirs.DcuOutputDir;
-      var TempFolder := PackageInfo.TempPackageDirectory(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfigs[TBuildConfig.Release]);
-      var DestinationDir := TPath.Combine(TempFolder, PlatformInfo.PlatformMacroValue, BuildConfigs[TBuildConfig.Release]);
+      var DestinationDir := PackageInfo.ExpandedTempDcuOutputDir(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfigs[TBuildConfig.Release]);
 
       var ExtraBrowsingPath := BuildInfo.Project.ExtraPaths.GetBrowsingPaths(PlatformInfo.PlatType);
-      for var ResourceFileMask in ['*.dfm', '*.fmx', '*.res'] do
+      var ExtraLibPath := BuildInfo.Project.ExtraPaths.GetLibraryPathsBuildOnly(PlatformInfo.PlatType);
+
+      for var ResourceFileMask in ['*.dfm', '*.fmx', '*.res', '*.dcr'] do
       begin
-        for var SourceDir in GetPaths(AddPaths(PackageDirs.BrowsingPath, ExtraBrowsingPath)) do
+        for var SourceDir in GetPaths(AddPaths(AddPaths(PackageDirs.BrowsingPath, ExtraBrowsingPath), ExtraLibPath)) do
         begin
           if SourceDir = DestinationDir then Continue;
           var SourceFiles := TPath.Combine(SourceDir, ResourceFileMask);

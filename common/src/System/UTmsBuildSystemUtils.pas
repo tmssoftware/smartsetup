@@ -34,6 +34,7 @@ procedure RenameAndCheck(const SourceFile, DestFile: string);
 procedure RenameAndCheckFolder(const SourceFolder, DestFolder: string);
 
 function FolderIsOutside(const Folder: string; const RootFolders: TArray<string>): boolean;
+procedure CheckFolderInside(const Folder: string; const RootFolders: TArray<string>);
 
 function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;
 
@@ -678,6 +679,12 @@ begin
     {$ENDIF}
     if (FullFolder.StartsWith(FullRootFolder, IgnoreCase)) then exit(false);
   end;
+end;
+
+procedure CheckFolderInside(const Folder: string; const RootFolders: TArray<string>);
+begin
+  if FolderIsOutside(Folder, RootFolders) then raise Exception.Create('For security, we can''t access files in folder "' + Folder + '". The files must be inside a root folder for smartsetup.');
+
 end;
 
 function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;

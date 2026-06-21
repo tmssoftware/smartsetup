@@ -205,6 +205,7 @@ type
     function GetBrowsingPaths(const Platform: TPlatform): string;
     function GetDebugDCUPaths(const Platform: TPlatform): string;
     function GetWebCorePaths(const Platform: TPlatform): string;
+    function GetLibraryPathsBuildOnly(const Platform: TPlatform): string;
   end;
 
   TShortcutType =(filelink) ;
@@ -758,6 +759,12 @@ function TCompilerPathsPerPlatform.GetBrowsingPaths(
   const Platform: TPlatform): string;
 begin
   Result := GetPaths(Platform, FBrowsingPaths);
+end;
+
+function TCompilerPathsPerPlatform.GetLibraryPathsBuildOnly(
+  const Platform: TPlatform): string;
+begin
+  Result := GetPaths(Platform, FLibraryPathsBuildOnly);
 end;
 
 function TCompilerPathsPerPlatform.GetDebugDCUPaths(

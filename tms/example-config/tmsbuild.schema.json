@@ -487,7 +487,7 @@
           "properties": {
             "generate from": {
               "type": "string",
-              "description": "The name of the dpk file to use to generate the dproj. Use only when a project provides dpks but not dprojs."
+              "description": "The name of the dpk file to use to generate the dproj, if we have existing dpk files. Use only when a project provides dpks but not dprojs."
             },
             "framework type": {
               "type": "string",
@@ -740,7 +740,7 @@
               },
               "link to folder": {
                 "type": ["string", "null"],
-                "description": "optional. If you don't specify it, it will link to bpl folder"
+                "description": "optional. If you don't specify it, it will link to bpl folder (32 bit). You can use the variable %bpl-folder-64% to link to the correct bpl folder according to the OS and platform. For example, if you want to link to the 64 bit bpl folder in windows, you can write %bpl-folder-64%. Note that you can't use someting like %bpl-folder64\Lib. If you use %bpl-folder% it should be used alone."
               },
               "os": {
                 "type": ["array", "null"],

@@ -351,6 +351,7 @@ end;
 
 procedure CopyDpk(const Source, Target: string; const IDEName: TIDEName);
 begin
+  TDirectory_CreateDirectory(TPath.GetDirectoryName(Target));
   TFile.Copy(Source, Target, true);
   if ExistingPackage.PackData = nil then exit;
 
@@ -456,23 +457,26 @@ function ReadPackage(const Project: TProjectDefinition; const Package: TPackage)
 begin
   Result := TPackageAndDpk.Create('');
   var FileName := Package.GenerateFromFullFileName;
-  if FileName = '' then exit;
   var ProjectFolder := TPath.GetDirectoryName(Project.FullPath);
 
-  Result.PackData := TDpkData.Create;
+  if FileName <> '' then
+  begin
+    Result.PackData := TDpkData.Create;
+    var Reader := TDpkReader.Create(FileName, TIDEName.delphi6);
+    try
+      Reader.ReadData(Result.PackData);
+      AdaptPaths(TPath.GetDirectoryName(FileName), ProjectFolder, Result.PackData);
+      Result.Description := Result.PackData.Description;
+      Result.Requires := Result.PackData.Requires.ToStringArray;
 
-  var Reader := TDpkReader.Create(FileName, TIDEName.delphi6);
-  try
-    Reader.ReadData(Result.PackData);
-    AdaptPaths(TPath.GetDirectoryName(FileName), ProjectFolder, Result.PackData);
-    Result.Description := Result.PackData.Description;
-    Result.Requires := Result.PackData.Requires.ToStringArray;
-
-    Result.FileMasks := GetFileMasks(Result.PackData.PasFiles, Result.PackData.DcrFiles);
-    Result.AllFiles := GetFiles(Project, Result.FileMasks) + GetFiles(Project, Package.FileMasks)
-  finally
-    Reader.Free;
+      Result.FileMasks := GetFileMasks(Result.PackData.PasFiles, Result.PackData.DcrFiles);
+    finally
+      Reader.Free;
+    end;
   end;
+
+  Result.AllFiles := GetFiles(Project, Result.FileMasks) + GetFiles(Project, Package.FileMasks)
+
 end;
 
 procedure CreatePackages(const Projects: TProjectList);

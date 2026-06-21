@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.4
+
+application:
+  id: test.resourceful
+  name: A lot of resources
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms:
+      - win32intel
+      - win64intel
+    c++ builder support: true
+
+
+packages:
+  - resourceful_pkg: [runtime, rtl]
+
+
+# The settings in the this section are only needed if the packages don't follow smartsetup conventions
+package options:
+  # This shouldn't be needed in general. Smartsetup will find your packages wherever they are.
+  # But sometimes you might have the same packages in different unrelated folders (maybe some backup) and SmartSetup will get confused
+  # about which ones it has to use. In this case, you can specify the relative path here where SmartSetup will start looking for packages.
+  root package folder: packages
+
+# Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.
+# Note: This section must come after you have specified the "packages" section above.
+package definitions:
+  resourceful_pkg:
+    generate from: pkg-source\Resourceful.dpk
+    framework type: VCL # can be NONE, FMX or VCL
+  
+paths:
+  build-only library paths:
+    - pkg-source
+    - src/dcr
+
+file links:
+  - link:
+      file to link: src\dcr\rectangles.dcr
+      link to folder: '%bpl-folder%\Win64'

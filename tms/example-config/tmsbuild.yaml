@@ -116,6 +116,7 @@ package options:
 # Note: This section must come after you have specified the "packages" section above.
 package definitions:
 #  Example_Core:
+#    generate from: pkg-source\Example_Core.dpk # Optional: If we want to generate from an existing dpk file instead of specifying the files.
 #    framework type: NONE # can be NONE, FMX or VCL
 #    description: description for the package
 #    requires: rtl;dbrtl;FireDAC   #write the dcp packages this package requires. don't include the dcp extension.
@@ -218,7 +219,7 @@ links:
 file links:
   - link:
       file to link: example.dll
-      link to folder: #optional. If you don't specify it, it will link to bpl folder.
+      link to folder: #optional. If you don't specify it, it will link to bpl folder (32 bit). You can use the variable %bpl-folder-64% to link to the correct bpl folder according to the OS and platform. For example, if you want to link to the 64 bit bpl folder in windows, you can write %bpl-folder-64%. Note that you can't use someting like %bpl-folder64\Lib. If you use %bpl-folder% it should be used alone. 
       os: [linux, windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
 
 # For checking if older products installed with a different method exist.

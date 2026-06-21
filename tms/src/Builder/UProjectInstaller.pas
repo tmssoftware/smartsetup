@@ -124,7 +124,8 @@ end;
 function  TProjectInstaller.GetLinkedFile(const BuildInfo: TProjectBuildInfo; const FileToLink, LinkToFolder: string):string;
 begin
   var ActualLinkToFolder := LinkToFolder;
-  if Trim(LinkToFolder) = '' then ActualLinkToFolder := TPath.Combine(Config.Folders.BplFolder, 'Win32');
+  if (Trim(LinkToFolder) = '') or (Trim(LinkToFolder) = '%bpl-folder-32%') then ActualLinkToFolder := TPath.Combine(Config.Folders.BplFolder, 'Win32');
+  if (Trim(LinkToFolder) = '%bpl-folder-64%') then ActualLinkToFolder := TPath.Combine(Config.Folders.BplFolder, 'Win64');
 
   Result := TPath.Combine(ActualLinkToFolder, TPath.GetFileName(FileToLink));
 end;
@@ -165,6 +166,9 @@ begin
       if not MatchesOS(filelink.OS) then continue;
 
       var LinkToFile := GetLinkedFile(BuildInfo, filelink.FileToLink, filelink.LinkToFolder);
+      CheckFolderInside(LinkToFile, Config.GetAllRootFolders);
+      CheckFolderInside(filelink.FileToLink, Config.GetAllRootFolders);
+
       if not UninstallInfo.DryRun then CreateFileLink(Config.Folders.LockedFilesFolder, filelink.FileToLink, LinkToFile, Config.FileLinkType(BuildInfo.ProjectId), Logger.TraceProc());
       Logger.Trace('Created file link: ' + filelink.FileToLink + ' -> ' + LinkToFile);
 
