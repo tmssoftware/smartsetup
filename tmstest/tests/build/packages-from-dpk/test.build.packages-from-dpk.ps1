@@ -6,18 +6,26 @@ tms config-write -p:configuration-for-all-products:replace-delphi-versions=[delp
 
 tms build
 
-#check linking to win64 works fine. It should have created a file called rectangles.dcr in the win64 bpl folder, which is linked to the original file in the source folder. If the file is not there, or if it is not a link, the test will fail.
-$linkedFile = ".\.tmssetup\build\bpl\Win64\rectangles.dcr"
-if (-Not (Test-Path $linkedFile)) {
-    throw "The linked file '$linkedFile' does not exist."
+$checkFiles = @(
+    "dcr\rectangles.dcr",
+    "FRes.dfm",
+    "triangles.dcr"
+)
+foreach ($delphi in @("23.0", "37.0")) {
+     Write-Host "Checking files for platform '$delphi'." -ForegroundColor Green
+     foreach ($file in $checkFiles) {
+        if (-Not (Test-Path "testpkg\resourceful\packages\d11+\$delphi\Win32\Release\$file")) {
+            throw "The file '$file' does not exist."
+        }
+    }
 }
 
+$originalLocation = Get-Location
 Set-Location testapp
 
 bds -ProjectFile "testapp.dproj"
 
-$result = .\Win32\Debug\testapp.exe
+.\Win32\Debug\testapp.exe | Assert-ValueIs "616/616"
 
-Assert-ValueIs $result "616/616"
-
-uninstall_and_check(0)
+Set-Location $originalLocation
+tms build -unregister

@@ -37,8 +37,3 @@ paths:
   build-only library paths:
     - pkg-source
     - src/dcr
-
-file links:
-  - link:
-      file to link: src\dcr\rectangles.dcr
-      link to folder: '%bpl-folder%\Win64'
