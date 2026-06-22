@@ -23,6 +23,7 @@ type
     procedure SaveCurrentBranch(const aRootFolder, aRepoFolder: string);
     function LoadCurrentBranch(const aRootFolder: string): string;
     procedure AttachHead(const aRootFolder, aGitFolder: string);
+    function RemoteHasChanges(const aRootFolder, aGitFolder, aVersion: string): boolean;
     function GetBestTag(const Tags: string): string;
     function LooksLikeVersion(Tag: string): boolean;
     function GetGitCommandLine: string;
@@ -346,6 +347,38 @@ begin
 end;
 
 
+function TGitEngine.RemoteHasChanges(const aRootFolder, aGitFolder, aVersion: string): boolean;
+begin
+  //Returns false when the commit we would end up on after pulling and checking out aVersion is the
+  //one we are already on. In that case there is nothing to update and we can skip the pull, avoiding
+  //the clean/reset that would erase the compiled files (dcus, etc.) and force a needless rebuild.
+  Result := true;
+
+  var CurrentCommit := '';
+  var FullCommand := '"' + GitCommandLine + '" rev-parse HEAD';
+  if not ExecuteCommand(FullCommand, aGitFolder, CurrentCommit, ['GIT_TERMINAL_PROMPT=0'], true) then exit;
+  CurrentCommit := CurrentCommit.Trim;
+  if CurrentCommit = '' then exit;
+
+  //When no version (or '*') is requested we stay on the default branch, just like AttachHead does.
+  var Version := aVersion.Trim;
+  if (Version = '') or (Version = '*') then Version := LoadCurrentBranch(aRootFolder);
+  if Version = '' then exit;
+  ValidateVCSVersion(Version);
+
+  //For a branch the pull would move us to its remote tip (origin/<branch>); a tag or commit is fixed.
+  var TargetRef := Version;
+  if GetBranchKind(aGitFolder, Version) <> TBranchKind.NotABranch then TargetRef := 'origin/' + Version;
+
+  var TargetCommit := '';
+  FullCommand := '"' + GitCommandLine + '" rev-parse "' + TargetRef + '"';
+  if not ExecuteCommand(FullCommand, aGitFolder, TargetCommit, ['GIT_TERMINAL_PROMPT=0'], true) then exit;
+  TargetCommit := TargetCommit.Trim;
+  if TargetCommit = '' then exit;
+
+  Result := not SameText(CurrentCommit, TargetCommit);
+end;
+
 procedure TGitEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
 {$IFDEF DEBUG}
@@ -353,11 +386,23 @@ begin
 {$ENDIF}
   var Output := '';
   var GitFolder := TPath.GetFullPath(aGitFolder);
-  AttachHead(TPath.GetFullPath(aRootFolder), GitFolder);
-  var FullCommand := '"' + GitCommandLine + '" ' + PullCommand;
+  var RootFolder := TPath.GetFullPath(aRootFolder);
+
+  //Fetch first so we can tell whether the remote actually has changes. Fetch only updates the
+  //remote-tracking refs, it doesn't touch the working tree, so the compiled output is preserved.
+  var FullCommand := '"' + GitCommandLine + '" fetch --all';
+  if not ExecuteCommand(FullCommand, GitFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
+    then raise Exception.Create('Error in git fetch "' +  GitFolder + '"');
+
+  //If there are no updates, skip the attach-head/pull/checkout dance. That dance cleans the working
+  //tree (CleanAndReset), which would erase the compiled files and force a rebuild even with no changes.
+  if not RemoteHasChanges(RootFolder, GitFolder, aVersion) then exit;
+
+  AttachHead(RootFolder, GitFolder);
+  FullCommand := '"' + GitCommandLine + '" ' + PullCommand;
   if not ExecuteCommand(FullCommand, GitFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
     then raise Exception.Create('Error in git pull "' +  GitFolder + '"');
-  CheckoutVersion(aGitFolder, aVersion, true, false); //already cleaned in AttachHead above.
+  CheckoutVersion(GitFolder, aVersion, true, false); //already cleaned in AttachHead above.
 end;
 
 end.

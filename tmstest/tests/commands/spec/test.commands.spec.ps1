@@ -23,7 +23,12 @@ Set-Content -Path ".\version.txt" -Value "test: 1.2.3"
 
 #read tmsbuild.cmd and for each line, execute tms spec -s with that line
 $CmdLines = Get-Content -Path ".\tmsbuild.cmd"
+$i = 0
 foreach ($line in $CmdLines) {
+    $i++
     $escapedLine = $line.Substring(4, $line.Length - 5)  #remove the leading -s:
-    tms spec -non-interactive -template:".\tmsbuild.yaml" -s:"$escapedLine"
+    write-host "Testing with spec line: $escapedLine" -ForegroundColor Green
+    Copy-Item -Path ".\tmsbuild.yaml" -Destination ".\tmsbuild$i.yaml" -Force
+    tms spec -non-interactive -template:".\tmsbuild$i.yaml" -s:"$escapedLine"
+
 }

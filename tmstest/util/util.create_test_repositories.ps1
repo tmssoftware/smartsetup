@@ -12,42 +12,11 @@ if (Test-Path -Path $testReposTarget) {
 
 Copy-Item -Path $testReposSource -Destination $testReposTarget -Recurse
 
+
 # edit the tmsbuild.yaml files to set the repository url to a local file url
 $tmsbuildFiles = Get-ChildItem -Path $testReposTarget -Filter 'tmsbuild.yaml' -Recurse -File
 foreach ($tmsbuildFile in $tmsbuildFiles) {
-    $productFolder = $tmsbuildFile.Directory
-    $inApplicationSection = $false
-    $foundNameLine = $false
-    $content = Get-Content -Path $tmsbuildFile
-    $newContent = @()
-    foreach ($line in $content) {
-        $newContent += $line
-        if ($foundNameLine) {
-            continue
-        }
-        if ($line -match '^\s*application:\s*$') {
-            $inApplicationSection = $true
-            continue
-        }
-        if (-not $inApplicationSection) {
-            continue
-        }
-        if ($line -match '^\w*:\$') {
-            # we reached a new section
-            $inApplicationSection = $false
-            continue
-        }
-        if ($line -match '  name:\s*".*"') {
-            $fileUrl = "file:///" + ($productFolder.FullName -replace '\\', '/')
-            $newContent += "  url: `"$fileUrl`""
-            $foundNameLine = $true
-            continue
-        }
-    }
-    if (-not $foundNameLine) {
-        throw "Could not find application name line in $($tmsbuildFile.FullName)"
-    }
-    Set-Content -Path $tmsbuildFile -Value $newContent
+    Update-TmsbuildYamlWithLocalUrl -TmsbuildFilePath $tmsbuildFile.FullName
 }
 
 # create a zip file with all the tmsbuild.yaml files inside their corresponding product folder
