@@ -1,4 +1,5 @@
 # we use this script to generate some test server and avoid creating lots of public repos in github (one per product and dependency)
+Import-Module -Name $tmsTestRootDir/util/util.repo.psm1 -Force
 
 # copy all folders from $PSScriptRoot\products to a temp folder, and create git repos in each folder
 $testReposSource = Join-Path -Path $PSScriptRoot -ChildPath "test-repos"

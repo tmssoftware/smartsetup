@@ -2,6 +2,7 @@
 #So it will have to rebuild the package, even if there are no updates. This test checks that we don't do that.
 
 . test.setup
+Import-Module -Name $tmsTestRootDir/util/util.repo.psm1 -Force
 
 function Verify-Version {
     param (
