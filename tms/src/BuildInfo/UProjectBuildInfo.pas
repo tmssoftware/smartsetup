@@ -364,7 +364,19 @@ begin
     for var filelink in Project.FileLinks do
     begin
       var LinkToFolder := '';
-      if filelink.LinkToFolder <> '' then LinkToFolder := CombinePath(Project.RootFolder, filelink.LinkToFolder);
+      if filelink.LinkToFolder <> '' then
+      begin
+        if filelink.LinkToFolder.StartsWith('%') then
+        begin
+          if (filelink.LinkToFolder <> '%bpl-folder-32%') and
+             (filelink.LinkToFolder <> '%bpl-folder-64%') then
+             raise Exception.Create('Invalid file link in tmsbuild.yaml. Allowed variables are only "%bpl-folder-32%" and "%bpl-folder-64%"');
+
+          LinkToFolder := fileLink.LinkToFolder
+
+        end
+        else LinkToFolder := CombinePath(Project.RootFolder, filelink.LinkToFolder);
+      end;
 
       Result.Add(TFileLinkDefinition.Create(
           CombinePath(Project.RootFolder, filelink.FileToLink),

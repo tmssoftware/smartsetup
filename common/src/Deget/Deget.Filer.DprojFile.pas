@@ -1520,27 +1520,27 @@ begin
       if Info.IsBase then
       begin
         Node := Info.Node.ChildNodes.FindNode('DCC_Description');
-        if Node <> nil then
+        if (Node <> nil) and (Node.NodeValue <> null) then
           Data.Description := Node.NodeValue;
 
         Node := Info.Node.ChildNodes.FindNode('DCC_Namespace');
-        if Node <> nil then
+        if (Node <> nil) and (Node.NodeValue <> null) then
           Data.Namespaces := Node.NodeValue;
 
         Node := Info.Node.ChildNodes.FindNode('RuntimeOnlyPackage');
-        if (Node <> nil) and SameText(Node.Text, 'true') then
+        if (Node <> nil) and (Node.NodeValue <> null) and SameText(Node.Text, 'true') then
           Data.Usage := TPackageUsage.Runtime;
 
         Node := Info.Node.ChildNodes.FindNode('DesignOnlyPackage');
-        if (Node <> nil) and SameText(Node.Text, 'true') then
+        if (Node <> nil) and (Node.NodeValue <> null) and SameText(Node.Text, 'true') then
           Data.Usage := TPackageUsage.DesignTime;
 
         Node := Info.Node.ChildNodes.FindNode('DCC_CBuilderOutput');
-        if (Node <> nil) and SameText(Node.Text, 'All') then
+        if (Node <> nil) and (Node.NodeValue <> null) and SameText(Node.Text, 'All') then
           Data.CBuilderOutputMode := TCBuilderOutputMode.All;
 
         Node := Info.Node.ChildNodes.FindNode('DllSuffix');
-        if Node <> nil then
+        if (Node <> nil) and (Node.NodeValue <> null) then
           Data.DllSuffix := Node.NodeValue;
       end
       else

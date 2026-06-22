@@ -44,6 +44,9 @@ type
     function UnRegisterHelp(const UninstallInfo: IUninstallInfo): boolean;
     procedure CopyProjectRes(const SourceProj, TargetFolder: string;
       const IDEName: TIDEName; const Application: TApplicationDefinition; const Brcc32Path: string);
+    procedure CopyBuildResourcesToDir(const SourceDir: string; const PackageDirs: TPackagesConsolidation;
+      const DestinationDir, RelativeDestinationDir: string;
+      const DryRun: boolean; var FileMasksToDelete: TArray<string>);
     procedure _BuildPackage(const BuildConfig: string;
       const BuildInfo: TFullBuildInfo; UninstallInfo: IUninstallInfo;
       PackageInfo: IDelphiPackageInfo; const Package: TPackage; PlatformInfo: IDelphiPlatformInfo; const DoCBuilder: boolean);
@@ -346,22 +349,19 @@ begin
     if not BuildInfo.Project.Project.IsExe and not BuildInfo.Project.AddSourceCodeToLibraryPath then
     begin
       //var DestinationDir := PackageDirs.DcuOutputDir;
-      var TempFolder := PackageInfo.TempPackageDirectory(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfigs[TBuildConfig.Release]);
-      var DestinationDir := TPath.Combine(TempFolder, PlatformInfo.PlatformMacroValue, BuildConfigs[TBuildConfig.Release]);
+      var DestinationDir := PackageInfo.ExpandedTempDcuOutputDir(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfigs[TBuildConfig.Release]);
 
       var ExtraBrowsingPath := BuildInfo.Project.ExtraPaths.GetBrowsingPaths(PlatformInfo.PlatType);
-      for var ResourceFileMask in ['*.dfm', '*.fmx', '*.res'] do
+      var ExtraLibPath := BuildInfo.Project.ExtraPaths.GetLibraryPathsBuildOnly(PlatformInfo.PlatType);
+
+      for var SourceDir in GetPaths(AddPaths(AddPaths(PackageDirs.BrowsingPath, ExtraBrowsingPath), ExtraLibPath)) do
       begin
-        for var SourceDir in GetPaths(AddPaths(PackageDirs.BrowsingPath, ExtraBrowsingPath)) do
-        begin
-          if SourceDir = DestinationDir then Continue;
-          var SourceFiles := TPath.Combine(SourceDir, ResourceFileMask);
-          Logger.Trace(Format('Copying "%s" to "%s".', [SourceFiles, DestinationDir]));
-          if not BuildInfo.Project.DryRun then
-            CopyFilesToDirectory(SourceFiles, DestinationDir);
-        end;
-        if not BuildInfo.Project.DryRun then
-          FileMasksToDelete := FileMasksToDelete + [TPath.Combine(PackageDirs.DcuOutputDir, ResourceFileMask)]; //we will remove them from the final folder, not the temp.
+        CopyBuildResourcesToDir(SourceDir, PackageDirs, DestinationDir, '', BuildInfo.Project.DryRun, FileMasksToDelete);
+      end;
+
+      for var Resource in BuildInfo.Project.Project.ResourceCopies do
+      begin
+        CopyBuildResourcesToDir(CombinePath(TPath.GetDirectoryName(BuildInfo.Project.Project.FullPath), Resource.CopyFrom), PackageDirs, DestinationDir, Resource.CopyTo, BuildInfo.Project.DryRun, FileMasksToDelete);
       end;
     end;
 
@@ -1165,6 +1165,25 @@ begin
 
   var AllPlatsNumber := StrToInt(AllPlats);
   Result := TDprojReader.PlatformIsSupported(AllPlatsNumber, dp);
+end;
+
+procedure TDelphiInstaller.CopyBuildResourcesToDir(const SourceDir: string; const PackageDirs: TPackagesConsolidation;
+  const DestinationDir, RelativeDestinationDir: string;
+  const DryRun: boolean; var FileMasksToDelete: TArray<string>);
+begin
+  var FullDestinationDir := CombinePath(DestinationDir, RelativeDestinationDir);
+  if TPath.GetFullPath(SourceDir) = TPath.GetFullPath(FullDestinationDir) then exit;
+  for var ResourceFileMask in ['*.dfm', '*.fmx', '*.res', '*.dcr'] do
+  begin
+    var SourceFiles := TPath.Combine(SourceDir, ResourceFileMask);
+    Logger.Trace(Format('Copying "%s" to "%s".', [SourceFiles, FullDestinationDir]));
+    if not DryRun then
+    begin
+      CopyFilesToDirectory(SourceFiles, FullDestinationDir);
+      var FileMaskToDelete := TPath.Combine(CombinePath(PackageDirs.DcuOutputDir, RelativeDestinationDir), ResourceFileMask);//we will remove them from the final folder, not the temp.
+      if not TArray.Contains(FileMasksToDelete, FileMaskToDelete) then FileMasksToDelete := FileMasksToDelete + [FileMaskToDelete];
+    end;
+  end;
 end;
 
 procedure TDelphiInstaller.CopyProjectRes(const SourceProj, TargetFolder: string; const IDEName: TIDEName; const Application: TApplicationDefinition; const Brcc32Path: string);

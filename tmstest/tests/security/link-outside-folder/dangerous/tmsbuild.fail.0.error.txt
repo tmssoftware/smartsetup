@@ -1,0 +1,1 @@
+Invalid file link in tmsbuild.yaml. Allowed variables are only "%bpl-folder-32%" and "%bpl-folder-64%"

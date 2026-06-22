@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.4
+
+application:
+  id: test.links
+  name: links
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms:
+      - win32intel
+      - win64intel
+    c++ builder support: true
+
+
+packages:
+  - link_pkg: [runtime, rtl]
+
+package options:
+  add libsuffix: true
+
+resources:
+  - resource:
+      copy from: ..\resources  # relative to the root of the project.
+      copy to: resources              # destination folder or file path.

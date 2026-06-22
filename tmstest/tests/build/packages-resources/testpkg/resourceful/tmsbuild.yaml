@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.4
+
+application:
+  id: test.resourceful
+  name: A lot of resources
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms:
+      - win32intel
+      - win64intel
+    c++ builder support: true
+
+
+packages:
+  - Resourceful: [runtime, rtl]
+
+
+paths:
+  build-only library paths:
+    - pkg-source
+
+resources:
+  - resource:
+     copy from: src/dcr
+     copy to: dcr
+

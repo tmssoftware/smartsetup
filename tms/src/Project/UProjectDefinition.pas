@@ -67,6 +67,7 @@ type
 
     property Last: TFileMasks read GetLast write SetLast;
   public
+    constructor Create(const aFileMasks: TArray<TFileMasks>);
     procedure AddFolder(const aBaseFolder: string);
     procedure SetIncludeFolders(const Masks: TArray<string>);
     procedure SetExcludeFolders(const Masks: TArray<string>);
@@ -86,6 +87,8 @@ type
     FIsRuntime: boolean;
     FIsDesign: boolean;
     FPackageType: TPackageType;
+    FGenerateFrom: string;
+    FGenerateFromFullFileName: string;
     FDescription: string;
     FDelphiFrameworkType: string;
     FRequires: TArray<string>;
@@ -100,6 +103,8 @@ type
     property Frameworks: TFrameworkSet read FFrameworks write FFrameworks;
 
     //For creating packages
+    property GenerateFrom: string read FGenerateFrom write FGenerateFrom;
+    property GenerateFromFullFileName: string read FGenerateFromFullFileName write FGenerateFromFullFileName;
     property Description: string read FDescription write FDescription;
     property DelphiFrameworkType: string read FDelphiFrameworkType write FDelphiFrameworkType;
     property Requires: TArray<string> read FRequires write FRequires;
@@ -200,6 +205,7 @@ type
     function GetBrowsingPaths(const Platform: TPlatform): string;
     function GetDebugDCUPaths(const Platform: TPlatform): string;
     function GetWebCorePaths(const Platform: TPlatform): string;
+    function GetLibraryPathsBuildOnly(const Platform: TPlatform): string;
   end;
 
   TShortcutType =(filelink) ;
@@ -233,6 +239,16 @@ type
 
     constructor Create; overload;
     constructor Create(const AFileToLink, ALinkToFolder: string; const AOS: TOperatingSystemSet); overload;
+  end;
+
+  TResourceCopyDefinition = class
+  private
+    FCopyFrom: string;
+    FCopyTo: string;
+  public
+    property CopyFrom: string read FCopyFrom write FCopyFrom;
+    property CopyTo: string read FCopyTo write FCopyTo;
+    constructor Create;
   end;
 
   TPlatformSetArray = Array[TIDEName] of TPlatformSet;
@@ -293,6 +309,7 @@ type
     FSearchPathsToPreserve: TArray<string>;
     FShortcuts: TObjectList<TShortcutDefinition>;
     FFileLinks: TObjectList<TFileLinkDefinition>;
+    FResourceCopies: TObjectList<TResourceCopyDefinition>;
     FOtherRegistryKeys: TList<string>;
     FRootPackageFolder: string;
     FPackageFolders: TPackageFolders;
@@ -356,6 +373,7 @@ type
 
     property Shortcuts: TObjectList<TShortcutDefinition> read FShortcuts;
     property FileLinks: TObjectList<TFileLinkDefinition> read FFileLinks;
+    property ResourceCopies: TObjectList<TResourceCopyDefinition> read FResourceCopies;
     property OtherRegistryKeys: TList<string> read FOtherRegistryKeys;
 
     property PackageExtraDefines: TList<string> read FPackageExtraDefines;
@@ -422,6 +440,7 @@ begin
   FExtraPaths := TCompilerPaths.Create;
   FShortcuts := TObjectList<TShortcutDefinition>.Create;
   FFileLinks := TObjectList<TFileLinkDefinition>.Create;
+  FResourceCopies := TObjectList<TResourceCopyDefinition>.Create;
   FOtherRegistryKeys := TList<string>.Create;
   FPackageExtraDefines := TList<string>.Create;
   FExeOptions := TExeOptions.Create;
@@ -441,6 +460,7 @@ begin
   FExtraPaths.Free;
   FShortcuts.Free;
   FFileLinks.Free;
+  FResourceCopies.Free;
   FOtherRegistryKeys.Free;
   FPackageExtraDefines.Free;
   FExeOptions.Free;
@@ -645,16 +665,12 @@ begin
     if (Package.Frameworks = [])
       then raise Exception.Create('The Package "' + Package.Name + '" in Project "' + FullPath + '" doesn''t use any framework.' );
   end;
-
-
-
-
 end;
 
 { TPackage }
 function TPackage.AutoGenerate: boolean;
 begin
-  Result := not FileMasks.Empty;
+  Result := not FileMasks.Empty or (GenerateFrom <> '');
 end;
 
 constructor TPackage.Create(const aName: string);
@@ -757,6 +773,12 @@ function TCompilerPathsPerPlatform.GetBrowsingPaths(
   const Platform: TPlatform): string;
 begin
   Result := GetPaths(Platform, FBrowsingPaths);
+end;
+
+function TCompilerPathsPerPlatform.GetLibraryPathsBuildOnly(
+  const Platform: TPlatform): string;
+begin
+  Result := GetPaths(Platform, FLibraryPathsBuildOnly);
 end;
 
 function TCompilerPathsPerPlatform.GetDebugDCUPaths(
@@ -898,6 +920,12 @@ begin
 
 end;
 
+{ TResourceCopyDefinition }
+
+constructor TResourceCopyDefinition.Create;
+begin
+end;
+
 { TPlatformPaths }
 
 constructor TPlatformPaths.Create(const APlatforms: TPlatformSet;
@@ -950,6 +978,11 @@ end;
 procedure TFileMasksList.ClearFolders;
 begin
   FFileMasks := nil;
+end;
+
+constructor TFileMasksList.Create(const aFileMasks: TArray<TFileMasks>);
+begin
+  FFileMasks := aFileMasks;
 end;
 
 function TFileMasksList.Empty: boolean;
