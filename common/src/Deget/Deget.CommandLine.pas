@@ -28,7 +28,7 @@ type
      const Env: TArray<string> = nil; IsCanceledFunc: TFunc<Boolean> = nil): Integer; overload;
   end;
 
-function ExecuteCommand(const CommandLine, WorkingDirectory: string; var Output: string; const Env: TArray<string> = nil): Boolean; overload;
+function ExecuteCommand(const CommandLine, WorkingDirectory: string; var Output: string; const Env: TArray<string> = nil; const ErrorsAreOk: Boolean = false): Boolean; overload;
 function ExecuteCommand(const CommandLine, WorkingDirectory: string): Boolean; overload;
 function ExecuteCommand(const CommandLine: string): Boolean; overload;
 
@@ -44,7 +44,7 @@ begin
   Result := ExecuteCommand(CommandLine, WorkingDirectory, DummyOutput);
 end;
 
-function ExecuteCommand(const CommandLine, WorkingDirectory: string; var Output: string; const Env: TArray<string> = nil): Boolean; overload;
+function ExecuteCommand(const CommandLine, WorkingDirectory: string; var Output: string; const Env: TArray<string> = nil; const ErrorsAreOk: Boolean = false): Boolean; overload;
 var
   LOutput: string;
 begin
@@ -80,7 +80,7 @@ begin
 
     if ErrorMessage <> '' then Logger.Trace(ErrorMessage);
   finally
-    Logger.FinishSection(TMessageType.Command, not Result);
+    Logger.FinishSection(TMessageType.Command, (not ErrorsAreOk) and (not Result));
   end;
 
 end;

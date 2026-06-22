@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{056AA6A0-357B-41C5-A580-4ACE202BDA10}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="product\Packages\d11+\updated.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="app\versioner.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="updated">
+        <MSBuild Projects="product\Packages\d11+\updated.dproj"/>
+    </Target>
+    <Target Name="updated:Clean">
+        <MSBuild Projects="product\Packages\d11+\updated.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="updated:Make">
+        <MSBuild Projects="product\Packages\d11+\updated.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="versioner">
+        <MSBuild Projects="app\versioner.dproj"/>
+    </Target>
+    <Target Name="versioner:Clean">
+        <MSBuild Projects="app\versioner.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="versioner:Make">
+        <MSBuild Projects="app\versioner.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="updated;versioner"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="updated:Clean;versioner:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="updated:Make;versioner:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

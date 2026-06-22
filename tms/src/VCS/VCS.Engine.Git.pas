@@ -9,16 +9,21 @@ type
   private
     const GitDefaultBranchFile = 'tms.defaultbranch.txt';
   private
+    type TBranchKind = (NotABranch, LocalBranch, RemoteOnlyBranch);
+  private
     FGitCommandLine: string;
     FCloneCommand: string;
     FPullCommand: string;
 
     function GetEnvCommandLine: string;
-    procedure CheckoutVersion(const aCloneFolder, aVersion: string; const Detach: boolean);
+    function GetBranchKind(const aCloneFolder, aVersion: string): TBranchKind;
+    procedure CleanAndReset(const aCloneFolder: string);
+    procedure CheckoutVersion(const aCloneFolder, aVersion: string; const Detach, Clean: boolean);
     function GetCurrentBranch(const aFolder: string): string;
     procedure SaveCurrentBranch(const aRootFolder, aRepoFolder: string);
     function LoadCurrentBranch(const aRootFolder: string): string;
     procedure AttachHead(const aRootFolder, aGitFolder: string);
+    function RemoteHasChanges(const aRootFolder, aGitFolder, aVersion: string): boolean;
     function GetBestTag(const Tags: string): string;
     function LooksLikeVersion(Tag: string): boolean;
     function GetGitCommandLine: string;
@@ -113,7 +118,7 @@ begin
   if TDirectory.Exists(aExistingRepoFolder) then
   begin
     FullCommand := '"' + GitCommandLine + '" fetch --all';
-    if ExecuteCommand(FullCommand, aExistingRepoFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
+    if ExecuteCommand(FullCommand, aExistingRepoFolder, Output, ['GIT_TERMINAL_PROMPT=0'], true)
       then WorkingFolder := aExistingRepoFolder;
   end;
 
@@ -207,7 +212,7 @@ begin
   if allowTags then
   begin
     var FullCommand := '"' + GitCommandLine + '" tag --points-at HEAD';
-    if ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0']) then
+    if ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0'], true) then
     begin
       Result := GetBestTag(Result.Trim);
       if Result <> '' then exit;
@@ -216,7 +221,7 @@ begin
   end;
 
   var FullCommand := '"' + GitCommandLine + '" rev-parse HEAD';
-  if not ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0'])
+  if not ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0'], true)
     then exit('');
 
   Result := Result.Trim;
@@ -247,24 +252,66 @@ procedure TGitEngine.AttachHead(const aRootFolder, aGitFolder: string);
 begin
   var BranchName := LoadCurrentBranch(aRootFolder);
   if BranchName = '' then exit;
-  CheckoutVersion(aGitFolder, BranchName, false);
+  CheckoutVersion(aGitFolder, BranchName, false, true);
 end;
 
-procedure TGitEngine.CheckoutVersion(const aCloneFolder, aVersion: string; const Detach: boolean);
+function TGitEngine.GetBranchKind(const aCloneFolder, aVersion: string): TBranchKind;
+begin
+  var Output := '';
+  var FullCommand := '"' + GitCommandLine + '" show-ref --verify --quiet -- "refs/heads/' + aVersion + '"';
+  if ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'], true) then exit(TBranchKind.LocalBranch);
+
+  //We always clone the repos ourselves, so the remote is always named origin.
+  FullCommand := '"' + GitCommandLine + '" show-ref --verify --quiet -- "refs/remotes/origin/' + aVersion + '"';
+  if ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'], true) then exit(TBranchKind.RemoteOnlyBranch);
+
+  Result := TBranchKind.NotABranch;
+end;
+
+procedure TGitEngine.CleanAndReset(const aCloneFolder: string);
+begin
+  //git clean removes untracked files. It removes tmsbuild.yaml too if not in the repo, and tmsfetch.info.
+  //git reset --hard removes tracked files, leaves untracked.
+
+  var Output := '';
+  var FullCommand := '"' + GitCommandLine + '" clean -fdx';
+  if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
+    then
+    begin
+      raise Exception.Create('Can''t clean existing repository. You might need to remove the folders and re-install.');
+    end;
+
+  Output := '';
+  FullCommand := '"' + GitCommandLine + '" reset --hard';
+  if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
+    then
+    begin
+      raise Exception.Create('Can''t reset existing repository. You might need to remove the folders and re-install.');
+    end;
+end;
+
+procedure TGitEngine.CheckoutVersion(const aCloneFolder, aVersion: string; const Detach, Clean: boolean);
 begin
   if (aVersion.Trim = '') or (aVersion.Trim = '*') then exit;
   ValidateVCSVersion(aVersion);
 
-  //git clean removes untracked files. It removes tmsbuild.yaml too if not in the repo, and tmsfetch.info.
-  //git reset --hard removes tracked files, leaves untracked.
-  //git switch/checkout - will exit detached head
+  if Clean then CleanAndReset(aCloneFolder);
 
+  //git switch/checkout - will exit detached head
+  //git switch --detach fails for a branch that only exists in the remote, like "feature" when
+  //only origin/feature exists. And for a local branch we want to stay on it, not detach at its commit.
+  var BranchKind := GetBranchKind(aCloneFolder, aVersion);
   var DetachStr := '';
-  if Detach then DetachStr :=  ' --detach';
-  
+  if Detach and (BranchKind = TBranchKind.NotABranch) then DetachStr :=  ' --detach';
+
   var Output := '';
-  //'--' terminates option parsing so that a version starting with '-' cannot be interpreted as a git option.
-  var FullCommand := '"' + GitCommandLine + '" switch' + DetachStr + ' -- "' + aVersion + '"'; //add a --force to wipe local changes if we prefer it that way.
+  var FullCommand := '';
+  if BranchKind = TBranchKind.RemoteOnlyBranch then
+    //Create the local branch tracking origin's. ValidateVCSVersion guarantees aVersion doesn't start with '-'.
+    FullCommand := '"' + GitCommandLine + '" switch --create "' + aVersion + '" "origin/' + aVersion + '"'
+  else
+    //'--' terminates option parsing so that a version starting with '-' cannot be interpreted as a git option.
+    FullCommand := '"' + GitCommandLine + '" switch' + DetachStr + ' -- "' + aVersion + '"'; //add a --force to wipe local changes if we prefer it that way.
   if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
     then
     begin
@@ -290,7 +337,7 @@ begin
     then raise Exception.Create('Error cloning "' + aUrl + '" into ' + CloneFolder);
 
   SaveCurrentBranch(aCloneFolder, aCloneFolder);
-  CheckoutVersion(CloneFolder, aVersion, true);
+  CheckoutVersion(CloneFolder, aVersion, true, false);
 end;
 
 procedure TGitEngine.AfterClone(const aRootFolder, aCloneFolder: string);
@@ -300,6 +347,38 @@ begin
 end;
 
 
+function TGitEngine.RemoteHasChanges(const aRootFolder, aGitFolder, aVersion: string): boolean;
+begin
+  //Returns false when the commit we would end up on after pulling and checking out aVersion is the
+  //one we are already on. In that case there is nothing to update and we can skip the pull, avoiding
+  //the clean/reset that would erase the compiled files (dcus, etc.) and force a needless rebuild.
+  Result := true;
+
+  var CurrentCommit := '';
+  var FullCommand := '"' + GitCommandLine + '" rev-parse HEAD';
+  if not ExecuteCommand(FullCommand, aGitFolder, CurrentCommit, ['GIT_TERMINAL_PROMPT=0'], true) then exit;
+  CurrentCommit := CurrentCommit.Trim;
+  if CurrentCommit = '' then exit;
+
+  //When no version (or '*') is requested we stay on the default branch, just like AttachHead does.
+  var Version := aVersion.Trim;
+  if (Version = '') or (Version = '*') then Version := LoadCurrentBranch(aRootFolder);
+  if Version = '' then exit;
+  ValidateVCSVersion(Version);
+
+  //For a branch the pull would move us to its remote tip (origin/<branch>); a tag or commit is fixed.
+  var TargetRef := Version;
+  if GetBranchKind(aGitFolder, Version) <> TBranchKind.NotABranch then TargetRef := 'origin/' + Version;
+
+  var TargetCommit := '';
+  FullCommand := '"' + GitCommandLine + '" rev-parse "' + TargetRef + '"';
+  if not ExecuteCommand(FullCommand, aGitFolder, TargetCommit, ['GIT_TERMINAL_PROMPT=0'], true) then exit;
+  TargetCommit := TargetCommit.Trim;
+  if TargetCommit = '' then exit;
+
+  Result := not SameText(CurrentCommit, TargetCommit);
+end;
+
 procedure TGitEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
 begin
 {$IFDEF DEBUG}
@@ -307,11 +386,23 @@ begin
 {$ENDIF}
   var Output := '';
   var GitFolder := TPath.GetFullPath(aGitFolder);
-  AttachHead(TPath.GetFullPath(aRootFolder), GitFolder);
-  var FullCommand := '"' + GitCommandLine + '" ' + PullCommand;
+  var RootFolder := TPath.GetFullPath(aRootFolder);
+
+  //Fetch first so we can tell whether the remote actually has changes. Fetch only updates the
+  //remote-tracking refs, it doesn't touch the working tree, so the compiled output is preserved.
+  var FullCommand := '"' + GitCommandLine + '" fetch --all';
+  if not ExecuteCommand(FullCommand, GitFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
+    then raise Exception.Create('Error in git fetch "' +  GitFolder + '"');
+
+  //If there are no updates, skip the attach-head/pull/checkout dance. That dance cleans the working
+  //tree (CleanAndReset), which would erase the compiled files and force a rebuild even with no changes.
+  if not RemoteHasChanges(RootFolder, GitFolder, aVersion) then exit;
+
+  AttachHead(RootFolder, GitFolder);
+  FullCommand := '"' + GitCommandLine + '" ' + PullCommand;
   if not ExecuteCommand(FullCommand, GitFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
     then raise Exception.Create('Error in git pull "' +  GitFolder + '"');
-  CheckoutVersion(aGitFolder, aVersion, true);
+  CheckoutVersion(GitFolder, aVersion, true, false); //already cleaned in AttachHead above.
 end;
 
 end.
