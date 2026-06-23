@@ -237,6 +237,8 @@ type
 
     procedure UpdateDCCUnitSearchPath(
       const Values: TPropertyGroupEntryList);
+    procedure UpdateDCCDefines(
+      const Values: TPropertyGroupEntryList);
 
 
     procedure UpdateCBuilderOutput(const Value: TCBuilderOutputMode);
@@ -1267,6 +1269,64 @@ begin
         ExistingNodes.Free;
       end;
 
+    finally
+      WrittenNodes.Free;
+    end;
+  finally
+    ValuesCache.Free;
+  end;
+end;
+
+procedure TDprojWriter.UpdateDCCDefines(const Values: TPropertyGroupEntryList);
+begin
+  if Values.Count = 0 then exit;
+
+  var ValuesCache := CreatePropertyGroupCache(Values);
+  try
+    var WrittenNodes := THashSet<string>.Create;
+    try
+      var ExistingNodes := THashSet<string>.Create;
+      try
+        var LastPropertyGroup: IXmlNode := nil;
+        IteratePropertyGroups(function(Info: TPropGroupInfo): Boolean
+          begin
+            Result := False;
+            ExistingNodes.Add(Info.Condition);
+            var PropGroup: TPropertyGroupEntry;
+            if ValuesCache.TryGetValue(Info.Condition, PropGroup) and (PropGroup.Defines.ValueOrDefault <> '') then
+            begin
+              WrittenNodes.Add(Info.Condition);
+              CreateOrSetNode(Info.Node, 'DCC_Define', PropGroup.Defines)
+            end
+            else RemoveNode(Info.Node, 'DCC_Define');
+
+            LastPropertyGroup := Info.Node;
+          end
+        );
+
+        if LastPropertyGroup = nil then raise Exception.Create('DProj doesn''t have PropertyGroups');
+
+        var LastPropertyIndex := LastPropertyGroup.ParentNode.ChildNodes.IndexOf(LastPropertyGroup);
+        for var Value in Values.List do
+        begin
+          var Condition := TDProjConditionConverter.Convert(Value.PlatformAndConfig);
+          if WrittenNodes.Contains(Condition) then continue;
+          if Value.Defines.ValueOrDefault = '' then continue;
+
+          if not ExistingNodes.Contains(TDProjConditionConverter.ParentCondition(Value.PlatformAndConfig)) then
+            CreateCfgNode(LastPropertyGroup, LastPropertyIndex, Value.PlatformAndConfig);
+
+          var NewPropertyGroup := Xml.CreateElement('PropertyGroup', LastPropertyGroup.NamespaceURI);
+          NewPropertyGroup.Attributes['Condition'] := Condition;
+          var NewDefines := NewPropertyGroup.AddChild('DCC_Define');
+          NewDefines.NodeValue := Value.Defines;
+
+          LastPropertyGroup.ParentNode.ChildNodes.Insert(LastPropertyIndex + 1, NewPropertyGroup);
+          Inc(LastPropertyIndex);
+        end;
+      finally
+        ExistingNodes.Free;
+      end;
     finally
       WrittenNodes.Free;
     end;
