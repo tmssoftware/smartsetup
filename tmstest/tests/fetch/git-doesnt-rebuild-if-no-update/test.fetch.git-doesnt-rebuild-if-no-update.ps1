@@ -34,6 +34,17 @@ function Modify-Pas {
     Set-Content -Path $pasFilePath -Value $newContent
 }
 
+function Add-VersionCommit {
+    param (
+        [string]$version
+    )
+    Set-Content -Path (Join-Path -Path $PWD -ChildPath "version.txt") -Value $version
+    Modify-Pas (Join-Path -Path $PWD -ChildPath "src/IFace.pas") -Version $version
+    git add -A | Out-Null
+    git commit -m "Add version $version" | Out-Null
+    git tag $version | Out-Null
+}
+
 function Create-GitRepos {
     Push-Location "__updated-version"
 
@@ -44,12 +55,11 @@ function Create-GitRepos {
 
     # Create the initial repo
     git init | Out-Null
+    git config user.name "Test User"
+    git config user.email "testuser@example.com"
+    
     foreach ($version in "1.0", "2.0", "3.0") {
-        Set-Content -Path (Join-Path -Path $PWD -ChildPath "version.txt") -Value $version
-        Modify-Pas (Join-Path -Path $PWD -ChildPath "src/IFace.pas") -Version $version
-        git add -A | Out-Null
-        git commit -m "Add version $version" | Out-Null
-        git tag $version | Out-Null
+        Add-VersionCommit -version $version
     }
 
     # Zip the updated repo
@@ -90,3 +100,20 @@ $result = tms update
 Verify-Version $result "3.0" 0 2 0
 $result = tms update
 Verify-Version $result "3.0" 2 0 0
+
+$result = tms install test.data.updater:2.0
+Verify-Version $result "2.0" 0 2 0
+tms pin *
+$result = tms update
+Verify-Version $result "2.0" 2 0 0
+
+Push-Location "__updated-version"
+Add-VersionCommit -version "4.0"
+Pop-Location
+
+Verify-Version $result "2.0" 2 0 0
+tms unpin *
+$result = tms update
+Verify-Version $result "4.0" 0 2 0
+$result = tms update
+Verify-Version $result "4.0" 2 0 0

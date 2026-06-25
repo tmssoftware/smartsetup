@@ -18,7 +18,11 @@ if ($installed.Count -ne 0) {
 
 tms config-write -p:"tms smart setup options:git:git location="
 
-tms install sglienke.spring4d
+$versions = tms versions-remote sglienke.spring4d -json | ConvertFrom-Json
+$sortedVersions = $versions.psobject.Properties.Name
+$lastVersion = $sortedVersions[1]
+tms install sglienke.spring4d:$lastVersion
+
 
 tms config-write -p:"tms smart setup options:git:pull command=mypullcommandthatdoesnotexist"
 $buildResult2 = Invoke-WithExitCodeIgnored{ tms install sglienke.spring4d }

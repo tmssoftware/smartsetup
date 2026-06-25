@@ -116,5 +116,6 @@ if ($logViewHtml -notlike "*box-error""*") {
     throw "Expected log view html to contain 'box-error' class, but it does not"
 }
 
+tms install test.tag.tag.and.branch.git:2.1.0_beta+1
 tms update
 uninstall_and_check(0)

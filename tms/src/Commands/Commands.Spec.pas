@@ -203,6 +203,15 @@ begin
   var Pack := Product.Packages[0];
   Pack.PackageType := TPackageType.Exe;
   Pack.Frameworks := [0];
+
+  var ExeVersion := QuestionChoose('Which versions of Rad Studio use to compile the exe? Choose (L)atest, (A)ll or (E)rliest', 'If there is more than one Rad Studio version available, you normally want to compile the exe with a single version. If you prefer to compile with all, make sure to use $(PRODUCTVERSION) in the exe output path go to different folders depending in the Rad Studio version.', 'l', ['l', 'a', 'e']);
+  if ExeVersion = 'a' then Product.ExeOptions.CompileWith := TExeCompileWith.All
+  else if ExeVersion = 'e' then Product.ExeOptions.CompileWith := TExeCompileWith.Earliest
+  else Product.ExeOptions.CompileWith := TExeCompileWith.Latest;
+
+  var ExeDebug := QuestionChoose('Do you want to generate debug versions of the exe? (Y) or (N)', 'Normally debug versions of executables are of little use', 'n', ['y', 'n']);
+  if ExeDebug = 'y' then Product.ExeOptions.ExeDebug := true else Product.ExeOptions.ExeDebug := false;
+
 end;
 
 function PlatformApplies(const Plat: TPlatform; const PackageUsage: TPackageUsage; const IDE: TIDEName): boolean;
