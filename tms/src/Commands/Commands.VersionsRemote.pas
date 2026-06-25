@@ -99,7 +99,7 @@ begin
     var RepoFolder := TVCSManager.GetProductFolder(Product.Product.ProductId);
     var TempGUIDProductFolder := TPath.Combine(Config.Folders.VCSTempFolder, GuidToStringN(TGUID.NewGuid));
 
-    var Engine := TVCSFactory.Instance.GetEngine(Product.Product.Protocol);
+    var Engine := TVCSFactory.Instance.GetEngine(Product.Product.Protocol, Product.Product.SkipSubModules);
     for var VersionName in Engine.GetVersionNames(RepoFolder, TempGUIDProductFolder, Config.Folders.LockedFilesFolder, Product.Product.Url) do
       ListedVersions.Add(TOutputVersion.Create(VersionName.Version, TLicenseStatus.licensed, VersionName.Date, ''));
   finally

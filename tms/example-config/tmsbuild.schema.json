@@ -146,6 +146,18 @@
       },
       "additionalProperties": false
     },
+    "fetch options": {
+      "type": ["object", "null"],
+      "description": "Options that control how the product is fetched from repositories.",
+      "properties": {
+        "skip submodules": {
+          "type": "boolean",
+          "description": "If true, git submodules will be not be fetched together with the repository. Use this if the submodules are not needed to compile the project, to speedup fetching.",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
     "supported frameworks": {
       "type": "object",
       "description": "Frameworks are just a group of supported IDEs and platforms. You can define as much as you want with any name you desire, and then combine them to specify what platforms and IDEs the packages support.",

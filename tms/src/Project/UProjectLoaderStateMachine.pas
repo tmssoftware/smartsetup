@@ -91,6 +91,12 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TFetchOptionsSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
   TLibSuffixesSectionDef = class(TSectionDef)
   private
     function Capture(const dv: TIDEName): TAction;
@@ -351,6 +357,7 @@ begin
   ChildSections.Add(TPackageOptionsSectionDef.SectionNameStatic, TPackageOptionsSectionDef.Create(Self, aProject));
   ChildSections.Add(TPackageDefinitionsSectionDef.SectionNameStatic, TPackageDefinitionsSectionDef.Create(Self, aProject));
   ChildSections.Add(TExeOptionsSectionDef.SectionNameStatic, TExeOptionsSectionDef.Create(Self, aProject));
+  ChildSections.Add(TFetchOptionsSectionDef.SectionNameStatic, TFetchOptionsSectionDef.Create(Self, aProject));
   ChildSections.Add(THelpSectionDef.SectionNameStatic, THelpSectionDef.Create(Self, aProject));
   ChildSections.Add(TDependenciesSectionDef.SectionNameStatic, TDependenciesSectionDef.Create(Self, aProject));
   ChildSections.Add(TBuildingSectionDef.SectionNameStatic, TBuildingSectionDef.Create(Self, aProject));
@@ -1533,6 +1540,24 @@ end;
 class function TExeOptionsSectionDef.SectionNameStatic: string;
 begin
   Result := 'exe options';
+end;
+
+{ TFetchOptionsSectionDef }
+
+constructor TFetchOptionsSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Actions := TListOfActions.Create;
+  Actions.Add('skip submodules', procedure(value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.FetchOptions.SkipSubmodules := GetBoolEx(value, ErrorInfo);
+    end);
+end;
+
+class function TFetchOptionsSectionDef.SectionNameStatic: string;
+begin
+  Result := 'fetch options';
 end;
 
 end.

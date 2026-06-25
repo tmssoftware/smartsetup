@@ -132,6 +132,9 @@ package definitions:
           include file mask: '*.pas;*.rc'                  # separate masks with ;.
           recursive: true #search in subfolders also. false by default
 
+  VCL_Example:
+    generate from: VCL_Example.dpk
+    
 # Only applies to executables.
 exe options:
   # You might want to build an exe with just one delphi version, not all of them.

@@ -287,6 +287,13 @@ type
     property ExeDebug: boolean read FExeDebug write FExeDebug;
   end;
 
+  TFetchOptions = class
+  private
+    FSkipSubmodules: boolean;
+  public
+    property SkipSubmodules: boolean read FSkipSubmodules write FSkipSubmodules;
+  end;
+
   TProjectDefinition = class
   private
     FFullPath: string;
@@ -319,6 +326,7 @@ type
     FAddLibSuffix: boolean;
     FPackageExtraDefines: TList<string>;
     FExeOptions: TExeOptions;
+    FFetchOptions: TFetchOptions;
 
     function GetHasMultiIDEPackages: boolean;
 
@@ -379,6 +387,7 @@ type
     property PackageExtraDefines: TList<string> read FPackageExtraDefines;
 
     property ExeOptions: TExeOptions read FExeOptions;
+    property FetchOptions: TFetchOptions read FFetchOptions;
 
     property HasMultiIDEPackages: boolean read GetHasMultiIDEPackages;
 
@@ -444,6 +453,7 @@ begin
   FOtherRegistryKeys := TList<string>.Create;
   FPackageExtraDefines := TList<string>.Create;
   FExeOptions := TExeOptions.Create;
+  FFetchOptions := TFetchOptions.Create;
 end;
 
 
@@ -464,6 +474,7 @@ begin
   FOtherRegistryKeys.Free;
   FPackageExtraDefines.Free;
   FExeOptions.Free;
+  FFetchOptions.Free;
   inherited;
 end;
 

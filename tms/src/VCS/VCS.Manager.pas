@@ -59,7 +59,7 @@ end;
 
 class procedure TVCSManager.DoFetchProduct(const ProductFolderRoot, ProductFolder: string; const Product: TRegisteredVersionedProduct);
 begin
-  var Engine := TVCSFactory.Instance.GetEngine(Product.Product.Protocol);
+  var Engine := TVCSFactory.Instance.GetEngine(Product.Product.Protocol, Product.Product.SkipSubModules);
   if Engine.GetProduct(ProductFolderRoot, ProductFolder, Product.Product.Url, Product.Product.Server, Product.Product.ProductId, Product.Version) then exit; //direct get.
   
 
@@ -96,7 +96,7 @@ begin
     //If the yaml exists in both the repo and the registry, we will use the repo.
     if TFile.Exists(tmsbuild_yaml) then
     begin
-      var Engine := TVCSFactory.Instance.GetEngine(Protocol);
+      var Engine := TVCSFactory.Instance.GetEngine(Protocol, true);
       if Engine.FileIsVersioned(tmsbuild_yaml, TPath.GetDirectoryName(tmsbuild_yaml)) then exit('');
       exit(tmsbuild_yaml); //if the file exists, but it is not in version control, it was likely an older version we installed last time.
     end;
@@ -270,7 +270,7 @@ begin
   for var Protocol := Low(TVCSProtocol) to High(TVCSProtocol) do
   begin
     try
-      var Engine := TVCSFactory.Instance.GetEngine(Protocol);
+      var Engine := TVCSFactory.Instance.GetEngine(Protocol, false);
       Result := Engine.GetCommitId(ProductFolder, true);
     except on ex: Exception do
     begin

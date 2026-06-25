@@ -14,6 +14,7 @@ type
     FGitCommandLine: string;
     FCloneCommand: string;
     FPullCommand: string;
+    FSkipSubModules: boolean;
 
     function GetEnvCommandLine: string;
     function GetBranchKind(const aCloneFolder, aVersion: string): TBranchKind;
@@ -28,11 +29,12 @@ type
     function LooksLikeVersion(Tag: string): boolean;
     function GetGitCommandLine: string;
   public
-    constructor Create(const aGitCommandLine, aCloneCommand, aPullCommand: string);
+    constructor Create(const aGitCommandLine, aCloneCommand, aPullCommand: string; const aSkipSubModules: boolean);
 
     property GitCommandLine: string read GetGitCommandLine;
     property CloneCommand: string read FCloneCommand;
     property PullCommand: string read FPullCommand;
+    property SkipSubModules: boolean read FSkipSubModules;
 
     procedure Clone(const aCloneFolder, aURL, aVersion: string);
     procedure AfterClone(const aRootFolder, aCloneFolder: string);
@@ -53,7 +55,7 @@ uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtil
 
 { TGitEngine }
 
-constructor TGitEngine.Create(const aGitCommandLine, aCloneCommand, aPullCommand: string);
+constructor TGitEngine.Create(const aGitCommandLine, aCloneCommand, aPullCommand: string; const aSkipSubModules: boolean);
 begin
   if aGitCommandLine.Trim = '' then FGitCommandLine := GetEnvCommandLine
   else FGitCommandLine := aGitCommandLine;
@@ -61,6 +63,7 @@ begin
   if aCloneCommand.Trim = '' then FCloneCommand := 'clone' else FCloneCommand := aCloneCommand;
   if aPullCommand.Trim = '' then FPullCommand := 'pull --all' else FPullCommand := aPullCommand;
 
+  FSkipSubModules := aSkipSubModules;
 end;
 
 function TGitEngine.FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
@@ -329,8 +332,11 @@ begin
   ValidateVCSVersion(aVersion);
   var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
+  var SubModules := ' --recurse-submodules';
+  if SkipSubModules then SubModules := '';
+
   //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as a git option.
-  var FullCommand := '"' + GitCommandLine + '" ' + CloneCommand + ' -- "' + aURL + '" "' + CloneFolder + '"';
+  var FullCommand := '"' + GitCommandLine + '" ' + CloneCommand + SubModules + ' -- "' + aURL + '" "' + CloneFolder + '"';
   if DirectoryExists(CloneFolder) then raise Exception.Create('Can''t git clone into an existing folder: "' + CloneFolder + '"');
   TDirectory_CreateDirectory(CloneFolder);
   if not ExecuteCommand(FullCommand, CloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
@@ -399,7 +405,10 @@ begin
   if not RemoteHasChanges(RootFolder, GitFolder, aVersion) then exit;
 
   AttachHead(RootFolder, GitFolder);
-  FullCommand := '"' + GitCommandLine + '" ' + PullCommand;
+  var SubModules := ' --recurse-submodules';
+  if SkipSubModules then SubModules := '';
+
+  FullCommand := '"' + GitCommandLine + '" ' + PullCommand + SubModules;
   if not ExecuteCommand(FullCommand, GitFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
     then raise Exception.Create('Error in git pull "' +  GitFolder + '"');
   CheckoutVersion(GitFolder, aVersion, true, false); //already cleaned in AttachHead above.

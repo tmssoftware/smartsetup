@@ -543,11 +543,11 @@ begin
   var Pkg := GetPackage(PropName.Substring(0, idx));
   if not Pkg.AutoGenerate then exit(TYamlValue.MakeNull);
 
-  if NewPropName = 'generate from:' then exit(Pkg.GenerateFrom);
+  if NewPropName = 'generate from:' then exit(Nullable(Pkg.GenerateFrom));
   if NewPropName = 'framework type:' then exit(Pkg.DelphiFrameworkType);
-  if NewPropName = 'description:' then exit(Pkg.Description);
-  if NewPropName = 'requires:' then exit(GetRequires(Pkg.Requires));
-  if NewPropName = 'files:' then exit(TYamlValue.MakeArray(GetFileMasks(Pkg.FileMasks), false));
+  if NewPropName = 'description:' then exit(Nullable(Pkg.Description));
+  if NewPropName = 'requires:' then exit(Nullable(GetRequires(Pkg.Requires)));
+  if NewPropName = 'files:' then if Pkg.FileMasks.Empty then exit(TYamlValue.MakeNull) else exit(TYamlValue.MakeArray(GetFileMasks(Pkg.FileMasks), false));
   if NewPropName = 'files:source:' then exit(TYamlValue.MakeObject);
   if NewPropName = 'files:source:folder:' then exit(Pkg.FileMasks.FileMasks[ArrIndex].BaseFolder);
   if NewPropName = 'files:source:include folder mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].IncludeFolders));
@@ -589,6 +589,10 @@ begin
   if FullName = 'application:vcs protocol:' then exit(Nullable(FProduct.Application.VCSProtocol));
   if FullName = 'application:docs:' then exit(Nullable(FProduct.Application.Docs));
   if FullName = 'application:version file:' then exit(Nullable(FProduct.Application.VersionFile));
+
+  //fetch options
+  if FullName = 'fetch options:' then exit(TYamlValue.MakeObject);
+  if FullName = 'fetch options:skip submodules:' then exit(Nullable(FProduct.FetchOptions.SkipSubmodules));
 
   var sf := 'supported frameworks:';
   if FullName = sf then exit(TYamlValue.MakeObject);

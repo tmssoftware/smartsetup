@@ -27,6 +27,7 @@ type
     FDescription: string;
     FServer: string;
     FPredefinedData: TPredefinedData;
+    FSkipSubModules: boolean;
     function GetProtocolString: string;
   public
     property Url: string read FUrl;
@@ -37,11 +38,12 @@ type
     property Description: string read FDescription;
     property Server: string read FServer write FServer;
     property PredefinedData: TPredefinedData read FPredefinedData;
+    property SkipSubModules: boolean read FSkipSubModules;
 
     class function GetProtocolFromString(const aProtocol: string; const DefaultIsGit: boolean): TVCSProtocol; static;
     class function GetStringFromProtocol(const aProtocol: TVCSProtocol): string; static;
 
-    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string; const aPredefinedData: TPredefinedData);
+    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string; const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
     function Equals(ProductB: TObject): boolean; override;
   end;
 
@@ -92,7 +94,8 @@ uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJ
 { TRegisteredProduct }
 
 constructor TRegisteredProduct.Create(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aServer: string; const aPredefinedData: TPredefinedData);
+  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aServer: string;
+  const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
 begin
   FProductId := aProductId;
   FProtocol := aProtocol;
@@ -101,6 +104,7 @@ begin
   FDescription := aDescription;
   FServer := aServer;
   FPredefinedData := aPredefinedData;
+  FSkipSubModules := aSkipSubModules;
 end;
 
 function TRegisteredProduct.Equals(ProductB: TObject): boolean;
@@ -115,6 +119,8 @@ begin
   if b.Server <> FServer then exit(false);
 
   if not b.PredefinedData.Equals(FPredefinedData) then exit(false);
+
+  if b.SkipSubModules <> SkipSubModules then exit(false);
 
 
   exit(true);
@@ -216,7 +222,8 @@ begin
                 Project.Application.Name,
                 Project.Application.Description,
                 Server,
-                TPredefinedData.Create(PredefinedText) );
+                TPredefinedData.Create(PredefinedText),
+                Project.FetchOptions.SkipSubModules);
 end;
 
 procedure TProductRegistry.LoadOnePreregisteredProduct(const FileName, Text, Server: string);

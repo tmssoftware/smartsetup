@@ -16,7 +16,7 @@ type
 
     class function Instance: TVCSFactory;
 
-    function GetEngine(const Protocol: TVCSProtocol): IVCSEngine;
+    function GetEngine(const Protocol: TVCSProtocol; const SkipSubModules: boolean): IVCSEngine;
   end;
 
 implementation
@@ -39,10 +39,10 @@ begin
   inherited;
 end;
 
-function TVCSFactory.GetEngine(const Protocol: TVCSProtocol): IVCSEngine;
+function TVCSFactory.GetEngine(const Protocol: TVCSProtocol; const SkipSubModules: boolean): IVCSEngine;
 begin
   case Protocol of
-    TVCSProtocol.Git: exit(TGitEngine.Create(Config.GitConfig.GitCommand, Config.GitConfig.Clone, Config.GitConfig.Pull));
+    TVCSProtocol.Git: exit(TGitEngine.Create(Config.GitConfig.GitCommand, Config.GitConfig.Clone, Config.GitConfig.Pull, SkipSubModules));
     TVCSProtocol.Svn: exit(TSvnEngine.Create(Config.SvnConfig.SvnCommand, Config.SvnConfig.Checkout, Config.SvnConfig.Update));
     TVCSProtocol.ZipFile: exit(TZipFileEngine.Create);
     else raise Exception.Create('Invalid VCS protocol.');
