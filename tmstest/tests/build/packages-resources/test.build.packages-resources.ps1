@@ -4,6 +4,9 @@
 
 . test.setup
 
+$registry = "tmstest\packages-from-dpk"
+Set-AlternateRegistryKey -RegKey $registry -RegisterAllDelphiVersions $true
+
 tms config-write -p:configuration-for-all-products:replace-delphi-versions=[delphi12,delphi13] -p:configuration-for-all-products:platforms=[win32intel,win64intel] -p:configuration-for-all-products:options:skip-register=false
 
 tms build
@@ -26,7 +29,7 @@ foreach ($delphi in @("d12", "d13")) {
 $originalLocation = Get-Location
 Set-Location testapp
 
-bds -ProjectFile "testapp.dproj"
+bds -ProjectFile "testapp.dproj"  -RegistryKey $registry
 
 .\Win32\Debug\testapp.exe | Assert-ValueIs "616/616"
 
