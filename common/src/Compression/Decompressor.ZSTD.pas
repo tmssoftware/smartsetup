@@ -50,9 +50,12 @@ begin
         var Tar := TTarReader.Create(DecompressStream);
         try
           var DirRec: TTarFileInfo;
+          var LastFolder := '';
           while Tar.FindNext(DirRec) do
           begin
             var EntryName := String(DirRec.FileName);
+            var SkipFile := false;
+            if (Assigned(Skip)) and Skip(EntryName) then SkipFile := true;
             if Assigned(Renamer) then EntryName := Renamer(EntryName);
 
             var DestFileName := TPath.Combine(DestFolder, EntryName);
@@ -73,8 +76,14 @@ begin
 {$ENDIF}
                 LastUpdate := now;
               end;
-              if (Assigned(Skip)) and Skip(DestFileName) then Tar.SkipFile(DirRec.Size) else
+              if SkipFile then Tar.SkipFile(DirRec.Size) else
               begin
+                var Folder := TPath.GetDirectoryName(DestFileName);
+                if (Folder <> LastFolder) and not TDirectory.Exists(Folder) then
+                begin
+                  LastFolder := Folder;
+                  TDirectory_CreateDirectory(Folder);
+                end;
                 if LockedFilesFolder <> '' then DeleteFileOrMoveToLocked(LockedFilesFolder, DestFileName);
                 Tar.ReadFile(DestFileName, DirRec.Size, DirRec.TimeStamp);
               end;

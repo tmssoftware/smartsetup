@@ -100,6 +100,15 @@ begin
     end);
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-log-uncompress', '', 'Uses the uncompress events so we can test them..',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.LogUncompress := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
 
 end;
 

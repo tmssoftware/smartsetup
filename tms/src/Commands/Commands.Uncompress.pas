@@ -10,7 +10,8 @@ procedure RegisterUncompressCommand;
 implementation
 
 uses
-  Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, UGenericDecompressor, IOUtils, UTmsBuildSystemUtils;
+  Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig,
+  UGenericDecompressor, IOUtils, UTmsBuildSystemUtils, Testing.Globals;
 
 var
   BundleFileNames: TArray<string>;
@@ -38,6 +39,13 @@ begin
       var FinalTargetFolder := TPath.GetFullPath(TPath.Combine(TargetFolder, GetProductName(TPath.GetFileName(WildcardBundle))));
       TDirectory_CreateDirectory(TPath.GetDirectoryName(FinalTargetFolder));
       Logger.Info('Decompressing ' + TPath.GetFileName(WildcardBundle) + ' into ' + FinalTargetFolder + '.');
+  {$IFDEF DEBUG}
+      if TestParameters.LogUncompress
+        then TBundleDecompressor.ExtractCompressedFile(TPath.GetFullPath(WildcardBundle), FinalTargetFolder,
+          TDownloadFormat.Unknown, function(s: string): boolean begin Logger.Info('SKIP: ' + s); Result := false; end,
+          function(s: string): string begin Logger.Info('RENAMER: ' + s); Result := TPath.Combine('AllFiles', TPath.GetFileName(s)); end)
+      else
+  {$ENDIF}
       TBundleDecompressor.ExtractCompressedFile(TPath.GetFullPath(WildcardBundle), FinalTargetFolder);
       Logger.Info('Decompressed ' + TPath.GetFileName(WildcardBundle) + ' into ' + FinalTargetFolder + '.');
 

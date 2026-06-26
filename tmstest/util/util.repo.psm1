@@ -1,6 +1,7 @@
 function Update-TmsbuildYamlWithLocalUrl {
     param(
-        [string]$TmsbuildFilePath
+        [string]$TmsbuildFilePath,
+        [string]$fileName = ""
     )
     
     $tmsbuildFile = Get-Item -Path $TmsbuildFilePath
@@ -27,7 +28,7 @@ function Update-TmsbuildYamlWithLocalUrl {
             continue
         }
         if ($line -match '  name:\s*.*') {
-            $fileUrl = "file:///" + ($productFolder.FullName -replace '\\', '/')
+            $fileUrl = "file:///" + ($productFolder.FullName -replace '\\', '/') + $fileName
             $newContent += "  url: `"$fileUrl`""
             $foundNameLine = $true
             continue
