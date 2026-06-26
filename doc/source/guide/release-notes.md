@@ -4,6 +4,24 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
+## Version 3.5 (June, 2026)
+
+- **New**: New `resources` section in the tmsbuild.yaml definition file. It allows you to copy resources to the output folder preserving their relative path, so directives like `{$R source\test.res}` find the resource in `output\source` instead of just the output folder.
+
+- **New**: When fetching products hosted in git, SmartSetup now automatically downloads the git submodules if the repository has them. This is needed for some products (like JEDI). You can use the new `fetch options: skip submodules` option in tmsbuild.yaml to revert to not fetching the submodules for repositories that need that.
+
+- **New**: Support for a `generate from` setting when automatically creating packages, so SmartSetup can generate the dprojs from existing dpks without you having to provide either none or both.
+
+- **Improved**: `tms spec` now asks whether you want to generate the exe with every Delphi version or only with the latest one. Generating the exe with all Delphi versions is usually not what you want, and since exes use the output folder defined in the dproj (which normally doesn't include `$(PRODUCTVERSION)`), different Delphi versions would otherwise write the exe to the same folder.
+
+- **Improved**: Better git handling of branches, tags and commit ids. SmartSetup now detects whether you are switching to a branch or a tag, creates the local branch if it doesn't exist, and cleans up the folder when switching versions.
+
+- **Improved**: Better support for unusual package structures. There is a new `%bpl-folder-64%` link target that links to `bpl\win64` (before, you could only link to `bpl\Win32`), and dfm, res, .dcr and similar files are now copied to the correct output folder when using `dx+` folders, including those in the build-only library path.
+
+- **Fixed**: `tms update` always recompiled products hosted in git, because the cleanup done before pulling removed all the dcus. Now SmartSetup doesn't clean up when the version is unchanged.
+
+- **Fixed**: The duplicated bpls check in `tms doctor` could wrongly report duplicates when the same entry appeared twice in the Windows Path (for example if you had a PATH of `c:\test;c:\test`, doctor would report `c:\test\test.bpl` to be duplicated even when it existed only once).
+
 ## Version 3.4 (May, 2026)
 - **New**: Support for Semantic Versioning for products in the API server. We can now release a product like `tms.product:1.0-beta` and SmartSetup will handle it with semver rules. Note that this is only for products hosted in servers; for products hosted in git you could already use any versioning string.
 

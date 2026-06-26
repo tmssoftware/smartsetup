@@ -210,7 +210,11 @@ function bds {
         [Parameter(Mandatory = $false, Position=1)] [string[]] $RegistryKey = ""
     )
 
-    Start-Process -FilePath "$Env:TMS_BDS" -ArgumentList @("$ProjectFile", "-ns", "-r $RegistryKey", "-b") -NoNewWindow -Wait
+    $regCommand = ""
+    if ($RegistryKey -ne "") {
+        $regCommand = "-r $RegistryKey"
+    }
+    Start-Process -FilePath "$Env:TMS_BDS" -ArgumentList @("$ProjectFile", "-ns", $regCommand, "-b") -NoNewWindow -Wait
 }
 
 function tmscredentials {
