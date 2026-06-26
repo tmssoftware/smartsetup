@@ -28,6 +28,7 @@ type
     class procedure GetDependencies(
       const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>); static;
     class function GetCurrentCommitInternal(const ProductId, ProductFolder: string): string; static;
+    class procedure ExtractExtraFiles(const ProductFolder, ZipFileName, YamlFileName: string); static;
   public
     class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
     class function GetProductFolder(const ProductId: string): string; static;
@@ -36,7 +37,7 @@ type
 
 implementation
 uses ULogger, UMultiLogger, UAppTerminated, VCS.Engine.Virtual,
-     VCS.Engine.Factory, IOUtils, UConfigFolders, UTmsBuildSystemUtils, ULoggerTask,
+     VCS.Engine.Factory, IOUtils, UConfigFolders, UTmsBuildSystemUtils, ULoggerTask, UGenericDecompressor,
 {$IFDEF POSIX}
      Posix.UniStd, Posix.Stdio,
 {$ENDIF}
@@ -110,6 +111,26 @@ begin
   end;
 
 end;
+
+class procedure TVCSManager.ExtractExtraFiles(const ProductFolder, ZipFileName, YamlFileName: string);
+begin
+  TBundleDecompressor.ExtractCompressedFile(ZipFileName, ProductFolder, TDownloadFormat.Unknown,
+    function (s: string): boolean
+    begin
+      var root := IncludeTrailingPathDelimiter(TPath.Combine(TPath.GetDirectoryName(YamlFileName), 'extra-sources')).Replace('\', '/');
+      if s = root then exit(true);
+      
+      Result := not s.StartsWith(root);
+    end,
+    function(s: string): string
+    begin
+      var root := IncludeTrailingPathDelimiter(TPath.Combine(TPath.GetDirectoryName(YamlFileName), 'extra-sources')).Replace('\', '/');
+      if not s.StartsWith(root) then raise Exception.Create('Internal error. File in archive should have been skipped.');
+      Result := s.Substring(root.Length);
+    end);
+end;
+
+
 class procedure TVCSManager.AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct);
 begin
   if Product.PredefinedData.Tmsbuild_Yaml.Trim <> '' then
@@ -118,11 +139,13 @@ begin
     if tmsbuild_yaml = '' then
     begin
       Logger.Trace('Kept existing tmsbuild.yaml in the repo');
+      //If we don't replace tmsbuild.yaml then we won't either copy any file. We assume they are all there.
       exit;
     end;
 
     Logger.Trace('Using tmsbuild.yaml from server');
     TFile.WriteAllText(tmsbuild_yaml, Product.PredefinedData.Tmsbuild_Yaml);
+    ExtractExtraFiles(ProductFolder, Product.PredefinedData.ZipFileName, Product.PredefinedData.YamlFileName);
   end;
 end;
 

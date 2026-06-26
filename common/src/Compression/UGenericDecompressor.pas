@@ -11,13 +11,13 @@ type
   TBundleDecompressor = class
   private
     class procedure ExtractZipFile(const ZipFileName, ExtractFolder: string;
-      const Skip: TFunc<string, boolean>); static;
+      const Skip: TFunc<string, boolean>; const Renamer: TFunc<string, string>); static;
     class function IsZipByLocalHeader(const FileName: string): Boolean; overload; static;
     class function IsZipByLocalHeader(Stream: TStream): Boolean; overload; static;
   public
     class function GetFileFormat(const FileName: string): TDownloadFormat; static;
     class procedure ExtractCompressedFile(const FileName, ExtractFolder: string;
-      DownloadFormat: TDownloadFormat = TDownloadformat.Unknown; const Skip: TFunc<string, boolean> = nil); static;
+      DownloadFormat: TDownloadFormat = TDownloadformat.Unknown; const Skip: TFunc<string, boolean> = nil; const Renamer: TFunc<string, string> = nil); static;
   end;
 
 implementation
@@ -67,19 +67,38 @@ begin
   Result := TDownloadFormat.Unknown;
 end;
 
-class procedure TBundleDecompressor.ExtractZipFile(const ZipFileName, ExtractFolder: string; const Skip: TFunc<string, boolean>);
+class procedure TBundleDecompressor.ExtractZipFile(const ZipFileName, ExtractFolder: string; const Skip: TFunc<string, boolean>; const Renamer: TFunc<string, string>);
 begin
     var Zip := TZipFile.Create;
     try
       Zip.Open(ZipFileName, TZipMode.zmRead);
       for var i := 0 to Zip.FileCount - 1 do
       begin
-        if Assigned(Skip) and Skip(Zip.FileNames[i]) then continue;
-        var FileName := TPath.Combine(ExtractFolder, Zip.FileNames[i]);
+        var EntryName := Zip.FileNames[i];
+        if Assigned(Skip) and Skip(EntryName) then continue;
+        if Assigned(Renamer) then EntryName := Renamer(EntryName);
+
+        var FileName := TPath.Combine(ExtractFolder, EntryName);
         TZSTDDecompressor.CheckIsInside(FileName, ExtractFolder);
+
+        if EntryName.EndsWith('/') or EntryName.EndsWith('\') then
+        begin
+          TDirectory_CreateDirectory(FileName);
+          continue;
+        end;
+
         DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FileName);
 
-        Zip.Extract(Zip.FileNames[i], ExtractFolder);
+        if not Assigned(Renamer) then
+        begin
+          Zip.Extract(i, ExtractFolder);
+        end
+        else
+        begin
+          var DestFolderName := TPath.GetDirectoryName(FileName);
+          TDirectory_CreateDirectory(DestFolderName);
+          Zip.Extract(i, DestFolderName, false);
+        end;
       end;
     finally
       Zip.Free;
@@ -88,13 +107,13 @@ begin
 
 end;
 
-class procedure TBundleDecompressor.ExtractCompressedFile(const FileName, ExtractFolder: string; DownloadFormat: TDownloadFormat; const Skip: TFunc<string, boolean>);
+class procedure TBundleDecompressor.ExtractCompressedFile(const FileName, ExtractFolder: string; DownloadFormat: TDownloadFormat; const Skip: TFunc<string, boolean>; const Renamer: TFunc<string, string>);
 begin
   if DownloadFormat = TDownloadFormat.Unknown then DownloadFormat := GetFileFormat(FileName);
 
   case DownloadFormat of
-    TDownloadFormat.Zip: ExtractZipFile(FileName, ExtractFolder, Skip);
-    TDownloadFormat.Zstd: TZSTDDecompressor.Decompress(FileName, ExtractFolder, Skip, Config.Folders.LockedFilesFolder);
+    TDownloadFormat.Zip: ExtractZipFile(FileName, ExtractFolder, Skip, Renamer);
+    TDownloadFormat.Zstd: TZSTDDecompressor.Decompress(FileName, ExtractFolder, Skip, Renamer, Config.Folders.LockedFilesFolder);
     else raise Exception.Create('Unknown bundle format in file: "' + FileName + '"');
   end;
 end;

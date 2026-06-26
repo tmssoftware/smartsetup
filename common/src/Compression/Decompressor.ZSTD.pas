@@ -7,7 +7,7 @@ type
   TZSTDDecompressor = class
   public
     class procedure CheckIsInside(const FileName, Folder: string); static;
-    class procedure Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean>; const LockedFilesFolder: string);
+    class procedure Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean>; const Renamer: TFunc<string, string>; const LockedFilesFolder: string);
     class function IsValid(const FileName: string): boolean; overload;
     class function IsValid(const Stream: TStream): boolean; overload;
   end;
@@ -28,7 +28,7 @@ begin
  if not FullFileName.StartsWith(IncludeTrailingPathDelimiter(FullFolder), false) then raise Exception.Create('File "' + FileName + '" is outside the extract folder "' + FullFolder + '"');
 end;
 
-class procedure TZSTDDecompressor.Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean>; const LockedFilesFolder: string);
+class procedure TZSTDDecompressor.Decompress(const FileName, DestFolder: string; const Skip: TFunc<string, boolean>; const Renamer: TFunc<string, string>; const LockedFilesFolder: string);
 begin
   var LastUpdate: TDateTime := Now - 1;
   var InStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
@@ -52,7 +52,10 @@ begin
           var DirRec: TTarFileInfo;
           while Tar.FindNext(DirRec) do
           begin
-            var DestFileName := TPath.Combine(DestFolder, String(DirRec.FileName));
+            var EntryName := String(DirRec.FileName);
+            if Assigned(Renamer) then EntryName := Renamer(EntryName);
+
+            var DestFileName := TPath.Combine(DestFolder, EntryName);
             CheckIsInside(DestFileName, DestFolder);
 
             if (DirRec.Attr and faDirectory) <> 0 then

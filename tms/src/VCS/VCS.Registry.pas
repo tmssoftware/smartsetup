@@ -10,8 +10,10 @@ type
   TPredefinedData = record
   public
     Tmsbuild_Yaml: string;
+    ZipFileName: string;
+    YamlFileName: string;
 
-    constructor Create(const aTmsbuild_Yaml: string);
+    constructor Create(const aTmsbuild_Yaml, aZipFileName, aYamlFileName: string);
     function Equals(const obj: TPredefinedData): boolean;
     class function Empty: TPredefinedData; static;
   end;
@@ -69,9 +71,9 @@ type
   private
     FProducts: TObjectDictionary<string, TRegisteredProduct>;
     FPinned: THashSet<string>;
-    function GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText: string): TRegisteredProduct;
+    function GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText, ZipFileName, YamlFileName: string): TRegisteredProduct;
     procedure LoadPreregisteredProducts(const aServerName: string);
-    procedure LoadOnePreregisteredProduct(const FileName, Text, Server: string);
+    procedure LoadOnePreregisteredProduct(const ZipFileName, YamlFileName, Text, Server: string);
     procedure LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
     procedure ChangeVersion(
       const List: TObjectList<TRegisteredVersionedProduct>; const ProductId,
@@ -213,7 +215,7 @@ begin
 end;
 
 
-function TProductRegistry.GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText: string): TRegisteredProduct;
+function TProductRegistry.GetProductFromProject(const Project: TProjectDefinition; const Server: string; const PredefinedText, ZipFileName, YamlFileName: string): TRegisteredProduct;
 begin
   Result := TRegisteredProduct.Create(
                 Project.Application.Id,
@@ -222,16 +224,16 @@ begin
                 Project.Application.Name,
                 Project.Application.Description,
                 Server,
-                TPredefinedData.Create(PredefinedText),
+                TPredefinedData.Create(PredefinedText, ZipFileName, YamlFileName),
                 Project.FetchOptions.SkipSubModules);
 end;
 
-procedure TProductRegistry.LoadOnePreregisteredProduct(const FileName, Text, Server: string);
+procedure TProductRegistry.LoadOnePreregisteredProduct(const ZipFileName, YamlFileName, Text, Server: string);
 begin
-  var Project := TProjectDefinition.Create(FileName);
+  var Project := TProjectDefinition.Create(ZipFileName);
   try
-    TProjectLoader.LoadDataIntoProject(FileName, Text, Project, 'root:supported frameworks', true);
-    FProducts.AddOrSetValue(Project.Application.Id, GetProductFromProject(Project, Server, Text));
+    TProjectLoader.LoadDataIntoProject(YamlFileName, Text, Project, 'root:supported frameworks', true);
+    FProducts.AddOrSetValue(Project.Application.Id, GetProductFromProject(Project, Server, Text, ZipFileName, YamlFileName));
   finally
     Project.Free;
   end;
@@ -264,11 +266,11 @@ begin
       begin
         if SameText(TPath.GetFileName(Zip.FileNames[i]), TProjectLoader.TMSBuildDefinitionFile) then
         begin
-          var Filename := Zip.FileNames[i];
+          var YamlFilename := Zip.FileNames[i];
           var Bytes: TBytes;
           Zip.Read(i, Bytes);
           var Text := TEncoding.UTF8.GetString(Bytes);
-          LoadOnePreregisteredProduct(FileName, Text, Server.Name);
+          LoadOnePreregisteredProduct(PredefinedRepositories, YamlFileName, Text, Server.Name);
         end;
       end;
     finally
@@ -296,19 +298,25 @@ end;
 
 { TPredefinedData }
 
-constructor TPredefinedData.Create(const aTmsbuild_Yaml: string);
+constructor TPredefinedData.Create(const aTmsbuild_Yaml, aZipFileName, aYamlFileName: string);
 begin
   Tmsbuild_Yaml := aTmsbuild_Yaml;
+  ZipFileName := aZipFileName;
+  YamlFileName := aYamlFileName;
 end;
 
 class function TPredefinedData.Empty: TPredefinedData;
 begin
   Result.Tmsbuild_Yaml := '';
+  Result.ZipFileName := '';
+  Result.YamlFileName := ''
 end;
 
 function TPredefinedData.Equals(const obj: TPredefinedData): boolean;
 begin
-  Result := obj.Tmsbuild_Yaml = Tmsbuild_Yaml;
+  Result := (obj.Tmsbuild_Yaml = Tmsbuild_Yaml)
+        and (obj.ZipFileName = ZipFileName)
+        and (obj.YamlFileName = YamlFileName);
 end;
 
 { TRegisteredVersionedProduct }
