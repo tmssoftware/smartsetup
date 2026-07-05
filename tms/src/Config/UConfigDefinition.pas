@@ -18,11 +18,7 @@ const
   'packages', 'startmenu', 'help', 'windowspath', 'webcore', 'registry', 'filelinks'
   );
 
-  TMSUrl = 'https://api.landgraf.dev/tms';
-  GitHubUrl = 'https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip';
-
 type
-
   TSkipRegistering = record
   private
     FOptions: TSkipRegisteringSet;
@@ -129,16 +125,43 @@ type
 
   TServerType = (Api, ZipFile);
 
+  // How an api server authenticates. Credentials is the classic email/registration-code
+  // pair sent as an OAuth2 client-credentials grant. Oidc is a browser-based
+  // OAuth2 authorization code + PKCE flow ("tms login").
+  TServerAuthMode = (Credentials, Oidc);
+
   TServerConfig = record
   public
   const
     BuiltinServers: array[0..1] of string = ('tms', 'community');
+
+    // Hardcoded URLs for the built-in tms API server and community server
+    TMSUrl = 'https://api.landgraf.dev/tms';
+    GitHubUrl = 'https://github.com/tmssoftware/smartsetup-registry/archive/refs/heads/main.zip';
+
+    // OIDC parameters for the built-in tms server. The authority is not listed
+    // here because it is resolved per repository profile (production/sandbox/local)
+    // from the server's AuthUrl; see URepositoryInfo.
+    // Flipping TMSDefaultAuthMode to Oidc is what migrates the built-in tms
+    // server from email/code to browser-based login in a future release.
+    TMSDefaultAuthMode = TServerAuthMode.Credentials;
+    TMSOidcClientId = 'tms-smartsetup';
+    TMSOidcScope = 'openid offline_access';
   public
     Name: string;
     ServerType: TServerType;
     Url: string;
     Enabled: boolean;
     AllowInsecureConnections: boolean;
+
+    // Authentication settings. Not yet configurable in tms.config.yaml: they are
+    // hardcoded for the built-in tms server and default to UserCode for the rest.
+    AuthMode: TServerAuthMode;
+    OidcAuthority: string;             // issuer/base url; empty for 'tms' (resolved per profile at runtime)
+    OidcClientId: string;
+    OidcScope: string;
+    OidcAuthorizationEndpoint: string; // optional override when the authority has no discovery document
+    OidcTokenEndpoint: string;         // optional override when the authority has no discovery document
 
     constructor Create(const aName: string; const aServerType: TServerType; const aUrl: string; const aEnabled: boolean; const aAllowInsecureConnections: boolean = false);
     constructor CreateInternalServer(const aName: string);
@@ -147,6 +170,8 @@ type
 
     function ServerTypeString: string;
     class function ServerTypeFromString(const value: string; const ExtraInfo: string = ''): TServerType; static;
+
+    function AuthModeString: string;
 
     /// <summary>
     /// Validates that <c>aUrl</c> uses an acceptable scheme for a server of
@@ -1253,6 +1278,9 @@ begin
     Url := TMSUrl;
     ServerType := TServerType.Api;
     Enabled := true;
+    AuthMode := TMSDefaultAuthMode;
+    OidcClientId := TMSOidcClientId;
+    OidcScope := TMSOidcScope;
   end
   else if SameText(aName, 'community') then
   begin
@@ -1306,6 +1334,16 @@ begin
   end;
 
   raise Exception.Create('Invalid Server Type.');
+end;
+
+function TServerConfig.AuthModeString: string;
+begin
+  case AuthMode of
+    TServerAuthMode.Credentials: exit('credentials');
+    TServerAuthMode.Oidc: exit('oidc');
+  end;
+
+  raise Exception.Create('Invalid Auth Mode.');
 end;
 
 class function TServerConfig.TryValidateUrlScheme(const aUrl: string; const aServerType: TServerType;

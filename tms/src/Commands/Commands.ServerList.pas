@@ -29,6 +29,9 @@ begin
       Item.AddPair('type', Server.ServerTypeString);
       Item.AddPair('url', Server.Url);
       Item.AddPair('enabled', Server.Enabled);
+      if Server.ServerType = TServerType.Api then
+        if Server.AuthMode <> TServerAuthMode.Credentials then
+          Item.AddPair('auth_mode', Server.AuthModeString);
     end;
     OutputJson(Root);
   finally

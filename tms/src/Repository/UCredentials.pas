@@ -3,7 +3,8 @@ unit UCredentials;
 interface
 
 uses
-  System.IniFiles, System.SysUtils, System.IOUtils, System.DateUtils, Fetching.Options, Util.Credentials;
+  System.IniFiles, System.SysUtils, System.IOUtils, System.DateUtils, Fetching.Options, Util.Credentials,
+  UConfigDefinition, URepositoryInfo, Auth.Client;
 
 type
   TCredentials = class
@@ -12,6 +13,7 @@ type
     FCode: string;
     FAccessToken: string;
     FExpiration: TDateTime;
+    FRefreshToken: string;
   private
     procedure SetCode(const Value: string);
     procedure SetEmail(const Value: string);
@@ -20,6 +22,19 @@ type
     property Code: string read FCode write SetCode;
     property AccessToken: string read FAccessToken write FAccessToken;
     property Expiration: TDateTime read FExpiration write FExpiration;
+    property RefreshToken: string read FRefreshToken write FRefreshToken;
+  end;
+
+  // Everything needed to talk to an OIDC provider for one server, resolved from
+  // the server config (and, for the built-in tms server, from the repository profile).
+  TOidcServerParams = record
+    Authority: string;
+    ClientId: string;
+    Scope: string;
+    AuthorizationEndpoint: string;
+    TokenEndpoint: string;
+
+    class function Resolve(const ServerConfig: TServerConfig; const RepoInfo: IRepositoryInfo): TOidcServerParams; static;
   end;
 
   TCredentialsManager = class
@@ -28,6 +43,7 @@ type
     IniCode = 'code';
     IniToken = 'token';
     IniExpiration = 'expiration';
+    IniRefreshToken = 'refreshtoken';
   private
     FCredentialsFile: string;
     FDefaultProfile: string;
@@ -35,9 +51,12 @@ type
     procedure LoadCredentials(Credentials: TCredentials);
     function AuthCredName(Profile: string): string;
     function TokensCredName(Profile: string): string;
+    function RefreshCredName(Profile: string): string;
     function CredName(Profile, Name: string): string;
+    function LoginCommandHint: string;
   protected
     function RetrieveAccessToken(const AuthUrl: string): string;
+    function RetrieveOidcAccessToken(const Params: TOidcServerParams): string;
   public
     constructor Create(const ACredentialsFile, DefaultProfile, ServerName: string);
     destructor Destroy; override;
@@ -45,17 +64,22 @@ type
     procedure UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 
     procedure SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
+    procedure SaveOidcTokens(Credentials: TCredentials);
+    procedure ClearOidcTokens;
     function ReadCredentials: TCredentials;
   public
     class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
+    class function GetOidcAccessToken(const CredentialsFile: string; Options: TFetchOptions; const ServerConfig: TServerConfig; const RepoInfo: IRepositoryInfo): string;
   end;
 
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
+function CreateOidcClient(const Params: TOidcServerParams; const RedirectUri: string = ''): TOidcClient;
+function CompressToken(const Token: string): TBytes;
 
 implementation
 
 uses
-  System.Classes, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals, ZSTD;
+  System.Classes, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals, ZSTD, Auth.Classes;
 
 const
   ZstdPrefix = 'zstd:';
@@ -177,7 +201,7 @@ begin
 {$ENDIF}
   var ProfileDot := Profile;
   if Profile = 'production' then ProfileDot := ''; //backwards compat, also production is the most common case.
-  
+
   if ProfileDot <> '' then ProfileDot := ProfileDot + '.';
   Result := 'tms.smartsetup.' + ProfileDot + TPath.GetFileName(FCredentialsFile) + Name;
 end;
@@ -190,6 +214,19 @@ end;
 function TCredentialsManager.TokensCredName(Profile: string): string;
 begin
   Result := CredName(Profile, '.tokens');
+end;
+
+function TCredentialsManager.RefreshCredName(Profile: string): string;
+begin
+  Result := CredName(Profile, '.refresh');
+end;
+
+function TCredentialsManager.LoginCommandHint: string;
+begin
+  if SameText(FServerName, 'tms') then
+    Result := 'tms login'
+  else
+    Result := 'tms login -server:' + FServerName;
 end;
 
 procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials);
@@ -220,7 +257,17 @@ begin
       then  Credentials.Expiration := ExpirationDate;
 
   Credentials.AccessToken := DecompressToken(AccessToken);
-  if Credentials.Email <> '' then
+
+  var RefreshUser: string;
+  var RefreshToken: TBytes;
+  var Error3 := CredReadGenericCredentials(RefreshCredName(FDefaultProfile), RefreshUser, RefreshToken, false);
+  if Error3 <> '' then
+  begin
+    Logger.Trace(Error3);
+  end;
+  Credentials.RefreshToken := DecompressToken(RefreshToken);
+
+  if (Credentials.Email <> '') or (Credentials.RefreshToken <> '') then
   begin
     if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
     exit;
@@ -234,6 +281,7 @@ begin
     Credentials.Email := IniFile.ReadString(IniSection, IniEmail, '');
     Credentials.Code := IniFile.ReadString(IniSection, IniCode, '');
     Credentials.AccessToken := IniFile.ReadString(IniSection, IniToken, '');
+    Credentials.RefreshToken := IniFile.ReadString(IniSection, IniRefreshToken, '');
     var IsoDate := IniFile.ReadString(IniSection, IniExpiration, '');
     if IsoDate <> '' then
       Credentials.Expiration := ISO8601ToDate(IsoDate, False)
@@ -305,6 +353,113 @@ begin
 {$ENDIF}
 end;
 
+procedure TCredentialsManager.SaveOidcTokens(Credentials: TCredentials);
+begin
+{$IFDEF MSWINDOWS}
+  var Expiration := '';
+  if YearOf(Credentials.Expiration) > 1900 then
+    Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
+
+  CredWriteGenericCredentials(TokensCredName(FDefaultProfile), Expiration, CompressToken(Credentials.AccessToken));
+  CredWriteGenericCredentials(RefreshCredName(FDefaultProfile), '', CompressToken(Credentials.RefreshToken));
+{$ELSE}
+  var IniFile := TMemIniFile.Create(FCredentialsFile);
+  try
+    var IniSection := FDefaultProfile;
+    if Credentials.AccessToken <> '' then
+      IniFile.WriteString(IniSection, IniToken, Credentials.AccessToken)
+    else
+      IniFile.DeleteKey(IniSection, IniToken);
+    if Credentials.RefreshToken <> '' then
+      IniFile.WriteString(IniSection, IniRefreshToken, Credentials.RefreshToken)
+    else
+      IniFile.DeleteKey(IniSection, IniRefreshToken);
+    if YearOf(Credentials.Expiration) > 1900 then
+      IniFile.WriteString(IniSection, IniExpiration, DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration)))
+    else
+      IniFile.DeleteKey(IniSection, IniExpiration);
+    IniFile.UpdateFile;
+  finally
+    IniFile.Free;
+  end;
+{$ENDIF}
+end;
+
+procedure TCredentialsManager.ClearOidcTokens;
+begin
+{$IFDEF MSWINDOWS}
+  var CmdResult := CredDeleteGenericCredential(TokensCredName(FDefaultProfile), false);
+  if CmdResult <> '' then Logger.Trace(CmdResult);
+
+  CmdResult := CredDeleteGenericCredential(RefreshCredName(FDefaultProfile), false);
+  if CmdResult <> '' then Logger.Trace(CmdResult);
+{$ELSE}
+  if not TFile.Exists(FCredentialsFile) then exit;
+  var IniFile := TMemIniFile.Create(FCredentialsFile);
+  try
+    var IniSection := FDefaultProfile;
+    IniFile.DeleteKey(IniSection, IniToken);
+    IniFile.DeleteKey(IniSection, IniRefreshToken);
+    IniFile.DeleteKey(IniSection, IniExpiration);
+    IniFile.UpdateFile;
+  finally
+    IniFile.Free;
+  end;
+{$ENDIF}
+end;
+
+function TCredentialsManager.RetrieveOidcAccessToken(const Params: TOidcServerParams): string;
+begin
+  var Credentials := ReadCredentials;
+  try
+    // Use a 5-minute margin to check for token expiration. See https://github.com/tmssoftware/tms-smartsetup/issues/301
+    if (Credentials.AccessToken <> '') and (Now < IncMinute(Credentials.Expiration, -5)) then
+      Exit(Credentials.AccessToken);
+
+    if Credentials.RefreshToken = '' then
+      raise Exception.Create('oauth2: not signed in to the ' + FServerName + ' server. Run "'
+        + LoginCommandHint + '" to sign in, or disable the server with "tms server-enable ' + FServerName + ' false"');
+
+    if Credentials.AccessToken <> '' then
+      Logger.Trace('Access token expired, refreshing it')
+    else
+      Logger.Trace('Retrieving access token using refresh token');
+
+    var Client := CreateOidcClient(Params);
+    try
+      try
+        var AuthResult: ITokenResult := Client.RefreshTokens(Credentials.RefreshToken, Params.Scope);
+        Credentials.AccessToken := AuthResult.AccessToken;
+        Credentials.Expiration := AuthResult.Expiration;
+        if AuthResult.RefreshToken <> '' then
+          Credentials.RefreshToken := AuthResult.RefreshToken; // the server may rotate refresh tokens
+      except
+        on E: Exception do
+          raise Exception.Create('oauth2: could not refresh the access token for the ' + FServerName
+            + ' server (' + E.Message + '). Run "' + LoginCommandHint + '" to sign in again.');
+      end;
+    finally
+      Client.Free;
+    end;
+
+    SaveOidcTokens(Credentials);
+    Result := Credentials.AccessToken;
+  finally
+    Credentials.Free;
+  end;
+end;
+
+class function TCredentialsManager.GetOidcAccessToken(const CredentialsFile: string; Options: TFetchOptions;
+  const ServerConfig: TServerConfig; const RepoInfo: IRepositoryInfo): string;
+begin
+  var Manager := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository, ServerConfig.Name);
+  try
+    Result := Manager.RetrieveOidcAccessToken(TOidcServerParams.Resolve(ServerConfig, RepoInfo));
+  finally
+    Manager.Free;
+  end;
+end;
+
 procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 begin
   var OAuth := TOAuth2Authenticator.Create(nil);
@@ -318,6 +473,43 @@ begin
     Logger.Trace('Access token retrieved');
   finally
     OAuth.Free;
+  end;
+end;
+
+{ TOidcServerParams }
+
+class function TOidcServerParams.Resolve(const ServerConfig: TServerConfig; const RepoInfo: IRepositoryInfo): TOidcServerParams;
+begin
+  Result := Default(TOidcServerParams);
+  Result.ClientId := ServerConfig.OidcClientId;
+  Result.Scope := ServerConfig.OidcScope;
+  Result.AuthorizationEndpoint := ServerConfig.OidcAuthorizationEndpoint;
+  Result.TokenEndpoint := ServerConfig.OidcTokenEndpoint;
+
+  // The built-in tms server has no fixed authority: it depends on the repository
+  // profile (production/sandbox/local), so it is resolved the same way as the
+  // AuthUrl used by the classic email/code flow.
+  Result.Authority := ServerConfig.OidcAuthority;
+  if (Result.Authority = '') and (RepoInfo <> nil) then
+    Result.Authority := RepoInfo.AuthUrl;
+end;
+
+function CreateOidcClient(const Params: TOidcServerParams; const RedirectUri: string = ''): TOidcClient;
+begin
+  Result := TOidcClient.Create;
+  try
+    Result.Authority := Params.Authority;
+    Result.ClientId := Params.ClientId;
+    Result.Scope := Params.Scope;
+    Result.RedirectUri := RedirectUri;
+    // When both endpoints are given explicitly, the provider does not need a
+    // discovery document. If only some data is missing, discovery fills the gaps.
+    Result.ProviderInfo.AuthorizationEndpoint := Params.AuthorizationEndpoint;
+    Result.ProviderInfo.TokenEndpoint := Params.TokenEndpoint;
+    Result.AutoDiscover := (Params.AuthorizationEndpoint = '') or (Params.TokenEndpoint = '');
+  except
+    Result.Free;
+    raise;
   end;
 end;
 

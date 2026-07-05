@@ -6,7 +6,8 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, Fetching.OfflineHTTPClient, Fetching.Options, UCredentials,
-  System.JSON, System.JSON.Serializers, System.JSON.Readers, System.JSON.Converters, System.JSON.Types;
+  System.JSON, System.JSON.Serializers, System.JSON.Readers, System.JSON.Converters, System.JSON.Types,
+  UConfigDefinition;
 
 type
   TLicenseStatus = (none, licensed);
@@ -83,6 +84,7 @@ type
     FAccessToken: string;
     FUrl: string;
     FServer: string;
+    FAuthMode: TServerAuthMode;
     FProducts: TObjectList<TRepositoryProduct>;
     FProductsLoaded: Boolean;
     function CreateRequest(const Method, Url: string): IHTTPRequest;
@@ -99,21 +101,22 @@ type
     function GetProductVersions(const ProductId: string; Versions: TList<TRepositoryUserVersion>): Boolean;
     property Url: string read FUrl write FUrl;
     property Server: string read FServer write FServer;
+    property AuthMode: TServerAuthMode read FAuthMode write FAuthMode;
     property AccessToken: string read FAccessToken write FAccessToken;
   end;
 
-function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const AllowInsecureConnections: boolean; const ThrowExceptions: boolean): TRepositoryManager;
+function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const ServerConfig: TServerConfig; const ThrowExceptions: boolean): TRepositoryManager;
 
 implementation
 
 uses
-  UMultiLogger, UConfigDefinition;
+  UMultiLogger;
 
-function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const AllowInsecureConnections: boolean; const ThrowExceptions: boolean): TRepositoryManager;
+function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const ServerConfig: TServerConfig; const ThrowExceptions: boolean): TRepositoryManager;
 begin
-  if not ThrowExceptions and (RootUrl = '') then exit(nil);
+  if not ThrowExceptions and (ServerConfig.Url = '') then exit(nil);
   var ErrorMessage: string;
-  if not TServerConfig.TryValidateUrlScheme(RootUrl, TServerType.Api, AllowInsecureConnections, Server, ErrorMessage) then
+  if not TServerConfig.TryValidateUrlScheme(ServerConfig.Url, TServerType.Api, ServerConfig.AllowInsecureConnections, ServerConfig.Name, ErrorMessage) then
   begin
     if ThrowExceptions then raise Exception.Create(ErrorMessage);
     exit(nil);
@@ -122,9 +125,14 @@ begin
 
   Result := TRepositoryManager.Create;
   try
-    Result.Url := Options.RepositoryInfo(RootUrl).ApiUrl;
-    Result.Server := Server;
-    Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, Options.RepositoryInfo(RootUrl).AuthUrl, Server);
+    var RepoInfo := Options.RepositoryInfo(ServerConfig.Url);
+    Result.Url := RepoInfo.ApiUrl;
+    Result.Server := ServerConfig.Name;
+    Result.AuthMode := ServerConfig.AuthMode;
+    if ServerConfig.AuthMode = TServerAuthMode.Oidc then
+      Result.AccessToken := TCredentialsManager.GetOidcAccessToken(CredentialsFile, Options, ServerConfig, RepoInfo)
+    else
+      Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, RepoInfo.AuthUrl, ServerConfig.Name);
   except
     Result.Free;
     if ThrowExceptions then raise else Result := nil;
@@ -210,7 +218,10 @@ begin
   // Try to get a better error message if it's empty
   if Error = '' then
     case Resp.StatusCode of
-      401: Error := 'Credentials not provided. Use "tms credentials" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"';
+      401: if AuthMode = TServerAuthMode.Oidc then
+             Error := 'oauth2: not signed in. Run "tms login -server:' + Server + '" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"'
+           else
+             Error := 'Credentials not provided. Use "tms credentials" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"';
       403: Error := 'Credentials expired or forbidden';
     else
       Error := 'Request failed';
