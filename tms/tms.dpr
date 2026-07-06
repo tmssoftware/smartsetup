@@ -227,7 +227,12 @@ uses
   SBOM.Generator in 'src\SBOM\SBOM.Generator.pas',
   Commands.SelfUpdate.Verify in 'src\Commands\Commands.SelfUpdate.Verify.pas',
   TMSSystem.Signatures in '..\common\src\System\TMSSystem.Signatures.pas',
-  Downloads.FileNameManager in 'src\Downloads\Downloads.FileNameManager.pas';
+  Downloads.FileNameManager in 'src\Downloads\Downloads.FileNameManager.pas',
+  Auth.Client in 'src\Auth\Auth.Client.pas',
+  Auth.Utils in 'src\Auth\Auth.Utils.pas',
+  Auth.Classes in 'src\Auth\Auth.Classes.pas',
+  Auth.Consts in 'src\Auth\Auth.Consts.pas',
+  Auth.Listener in 'src\Auth\Auth.Listener.pas';
 
 begin
   try

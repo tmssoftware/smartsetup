@@ -19,7 +19,7 @@ procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCa
 
 function CombinePath(const RootPath, RelPath: string): string;
 procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean; const AlreadyVisited: THashSet<string>);
-procedure LaunchFile(const FileName: string);
+function LaunchFile(const FileName: string): Boolean;
 function FindProcessUsing(const FileName: string): string;
 function GuidToStringN(const Guid: TGuid): String;
 procedure TDirectory_CreateDirectory(const Path: string);
@@ -390,13 +390,13 @@ end;
 
 
 
-procedure LaunchFile(const FileName: string);
+function LaunchFile(const FileName: string): Boolean;
 begin
 {$IFDEF MSWINDOWS}
-  ShellExecute(0, 'open', PChar(FileName), '', '', SW_SHOWNORMAL);
+  Result := ShellExecute(0, 'open', PChar(FileName), '', '', SW_SHOWNORMAL) > 32;
 {$ENDIF}
 {$IFDEF POSIX}
-  _system(PAnsiChar('open ' + UTF8Encode(FileName)));
+  Result :=  _system(PAnsiChar('open ' + UTF8Encode(FileName))) = 0;
 {$ENDIF POSIX}
 end;
 
