@@ -127,7 +127,7 @@ type
 
   // How an api server authenticates. Credentials is the classic email/registration-code
   // pair sent as an OAuth2 client-credentials grant. Oidc is a browser-based
-  // OAuth2 authorization code + PKCE flow ("tms login").
+  // OAuth2 authorization code + PKCE flow. Both are driven by "tms credentials".
   TServerAuthMode = (Credentials, Oidc);
 
   TServerConfig = record

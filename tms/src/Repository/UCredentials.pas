@@ -224,9 +224,9 @@ end;
 function TCredentialsManager.LoginCommandHint: string;
 begin
   if SameText(FServerName, 'tms') then
-    Result := 'tms login'
+    Result := 'tms credentials'
   else
-    Result := 'tms login -server:' + FServerName;
+    Result := 'tms credentials -server:' + FServerName;
 end;
 
 procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials);

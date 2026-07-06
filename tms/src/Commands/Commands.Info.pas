@@ -31,7 +31,15 @@ begin
     try
       var Credentials := Manager.ReadCredentials;
       try
-        if (Credentials.Email <> '') and (Credentials.Code <> '') then exit(true);
+        if Server.AuthMode = TServerAuthMode.Oidc then
+        begin
+          // Signed in via browser: what matters is having a refresh token
+          // (or an access token that is still usable).
+          if Credentials.RefreshToken <> '' then exit(true);
+          if (Credentials.AccessToken <> '') and (Now < Credentials.Expiration) then exit(true);
+        end
+        else
+          if (Credentials.Email <> '') and (Credentials.Code <> '') then exit(true);
       finally
         Credentials.Free;
       end;

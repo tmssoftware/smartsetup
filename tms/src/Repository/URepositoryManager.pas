@@ -219,7 +219,7 @@ begin
   if Error = '' then
     case Resp.StatusCode of
       401: if AuthMode = TServerAuthMode.Oidc then
-             Error := 'oauth2: not signed in. Run "tms login -server:' + Server + '" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"'
+             Error := 'oauth2: not signed in. Run "tms credentials -server:' + Server + '" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"'
            else
              Error := 'Credentials not provided. Use "tms credentials" to access the ' + Server + ' server, or disable it with "tms server-enable ' + Server + ' false"';
       403: Error := 'Credentials expired or forbidden';
