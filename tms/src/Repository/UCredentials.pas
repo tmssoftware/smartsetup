@@ -162,8 +162,10 @@ begin
   else if SameText(Value, 'oidc') then Mode := TServerAuthMode.Oidc
   else
   begin
+    // Trace, not Info: this can run inside -json commands whose stdout is parsed
+    // by tmsgui, so nothing may be printed at default verbosity.
     if Value <> '' then
-      Logger.Info('Ignoring unknown TMSSETUP_AUTH_MODE value "' + Value + '" (expected "credentials" or "oidc")');
+      Logger.Trace('Ignoring unknown TMSSETUP_AUTH_MODE value "' + Value + '" (expected "credentials" or "oidc")');
     Exit(False);
   end;
   Result := True;

@@ -8,7 +8,7 @@ procedure RegisterServerListCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions,
-     UConfigWriter, Commands.GlobalConfig, UConfigDefinition,
+     UConfigWriter, Commands.GlobalConfig, UConfigDefinition, UCredentials,
      System.JSON, UJsonPrinter, Commands.Logging;
 
 var
@@ -30,8 +30,15 @@ begin
       Item.AddPair('url', Server.Url);
       Item.AddPair('enabled', Server.Enabled);
       if Server.ServerType = TServerType.Api then
-        if Server.AuthMode <> TServerAuthMode.Credentials then
-          Item.AddPair('auth_mode', Server.AuthModeString);
+      begin
+        // Report the mode after the TMSSETUP_AUTH_MODE override, so tmsgui drives
+        // the same flow (browser sign in vs. e-mail/code dialog) that the CLI
+        // commands it spawns will actually use.
+        var AuthMode: TServerAuthMode;
+        ApplyAuthModeOverride(Server.AuthMode, AuthMode);
+        if AuthMode = TServerAuthMode.Oidc then
+          Item.AddPair('auth_mode', 'oidc');
+      end;
     end;
     OutputJson(Root);
   finally
