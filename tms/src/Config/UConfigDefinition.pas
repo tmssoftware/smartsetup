@@ -158,7 +158,7 @@ type
     // with e-mail/code credentials that users already have stored (see
     // TLegacyCredentialsPolicy): Allow first, Warn some releases later, and Deny
     // just before the server stops accepting e-mail/code altogether.
-    TMSDefaultAuthMode = TServerAuthMode.Credentials;
+    TMSDefaultAuthMode = TServerAuthMode.Oidc;
     TMSLegacyCredentialsPolicy = TLegacyCredentialsPolicy.Allow;
     TMSOidcClientId = 'tms-smartsetup';
     TMSOidcScope = 'openid offline_access';
