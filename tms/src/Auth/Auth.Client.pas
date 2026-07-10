@@ -12,8 +12,15 @@ type
   EOidcClientException = class(Exception);
 
   EOidcClientError = class(EOidcClientException)
+  strict private
+    FError: string;
+    FErrorDescription: string;
   public
     constructor Create(const Error, ErrorDescription: string); overload;
+    // Raw OAuth error code (e.g. 'invalid_grant'), so callers can react to specific
+    // errors without parsing the formatted message.
+    property Error: string read FError;
+    property ErrorDescription: string read FErrorDescription;
   end;
 
   TClientAuthResponse = class
@@ -66,6 +73,7 @@ type
     FAuthority: string;
     FAutoDiscover: Boolean;
     FSkipIssuerValidation: Boolean;
+    FClientSecretInBody: Boolean;
     procedure SetAuthority(const Value: string);
     function AuthStateKey: string;
     function IsCallbackUri(const ResponseUri, ExpectedState: string): Boolean;
@@ -106,6 +114,10 @@ type
     property Authority: string read FAuthority write SetAuthority;
     property ClientId: string read FClientId write FClientId;
     property ClientSecret: string read FClientSecret write FClientSecret;
+    // Send the client secret as form parameters instead of a Basic Authorization
+    // header. Needed by the legacy tms email/code flow, whose "secrets" (registration
+    // codes) are not urlencoded the way RFC 6749 requires for the Basic scheme.
+    property ClientSecretInBody: Boolean read FClientSecretInBody write FClientSecretInBody;
     property Scope: string read FScope write FScope;
     property RedirectUri: string read FRedirectUri write FRedirectUri;
     property AutoDiscover: Boolean read FAutoDiscover write FAutoDiscover;
@@ -573,9 +585,11 @@ begin
     Params.Values[TokenRequestParams.GrantType] := GrantTypes.ClientCredentials;
     if AScope <> '' then
       Params.Values[TokenRequestParams.Scope] := AScope;
-    if Self.ClientSecret = '' then // no authentication
+    if (Self.ClientSecret = '') or ClientSecretInBody then
     begin
       Params.Values[AuthorizeRequestParams.ClientId] := Self.ClientId;
+      if Self.ClientSecret <> '' then
+        Params.Values[TokenRequestParams.ClientSecret] := Self.ClientSecret;
       AuthHeader := '';
     end
     else
@@ -892,6 +906,8 @@ end;
 
 constructor EOidcClientError.Create(const Error, ErrorDescription: string);
 begin
+  FError := Error;
+  FErrorDescription := ErrorDescription;
   if ErrorDescription <> '' then
     inherited CreateFmt(SOAuthError, [Error, ErrorDescription])
   else

@@ -110,7 +110,7 @@ function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchO
 implementation
 
 uses
-  UMultiLogger;
+  System.StrUtils, UMultiLogger, Auth.Client, Auth.Consts;
 
 function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const ServerConfig: TServerConfig; const ThrowExceptions: boolean): TRepositoryManager;
 begin
@@ -128,11 +128,29 @@ begin
     var RepoInfo := Options.RepositoryInfo(ServerConfig.Url);
     Result.Url := RepoInfo.ApiUrl;
     Result.Server := ServerConfig.Name;
-    Result.AuthMode := ServerConfig.AuthMode;
-    if ServerConfig.AuthMode = TServerAuthMode.Oidc then
+    var AuthMode := TCredentialsManager.EffectiveAuthMode(CredentialsFile, Options, ServerConfig);
+    Result.AuthMode := AuthMode;
+    if AuthMode = TServerAuthMode.Oidc then
       Result.AccessToken := TCredentialsManager.GetOidcAccessToken(CredentialsFile, Options, ServerConfig, RepoInfo)
     else
-      Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, RepoInfo.AuthUrl, ServerConfig.Name);
+      try
+        Result.AccessToken := TCredentialsManager.GetAccessToken(CredentialsFile, Options, RepoInfo.AuthUrl, ServerConfig.Name);
+      except
+        on E: EOidcClientError do
+        begin
+          // The server retired e-mail/code authentication while we were still using
+          // grandfathered stored credentials: tell the user how to move on instead of
+          // surfacing a raw OAuth error. The "oauth2: " prefix is the contract tmsgui
+          // uses to offer browser sign-in.
+          if (E.Error = OAuthErrorCodes.CredentialsAuthDisabled)
+            and (ServerConfig.AuthMode = TServerAuthMode.Oidc) then
+            raise Exception.Create('oauth2: the ' + ServerConfig.Name
+              + ' server no longer accepts e-mail/code credentials. Run "tms credentials'
+              + IfThen(SameText(ServerConfig.Name, 'tms'), '', ' -server:' + ServerConfig.Name)
+              + '" to sign in with your browser.');
+          raise;
+        end;
+      end;
   except
     Result.Free;
     if ThrowExceptions then raise else Result := nil;

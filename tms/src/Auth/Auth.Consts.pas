@@ -41,6 +41,15 @@ type
     RefreshToken = 'refresh_token';
     Scope = 'scope';
     CodeVerifier = 'code_verifier';
+    ClientSecret = 'client_secret';
+  end;
+
+  // OAuth error codes (beyond the RFC 6749 standard ones) that tms.exe reacts to.
+  OAuthErrorCodes = class
+  public const
+    // Sent by the smart setup server when legacy e-mail/code authentication has been
+    // turned off. Must match CredentialsAuthDisabledError on the server.
+    CredentialsAuthDisabled = 'credentials_auth_disabled';
   end;
 
   GrantTypes = class

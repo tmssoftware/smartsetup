@@ -130,6 +130,16 @@ type
   // OAuth2 authorization code + PKCE flow. Both are driven by "tms credentials".
   TServerAuthMode = (Credentials, Oidc);
 
+  // What an Oidc server does with e-mail/code credentials stored by a previous
+  // version (users migrated by a release that flipped TMSDefaultAuthMode to Oidc):
+  //   Allow - keep using them silently, so updating tms.exe changes nothing for
+  //           existing users; only fresh sign-ins go through the browser.
+  //   Warn  - keep using them, but log a deprecation notice on every run.
+  //   Deny  - ignore them: commands fail with "not signed in" until the user runs
+  //           "tms credentials" (the TMSSETUP_AUTH_MODE=credentials escape hatch,
+  //           meant to be handed out by support, still forces them through).
+  TLegacyCredentialsPolicy = (Allow, Warn, Deny);
+
   TServerConfig = record
   public
   const
@@ -144,7 +154,12 @@ type
     // from the server's AuthUrl; see URepositoryInfo.
     // Flipping TMSDefaultAuthMode to Oidc is what migrates the built-in tms
     // server from email/code to browser-based login in a future release.
+    // TMSLegacyCredentialsPolicy then controls how aggressive that release is
+    // with e-mail/code credentials that users already have stored (see
+    // TLegacyCredentialsPolicy): Allow first, Warn some releases later, and Deny
+    // just before the server stops accepting e-mail/code altogether.
     TMSDefaultAuthMode = TServerAuthMode.Credentials;
+    TMSLegacyCredentialsPolicy = TLegacyCredentialsPolicy.Allow;
     TMSOidcClientId = 'tms-smartsetup';
     TMSOidcScope = 'openid offline_access';
   public

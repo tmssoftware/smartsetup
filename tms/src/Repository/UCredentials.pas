@@ -66,11 +66,24 @@ type
     procedure SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
     procedure SaveOidcTokens(Credentials: TCredentials);
     procedure ClearOidcTokens;
+    procedure ClearLegacyCredentials;
     function ReadCredentials: TCredentials;
   public
     class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
     class function GetOidcAccessToken(const CredentialsFile: string; Options: TFetchOptions; const ServerConfig: TServerConfig; const RepoInfo: IRepositoryInfo): string;
+
+    // The auth mode actually used to get tokens for a server, as opposed to the
+    // configured ServerConfig.AuthMode: it applies the TMSSETUP_AUTH_MODE override
+    // and, on Oidc servers, falls back to stored e-mail/code credentials from a
+    // previous version (grandfathering, governed by TMSLegacyCredentialsPolicy).
+    class function EffectiveAuthMode(const CredentialsFile: string; Options: TFetchOptions;
+      const ServerConfig: TServerConfig): TServerAuthMode;
   end;
+
+// Applies the TMSSETUP_AUTH_MODE environment variable ('credentials' or 'oidc') to a
+// server's configured auth mode. Undocumented on purpose: it is an escape hatch for
+// support to unblock users during the email/code -> browser sign-in migration.
+function ApplyAuthModeOverride(const ConfiguredMode: TServerAuthMode; out Mode: TServerAuthMode): Boolean;
 
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 function CreateOidcClient(const Params: TOidcServerParams; const RedirectUri: string = ''): TOidcClient;
@@ -79,7 +92,7 @@ function CompressToken(const Token: string): TBytes;
 implementation
 
 uses
-  System.Classes, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals, ZSTD, Auth.Classes;
+  System.Classes, UMultiLogger, Testing.Globals, ZSTD, Auth.Classes;
 
 const
   ZstdPrefix = 'zstd:';
@@ -139,6 +152,23 @@ end;
 function CreateCredentialsManager(const CredentialsFile: string; Options: TFetchOptions; const ServerName: string): TCredentialsManager;
 begin
   Result := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository, ServerName);
+end;
+
+function ApplyAuthModeOverride(const ConfiguredMode: TServerAuthMode; out Mode: TServerAuthMode): Boolean;
+begin
+  Mode := ConfiguredMode;
+  var Value := GetEnvironmentVariable('TMSSETUP_AUTH_MODE');
+  if SameText(Value, 'credentials') then Mode := TServerAuthMode.Credentials
+  else if SameText(Value, 'oidc') then Mode := TServerAuthMode.Oidc
+  else
+  begin
+    if Value <> '' then
+      Logger.Info('Ignoring unknown TMSSETUP_AUTH_MODE value "' + Value + '" (expected "credentials" or "oidc")');
+    Exit(False);
+  end;
+  Result := True;
+  if Mode <> ConfiguredMode then
+    Logger.Trace('Auth mode overridden to ' + Value + ' by TMSSETUP_AUTH_MODE');
 end;
 
 { TCredentialsManager }
@@ -385,6 +415,24 @@ begin
 {$ENDIF}
 end;
 
+procedure TCredentialsManager.ClearLegacyCredentials;
+begin
+{$IFDEF MSWINDOWS}
+  var CmdResult := CredDeleteGenericCredential(AuthCredName(FDefaultProfile), false);
+  if CmdResult <> '' then Logger.Trace(CmdResult);
+{$ELSE}
+  if not TFile.Exists(FCredentialsFile) then exit;
+  var IniFile := TMemIniFile.Create(FCredentialsFile);
+  try
+    IniFile.DeleteKey(FDefaultProfile, IniEmail);
+    IniFile.DeleteKey(FDefaultProfile, IniCode);
+    IniFile.UpdateFile;
+  finally
+    IniFile.Free;
+  end;
+{$ENDIF}
+end;
+
 procedure TCredentialsManager.ClearOidcTokens;
 begin
 {$IFDEF MSWINDOWS}
@@ -449,6 +497,47 @@ begin
   end;
 end;
 
+var
+  LegacyCredentialsWarned: Boolean = False;
+
+class function TCredentialsManager.EffectiveAuthMode(const CredentialsFile: string; Options: TFetchOptions;
+  const ServerConfig: TServerConfig): TServerAuthMode;
+begin
+  // An explicit TMSSETUP_AUTH_MODE wins over everything, including grandfathering:
+  // it states what the user (or support) wants, so don't second-guess it.
+  if ApplyAuthModeOverride(ServerConfig.AuthMode, Result) then Exit;
+
+  if Result <> TServerAuthMode.Oidc then Exit;
+  if TServerConfig.TMSLegacyCredentialsPolicy = TLegacyCredentialsPolicy.Deny then Exit;
+
+  // Grandfathering: an Oidc server with no browser sign-in yet, but with e-mail/code
+  // credentials stored by a previous version, keeps using them. Updating tms.exe
+  // therefore changes nothing for existing users; a successful "tms credentials"
+  // browser sign-in deletes the old credentials and ends the grandfathering.
+  var Manager := TCredentialsManager.Create(CredentialsFile, Options.TargetRepository, ServerConfig.Name);
+  try
+    var Credentials := Manager.ReadCredentials;
+    try
+      if (Credentials.RefreshToken = '') and (Credentials.Email <> '') and (Credentials.Code <> '') then
+      begin
+        Result := TServerAuthMode.Credentials;
+        if (TServerConfig.TMSLegacyCredentialsPolicy = TLegacyCredentialsPolicy.Warn)
+          and not LegacyCredentialsWarned then
+        begin
+          LegacyCredentialsWarned := True;
+          Logger.Info('You are using stored e-mail/code credentials for the ' + ServerConfig.Name
+            + ' server. They are deprecated and will stop working in a future release: run "'
+            + Manager.LoginCommandHint + '" to switch to browser sign-in.');
+        end;
+      end;
+    finally
+      Credentials.Free;
+    end;
+  finally
+    Manager.Free;
+  end;
+end;
+
 class function TCredentialsManager.GetOidcAccessToken(const CredentialsFile: string; Options: TFetchOptions;
   const ServerConfig: TServerConfig; const RepoInfo: IRepositoryInfo): string;
 begin
@@ -462,17 +551,24 @@ end;
 
 procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);
 begin
-  var OAuth := TOAuth2Authenticator.Create(nil);
+  // Same client_credentials grant (client_id = email, client_secret = code, both as
+  // form parameters) that TOAuth2Authenticator used to send, but through TOidcClient
+  // so OAuth errors keep their error code: callers can tell "credentials retired by
+  // the server" (OAuthErrorCodes.CredentialsAuthDisabled) apart from "credentials wrong".
+  var Client := TOidcClient.Create;
   try
-    OAuth.ClientID := Credentials.Email;
-    OAuth.ClientSecret := Credentials.Code;
-    OAuth.AccessTokenEndpoint := AuthUrl.TrimRight(['/']) + '/oauth/token';
-    OAuth.AuthorizeWithClientCredentials;
-    Credentials.AccessToken := OAuth.AccessToken;
-    Credentials.Expiration := OAuth.AccessTokenExpiry;
+    Client.Authority := AuthUrl;
+    Client.ClientId := Credentials.Email;
+    Client.ClientSecret := Credentials.Code;
+    Client.ClientSecretInBody := True;
+    Client.AutoDiscover := False;
+    Client.ProviderInfo.TokenEndpoint := AuthUrl.TrimRight(['/']) + '/oauth/token';
+    var Tokens: ITokenResult := Client.RequestToken;
+    Credentials.AccessToken := Tokens.AccessToken;
+    Credentials.Expiration := Tokens.Expiration;
     Logger.Trace('Access token retrieved');
   finally
-    OAuth.Free;
+    Client.Free;
   end;
 end;
 

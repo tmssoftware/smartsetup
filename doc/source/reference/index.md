@@ -44,7 +44,7 @@ If you are new to TMS Smart Setup, these are the commands you will use most ofte
 
 ### Configuration
 
-- [credentials](xref:SmartSetup.Command.Credentials): Sets or displays the credentials used to access a remote repository.
+- [credentials](xref:SmartSetup.Command.Credentials): Sets, displays, or removes the credentials used to access a remote repository.
 - [spec](xref:SmartSetup.Command.Spec): Creates a new `tmsbuild.yaml` product definition file.
 - [config](xref:SmartSetup.Command.Config): Opens the configuration file in the default editor for YAML files.
 - [config-write](xref:SmartSetup.Command.ConfigWrite): Saves the current configuration to `tms.config.yaml`.

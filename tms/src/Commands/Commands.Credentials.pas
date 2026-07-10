@@ -194,6 +194,9 @@ begin
       Credentials.RefreshToken := Tokens.RefreshToken;
       Credentials.Expiration := Tokens.Expiration;
       Manager.SaveOidcTokens(Credentials);
+      // A successful browser sign-in completes the migration for this user: remove
+      // any e-mail/code stored by a previous version so it is no longer grandfathered.
+      Manager.ClearLegacyCredentials;
     finally
       Credentials.Free;
     end;
@@ -304,6 +307,9 @@ begin
   var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions, Server.Name);
   try
     Manager.ClearOidcTokens;
+    // Also drop grandfathered e-mail/code credentials: after "-delete" nothing may
+    // keep authenticating, and they share the token slot cleared above anyway.
+    Manager.ClearLegacyCredentials;
   finally
     Manager.Free;
   end;
@@ -332,7 +338,15 @@ begin
   try
     var Credentials := Manager.ReadCredentials;
     try
-      var SignedIn := (Credentials.RefreshToken <> '') or (Credentials.AccessToken <> '');
+      // E-mail/code stored by a previous version: still used to authenticate while
+      // grandfathered, so surface it (support relies on this to diagnose migrations).
+      var HasLegacy := (Credentials.Email <> '') and (Credentials.Code <> '');
+      // A bare access token is not proof of a browser session: the grandfathered
+      // e-mail/code flow caches its tokens in the same slot. Only a refresh token is
+      // exclusive to browser sign-in (or an access token when no legacy creds exist,
+      // for servers that issue no refresh token).
+      var SignedIn := (Credentials.RefreshToken <> '')
+        or ((Credentials.AccessToken <> '') and not HasLegacy);
       if UseJson then
       begin
         var Data := TJSONObject.Create;
@@ -342,6 +356,8 @@ begin
           else Data.AddPair('status', 'signed-out');
           if SignedIn and (YearOf(Credentials.Expiration) > 1900) then
             Data.AddPair('expiration', DateToISO8601(Credentials.Expiration));
+          if HasLegacy then
+            Data.AddPair('legacyCredentials', TJSONBool.Create(True));
           OutputJson(Data);
         finally
           Data.Free;
@@ -351,6 +367,9 @@ begin
       begin
         if SignedIn then
           WriteLn(Server.Name + ' status: signed in (browser sign in).')
+        else if HasLegacy then
+          WriteLn(Server.Name + ' status: using stored e-mail/code credentials (deprecated). Run "'
+            + CredentialsCommandHint(Server.Name) + '" to switch to browser sign in.')
         else
           WriteLn(Server.Name + ' status: not signed in. Run "' + CredentialsCommandHint(Server.Name) + '" to sign in.');
       end;
@@ -380,7 +399,13 @@ begin
 
       IsEmpty := false;
 
-      if Server.AuthMode = TServerAuthMode.Oidc then
+      // TMSSETUP_AUTH_MODE lets support force the command into either mode during
+      // the email/code -> browser sign-in migration (e.g. set it to "credentials"
+      // to store an email/code on an OIDC server when browser sign-in fails).
+      var AuthMode: TServerAuthMode;
+      ApplyAuthModeOverride(Server.AuthMode, AuthMode);
+
+      if AuthMode = TServerAuthMode.Oidc then
       begin
         // OIDC servers produce their own output/JSON, so they don't feed the
         // aggregated email/code Data object below.
