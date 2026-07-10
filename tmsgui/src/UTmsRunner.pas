@@ -28,6 +28,7 @@ type
     FIsCanceled: Boolean;
     FAlertNewVersion: TStrings;
     FAlertDiskSpace: TStrings;
+    FAlertLegacyCredentials: TStrings;
     FIgnoreExitCode: Boolean;
     FLastExitCode: Integer;
     FRepository: string;
@@ -51,6 +52,9 @@ type
     property LastExitCode: Integer read FLastExitCode;
     property IsCanceled: Boolean read FIsCanceled;
     function NewVersionDetected: Boolean;
+    // True when the executed command warned that it authenticated to the tms server
+    // with deprecated e-mail/code credentials (TLegacyCredentialsPolicy.Warn phase).
+    function LegacyCredentialsDetected: Boolean;
     property Output: TStrings read FOutput;
     property OnOutputLine: TOutputLineProc read FOnOutputLine write FOnOutputLine;
   end;
@@ -120,13 +124,21 @@ type
     FFolderInitialized: Boolean;
     FHasCredentials: Boolean;
     FConfigFile: string;
+    FAuthStatus: string;
   public
+    // True only for a browser (OIDC) session; grandfathered e-mail/code credentials
+    // report HasCredentials = true but SignedInViaBrowser = false, so the UI offers
+    // "Sign in..." (the migration action) instead of "Sign out".
+    function SignedInViaBrowser: Boolean;
     property Version: TVersion read FVersion write FVersion;
     property Location: string read FLocation write FLocation;
     property WorkingFolder: string read FWorkingFolder write FWorkingFolder;
     property FolderInitialized: Boolean read FFolderInitialized write FFolderInitialized;
     property HasCredentials: Boolean read FHasCredentials write FHasCredentials;
     property ConfigFile: string read FConfigFile write FConfigFile;
+    // 'auth status' of the tms server as reported by "tms info -json": 'signed-in',
+    // 'legacy-credentials', 'credentials' or 'none'. Empty with an older tms.exe.
+    property AuthStatus: string read FAuthStatus write FAuthStatus;
   end;
 
   TTmsInfoRunner = class(TTmsRunner)
@@ -146,6 +158,19 @@ type
 
     // Returns true if credentials updated correctly, false if they are invalid
     function RunUpdateCredentials(const Email, Code: string): Boolean;
+  end;
+
+  TTmsLoginRunner = class(TTmsRunner)
+  public
+    // Blocks until the browser sign in finishes (or times out). Returns true if
+    // signed in, false if the sign in failed or was canceled. On success, Email
+    // contains the signed-in user email (if the server provided one).
+    function RunLogin(const Server: string; out Email: string): Boolean;
+  end;
+
+  TTmsLogoutRunner = class(TTmsRunner)
+  public
+    procedure RunLogout(const Server: string);
   end;
 
   TTmsConfigureRunner = class(TTmsRunner)
@@ -245,12 +270,14 @@ begin
 
   FAlertNewVersion := TStringList.Create;
   FAlertDiskSpace := TStringList.Create;
+  FAlertLegacyCredentials := TStringList.Create;
 end;
 
 destructor TTmsRunner.Destroy;
 begin
   FAlertNewVersion.Free;
   FAlertDiskSpace.Free;
+  FAlertLegacyCredentials.Free;
   FOutput.Free;
   FJsonOutput.Free;
   inherited;
@@ -325,6 +352,11 @@ begin
   Result := FAlertNewVersion.Count > 0;
 end;
 
+function TTmsRunner.LegacyCredentialsDetected: Boolean;
+begin
+  Result := FAlertLegacyCredentials.Count > 0;
+end;
+
 procedure TTmsRunner.ProcessAlerts;
 
   procedure AddNextLines(Target: TStrings; var Index: Integer; Lines: Integer);
@@ -350,6 +382,11 @@ begin
     else
     if Line.StartsWith('WARNING: You only have') and Line.EndsWith('MB left in disk. TMS Smart Setup might not work properly.') then
       AddNextLines(FAlertDiskSpace, I, 2)
+    else
+    // Deprecation warning of the TLegacyCredentialsPolicy.Warn phase (see
+    // TCredentialsManager.EffectiveAuthMode). The prefix is a contract with tms.exe.
+    if Line.StartsWith('You are using stored e-mail/code credentials') then
+      AddNextLines(FAlertLegacyCredentials, I, 1)
     else
       Inc(I);
   end;
@@ -570,6 +607,19 @@ begin
   Info.FolderInitialized := Json.GetValue('folder initialized', False);
   Info.HasCredentials := Json.GetValue('has credentials', False);
   Info.ConfigFile := Json.GetValue('config file', '');
+  Info.AuthStatus := Json.GetValue('auth status', '');
+end;
+
+{ TTmsInfo }
+
+function TTmsInfo.SignedInViaBrowser: Boolean;
+begin
+  // Older tms.exe versions don't report the auth status; with them, having
+  // credentials is the best available approximation of being signed in.
+  if FAuthStatus = '' then
+    Result := FHasCredentials
+  else
+    Result := FAuthStatus = 'signed-in';
 end;
 
 { TTmsCredentialsRunner }
@@ -599,6 +649,39 @@ begin
   if Output.Text.ToLower.Contains('error: oauth2:') then
     Exit(False);
   CheckLastExitCode(Command);
+end;
+
+{ TTmsLoginRunner }
+
+function TTmsLoginRunner.RunLogin(const Server: string; out Email: string): Boolean;
+begin
+  Email := '';
+  IgnoreExitCode := True;
+  var Command := Format('credentials -server:%s -timeout:600 -json', [Server]);
+  Run(AddRepo(Command));
+
+  if IsCanceled then Exit(False);
+
+  if LastExitCode = 0 then
+  begin
+    // parse response
+    if not (JsonOutput is TJSONObject) then
+      raise ETmsRunner.Create('Could not parse login result as JSON object');
+    Email := TJSONObject(JsonOutput).GetValue('email', '');
+    Exit(True);
+  end;
+
+  if Output.Text.ToLower.Contains('error: oauth2:') then
+    Exit(False);
+  CheckLastExitCode(Command);
+  Result := False;
+end;
+
+{ TTmsLogoutRunner }
+
+procedure TTmsLogoutRunner.RunLogout(const Server: string);
+begin
+  Run(AddRepo(Format('credentials -server:%s -delete -json', [Server])));
 end;
 
 { TTmsBuildRunner }
@@ -709,6 +792,8 @@ begin
     Item.Url := JsonItem.GetValue<string>('url', '');
     Item.ServerType := JsonItem.GetValue<string>('type', '');
     Item.Enabled := JsonItem.GetValue<Boolean>('enabled', False);
+    // Field only present for api servers; missing field = old CLI = usercode
+    Item.AuthMode := JsonItem.GetValue<string>('auth_mode', 'usercode');
   end;
 end;
 

@@ -89,6 +89,14 @@ type
   TServersProc = reference to procedure(Servers: TServerConfigItems);
   TRequestCredentialsEvent = reference to procedure(var Email, Code: string; var Confirm: Boolean;
     LastWasInvalid: Boolean; var DisableServer: Boolean);
+
+  TSignInOutcome = (SignedIn, Dismissed, DisableServer);
+  // Fired when an OIDC server needs a browser sign in. The handler drives the UI:
+  // RunLogin blocks until the browser round-trip finishes, so it must be called
+  // from a background thread (it returns true if signed in); CancelLogin kills
+  // the tms.exe process of a RunLogin in flight.
+  TRequestSignInEvent = reference to procedure(const RunLogin: TFunc<Boolean>;
+    const CancelLogin: TProc; var Outcome: TSignInOutcome);
   TGetSelectedProductsProc = reference to procedure(Products: TGUIProductList);
   TCommandOutputProc = reference to procedure(const PartialText: string);
   TProgressProc = reference to procedure(const Percent: Integer);
@@ -108,6 +116,7 @@ type
     FServer: string;
     FServers: TServerConfigItems;
     FOnRequestCredentials: TRequestCredentialsEvent;
+    FOnRequestSignIn: TRequestSignInEvent;
     FOnGetSelectedProducts: TGetSelectedProductsProc;
     FOnLogItemGenerated: TLogItemEvent;
     FLogItems: TObjectList<TGUILogItem>;
@@ -118,6 +127,7 @@ type
     FOnRunFinish: TProc;
     FOnNewVersionDetected: TProc;
     FNewVersionNotified: Boolean;
+    FLegacyCredentialsNotified: Boolean;
     FOnRunnerCreated: TRunnerProc;
     FOnServersUpdated: TServersProc;
     procedure ConsolidateGUIProductList(GUIProducts: TGUIProductList; Local, Remote: TProductInfoList);
@@ -133,11 +143,14 @@ type
     procedure DoRunStart;
     procedure DoRunFinish;
     procedure DoNotifyNewVersion;
+    procedure DoNotifyLegacyCredentials;
     procedure DoRunnerCreated(Runner: TTmsRunner);
     procedure RefreshFetchedProducts(Filter: TProductFilter);
     procedure ApplyProductFilters;
     procedure BeginRunning;
     procedure EndRunning;
+    procedure ExecuteUserCodeCredentials;
+    procedure ExecuteOidcSignIn;
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
@@ -168,9 +181,13 @@ type
     procedure ExecutePinSelected;
     procedure ExecuteUnpinSelected;
 
-    // Updates the credentials
-    // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
+    // Updates the credentials.
+    // For a usercode server, fires OnRequestCredentials for an opportunity to offer user an UI to enter credentials.
+    // For an oidc server, fires OnRequestSignIn to drive the browser sign in.
     procedure ExecuteRequestCredentials;
+
+    // Signs out from the "tms" server (oidc only)
+    procedure ExecuteSignOut;
 
     procedure ExecuteConfigure(Silent: Boolean = False);
 
@@ -229,6 +246,7 @@ type
 
     property OnProductsUpdated: TProductsProc read FOnProductsUpdated write FOnProductsUpdated;
     property OnRequestCredentials: TRequestCredentialsEvent read FOnRequestCredentials write FOnRequestCredentials;
+    property OnRequestSignIn: TRequestSignInEvent read FOnRequestSignIn write FOnRequestSignIn;
     property OnServersUpdated: TServersProc read FOnServersUpdated write FOnServersUpdated;
 
     // Should fill in a list with TGUIProduct objects that represent the current selection.
@@ -566,6 +584,18 @@ begin
   end;
 end;
 
+procedure TGUIEnvironment.DoNotifyLegacyCredentials;
+begin
+  // tms.exe warns on every command during the Warn phase; one log entry per
+  // tmsgui session is enough. The text is rephrased for the GUI: the CLI
+  // original tells users to run "tms credentials".
+  if FLegacyCredentialsNotified then Exit;
+  FLegacyCredentialsNotified := True;
+  GenerateLogItem(TGUILogItem.Create('You are connecting to the tms server with e-mail/code credentials, '
+    + 'which are deprecated and will stop working in a future release. '
+    + 'Click "Sign in..." to switch to browser sign in.'));
+end;
+
 procedure TGUIEnvironment.DoRunFinish;
 begin
   if Assigned(FOnRunFinish) then
@@ -842,6 +872,8 @@ begin
 
       if LocalRunner.NewVersionDetected then
         DoNotifyNewVersion;
+      if LocalRunner.LegacyCredentialsDetected then
+        DoNotifyLegacyCredentials;
     except
       on E: Exception do
       begin
@@ -994,6 +1026,64 @@ begin
 end;
 
 procedure TGUIEnvironment.ExecuteRequestCredentials;
+begin
+  if FServers.UsesOidc('tms') then
+    ExecuteOidcSignIn
+  else
+    ExecuteUserCodeCredentials;
+end;
+
+procedure TGUIEnvironment.ExecuteOidcSignIn;
+begin
+  if not Assigned(FOnRequestSignIn) then
+    Exit;
+
+  var Email := '';
+  var Outcome := TSignInOutcome.Dismissed;
+  FOnRequestSignIn(
+    function: Boolean // called by the handler from a background thread
+    begin
+      var SignedIn := False;
+      RunSync<TTmsLoginRunner>(
+        procedure(Runner: TTmsLoginRunner)
+        begin
+          SignedIn := Runner.RunLogin('tms', Email);
+        end);
+      Result := SignedIn;
+    end,
+    procedure
+    begin
+      CancelRun;
+    end,
+    Outcome);
+
+  case Outcome of
+    TSignInOutcome.SignedIn:
+      if Email <> '' then
+        Logger.Info('Signed in to the tms server as ' + Email)
+      else
+        Logger.Info('Signed in to the tms server');
+    TSignInOutcome.DisableServer:
+      begin
+        EnableServerConfigItem('tms', False);
+        RefreshServers;
+      end;
+  end;
+  RefreshInfo;
+end;
+
+procedure TGUIEnvironment.ExecuteSignOut;
+begin
+  RunSync<TTmsLogoutRunner>(
+    procedure(Runner: TTmsLogoutRunner)
+    begin
+      Runner.RunLogout('tms');
+      Logger.Info('Signed out from the tms server');
+    end);
+  RefreshInfo;
+end;
+
+procedure TGUIEnvironment.ExecuteUserCodeCredentials;
 begin
   if not Assigned(FOnRequestCredentials) then
     Exit;

@@ -126,6 +126,8 @@ type
     procedure GetSelectedProductsEvent(Products: TGUIProductList);
     procedure RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean;
       LastWasInvalid: Boolean; var DisableServer: Boolean);
+    procedure RequestSignInEvent(const RunLogin: TFunc<Boolean>; const CancelLogin: TProc;
+      var Outcome: TSignInOutcome);
     procedure LogItemGeneratedEvent(const Item: TGUILogItem);
     procedure CommandOutputEvent(const Text: string);
     procedure ProgressEvent(const Percent: Integer);
@@ -144,6 +146,7 @@ implementation
 uses
   Winapi.ShellAPI, Winapi.CommCtrl,
   UTheming,
+  Forms.SignIn,
   Forms.VersionPicker;
 
 {$R *.dfm}
@@ -180,12 +183,32 @@ end;
 
 procedure TMainForm.acCredentialsExecute(Sender: TObject);
 begin
-  GUI.ExecuteRequestCredentials;
+  // Grandfathered e-mail/code users (HasCredentials but not SignedInViaBrowser)
+  // get the sign-in flow: a successful browser sign in migrates them, replacing
+  // the deprecated credentials. Sign out is only for real browser sessions.
+  if GUI.Servers.UsesOidc('tms') and GUI.Info.SignedInViaBrowser then
+    GUI.ExecuteSignOut
+  else
+    GUI.ExecuteRequestCredentials;
 end;
 
 procedure TMainForm.acCredentialsUpdate(Sender: TObject);
 begin
   acCredentials.Enabled := GUI.CanRequestCredentials;
+
+  // Don't touch GUI.Info while a runner is active: reading it may spawn a
+  // nested "tms info" run. The caption catches up on the next idle cycle.
+  if GUI.IsRunning then Exit;
+
+  if GUI.Servers.UsesOidc('tms') then
+  begin
+    if GUI.Info.SignedInViaBrowser then
+      acCredentials.Caption := 'Sign &out'
+    else
+      acCredentials.Caption := '&Sign in...';
+  end
+  else
+    acCredentials.Caption := '&Credentials';
 end;
 
 procedure TMainForm.acFilterAllExecute(Sender: TObject);
@@ -419,6 +442,7 @@ begin
   GUI.OnProductsUpdated := ProductsUpdatedEvent;
   GUI.OnServersUpdated := ServersUpdatedEvent;
   GUI.OnRequestCredentials := RequestCredentialsEvent;
+  GUI.OnRequestSignIn := RequestSignInEvent;
   GUI.OnGetSelectedProducts := GetSelectedProductsEvent;
   GUI.OnLogItemGenerated := LogItemGeneratedEvent;
   GUI.OnCommandOutput := CommandOutputEvent;
@@ -658,6 +682,14 @@ procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm
 begin
   Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid, DisableServer);
   if DisableServer and not Confirm then
+    ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
+end;
+
+procedure TMainForm.RequestSignInEvent(const RunLogin: TFunc<Boolean>; const CancelLogin: TProc;
+  var Outcome: TSignInOutcome);
+begin
+  Outcome := TSignInForm.Execute(RunLogin, CancelLogin);
+  if Outcome = TSignInOutcome.DisableServer then
     ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
 end;
 

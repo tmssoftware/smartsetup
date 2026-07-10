@@ -146,6 +146,10 @@
             <Form>CredentialsForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="src\Forms.SignIn.pas">
+            <Form>SignInForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <DCCReference Include="src\UCommonTypes.pas"/>
         <DCCReference Include="src\Forms.VersionPicker.pas">
             <Form>VersionPickerForm</Form>

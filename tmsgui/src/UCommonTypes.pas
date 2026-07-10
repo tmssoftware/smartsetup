@@ -11,6 +11,7 @@ type
     ServerType: string;
     Url: string;
     Enabled: Boolean;
+    AuthMode: string; // 'usercode' or 'oidc'; only meaningful for api servers
     function IsReserved: Boolean;
   end;
 
@@ -18,6 +19,7 @@ type
   public
     function Find(const Name: string): TServerConfigItem;
     function IsEnabled(const Name: string): Boolean;
+    function UsesOidc(const Name: string): Boolean;
     function RemotesEnabled: Boolean;
   end;
 
@@ -71,6 +73,12 @@ function TServerConfigItems.IsEnabled(const Name: string): Boolean;
 begin
   var Server := Find(Name);
   Result := Assigned(Server) and Server.Enabled;
+end;
+
+function TServerConfigItems.UsesOidc(const Name: string): Boolean;
+begin
+  var Server := Find(Name);
+  Result := Assigned(Server) and SameText(Server.AuthMode, 'oidc');
 end;
 
 function TServerConfigItems.RemotesEnabled: Boolean;
