@@ -155,7 +155,18 @@ begin
     AResponseInfo.ContentText := FSuccessHtml;
   AResponseInfo.CloseConnection := True;
 
-  FEvent.SetEvent;
+  // Indy only sends the response after this handler returns, but signaling the
+  // event wakes the caller, which may Stop the server before that happens and
+  // reset the connection, leaving the browser with an error or a blank page.
+  // Flush the page to the browser first, so the event means "the browser got it".
+  // WriteContent clears ContentText, so Indy will not send the body twice.
+  try
+    AResponseInfo.WriteContent;
+  finally
+    // Signal even if the browser dropped the connection mid-write: the callback
+    // URL was already captured above and the sign in must still complete.
+    FEvent.SetEvent;
+  end;
 end;
 
 function TLoopbackListener.WaitForCallback(const TimeoutSeconds: integer;
