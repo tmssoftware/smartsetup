@@ -112,6 +112,10 @@
           "type": "string",
           "description": "The name of the company that produces the product."
         },
+        "homepage": {
+          "type": "string",
+          "description": "The home page URL of the product. If left empty, we will use the property 'url' as the home page."
+        },
         "copyright": {
           "type": "string",
           "description": "The copyright holder of the product."
@@ -126,7 +130,7 @@
         },
         "url": {
           "type": "string",
-          "description": "The URL where the product can be downloaded."
+          "description": "The URL where the product can be downloaded. IMPORTANT: For products not in an API server, this url is the git/svn url. For specifying the homepage, use the 'homepage' property."
         },
         "vcs protocol": {
           "type": "string",

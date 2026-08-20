@@ -12,10 +12,11 @@ application:
   name: TMS Example for VCL
   description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
   company name: TMS Software
+  homepage: https://www.tmssoftware.com/site/example.asp #if empty, the home page will be the same as the url below.
   copyright: tmssoftware
   license: MIT
   license url: https://opensource.org/licenses/MIT
-  url: https://www.tmssoftware.com/
+  url: https://www.tmssoftware.com/ #when using a vcs repository, this is the url to the repository.
   # vcs protocol: git  #might be git, svn or zipfile. If omitted, it will be git.
   docs: https://doc.tmssoftware.com/
   version file: version.txt  # if this line is present, then version.txt must exist, it must have at least one line, 

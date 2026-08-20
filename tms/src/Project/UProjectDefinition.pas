@@ -11,6 +11,7 @@ type
     FId: string;
     FDocs: string;
     FDescription: string;
+    FHomePage: string;
     FUrl: string;
     FCopyright: string;
     FLicense: string;
@@ -29,6 +30,7 @@ type
     property Copyright: string read FCopyright write FCopyright;
     property License: string read FLicense write FLicense;
     property LicenseUrl: string read FLicenseUrl write FLicenseUrl;
+    property HomePage: string read FHomePage write FHomePage;
     property Url: string read FUrl write FUrl;
     property Docs: string read FDocs write FDocs;
     property VersionFile: string read FVersionFile write FVersionFile;
@@ -836,6 +838,7 @@ begin
   Result.FId := FId;
   Result.FDocs := FDocs;
   Result.FDescription := FDescription;
+  Result.FHomePage := FHomePage;
   Result.FUrl := FUrl;
   Result.FCopyright := FCopyright;
   Result.FLicense := FLicense;

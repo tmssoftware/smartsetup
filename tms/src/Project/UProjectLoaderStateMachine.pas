@@ -419,6 +419,7 @@ begin
   Actions.Add('id', procedure(value: string; ErrorInfo: TErrorInfo) begin ValidateId(value); Project.Application.Id := value; end);
   Actions.Add('name', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Name := value; end);
   Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Description := value; end);
+  Actions.Add('homepage', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.HomePage := value; end);
   Actions.Add('copyright', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Copyright := value; end);
   Actions.Add('license', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.License := value; end);
   Actions.Add('license url', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.LicenseUrl := value; end);
