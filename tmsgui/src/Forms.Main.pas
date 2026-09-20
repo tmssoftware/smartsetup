@@ -553,8 +553,8 @@ function TMainForm.GetLogIco(const Item: TGUILogItem): string;
 begin
   case Item.Level of
     TLogLevel.Error: exit('❌');
-    TLogLevel.Info: exit('✓');
-    TLogLevel.Trace: exit('✓');
+    TLogLevel.Info: exit('✔');
+    TLogLevel.Trace: exit('✔');
   end;
   Result :='';
 end;
@@ -812,7 +812,7 @@ procedure TMainForm.UpdateWorking(Sender: TObject);
 const
   Blocks: Array[0.. 9] of string = ('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏');
 begin
-  StatusBar.Panels[3].Text := Blocks[ProgressIndex] + ' Working... ';
+  StatusBar.Panels[3].Text := Blocks[(Length(Blocks) * 2 + 1 - ProgressIndex) mod Length(Blocks)] + Blocks[ProgressIndex] + ' Working... ';
   if ProgressIndex < Length(Blocks) - 1 then Inc(ProgressIndex) else ProgressIndex := 0;
 end;
 
