@@ -126,7 +126,7 @@ type
     FOnRunnerCreated: TRunnerProc;
     FOnServersUpdated: TServersProc;
     procedure ConsolidateGUIProductList(GUIProducts: TGUIProductList; Local, Remote: TProductInfoList);
-    procedure UpdateSelectedProducts;
+    function UpdateSelectedProducts: boolean;
     procedure LogMessageReceived(const Level: TLogLevel; const Message: string);
     function GetInfo: TTmsInfo;
     procedure GenerateLogItem(Item: TGUILogItem);
@@ -357,7 +357,7 @@ function TGUIEnvironment.CanBuild: Boolean;
 begin
   if IsRunning then Exit(False);
 
-  UpdateSelectedProducts;
+  if not UpdateSelectedProducts then Exit(False);
   Result := False;
   for var Product in FSelected do
     if Product.Status in [TProductStatus.Installed, TProductStatus.Available] then
@@ -379,6 +379,7 @@ end;
 function TGUIEnvironment.CanInstallSelected: Boolean;
 begin
   if IsRunning then Exit(False);
+  if not UpdateSelectedProducts then Exit(False);
 
   // According with the desired logic below, the Install button will only be disabled for
   // products that are already installed and don't have a new version available to download
@@ -406,7 +407,7 @@ end;
 function TGUIEnvironment.CanPinSelected: Boolean;
 begin
   if IsRunning then Exit(False);
-  UpdateSelectedProducts;
+  if not UpdateSelectedProducts then Exit(false);
   Result := False;
   for var Product in FSelected do
     if not Product.IsPinned then
@@ -423,7 +424,7 @@ function TGUIEnvironment.CanUninstallSelected: Boolean;
 begin
   if IsRunning then Exit(False);
 
-  UpdateSelectedProducts;
+  if not UpdateSelectedProducts then Exit(false);
   Result := False;
   for var Product in FSelected do
     if Product.Status = TProductStatus.Installed then
@@ -438,7 +439,7 @@ end;
 function TGUIEnvironment.CanUnpinSelected: Boolean;
 begin
   if IsRunning then Exit(False);
-  UpdateSelectedProducts;
+  if not UpdateSelectedProducts then Exit(false);
   Result := False;
   for var Product in FSelected do
     if Product.IsPinned then
@@ -1138,10 +1139,12 @@ begin
   end;
 end;
 
-procedure TGUIEnvironment.UpdateSelectedProducts;
+function TGUIEnvironment.UpdateSelectedProducts: boolean;
 begin
-  if Assigned(FOnGetSelectedProducts) then
-    FOnGetSelectedProducts(FSelected);
+  if not Assigned(FOnGetSelectedProducts) then Exit(False);
+
+  FOnGetSelectedProducts(FSelected);
+  Result := FSelected.Count > 0;
 end;
 
 procedure TGUIEnvironment.UpdateServerConfigItems(Items: TServerConfigItems);
