@@ -67,6 +67,7 @@ type
     lblErrorCaption: TLabel;
     lblTime: TLabel;
     btnOpenHTMLLog: TControlListButton;
+    WorkingFolderDialog: TFileOpenDialog;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -109,6 +110,7 @@ type
       ARect: TRect; AState: TOwnerDrawState);
     procedure btnShowLogClick(Sender: TObject);
     procedure btnOpenHTMLLogClick(Sender: TObject);
+    procedure StatusBarClick(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -791,6 +793,19 @@ begin
       if (WorkingNestedLevel = 1) then StatusBar.Panels[3].Text := 'Working... ';
       WorkingTimer.Enabled := WorkingNestedLevel > 0;
     end);
+end;
+
+procedure TMainForm.StatusBarClick(Sender: TObject);
+begin
+  if GUI.IsRunning then exit;
+  
+  WorkingFolderDialog.DefaultFolder := GetCurrentDir;
+  if not WorkingFolderDialog.Execute then exit;
+
+  SetCurrentDir(WorkingFolderDialog.FileName);
+  GUI.InvalidateInfo;
+  GUI.Start;
+  ShowInfo;
 end;
 
 procedure TMainForm.UpdateWorking(Sender: TObject);

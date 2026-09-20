@@ -153,6 +153,7 @@ type
 
     procedure Start;
     procedure RefreshServers;
+    procedure InvalidateInfo;
 
     function IsRunning: Boolean;
     procedure CancelRun;
@@ -963,6 +964,11 @@ end;
 function TGUIEnvironment.IsValidProduct(Product: TGUIProduct): Boolean;
 begin
   Result := FFetchedProducts.IndexOf(Product) >= 0;
+end;
+
+procedure TGUIEnvironment.InvalidateInfo;
+begin
+  FreeAndNil(FInfo);
 end;
 
 function TGUIEnvironment.IsFilterActive(Filter: TProductFilter): Boolean;

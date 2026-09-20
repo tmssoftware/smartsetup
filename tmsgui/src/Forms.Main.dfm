@@ -450,6 +450,7 @@ object MainForm: TMainForm
         Alignment = taRightJustify
         Width = 200
       end>
+    OnClick = StatusBarClick
     ExplicitTop = 507
     ExplicitWidth = 955
   end
@@ -572,5 +573,13 @@ object MainForm: TMainForm
     object Unpinversion1: TMenuItem
       Action = acUnpin
     end
+  end
+  object WorkingFolderDialog: TFileOpenDialog
+    FavoriteLinks = <>
+    FileTypes = <>
+    Options = [fdoPickFolders, fdoPathMustExist, fdoDontAddToRecent]
+    Title = 'Select folder to install smartsetup bundles'
+    Left = 480
+    Top = 288
   end
 end
