@@ -153,6 +153,11 @@ type
     procedure RunConfigure(Silent: Boolean);
   end;
 
+  TTmsLogViewRunner = class(TTmsRunner)
+  public
+    procedure RunLogView;
+  end;
+
   TTmsSelfUpdateRunner = class(TTmsRunner)
   public
     function RunSelfUpdate: boolean;
@@ -781,6 +786,14 @@ procedure TTmsUnpinRunner.RunUnpin(const ProductIds: TArray<string>);
 begin
   var Command := 'unpin';
   Command := Command + ' ' + String.Join(' ', ProductIds);
+  Run(Command);
+end;
+
+{ TTmsLogViewRunner }
+
+procedure TTmsLogViewRunner.RunLogView;
+begin
+  var Command := 'log-view';
   Run(Command);
 end;
 

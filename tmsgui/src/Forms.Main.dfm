@@ -23,28 +23,43 @@ object MainForm: TMainForm
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
+    ExplicitWidth = 961
+    ExplicitHeight = 510
+    object Splitter2: TSplitter
+      Left = 0
+      Top = 377
+      Width = 971
+      Height = 6
+      Cursor = crVSplit
+      Align = alBottom
+      ResizeStyle = rsUpdate
+      ExplicitTop = 380
+    end
     object PageControl1: TPageControl
       Left = 0
       Top = 0
       Width = 971
-      Height = 383
+      Height = 377
       ActivePage = tsProducts
       Align = alClient
       MultiLine = True
       TabOrder = 0
       TabPosition = tpBottom
+      ExplicitWidth = 961
+      ExplicitHeight = 343
       object tsProducts: TTabSheet
         Caption = 'Products'
         object LeftPanel: TPanel
           Left = 0
           Top = 35
           Width = 105
-          Height = 320
+          Height = 301
           Align = alLeft
           BevelEdges = [beRight]
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 1
+          ExplicitHeight = 267
           object rbAll: TRadioButton
             Left = 2
             Top = 4
@@ -65,8 +80,8 @@ object MainForm: TMainForm
         object lvProducts: TListView
           Left = 105
           Top = 35
-          Width = 753
-          Height = 320
+          Width = 745
+          Height = 301
           Align = alClient
           BorderStyle = bsNone
           Columns = <
@@ -111,20 +126,23 @@ object MainForm: TMainForm
           OnCompare = lvProductsCompare
           OnInfoTip = lvProductsInfoTip
           OnMouseMove = lvProductsMouseMove
+          ExplicitHeight = 304
         end
         object RightPanel: TPanel
-          Left = 858
+          Left = 850
           Top = 35
           Width = 105
-          Height = 320
+          Height = 301
           Align = alRight
           BevelEdges = [beLeft]
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 3
+          ExplicitLeft = 840
+          ExplicitHeight = 267
           DesignSize = (
             103
-            320)
+            301)
           object Button1: TButton
             Left = 8
             Top = 66
@@ -153,38 +171,41 @@ object MainForm: TMainForm
           end
           object Button4: TButton
             Left = 8
-            Top = 288
+            Top = 269
             Width = 89
             Height = 25
             Action = acConfigure
             Anchors = [akLeft, akBottom]
             TabOrder = 3
+            ExplicitTop = 235
           end
           object btCredentials: TButton
             Left = 8
-            Top = 256
+            Top = 237
             Width = 89
             Height = 25
             Action = acCredentials
             Anchors = [akLeft, akBottom]
             TabOrder = 4
+            ExplicitTop = 203
           end
         end
         object TopPanel: TPanel
           Left = 0
           Top = 0
-          Width = 963
+          Width = 955
           Height = 35
           Align = alTop
           BevelEdges = [beBottom]
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 0
+          ExplicitWidth = 945
           DesignSize = (
-            963
+            955
             33)
           object btConfiguration2: TSpeedButton
-            Left = 932
+            Left = 924
             Top = 3
             Width = 23
             Height = 25
@@ -200,13 +221,14 @@ object MainForm: TMainForm
             ExplicitLeft = 871
           end
           object lbServer: TLabel
-            Left = 792
+            Left = 784
             Top = 8
             Width = 35
             Height = 15
             Alignment = taRightJustify
             Anchors = [akTop, akRight]
             Caption = 'Server:'
+            ExplicitLeft = 792
           end
           object edSearch: TEdit
             Left = 5
@@ -218,7 +240,7 @@ object MainForm: TMainForm
             OnChange = edSearchChange
           end
           object cbServer: TComboBox
-            Left = 834
+            Left = 826
             Top = 5
             Width = 91
             Height = 23
@@ -226,6 +248,7 @@ object MainForm: TMainForm
             Anchors = [akTop, akRight]
             TabOrder = 1
             OnChange = cbServerChange
+            ExplicitLeft = 816
           end
         end
       end
@@ -235,8 +258,8 @@ object MainForm: TMainForm
         object OutputMemo: TMemo
           Left = 0
           Top = 0
-          Width = 963
-          Height = 355
+          Width = 955
+          Height = 336
           Align = alClient
           BorderStyle = bsNone
           Font.Charset = DEFAULT_CHARSET
@@ -248,6 +271,7 @@ object MainForm: TMainForm
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 0
+          ExplicitHeight = 334
         end
       end
     end
@@ -260,56 +284,117 @@ object MainForm: TMainForm
       BevelOuter = bvNone
       TabOrder = 1
       Visible = False
-      object LogSplitter: TSplitter
-        Left = 0
-        Top = 62
-        Width = 971
-        Height = 3
-        Cursor = crVSplit
-        Align = alBottom
-        Visible = False
-        ExplicitTop = 0
-        ExplicitWidth = 65
-      end
-      object mmLogDetails: TMemo
-        Left = 0
-        Top = 65
-        Width = 971
-        Height = 70
-        Align = alBottom
-        BorderStyle = bsNone
-        Ctl3D = True
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Consolas'
-        Font.Style = []
-        ParentCtl3D = False
-        ParentFont = False
-        ParentShowHint = False
-        ReadOnly = True
-        ScrollBars = ssVertical
-        ShowHint = False
-        TabOrder = 0
-        Visible = False
-        WordWrap = False
-      end
-      object lbLogItems: TListBox
+      ExplicitTop = 375
+      ExplicitWidth = 961
+      object lbLog: TControlList
         Left = 0
         Top = 0
         Width = 971
-        Height = 62
+        Height = 135
         Align = alClient
-        BorderStyle = bsNone
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Segoe UI'
-        Font.Style = []
-        ItemHeight = 15
-        ParentFont = False
-        TabOrder = 1
-        OnClick = lbLogItemsClick
+        ItemHeight = 30
+        ItemMargins.Left = 0
+        ItemMargins.Top = 0
+        ItemMargins.Right = 0
+        ItemMargins.Bottom = 0
+        ItemSelectionOptions.HotColorAlpha = 50
+        ItemSelectionOptions.SelectedColorAlpha = 70
+        ItemSelectionOptions.FocusedColorAlpha = 80
+        ParentColor = False
+        TabOrder = 0
+        OnBeforeDrawItem = lbLogBeforeDrawItem
+        ExplicitWidth = 961
+        object lblError: TLabel
+          AlignWithMargins = True
+          Left = 76
+          Top = 4
+          Width = 657
+          Height = 22
+          Margins.Left = 20
+          Margins.Top = 4
+          Margins.Right = 4
+          Margins.Bottom = 4
+          Align = alClient
+          AutoSize = False
+          Caption = 'Error'
+          EllipsisPosition = epEndEllipsis
+          ShowAccelChar = False
+          Transparent = True
+          WordWrap = True
+          ExplicitLeft = 150
+          ExplicitTop = 50
+          ExplicitWidth = 639
+          ExplicitHeight = -24
+        end
+        object btnShowLog: TControlListButton
+          AlignWithMargins = True
+          Left = 741
+          Top = 5
+          Width = 107
+          Height = 20
+          Margins.Left = 4
+          Margins.Top = 5
+          Margins.Right = 4
+          Margins.Bottom = 5
+          Align = alRight
+          Caption = #55357#56541'Details'
+          OnClick = btnShowLogClick
+          ExplicitLeft = 856
+          ExplicitHeight = 50
+        end
+        object lblErrorCaption: TLabel
+          AlignWithMargins = True
+          Left = 3
+          Top = 4
+          Width = 13
+          Height = 22
+          Margins.Top = 4
+          Margins.Bottom = 4
+          Align = alLeft
+          Caption = #10060
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clRed
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
+          Font.Style = [fsBold]
+          ParentFont = False
+          ExplicitHeight = 15
+        end
+        object lblTime: TLabel
+          AlignWithMargins = True
+          Left = 22
+          Top = 4
+          Width = 31
+          Height = 22
+          Margins.Top = 4
+          Margins.Bottom = 4
+          Align = alLeft
+          Caption = '10:00'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
+          Font.Style = [fsBold]
+          ParentFont = False
+          ExplicitLeft = 53
+          ExplicitHeight = 15
+        end
+        object btnOpenHTMLLog: TControlListButton
+          AlignWithMargins = True
+          Left = 856
+          Top = 5
+          Width = 107
+          Height = 20
+          Margins.Left = 4
+          Margins.Top = 5
+          Margins.Right = 4
+          Margins.Bottom = 5
+          Align = alRight
+          Caption = #55357#57001'HTML Log'
+          OnClick = btnOpenHTMLLogClick
+          ExplicitLeft = 885
+          ExplicitTop = 6
+        end
       end
     end
     object ProgressPanel: TPanel
@@ -320,6 +405,8 @@ object MainForm: TMainForm
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 2
+      ExplicitTop = 351
+      ExplicitWidth = 961
       object SpeedButton1: TSpeedButton
         Left = 914
         Top = 0
@@ -339,6 +426,7 @@ object MainForm: TMainForm
         Align = alClient
         Smooth = True
         TabOrder = 0
+        ExplicitWidth = 904
       end
     end
   end

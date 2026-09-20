@@ -1,4 +1,4 @@
-unit Forms.Main;
+﻿unit Forms.Main;
 
 interface
 
@@ -6,7 +6,8 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
-  Forms.Config, UCommonTypes, Forms.Start;
+  Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections,
+  Vcl.VirtualImage;
 
 type
   TMainForm = class(TForm)
@@ -37,14 +38,11 @@ type
     Button4: TButton;
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
-    mmLogDetails: TMemo;
     LogPanel: TPanel;
     ProgressPanel: TPanel;
     SpeedButton1: TSpeedButton;
     ProgressBar: TProgressBar;
     StatusBar: TStatusBar;
-    lbLogItems: TListBox;
-    LogSplitter: TSplitter;
     acVersionHistory: TAction;
     pmProducts: TPopupMenu;
     Openversionhistory1: TMenuItem;
@@ -62,6 +60,13 @@ type
     acUnpin: TAction;
     Pinversion1: TMenuItem;
     Unpinversion1: TMenuItem;
+    lbLog: TControlList;
+    lblError: TLabel;
+    btnShowLog: TControlListButton;
+    Splitter2: TSplitter;
+    lblErrorCaption: TLabel;
+    lblTime: TLabel;
+    btnOpenHTMLLog: TControlListButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -83,7 +88,6 @@ type
     procedure acUninstallExecute(Sender: TObject);
     procedure acConfigureUpdate(Sender: TObject);
     procedure acConfigureExecute(Sender: TObject);
-    procedure lbLogItemsClick(Sender: TObject);
     procedure acVersionHistoryUpdate(Sender: TObject);
     procedure acVersionHistoryExecute(Sender: TObject);
     procedure lvProductsCompare(Sender: TObject; Item1, Item2: TListItem; Data: Integer; var Compare: Integer);
@@ -101,6 +105,10 @@ type
     procedure acPinUpdate(Sender: TObject);
     procedure acUnpinExecute(Sender: TObject);
     procedure acPinExecute(Sender: TObject);
+    procedure lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+      ARect: TRect; AState: TOwnerDrawState);
+    procedure btnShowLogClick(Sender: TObject);
+    procedure btnOpenHTMLLogClick(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -119,6 +127,7 @@ type
     procedure SortProducts;
     procedure UpdateSortArrows;
     function Repository: string;
+    function GetLogIco(const Item: TGUILogItem): string;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -332,6 +341,7 @@ begin
   TAction(Sender).Enabled := GetVersionHistoryUrl(Product) <> '';
 end;
 
+
 procedure TMainForm.cbServerChange(Sender: TObject);
 begin
   var Server := '';
@@ -521,19 +531,54 @@ begin
   acCredentials.Visible := GUI.Servers.IsEnabled('tms');
 end;
 
-procedure TMainForm.lbLogItemsClick(Sender: TObject);
+function TMainForm.GetLogIco(const Item: TGUILogItem): string;
 begin
-  var Line := lbLogItems.ItemIndex;
-  var Item: TGUILogItem := nil;
-  if Line >= 0 then
-    Item := TGUILogItem(lbLogItems.Items.Objects[Line]);
+  case Item.Level of
+    TLogLevel.Error: exit('❌');
+    TLogLevel.Info: exit('✓');
+    TLogLevel.Trace: exit('✓');
+  end;
+  Result :='';
+end;
 
-  var Details: string := '';
-  if Item <> nil then
-    Details := Item.Output;
-  mmLogDetails.Visible := Trim(Details) <> '';
-  mmLogDetails.Lines.Text := Details;
-  LogSplitter.Visible := mmLogDetails.Visible;
+procedure TMainForm.lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+  ARect: TRect; AState: TOwnerDrawState);
+begin
+  if (AIndex < 0) or (AIndex >= GUI.LogItems.Count) then
+  begin
+    lblError.Caption := 'Internal Error';
+    lblTime.Caption := '';
+    exit;
+  end;
+
+  lblError.Caption := GUI.LogItems[AIndex].Text;
+  lblTime.Caption := TimeToStr(GUI.LogItems[AIndex].DateTime);
+  btnOpenHTMLLog.Enabled := AIndex = GUI.LogItems.Count - 1;
+
+  lblErrorCaption.Caption := GetLogIco(GUI.LogItems[AIndex]);
+  if (AIndex = GUI.LogItems.Count - 1) then
+  begin
+    if GUI.LogItems[AIndex].Level = TLogLevel.Error then lblErrorCaption.Font.Color := TColors.Red
+    else lblErrorCaption.Font.Color := TColors.Green;
+  end else
+  begin
+    if GUI.LogItems[AIndex].Level = TLogLevel.Error then lblErrorCaption.Font.Color := TColors.Darkred
+    else lblErrorCaption.Font.Color := TColors.Darkgreen;
+  end;
+  
+end;
+
+procedure TMainForm.btnOpenHTMLLogClick(Sender: TObject);
+begin
+  GUI.ExecuteLogView;
+end;
+
+procedure TMainForm.btnShowLogClick(Sender: TObject);
+begin
+  var Button := Sender as TControlListButton;
+  var Index := lbLog.ItemIndex;
+  if (Index < 0) or (Index >= GUI.LogItems.Count) then exit;
+  ShowMessage(GUI.LogItems[Index].Output);
 end;
 
 procedure TMainForm.LogItemGeneratedEvent(const Item: TGUILogItem);
@@ -543,7 +588,7 @@ begin
     begin
       if not LogPanel.Visible then
         LogPanel.Visible := True;
-      lbLogItems.AddItem(Text, Item);
+      lbLog.ItemCount := GUI.LogItems.Count;
     end);
 end;
 

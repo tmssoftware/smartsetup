@@ -68,11 +68,13 @@ type
   TGUILogItem = class
   private
     FText: string;
+    FDateTime: TDateTime;
     FLevel: TLogLevel;
     FOutput: string;
   public
     constructor Create(const AText: string; const ALevel: TLogLevel = TLogLevel.Info; const AOutput: string = '');
     property Text: string read FText write FText;
+    property DateTime: TDateTime read FDateTime;
     property Level: TLogLevel read FLevel write FLevel;
     property Output: string read FOutput write FOutput;
   end;
@@ -173,6 +175,7 @@ type
     procedure ExecuteRequestCredentials;
 
     procedure ExecuteConfigure(Silent: Boolean = False);
+    procedure ExecuteLogView;
 
     // Change the current applied filter. Will fire the OnProductsUpdated after the product list is modified.
     procedure ChangeProductFilter(Filter: TProductFilter);
@@ -317,6 +320,7 @@ begin
   FText := AText;
   FLevel := ALevel;
   FOutput := AOutput;
+  FDateTime := now;
 end;
 
 { TGUIEnvironment }
@@ -706,6 +710,16 @@ begin
     end);
 end;
 
+procedure TGUIEnvironment.ExecuteLogView;
+begin
+  RunSync<TTmsLogViewRunner>(
+    procedure(Runner: TTmsLogViewRunner)
+    begin
+      Runner.RunLogView;
+      RefreshInfo;
+    end);
+end;
+
 procedure TGUIEnvironment.ExecuteFullBuild(ProgressCallback: TProductProgressProc);
 begin
   ExecuteBuild(True, ProgressCallback);
@@ -842,11 +856,21 @@ begin
 
       if LocalRunner.NewVersionDetected then
         DoNotifyNewVersion;
+
+      if LocalRunner is TAbstractTmsBuildRunner then
+      begin
+        GenerateLogItem(TGUILogItem.Create(
+            LocalRunner.ExeFileName,
+            TLogLevel.Info,
+            LocalRunner.Output.Text
+        ));
+      end;
+
     except
       on E: Exception do
       begin
         GenerateLogItem(TGUILogItem.Create(
-          Format('Error running %s: %s (%s)', [T.ClassName, E.Message, E.ClassName]),
+          E.Message,
           TLogLevel.Error,
           LocalRunner.Output.Text
         ));
