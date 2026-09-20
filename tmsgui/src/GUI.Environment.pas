@@ -100,6 +100,9 @@ type
 
   TGUIEnvironment = class
   private
+    FStartWorking: TProc;
+    FStopWorking: TProc;
+
     FFetchedProducts: TGUIProductList;
     FProducts: TGUIProductList;
     FSelected: TGUIProductList;
@@ -247,6 +250,9 @@ type
     property OnNewVersionDetected: TProc read FOnNewVersionDetected write FOnNewVersionDetected;
 
     property OnRunnerCreated: TRunnerProc read FOnRunnerCreated write FOnRunnerCreated;
+
+    property StartWorking: TProc read FStartWorking write FStartWorking;
+    property StopWorking: TProc read FStopWorking write FStopWorking;
   end;
 
 implementation
@@ -846,7 +852,12 @@ begin
         FCurrentRunner := LocalRunner;
         BeginRunning;
         try
-          Proc(LocalRunner);
+          if Assigned(StartWorking) then StartWorking;
+          try
+            Proc(LocalRunner);
+          finally
+            if Assigned(StopWorking) then StopWorking;
+          end;
         finally
           EndRunning;
         end;

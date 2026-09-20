@@ -19,47 +19,48 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 971
-    Height = 542
+    Height = 536
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     ExplicitWidth = 961
-    ExplicitHeight = 510
-    object Splitter2: TSplitter
+    ExplicitHeight = 504
+    object LogSplitter: TSplitter
       Left = 0
-      Top = 377
+      Top = 371
       Width = 971
       Height = 6
       Cursor = crVSplit
       Align = alBottom
       ResizeStyle = rsUpdate
+      Visible = False
       ExplicitTop = 380
     end
     object PageControl1: TPageControl
       Left = 0
       Top = 0
       Width = 971
-      Height = 377
+      Height = 371
       ActivePage = tsProducts
       Align = alClient
       MultiLine = True
       TabOrder = 0
       TabPosition = tpBottom
       ExplicitWidth = 961
-      ExplicitHeight = 343
+      ExplicitHeight = 339
       object tsProducts: TTabSheet
         Caption = 'Products'
         object LeftPanel: TPanel
           Left = 0
           Top = 35
           Width = 105
-          Height = 301
+          Height = 295
           Align = alLeft
           BevelEdges = [beRight]
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 1
-          ExplicitHeight = 267
+          ExplicitHeight = 263
           object rbAll: TRadioButton
             Left = 2
             Top = 4
@@ -81,7 +82,7 @@ object MainForm: TMainForm
           Left = 105
           Top = 35
           Width = 745
-          Height = 301
+          Height = 295
           Align = alClient
           BorderStyle = bsNone
           Columns = <
@@ -126,23 +127,22 @@ object MainForm: TMainForm
           OnCompare = lvProductsCompare
           OnInfoTip = lvProductsInfoTip
           OnMouseMove = lvProductsMouseMove
-          ExplicitHeight = 304
         end
         object RightPanel: TPanel
           Left = 850
           Top = 35
           Width = 105
-          Height = 301
+          Height = 295
           Align = alRight
           BevelEdges = [beLeft]
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 3
           ExplicitLeft = 840
-          ExplicitHeight = 267
+          ExplicitHeight = 263
           DesignSize = (
             103
-            301)
+            295)
           object Button1: TButton
             Left = 8
             Top = 66
@@ -171,23 +171,23 @@ object MainForm: TMainForm
           end
           object Button4: TButton
             Left = 8
-            Top = 269
+            Top = 263
             Width = 89
             Height = 25
             Action = acConfigure
             Anchors = [akLeft, akBottom]
             TabOrder = 3
-            ExplicitTop = 235
+            ExplicitTop = 231
           end
           object btCredentials: TButton
             Left = 8
-            Top = 237
+            Top = 231
             Width = 89
             Height = 25
             Action = acCredentials
             Anchors = [akLeft, akBottom]
             TabOrder = 4
-            ExplicitTop = 203
+            ExplicitTop = 199
           end
         end
         object TopPanel: TPanel
@@ -259,7 +259,7 @@ object MainForm: TMainForm
           Left = 0
           Top = 0
           Width = 955
-          Height = 336
+          Height = 330
           Align = alClient
           BorderStyle = bsNone
           Font.Charset = DEFAULT_CHARSET
@@ -271,20 +271,19 @@ object MainForm: TMainForm
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 0
-          ExplicitHeight = 334
         end
       end
     end
     object LogPanel: TPanel
       Left = 0
-      Top = 407
+      Top = 401
       Width = 971
       Height = 135
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       Visible = False
-      ExplicitTop = 375
+      ExplicitTop = 369
       ExplicitWidth = 961
       object lbLog: TControlList
         Left = 0
@@ -376,7 +375,6 @@ object MainForm: TMainForm
           Font.Name = 'Segoe UI'
           Font.Style = [fsBold]
           ParentFont = False
-          ExplicitLeft = 53
           ExplicitHeight = 15
         end
         object btnOpenHTMLLog: TControlListButton
@@ -399,13 +397,13 @@ object MainForm: TMainForm
     end
     object ProgressPanel: TPanel
       Left = 0
-      Top = 383
+      Top = 377
       Width = 971
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 2
-      ExplicitTop = 351
+      ExplicitTop = 345
       ExplicitWidth = 961
       object SpeedButton1: TSpeedButton
         Left = 914
@@ -431,9 +429,10 @@ object MainForm: TMainForm
     end
   end
   object StatusBar: TStatusBar
-    Left = 0
-    Top = 542
-    Width = 971
+    AlignWithMargins = True
+    Left = 3
+    Top = 539
+    Width = 965
     Height = 19
     Panels = <
       item
@@ -443,7 +442,16 @@ object MainForm: TMainForm
       item
         Bevel = pbNone
         Width = 300
+      end
+      item
+        Width = 50
+      end
+      item
+        Alignment = taRightJustify
+        Width = 200
       end>
+    ExplicitTop = 507
+    ExplicitWidth = 955
   end
   object ActionList1: TActionList
     Left = 240

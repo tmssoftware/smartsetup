@@ -63,7 +63,7 @@ type
     lbLog: TControlList;
     lblError: TLabel;
     btnShowLog: TControlListButton;
-    Splitter2: TSplitter;
+    LogSplitter: TSplitter;
     lblErrorCaption: TLabel;
     lblTime: TLabel;
     btnOpenHTMLLog: TControlListButton;
@@ -115,6 +115,9 @@ type
     SortColumn: Integer;
     SortDescending: Boolean;
     OverCaption: Boolean;
+    ProgressIndex: integer;
+    WorkingNestedLevel: integer;
+    WorkingTimer: TTimer;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
@@ -128,6 +131,10 @@ type
     procedure UpdateSortArrows;
     function Repository: string;
     function GetLogIco(const Item: TGUILogItem): string;
+
+    procedure StartWorking;
+    procedure UpdateWorking(Sender: TObject);
+    procedure StopWorking;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -424,6 +431,12 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := 4;  // sort by status by default
 
+  WorkingTimer := TTimer.Create(Self);
+  WorkingTimer.Enabled := false;
+  WorkingTimer.Interval := 500;
+  WorkingTimer.OnTimer := UpdateWorking;
+
+
   GUI := TGUIEnvironment.Create;
 
   GUI.OnProductsUpdated := ProductsUpdatedEvent;
@@ -436,6 +449,9 @@ begin
   GUI.OnRunFinish := RunFinishEvent;
   GUI.OnNewVersionDetected := NewVersionDetectedEvent;
   GUI.OnRunnerCreated := RunnerCreatedEvent;
+
+  GUI.StartWorking := StartWorking;
+  GUI.StopWorking := StopWorking;
 
   ShowInfo;
 
@@ -587,7 +603,10 @@ begin
   TThread.Queue(nil, procedure
     begin
       if not LogPanel.Visible then
+      begin
         LogPanel.Visible := True;
+        LogSplitter.Visible := True;
+      end;
       lbLog.ItemCount := GUI.LogItems.Count;
     end);
 end;
@@ -762,6 +781,34 @@ procedure TMainForm.SortProducts;
 begin
   lvProducts.AlphaSort;
   UpdateSortArrows;
+end;
+
+procedure TMainForm.StartWorking;
+begin
+  TThread.Queue(nil, procedure
+    begin
+      Inc(WorkingNestedLevel);
+      if (WorkingNestedLevel = 1) then StatusBar.Panels[3].Text := 'Working... ';
+      WorkingTimer.Enabled := WorkingNestedLevel > 0;
+    end);
+end;
+
+procedure TMainForm.UpdateWorking(Sender: TObject);
+const
+  Blocks: Array[0.. 9] of string = ('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏');
+begin
+  StatusBar.Panels[3].Text := Blocks[ProgressIndex] + ' Working... ';
+  if ProgressIndex < Length(Blocks) - 1 then Inc(ProgressIndex) else ProgressIndex := 0;
+end;
+
+procedure TMainForm.StopWorking;
+begin
+  TThread.Queue(nil, procedure
+    begin
+      if (WorkingNestedLevel > 0) then Dec(WorkingNestedLevel);
+      WorkingTimer.Enabled := WorkingNestedLevel > 0;
+      if (WorkingNestedLevel = 0) then StatusBar.Panels[3].Text := '';
+    end);
 end;
 
 procedure TMainForm.UpdateSortArrows;
