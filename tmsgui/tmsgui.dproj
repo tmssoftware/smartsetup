@@ -164,6 +164,10 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="src\UTheming.pas"/>
+        <DCCReference Include="src\Forms.LogDetails.pas">
+            <Form>LogDetailsForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>

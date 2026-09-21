@@ -23,7 +23,8 @@ uses
   Forms.Config in 'src\Forms.Config.pas' {ConfigForm},
   Vcl.Themes,
   Vcl.Styles,
-  UTheming in 'src\UTheming.pas';
+  UTheming in 'src\UTheming.pas',
+  Forms.LogDetails in 'src\Forms.LogDetails.pas' {LogDetailsForm};
 
 {$R *.res}
 

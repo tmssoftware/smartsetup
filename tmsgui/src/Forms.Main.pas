@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
-  Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections,
+  Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
   Vcl.VirtualImage;
 
 type
@@ -39,9 +39,6 @@ type
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
     LogPanel: TPanel;
-    ProgressPanel: TPanel;
-    SpeedButton1: TSpeedButton;
-    ProgressBar: TProgressBar;
     StatusBar: TStatusBar;
     acVersionHistory: TAction;
     pmProducts: TPopupMenu;
@@ -68,6 +65,9 @@ type
     lblTime: TLabel;
     btnOpenHTMLLog: TControlListButton;
     WorkingFolderDialog: TFileOpenDialog;
+    ProgressPanel: TPanel;
+    SpeedButton1: TSpeedButton;
+    ProgressBar: TProgressBar;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -120,6 +120,7 @@ type
     ProgressIndex: integer;
     WorkingNestedLevel: integer;
     WorkingTimer: TTimer;
+    LogDetailsForm: TLogDetailsForm;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
@@ -438,6 +439,8 @@ begin
   WorkingTimer.Interval := 500;
   WorkingTimer.OnTimer := UpdateWorking;
 
+  LogDetailsForm := TLogDetailsForm.Create(Self); //keep so it doesn't keep resizing when you reopen it.
+  LogPanel.Height := 1; // 0 would not allow us to resize the box when closed.
 
   GUI := TGUIEnvironment.Create;
 
@@ -562,28 +565,32 @@ end;
 procedure TMainForm.lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
   ARect: TRect; AState: TOwnerDrawState);
 begin
-  if (AIndex < 0) or (AIndex >= GUI.LogItems.Count) then
+  var RevIndex := GUI.LogItems.Count - 1 - AIndex;
+
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then
   begin
     lblError.Caption := 'Internal Error';
     lblTime.Caption := '';
     exit;
   end;
 
-  lblError.Caption := GUI.LogItems[AIndex].Text;
-  lblTime.Caption := TimeToStr(GUI.LogItems[AIndex].DateTime);
-  btnOpenHTMLLog.Enabled := AIndex = GUI.LogItems.Count - 1;
+  lblError.Caption := GUI.LogItems[RevIndex].Text;
+  lblTime.Caption := TimeToStr(GUI.LogItems[RevIndex].DateTime);
+  btnOpenHTMLLog.Enabled := RevIndex = GUI.LogItems.Count - 1;
+  if btnOpenHTMLLog.Enabled then btnOpenHTMLLog.Caption := 'Log' else btnOpenHTMLLog.Caption := '';
 
-  lblErrorCaption.Caption := GetLogIco(GUI.LogItems[AIndex]);
-  if (AIndex = GUI.LogItems.Count - 1) then
+
+  lblErrorCaption.Caption := GetLogIco(GUI.LogItems[RevIndex]);
+  if GUI.LogItems[RevIndex].Level = TLogLevel.Error then
   begin
-    if GUI.LogItems[AIndex].Level = TLogLevel.Error then lblErrorCaption.Font.Color := TColors.Red
-    else lblErrorCaption.Font.Color := TColors.Green;
-  end else
+    lblErrorCaption.Font.Color := TColors.Red;
+    lblErrorCaption.StyleElements := lblErrorCaption.StyleElements - [TStyleElement.SeFont];
+  end
+  else
   begin
-    if GUI.LogItems[AIndex].Level = TLogLevel.Error then lblErrorCaption.Font.Color := TColors.Darkred
-    else lblErrorCaption.Font.Color := TColors.Darkgreen;
+    lblErrorCaption.Font.Color := TColors.Black;
+    lblErrorCaption.StyleElements := lblErrorCaption.StyleElements + [TStyleElement.SeFont];
   end;
-  
 end;
 
 procedure TMainForm.btnOpenHTMLLogClick(Sender: TObject);
@@ -594,9 +601,10 @@ end;
 procedure TMainForm.btnShowLogClick(Sender: TObject);
 begin
   var Button := Sender as TControlListButton;
-  var Index := lbLog.ItemIndex;
-  if (Index < 0) or (Index >= GUI.LogItems.Count) then exit;
-  ShowMessage(GUI.LogItems[Index].Output);
+  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
+  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Output);
+  LogDetailsForm.ShowModal;
 end;
 
 procedure TMainForm.LogItemGeneratedEvent(const Item: TGUILogItem);
@@ -604,12 +612,12 @@ begin
   var Text := FormatLogMessage(Item);
   TThread.Queue(nil, procedure
     begin
-      if not LogPanel.Visible then
+      if (LogPanel.Height = 0) and (Item.Level = TLogLevel.Error) then
       begin
-        LogPanel.Visible := True;
-        LogSplitter.Visible := True;
+        LogPanel.Height := 300;
       end;
       lbLog.ItemCount := GUI.LogItems.Count;
+      lbLog.Refresh;
     end);
 end;
 
