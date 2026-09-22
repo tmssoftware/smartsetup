@@ -114,16 +114,19 @@ type
 
   TTmsInfo = class
   private
+    FInitialized: boolean;
     FVersion: TVersion;
     FLocation: string;
     FWorkingFolder: string;
     FFolderInitialized: Boolean;
     FHasCredentials: Boolean;
     FConfigFile: string;
+    function GetWorkingFolder: string;
   public
+    property Initialized: boolean read FInitialized write FInitialized;
     property Version: TVersion read FVersion write FVersion;
     property Location: string read FLocation write FLocation;
-    property WorkingFolder: string read FWorkingFolder write FWorkingFolder;
+    property WorkingFolder: string read GetWorkingFolder write FWorkingFolder;
     property FolderInitialized: Boolean read FFolderInitialized write FFolderInitialized;
     property HasCredentials: Boolean read FHasCredentials write FHasCredentials;
     property ConfigFile: string read FConfigFile write FConfigFile;
@@ -575,6 +578,7 @@ begin
   Info.FolderInitialized := Json.GetValue('folder initialized', False);
   Info.HasCredentials := Json.GetValue('has credentials', False);
   Info.ConfigFile := Json.GetValue('config file', '');
+  Info.Initialized := true;
 end;
 
 { TTmsCredentialsRunner }
@@ -799,6 +803,15 @@ begin
   var Command := 'log-view ' + SessionId + PrintString;
   Run(Command);
   Result := Output.Text.Trim;
+end;
+
+{ TTmsInfo }
+
+function TTmsInfo.GetWorkingFolder: string;
+begin
+  if not Initialized then exit('Error reading working folder');
+
+  Result := FWorkingFolder;
 end;
 
 end.

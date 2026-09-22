@@ -966,14 +966,21 @@ end;
 
 function TGUIEnvironment.GetInfo: TTmsInfo;
 begin
+  if (FInfo <> nil) and not (FInfo.Initialized) then FreeAndNil(FInfo);
+
   if FInfo = nil then
   begin
     FInfo := TTmsInfo.Create;
-    RunSync<TTmsInfoRunner>(
-      procedure(Runner: TTmsInfoRunner)
-      begin
-        Runner.RunInfo(FInfo);
-      end);
+    try
+      RunSync<TTmsInfoRunner>(
+        procedure(Runner: TTmsInfoRunner)
+        begin
+          Runner.RunInfo(FInfo);
+        end);
+    except
+      FreeAndNil(FInfo);
+      raise;
+    end;
   end;
   Result := FInfo;
 end;

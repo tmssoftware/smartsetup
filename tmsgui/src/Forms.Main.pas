@@ -140,6 +140,7 @@ type
     procedure StartWorking;
     procedure UpdateWorking(Sender: TObject);
     procedure StopWorking;
+    function GetLastError: string;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -503,9 +504,25 @@ begin
   end;
 end;
 
+function TMainForm.GetLastError: string;
+begin
+  if GUI.LogItems.Count = 0 then exit('Unknown error');
+  exit(GUI.LogItems.Last.Output);
+end;
+
 procedure TMainForm.FormShow(Sender: TObject);
 begin
-  if not GUI.Info.FolderInitialized then
+  if not GUI.Info.Initialized then
+  begin
+    ShowMessage('Error initializing SmartSetup: ' + GetLastError);
+   // Application.Terminate;
+    Gui.Start;
+    exit;
+  end;
+
+  //Show the message only if there is no config file yet.
+  //If we used FolderInitialized here, it will be true in an empty folder. But we want to show the welcome in an empty folder.
+  if not TFile.Exists(GUI.Info.ConfigFile) then
   begin
     var TMS, Community: Boolean;
     if TStartForm.Execute(TMS, Community) then
@@ -520,7 +537,7 @@ begin
     end;
   end;
 
-  if GUI.Info.FolderInitialized then
+  if TFile.Exists(GUI.Info.ConfigFile) then
     GUI.Start
   else
     Application.Terminate;
@@ -791,13 +808,9 @@ const
   {$I ..\..\version.inc}
 begin
   StatusBar.Panels[0].Text := TMSVersion;
+  StatusBar.Panels[2].Text := Repository;
+
   StatusBar.Panels[1].Text := GUI.Info.WorkingFolder;
-  if (Repository <> '') then
-  begin
-    if StatusBar.Panels.Count < 3 then
-      StatusBar.Panels.Add;
-    StatusBar.Panels[2].Text := Repository;
-  end;
 end;
 
 procedure TMainForm.SortProducts;
