@@ -2,8 +2,7 @@ unit ULogRotate;
 {$i ../tmscommon.inc}
 
 interface
-procedure LogRotate(const LogFolder, LogFile: string); overload;
-procedure LogRotate(const LogFileFullName: string); overload;
+procedure LogRotate(const LogFileFullName, SessionId: string); overload;
 function ZipLogLocation(const LogFolder: string): string;
 
 implementation
@@ -21,9 +20,9 @@ begin
   Result := TPath.Combine(LogFolder, 'logs.zip');
 end;
 
-procedure TrimLogs(const LogFolder: string);
+procedure TrimLogs(const LogFolder: string; const LogExtension: string);
 begin
-  var files := TDirectory.GetFiles(LogFolder, '*.saved.log');
+  var files := TDirectory.GetFiles(LogFolder, '*' + LogExtension);
   if Length(files) > MaxLogs then
   begin
     TArray.Sort<string>(files);
@@ -35,23 +34,24 @@ begin
 
 end;
 
-procedure LogRotate(const LogFolder, LogFile: string);
+procedure LogRotate(const LogFolder, LogFile, SessionId, LogExtension: string); overload;
 begin
   if LogFolder.Trim = '' then Exit;
   var LogFileName := TPath.Combine(LogFolder, LogFile);
   if not TFile.Exists(LogFileName) then Exit;
 
-  var NewFileName := FormatDateTime('yyyy-mm-dd-hh-nn-ss.zzz', Now) + '.saved.log';
+  var NewFileName := SessionId + LogExtension;
   TFile.Copy(LogFileName, TPath.Combine(LogFolder, NewFileName));
-  TrimLogs(LogFolder);
+  TrimLogs(LogFolder, LogExtension);
   var zip := ZipLogLocation(LogFolder);
   DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, zip);
   TZipFile.ZipDirectoryContents(zip, LogFolder);
 end;
 
-procedure LogRotate(const LogFileFullName: string);
+procedure LogRotate(const LogFileFullName, SessionId: string); overload;
 begin
-  LogRotate(TPath.GetDirectoryName(LogFileFullName), TPath.GetFileName(LogFileFullName));
+  LogRotate(TPath.GetDirectoryName(LogFileFullName), TPath.GetFileName(LogFileFullName), SessionId, '.saved.log');
+  LogRotate(TPath.GetDirectoryName(LogFileFullName), TPath.GetFileName(LogFileFullName) + '.html', SessionId, '.saved.log.html');
 end;
 
 end.

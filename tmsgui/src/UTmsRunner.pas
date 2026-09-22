@@ -155,7 +155,7 @@ type
 
   TTmsLogViewRunner = class(TTmsRunner)
   public
-    procedure RunLogView;
+    function RunLogView(const SessionId: string; const Print: boolean): string;
   end;
 
   TTmsSelfUpdateRunner = class(TTmsRunner)
@@ -791,10 +791,14 @@ end;
 
 { TTmsLogViewRunner }
 
-procedure TTmsLogViewRunner.RunLogView;
+function TTmsLogViewRunner.RunLogView(const SessionId: string; const Print: Boolean): string;
 begin
-  var Command := 'log-view';
+  var PrintString := '';
+  if Print then PrintString := ' -print';
+
+  var Command := 'log-view ' + SessionId + PrintString;
   Run(Command);
+  Result := Output.Text.Trim;
 end;
 
 end.

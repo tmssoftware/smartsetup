@@ -71,12 +71,14 @@ type
     FDateTime: TDateTime;
     FLevel: TLogLevel;
     FOutput: string;
+    FSessionId: string;
   public
     constructor Create(const AText: string; const ALevel: TLogLevel = TLogLevel.Info; const AOutput: string = '');
     property Text: string read FText write FText;
     property DateTime: TDateTime read FDateTime;
     property Level: TLogLevel read FLevel write FLevel;
     property Output: string read FOutput write FOutput;
+    property SessionId: string read FSessionId write FSessionId;
   end;
 
   TProductFilter = (All, Installed);
@@ -134,7 +136,6 @@ type
     procedure CheckRunning;
     function SelectedProductIds: TArray<string>;
     procedure ExecuteBuild(FullBuild: Boolean; ProgressCallback: TProductProgressProc);
-    procedure RefreshInfo;
     procedure DoRunStart;
     procedure DoRunFinish;
     procedure DoNotifyNewVersion;
@@ -143,6 +144,7 @@ type
     procedure ApplyProductFilters;
     procedure BeginRunning;
     procedure EndRunning;
+    procedure ValidateSessionIds;
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
@@ -152,8 +154,8 @@ type
     destructor Destroy; override;
 
     procedure Start;
+    procedure RefreshInfo;
     procedure RefreshServers;
-    procedure InvalidateInfo;
 
     function IsRunning: Boolean;
     procedure CancelRun;
@@ -179,7 +181,7 @@ type
     procedure ExecuteRequestCredentials;
 
     procedure ExecuteConfigure(Silent: Boolean = False);
-    procedure ExecuteLogView;
+    function ExecuteLogView(const SessionId: string; const Print: Boolean): string;
 
     // Change the current applied filter. Will fire the OnProductsUpdated after the product list is modified.
     procedure ChangeProductFilter(Filter: TProductFilter);
@@ -259,7 +261,7 @@ type
 implementation
 
 uses
-  Masks;
+  Masks, IOUtils;
 
 { TGUILogger }
 
@@ -319,6 +321,18 @@ begin
   LogMessage(S, TLogLevel.Trace);
 end;
 
+function GetSessionId(const s: string): string;
+const
+  Id = '] Session Id: ';
+begin
+  var idx := s.IndexOf(Id);
+  if idx < 0 then exit('');
+
+  var eol := s.IndexOf(#$0A, idx + Id.Length);
+  if eol < 0 then eol := s.Length;
+  exit (s.Substring(idx + Id.Length, eol - (idx + Id.Length)).Trim);
+end;
+
 { TGUILogItem }
 
 constructor TGUILogItem.Create(const AText: string; const ALevel: TLogLevel; const AOutput: string);
@@ -327,6 +341,7 @@ begin
   FText := AText;
   FLevel := ALevel;
   FOutput := AOutput;
+  FSessionId := GetSessionId(AOutput);
   FDateTime := now;
 end;
 
@@ -718,14 +733,17 @@ begin
     end);
 end;
 
-procedure TGUIEnvironment.ExecuteLogView;
+function TGUIEnvironment.ExecuteLogView(const SessionId: string; const Print: Boolean): string;
+var
+  _Result: string;
 begin
   RunSync<TTmsLogViewRunner>(
     procedure(Runner: TTmsLogViewRunner)
     begin
-      Runner.RunLogView;
+      _Result := Runner.RunLogView(SessionId, Print);
       RefreshInfo;
     end);
+    Result := _Result;
 end;
 
 procedure TGUIEnvironment.ExecuteFullBuild(ProgressCallback: TProductProgressProc);
@@ -918,9 +936,30 @@ begin
     end);
 end;
 
+procedure TGUIEnvironment.ValidateSessionIds;
+begin
+  //Cleanup IDs that don't exist anymore. Not the ideal place to check it, but
+  //better than on the OnDrawItem.
+
+  for var i := 0 to FLogItems.Count - 1 do
+  begin
+    var SessionId := FLogItems[i].SessionId;
+    if SessionId = '' then exit;
+    
+    RunSync<TTmsLogViewRunner>(
+      procedure(Runner: TTmsLogViewRunner)
+      begin
+        var LogFileName := Runner.RunLogView(SessionId, true);
+        if not TFile.Exists(LogFileName) then FLogItems[i].SessionId := '';
+      end);
+
+  end;
+end;
+
 procedure TGUIEnvironment.GenerateLogItem(Item: TGUILogItem);
 begin
   FLogItems.Add(Item);
+  ValidateSessionIds;
   if Assigned(OnLogItemGenerated) then
     FOnLogItemGenerated(Item);
 end;
@@ -965,11 +1004,6 @@ end;
 function TGUIEnvironment.IsValidProduct(Product: TGUIProduct): Boolean;
 begin
   Result := FFetchedProducts.IndexOf(Product) >= 0;
-end;
-
-procedure TGUIEnvironment.InvalidateInfo;
-begin
-  FreeAndNil(FInfo);
 end;
 
 function TGUIEnvironment.IsFilterActive(Filter: TProductFilter): Boolean;

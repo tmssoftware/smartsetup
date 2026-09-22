@@ -59,10 +59,12 @@ begin
 end;
 
 var LogFile: string;
+var SessionId: string;
 
 procedure StartLogging;
 begin
   LogFile := Config.Folders.LogFile;
+  SessionId := FormatDateTime('yyyy-mm-dd-hh-nn-ss.zzz', Now);
   TDirectory_CreateDirectory(TPath.GetDirectoryName(LogFile));
   Logger.AddLogger(TPlainTextLogger.Create(LogFile));
   Logger.AddLogger(THTMLLogger.Create(LogFile + '.html'));
@@ -76,6 +78,8 @@ begin
   Logger.Trace('Working dir: ' + Config.Folders.RootFolder);
   Logger.Trace('Build cores: ' + IntToStr(TThreadPool.Default.MaxWorkerThreads));
   Logger.Trace('');
+  Logger.Info('Session Id: ' + SessionId);
+  Logger.Trace('');
   Logger.StartSection(TMessageType.Configuration, 'Configuration:');
   Logger.Trace(TConfigWriter.GetProperty(Config, '', TWritingFormat.Minimal, false, false));
   Logger.FinishSection(TMessageType.Configuration);
@@ -87,7 +91,9 @@ end;
 procedure FinishLogging;
 begin
   if LogFile <> '' then
-    LogRotate(LogFile);
+  begin
+    LogRotate(LogFile, SessionId);
+  end;
   if ExitCode <> 0 then
   begin
     WriteLn;

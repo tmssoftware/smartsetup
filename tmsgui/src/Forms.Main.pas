@@ -162,7 +162,7 @@ implementation
 
 uses
   Winapi.ShellAPI, Winapi.CommCtrl,
-  UTheming,
+  UTheming, IOUtils,
   Forms.VersionPicker;
 
 {$R *.dfm}
@@ -576,7 +576,7 @@ begin
 
   lblError.Caption := GUI.LogItems[RevIndex].Text;
   lblTime.Caption := TimeToStr(GUI.LogItems[RevIndex].DateTime);
-  btnOpenHTMLLog.Enabled := RevIndex = GUI.LogItems.Count - 1;
+  btnOpenHTMLLog.Enabled := GUI.LogItems[RevIndex].SessionId <> ''; //To be 100% sure, we would need to do a if File.Exists here, but it would be too time consuming to put in BeforeDrawItem. So we guess. It might be that the file isn't there anymore, but then the button just won't do anything.
   if btnOpenHTMLLog.Enabled then btnOpenHTMLLog.Caption := 'Log' else btnOpenHTMLLog.Caption := '';
 
 
@@ -595,12 +595,23 @@ end;
 
 procedure TMainForm.btnOpenHTMLLogClick(Sender: TObject);
 begin
-  GUI.ExecuteLogView;
+  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
+  var SessionId := GUI.LogItems[RevIndex].SessionId;
+  if SessionId = '' then exit;
+
+  var LogFile := GUI.ExecuteLogView(SessionId, true);
+  if not TFile.Exists(LogFile) then
+  begin
+    GUI.LogItems[RevIndex].SessionId := ''; //file was deleted, we won't show the log button anymore.
+    exit;
+  end;
+
+  GUI.ExecuteLogView(SessionId, false);
 end;
 
 procedure TMainForm.btnShowLogClick(Sender: TObject);
 begin
-  var Button := Sender as TControlListButton;
   var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
   if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
   LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Output);
@@ -612,7 +623,7 @@ begin
   var Text := FormatLogMessage(Item);
   TThread.Queue(nil, procedure
     begin
-      if (LogPanel.Height = 0) and (Item.Level = TLogLevel.Error) then
+      if (LogPanel.Height <= 5) and (Item.Level = TLogLevel.Error) then
       begin
         LogPanel.Height := 300;
       end;
@@ -811,7 +822,7 @@ begin
   if not WorkingFolderDialog.Execute then exit;
 
   SetCurrentDir(WorkingFolderDialog.FileName);
-  GUI.InvalidateInfo;
+  GUI.RefreshInfo;
   GUI.Start;
   ShowInfo;
 end;

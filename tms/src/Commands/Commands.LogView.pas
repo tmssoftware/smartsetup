@@ -15,10 +15,16 @@ uses
 var
   AsText,
   Print: Boolean;
+  SessionId: string;
 
 procedure RunLogViewCommand;
 begin
   var LogFileName := Config.Folders.LogFile;
+  if SessionId <> '' then
+  begin
+    LogFileName := TPath.Combine(TPath.GetDirectoryName(LogFileName), SessionId + '.saved.log');
+  end;
+
   if not AsText then LogFileName := LogFileName + '.html';
 
   if Print then
@@ -31,10 +37,19 @@ procedure RegisterLogViewCommand;
 begin
   Print := False;
   AsText := False;
+  SessionId := '';
   var cmd := TOptionsRegistry.RegisterCommand('log-view', '', 'Opens the log file in the default viewer.',
     'Opens the log file in the default viewer. Depending on the options it can the the html log or the text log.' + sLineBreak +
     'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-log-view.html',
     'log-view [<options>]');
+
+   var optionSessionId := cmd.RegisterUnNamedOption<string>('Session Id for an old log. If not specified, the last log will be opened.', 'SessionId',
+    procedure(const Value : String)
+    begin
+      SessionId := Value;
+    end);
+  optionSessionId.Required := False;
+
 
   var optionPrint := cmd.RegisterOption<Boolean>('print', '', 'Writes the log filename to the screen and do not open the log file',
     procedure(const Value : Boolean)
