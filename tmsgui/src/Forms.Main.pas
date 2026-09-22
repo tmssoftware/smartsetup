@@ -68,6 +68,8 @@ type
     ProgressPanel: TPanel;
     SpeedButton1: TSpeedButton;
     ProgressBar: TProgressBar;
+    acLogDetails: TAction;
+    acViewHtmlLog: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -108,9 +110,9 @@ type
     procedure acPinExecute(Sender: TObject);
     procedure lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
-    procedure btnShowLogClick(Sender: TObject);
-    procedure btnOpenHTMLLogClick(Sender: TObject);
     procedure StatusBarClick(Sender: TObject);
+    procedure acLogDetailsExecute(Sender: TObject);
+    procedure acViewHtmlLogExecute(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -263,6 +265,14 @@ begin
   TAction(Sender).Enabled := (Product <> nil) and GUI.CanInstallSelected;
 end;
 
+procedure TMainForm.acLogDetailsExecute(Sender: TObject);
+begin
+  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
+  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Output);
+  LogDetailsForm.ShowModal;
+end;
+
 procedure TMainForm.acPartialBuildExecute(Sender: TObject);
 begin
   GUI.ExecutePartialBuild(ProductProgressEvent);
@@ -351,6 +361,23 @@ begin
   TAction(Sender).Enabled := GetVersionHistoryUrl(Product) <> '';
 end;
 
+
+procedure TMainForm.acViewHtmlLogExecute(Sender: TObject);
+begin
+  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
+  var SessionId := GUI.LogItems[RevIndex].SessionId;
+  if SessionId = '' then exit;
+
+  var LogFile := GUI.ExecuteLogView(SessionId, true);
+  if not TFile.Exists(LogFile) then
+  begin
+    GUI.LogItems[RevIndex].SessionId := ''; //file was deleted, we won't show the log button anymore.
+    exit;
+  end;
+
+  GUI.ExecuteLogView(SessionId, false);
+end;
 
 procedure TMainForm.cbServerChange(Sender: TObject);
 begin
@@ -577,7 +604,7 @@ begin
   lblError.Caption := GUI.LogItems[RevIndex].Text;
   lblTime.Caption := TimeToStr(GUI.LogItems[RevIndex].DateTime);
   btnOpenHTMLLog.Enabled := GUI.LogItems[RevIndex].SessionId <> ''; //To be 100% sure, we would need to do a if File.Exists here, but it would be too time consuming to put in BeforeDrawItem. So we guess. It might be that the file isn't there anymore, but then the button just won't do anything.
-  if btnOpenHTMLLog.Enabled then btnOpenHTMLLog.Caption := 'Log' else btnOpenHTMLLog.Caption := '';
+  if btnOpenHTMLLog.Enabled then btnOpenHTMLLog.Caption := acViewHtmlLog.Caption else btnOpenHTMLLog.Caption := '';
 
 
   lblErrorCaption.Caption := GetLogIco(GUI.LogItems[RevIndex]);
@@ -591,31 +618,6 @@ begin
     lblErrorCaption.Font.Color := TColors.Black;
     lblErrorCaption.StyleElements := lblErrorCaption.StyleElements + [TStyleElement.SeFont];
   end;
-end;
-
-procedure TMainForm.btnOpenHTMLLogClick(Sender: TObject);
-begin
-  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
-  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
-  var SessionId := GUI.LogItems[RevIndex].SessionId;
-  if SessionId = '' then exit;
-
-  var LogFile := GUI.ExecuteLogView(SessionId, true);
-  if not TFile.Exists(LogFile) then
-  begin
-    GUI.LogItems[RevIndex].SessionId := ''; //file was deleted, we won't show the log button anymore.
-    exit;
-  end;
-
-  GUI.ExecuteLogView(SessionId, false);
-end;
-
-procedure TMainForm.btnShowLogClick(Sender: TObject);
-begin
-  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
-  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
-  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Output);
-  LogDetailsForm.ShowModal;
 end;
 
 procedure TMainForm.LogItemGeneratedEvent(const Item: TGUILogItem);

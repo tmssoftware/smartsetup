@@ -23,7 +23,6 @@ object MainForm: TMainForm
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
-    ExplicitHeight = 536
     object LogSplitter: TSplitter
       Left = 0
       Top = 365
@@ -47,7 +46,6 @@ object MainForm: TMainForm
       MultiLine = True
       TabOrder = 0
       TabPosition = tpBottom
-      ExplicitHeight = 371
       object tsProducts: TTabSheet
         Caption = 'Products'
         object LeftPanel: TPanel
@@ -60,7 +58,6 @@ object MainForm: TMainForm
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 1
-          ExplicitHeight = 308
           object rbAll: TRadioButton
             Left = 2
             Top = 4
@@ -127,7 +124,6 @@ object MainForm: TMainForm
           OnCompare = lvProductsCompare
           OnInfoTip = lvProductsInfoTip
           OnMouseMove = lvProductsMouseMove
-          ExplicitHeight = 308
         end
         object RightPanel: TPanel
           Left = 858
@@ -139,7 +135,6 @@ object MainForm: TMainForm
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 3
-          ExplicitHeight = 308
           DesignSize = (
             103
             302)
@@ -177,7 +172,6 @@ object MainForm: TMainForm
             Action = acConfigure
             Anchors = [akLeft, akBottom]
             TabOrder = 3
-            ExplicitTop = 276
           end
           object btCredentials: TButton
             Left = 8
@@ -187,7 +181,6 @@ object MainForm: TMainForm
             Action = acCredentials
             Anchors = [akLeft, akBottom]
             TabOrder = 4
-            ExplicitTop = 244
           end
         end
         object TopPanel: TPanel
@@ -268,7 +261,6 @@ object MainForm: TMainForm
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 0
-          ExplicitHeight = 343
         end
       end
     end
@@ -280,7 +272,6 @@ object MainForm: TMainForm
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
-      ExplicitTop = 401
       object lbLog: TControlList
         Left = 0
         Top = 0
@@ -298,6 +289,7 @@ object MainForm: TMainForm
         ParentColor = False
         TabOrder = 0
         OnBeforeDrawItem = lbLogBeforeDrawItem
+        OnItemDblClick = acLogDetailsExecute
         object lblError: TLabel
           AlignWithMargins = True
           Left = 76
@@ -328,10 +320,9 @@ object MainForm: TMainForm
           Margins.Top = 2
           Margins.Right = 4
           Margins.Bottom = 2
+          Action = acLogDetails
           Align = alRight
-          Caption = 'Details'
           Style = clbkToolButton
-          OnClick = btnShowLogClick
           ExplicitTop = -3
           ExplicitHeight = 14
         end
@@ -381,10 +372,9 @@ object MainForm: TMainForm
           Margins.Top = 2
           Margins.Right = 4
           Margins.Bottom = 2
+          Action = acViewHtmlLog
           Align = alRight
-          Caption = 'Log'
           Style = clbkToolButton
-          OnClick = btnOpenHTMLLogClick
           ExplicitLeft = 856
           ExplicitTop = 5
         end
@@ -423,7 +413,6 @@ object MainForm: TMainForm
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 2
-    ExplicitTop = 377
     object SpeedButton1: TSpeedButton
       Left = 914
       Top = 0
@@ -537,6 +526,16 @@ object MainForm: TMainForm
       Caption = 'Unpin version'
       OnExecute = acUnpinExecute
       OnUpdate = acUnpinUpdate
+    end
+    object acLogDetails: TAction
+      Category = 'ErrorBox'
+      Caption = 'Details'
+      OnExecute = acLogDetailsExecute
+    end
+    object acViewHtmlLog: TAction
+      Category = 'ErrorBox'
+      Caption = 'Log'
+      OnExecute = acViewHtmlLogExecute
     end
   end
   object BuildMenu: TPopupMenu
