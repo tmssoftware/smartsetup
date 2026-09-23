@@ -93,8 +93,9 @@ begin
     begin
       Writeln('server: ' + Product.Server);
       Writeln('pinned: ' + BoolToStr(Product.Pinned, true));
-      var IDEPrinted := False;
       for var IDEName := Low(TIDEName) to High(TIDEName) do
+      begin
+        var IDEPrinted := False;
         for var Plat := Low(TPlatform) to High(TPlatform) do
           if Product.IDEStatus(IDEName).PlatformStatus(Plat).IsBuilt
             and Product.IDEStatus(IDEName).PlatformStatus(Plat).IsRegistered then
@@ -107,6 +108,7 @@ begin
 
             WriteLn('  - ' + PlatformId[Plat]);
           end;
+      end;
       WriteLn('');
     end;
   end;
