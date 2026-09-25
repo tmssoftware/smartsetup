@@ -494,7 +494,7 @@ begin
     Entry.Scope := TokenResponse.GetValue(TokenResponseParams.Scope, '');
     if Entry.Scope = '' then
       Entry.Scope := AuthState.Scope;
-    ExpiresIn := TokenResponse.GetValue(TokenResponseParams.ExpiresIn, 0);
+    ExpiresIn := TokenResponse.GetValue<Integer>(TokenResponseParams.ExpiresIn, 0);
     if ExpiresIn = 0 then
       Entry.ExpiresAt := MaxDateTime
     else
@@ -624,7 +624,7 @@ begin
   Entry.Scope := TokenResponse.GetValue(TokenResponseParams.Scope, '');
   if Entry.Scope = '' then
     Entry.Scope := AScope;
-  ExpiresIn := TokenResponse.GetValue(TokenResponseParams.ExpiresIn, 0);
+  ExpiresIn := TokenResponse.GetValue<Integer>(TokenResponseParams.ExpiresIn, 0);
   if ExpiresIn = 0 then
     Entry.ExpiresAt := MaxDateTime
   else
