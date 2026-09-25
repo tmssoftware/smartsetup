@@ -637,6 +637,9 @@ begin
   if FullName = 'paths:web core paths:' then exit(Nullable(FProduct.ExtraPaths.WebCorePaths.ToArray));
   if FullName = 'paths:search paths to preserve:' then exit(Nullable(FProduct.SearchPathsToPreserve));
   if FullName = 'paths:build-only library paths:' then exit(Nullable(FProduct.ExtraPaths.LibraryPathsBuildOnly.ToArray));
+  if FullName = 'paths:extra delphi library paths:' then exit(Nullable(FProduct.ExtraPaths.DelphiLibraryPaths.ToArray));
+  if FullName = 'paths:extra cpp library paths:' then exit(Nullable(FProduct.ExtraPaths.CppLibraryPaths.ToArray));
+  if FullName = 'paths:extra cpp include paths:' then exit(Nullable(FProduct.ExtraPaths.CppIncludePaths.ToArray));
 
   //defines:
   if FullName = 'defines:' then exit(TYamlValue.MakeObject);

@@ -246,6 +246,24 @@ type
     class function SectionNameStatic: string; override;
   end;
 
+  TExtraDelphiLibraryPathSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
+  TExtraCppLibraryPathSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
+  TExtraCppIncludePathSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    class function SectionNameStatic: string; override;
+  end;
+
   TExtraBrowsingPathSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
@@ -1008,6 +1026,9 @@ begin
   inherited Create(aParent, aProject);
   ChildSections.Add(TExtraLibraryPathSectionDef.SectionNameStatic, TExtraLibraryPathSectionDef.Create(Self, aProject));
   ChildSections.Add(TBuildOnlyLibraryPathSectionDef.SectionNameStatic, TBuildOnlyLibraryPathSectionDef.Create(Self, aProject));
+  ChildSections.Add(TExtraDelphiLibraryPathSectionDef.SectionNameStatic, TExtraDelphiLibraryPathSectionDef.Create(Self, aProject));
+  ChildSections.Add(TExtraCppLibraryPathSectionDef.SectionNameStatic, TExtraCppLibraryPathSectionDef.Create(Self, aProject));
+  ChildSections.Add(TExtraCppIncludePathSectionDef.SectionNameStatic, TExtraCppIncludePathSectionDef.Create(Self, aProject));
   ChildSections.Add(TExtraBrowsingPathSectionDef.SectionNameStatic, TExtraBrowsingPathSectionDef.Create(Self, aProject));
   ChildSections.Add(TExtraDebugDCUPathSectionDef.SectionNameStatic, TExtraDebugDCUPathSectionDef.Create(Self, aProject));
   ChildSections.Add(TWebCorePathSectionDef.SectionNameStatic, TWebCorePathSectionDef.Create(Self, aProject));
@@ -1084,6 +1105,72 @@ end;
 class function TBuildOnlyLibraryPathSectionDef.SectionNameStatic: string;
 begin
   Result := 'build-only library paths';
+end;
+
+{ TExtraDelphiLibraryPathSectionDef }
+
+constructor TExtraDelphiLibraryPathSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Duplicated := TDictionary<string, boolean>.Create;
+  SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.DelphiLibraryPaths.Clear;end;
+
+  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.ExtraPaths.DelphiLibraryPaths.Add(name);
+    end;
+
+end;
+
+class function TExtraDelphiLibraryPathSectionDef.SectionNameStatic: string;
+begin
+  Result := 'extra delphi library paths';
+end;
+
+{ TExtraCppLibraryPathSectionDef }
+
+constructor TExtraCppLibraryPathSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Duplicated := TDictionary<string, boolean>.Create;
+  SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.CppLibraryPaths.Clear;end;
+
+  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.ExtraPaths.CppLibraryPaths.Add(name);
+    end;
+
+end;
+
+class function TExtraCppLibraryPathSectionDef.SectionNameStatic: string;
+begin
+  Result := 'extra cpp library paths';
+end;
+
+{ TExtraCppIncludePathSectionDef }
+
+constructor TExtraCppIncludePathSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Duplicated := TDictionary<string, boolean>.Create;
+  SectionValueTypes := TSectionValueTypes.NoValues;
+  ClearArrayValues := procedure begin Project.ExtraPaths.CppIncludePaths.Clear;end;
+
+  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+    begin
+      Project.ExtraPaths.CppIncludePaths.Add(name);
+    end;
+
+end;
+
+class function TExtraCppIncludePathSectionDef.SectionNameStatic: string;
+begin
+  Result := 'extra cpp include paths';
 end;
 
 { TExtraBrowsingPathSectionDef }

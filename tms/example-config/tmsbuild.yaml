@@ -149,10 +149,19 @@ paths:
     # - path1 # relative to the root of the project. do not start with a \. You can also use /, tmsbuild will fix it according ot the OS.
     # - path2\a\b
     # - '@linux64,win64intel: path3' #only added to the linux64 and win64 library path
+
+  # "extra library paths" above are added to both the Delphi and the C++ Builder library paths. Use the entries below if you
+  # want to add a path only to Delphi or only to C++ Builder.
+  extra delphi library paths: #only added to the Delphi library path.
+
+  extra cpp library paths: #only added to the C++ Builder library path.
+
   
   extra browsing paths:
   
   extra debug dcu path:
+
+  extra cpp include paths: #added to the C++ Builder include path.
 
   web core paths: #paths to register in webcore
     # - path1

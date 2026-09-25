@@ -753,19 +753,20 @@ begin
 
   // Register Browsing Path
   var ExtraBrowsingPath := BuildInfo.Project.ExtraPaths.GetBrowsingPaths(PlatformInfo.PlatType);
-  var BrowsingPath := AddPaths(Consolidation.BrowsingPath, ExtraBrowsingPath);
+  var FullBrowsingPath := AddPaths(Consolidation.BrowsingPath, ExtraBrowsingPath);
 
   if not BuildInfo.Project.AddSourceCodeToLibraryPath {and not BinaryInstall} then
-    AppendIDEPath(ptBrowsingPath, [BrowsingPath]);
+    AppendIDEPath(ptBrowsingPath, [FullBrowsingPath]);
 
   // Register Library Path
   if BuildInfo.Project.AddSourceCodeToLibraryPath {and not BinaryInstall} then
-    AppendIDEPath(ptLibraryPath, [BrowsingPath]);
+    AppendIDEPath(ptLibraryPath, [FullBrowsingPath]);
   var ExtraLibraryPath := BuildInfo.Project.ExtraPaths.GetLibraryPaths(PlatformInfo.PlatType, false);
+  var ExtraDelphiLibraryPath := BuildInfo.Project.ExtraPaths.GetDelphiLibraryPaths(PlatformInfo.PlatType);
   if PlatformInfo.PlatType in [Linux64, macOS64Intel] then
-    AppendIDEPath(ptLibraryPath, [Consolidation.DcuOutputDir, Consolidation.BplOutputDir, ExtraLibraryPath])
+    AppendIDEPath(ptLibraryPath, [Consolidation.DcuOutputDir, Consolidation.BplOutputDir, ExtraLibraryPath, ExtraDelphiLibraryPath])
   else
-    AppendIDEPath(ptLibraryPath, [Consolidation.DcuOutputDir, ExtraLibraryPath]);
+    AppendIDEPath(ptLibraryPath, [Consolidation.DcuOutputDir, ExtraLibraryPath, ExtraDelphiLibraryPath]);
 
   // Register Debug DCU Path
   var ExtraDebugDcuPath :=  BuildInfo.Project.ExtraPaths.GetDebugDCUPaths(PlatformInfo.PlatType);
@@ -774,15 +775,17 @@ begin
   // Add C++ Builder paths
   if Consolidation.DoCBuilder then
   begin
-    AppendIDEPath(ptCppLibraryPath, [Consolidation.CppObjOutputDir, Consolidation.CppBpiOutputDir]);
-    AppendIDEPath(ptCppIncludePath, [Consolidation.CppHppOutputDir]);
-    AppendIDEPath(ptCppBrowsingPath, [Consolidation.BrowsingPath]);
+    var ExtraCppLibraryPath := BuildInfo.Project.ExtraPaths.GetCppLibraryPaths(PlatformInfo.PlatType);
+    var ExtraCppIncludePath := BuildInfo.Project.ExtraPaths.GetCppIncludePaths(PlatformInfo.PlatType);
+    AppendIDEPath(ptCppLibraryPath, [Consolidation.CppObjOutputDir, Consolidation.CppBpiOutputDir, ExtraLibraryPath, ExtraCppLibraryPath]);
+    AppendIDEPath(ptCppIncludePath, [Consolidation.CppHppOutputDir, ExtraCppIncludePath]);
+    AppendIDEPath(ptCppBrowsingPath, [FullBrowsingPath]);
 
     if (IDEInfo.IDEName >= TIDEName.delphiseattle) and (PlatformInfo.PlatType = TPlatform.win32intel) then
     begin
-      AppendIDEPath(ptCppClang32LibraryPath, [Consolidation.CppObjOutputDir, Consolidation.CppBpiOutputDir]);
-      AppendIDEPath(ptCppClang32IncludePath, [Consolidation.CppHppOutputDir]);
-      AppendIDEPath(ptCppClang32BrowsingPath, [Consolidation.BrowsingPath]);
+      AppendIDEPath(ptCppClang32LibraryPath, [Consolidation.CppObjOutputDir, Consolidation.CppBpiOutputDir, ExtraLibraryPath, ExtraCppLibraryPath]);
+      AppendIDEPath(ptCppClang32IncludePath, [Consolidation.CppHppOutputDir, ExtraCppIncludePath]);
+      AppendIDEPath(ptCppClang32BrowsingPath, [FullBrowsingPath]);
     end;
   end;
 

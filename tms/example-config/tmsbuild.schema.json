@@ -581,11 +581,27 @@
     },
     "paths": {
       "type": ["object", "null"],
-      "description": "Use this section only if you need to add extra paths to the library path, browsing path or dcu list.\nThese paths will be added to all delphi versions and all platforms.",
+      "description": "Use this section only if you need to add extra paths to the library path, browsing path or dcu list.\nThese paths will be added to all Rad Studio versions and all platforms where the product is installed.",
       "properties": {
         "extra library paths": {
           "type": ["array", "null"],
-          "description": "Include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path",
+          "description": "Library paths to be added to both Delphi and CPP.\n Include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "extra delphi library paths": {
+          "type": ["array", "null"],
+          "description": "Similar to \"extra library paths\", but the paths are only added to the Delphi library path.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "extra cpp library paths": {
+          "type": ["array", "null"],
+          "description": "Similar to \"extra library paths\", but the paths are only added to the C++ Builder library path.",
           "items": {
             "type": "string"
           },
@@ -602,6 +618,14 @@
         "extra debug dcu path": {
           "type": ["array", "null"],
           "description": "Include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "extra cpp include paths": {
+          "type": ["array", "null"],
+          "description": "Paths to add to the C++ Builder include path. You can add them to a platform only by writing for example - @platform: path",
           "items": {
             "type": "string"
           },

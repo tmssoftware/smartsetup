@@ -170,12 +170,18 @@ type
   private
     FLibraryPathsBuildAndRegister: TList<string>;
     FLibraryPathsBuildOnly: TList<string>;
+    FDelphiLibraryPaths: TList<string>;
+    FCppLibraryPaths: TList<string>;
+    FCppIncludePaths: TList<string>;
     FBrowsingPaths: TList<string>;
     FDebugDCUPaths: TList<string>;
     FWebCorePaths: TList<string>;
   public
     property LibraryPathsBuildAndRegister: TList<string> read FLibraryPathsBuildAndRegister;
     property LibraryPathsBuildOnly: TList<string> read FLibraryPathsBuildOnly;
+    property DelphiLibraryPaths: TList<string> read FDelphiLibraryPaths;
+    property CppLibraryPaths: TList<string> read FCppLibraryPaths;
+    property CppIncludePaths: TList<string> read FCppIncludePaths;
     property BrowsingPaths: TList<string> read FBrowsingPaths;
     property DebugDCUPaths: TList<string> read FDebugDCUPaths;
     property WebCorePaths: TList<string> read FWebCorePaths;
@@ -188,6 +194,9 @@ type
   private
     FLibraryPathsBuildAndRegister: TList<TPlatformPaths>;
     FLibraryPathsBuildOnly: TList<TPlatformPaths>;
+    FDelphiLibraryPaths: TList<TPlatformPaths>;
+    FCppLibraryPaths: TList<TPlatformPaths>;
+    FCppIncludePaths: TList<TPlatformPaths>;
     FBrowsingPaths: TList<TPlatformPaths>;
     FDebugDCUPaths: TList<TPlatformPaths>;
     FWebCorePaths: TList<TPlatformPaths>;
@@ -196,6 +205,9 @@ type
   public
     property LibraryPathsBuildAndRegister: TList<TPlatformPaths> read FLibraryPathsBuildAndRegister;
     property LibraryPathsBuildOnly: TList<TPlatformPaths> read FLibraryPathsBuildOnly;
+    property DelphiLibraryPaths: TList<TPlatformPaths> read FDelphiLibraryPaths;
+    property CppLibraryPaths: TList<TPlatformPaths> read FCppLibraryPaths;
+    property CppIncludePaths: TList<TPlatformPaths> read FCppIncludePaths;
     property BrowsingPaths: TList<TPlatformPaths> read FBrowsingPaths;
     property DebugDCUPaths: TList<TPlatformPaths> read FDebugDCUPaths;
     property WebCorePaths: TList<TPlatformPaths> read FWebCorePaths;
@@ -208,6 +220,9 @@ type
     function GetDebugDCUPaths(const Platform: TPlatform): string;
     function GetWebCorePaths(const Platform: TPlatform): string;
     function GetLibraryPathsBuildOnly(const Platform: TPlatform): string;
+    function GetDelphiLibraryPaths(const Platform: TPlatform): string;
+    function GetCppLibraryPaths(const Platform: TPlatform): string;
+    function GetCppIncludePaths(const Platform: TPlatform): string;
   end;
 
   TShortcutType =(filelink) ;
@@ -744,6 +759,9 @@ constructor TCompilerPaths.Create;
 begin
   FLibraryPathsBuildAndRegister := TList<string>.Create;
   FLibraryPathsBuildOnly := TList<string>.Create;
+  FDelphiLibraryPaths := TList<string>.Create;
+  FCppLibraryPaths := TList<string>.Create;
+  FCppIncludePaths := TList<string>.Create;
   FBrowsingPaths := TList<string>.Create;
   FDebugDCUPaths := TList<string>.Create;
   FWebCorePaths := TList<string>.Create;
@@ -753,6 +771,9 @@ destructor TCompilerPaths.Destroy;
 begin
   FLibraryPathsBuildAndRegister.Free;
   FLibraryPathsBuildOnly.Free;
+  FDelphiLibraryPaths.Free;
+  FCppLibraryPaths.Free;
+  FCppIncludePaths.Free;
   FBrowsingPaths.Free;
   FDebugDCUPaths.Free;
   FWebCorePaths.Free;
@@ -766,6 +787,9 @@ constructor TCompilerPathsPerPlatform.Create;
 begin
   FLibraryPathsBuildAndRegister := TList<TPlatformPaths>.Create;
   FLibraryPathsBuildOnly := TList<TPlatformPaths>.Create;
+  FDelphiLibraryPaths := TList<TPlatformPaths>.Create;
+  FCppLibraryPaths := TList<TPlatformPaths>.Create;
+  FCppIncludePaths := TList<TPlatformPaths>.Create;
   FBrowsingPaths := TList<TPlatformPaths>.Create;
   FDebugDCUPaths := TList<TPlatformPaths>.Create;
   FWebCorePaths := TList<TPlatformPaths>.Create;
@@ -775,6 +799,9 @@ destructor TCompilerPathsPerPlatform.Destroy;
 begin
   FLibraryPathsBuildAndRegister.Free;
   FLibraryPathsBuildOnly.Free;
+  FDelphiLibraryPaths.Free;
+  FCppLibraryPaths.Free;
+  FCppIncludePaths.Free;
   FBrowsingPaths.Free;
   FDebugDCUPaths.Free;
   FWebCorePaths.Free;
@@ -792,6 +819,24 @@ function TCompilerPathsPerPlatform.GetLibraryPathsBuildOnly(
   const Platform: TPlatform): string;
 begin
   Result := GetPaths(Platform, FLibraryPathsBuildOnly);
+end;
+
+function TCompilerPathsPerPlatform.GetDelphiLibraryPaths(
+  const Platform: TPlatform): string;
+begin
+  Result := GetPaths(Platform, FDelphiLibraryPaths);
+end;
+
+function TCompilerPathsPerPlatform.GetCppLibraryPaths(
+  const Platform: TPlatform): string;
+begin
+  Result := GetPaths(Platform, FCppLibraryPaths);
+end;
+
+function TCompilerPathsPerPlatform.GetCppIncludePaths(
+  const Platform: TPlatform): string;
+begin
+  Result := GetPaths(Platform, FCppIncludePaths);
 end;
 
 function TCompilerPathsPerPlatform.GetDebugDCUPaths(

@@ -317,6 +317,18 @@ begin
     begin
       Result.LibraryPathsBuildOnly.Add(GetPlatformPaths(Project.RootFolder, ex));
     end;
+    for var ex in Project.ExtraPaths.DelphiLibraryPaths do
+    begin
+      Result.DelphiLibraryPaths.Add(GetPlatformPaths(Project.RootFolder, ex));
+    end;
+    for var ex in Project.ExtraPaths.CppLibraryPaths do
+    begin
+      Result.CppLibraryPaths.Add(GetPlatformPaths(Project.RootFolder, ex));
+    end;
+    for var ex in Project.ExtraPaths.CppIncludePaths do
+    begin
+      Result.CppIncludePaths.Add(GetPlatformPaths(Project.RootFolder, ex));
+    end;
     for var ex in Project.ExtraPaths.BrowsingPaths do
     begin
       Result.BrowsingPaths.Add(GetPlatformPaths(Project.RootFolder, ex));
