@@ -21,16 +21,36 @@ uses
 ///   for it (RFC 8259, section 7).
 ///
 ///   Characters outside the BMP are a surrogate pair in a Delphi string and
-///   come out as two escapes, which is exactly what the RFC asks for.</summary>
+///   come out as two escapes, which is exactly what the RFC asks for.
+///
+///   Every JSON response written to the console passes through here, so the
+///   common case - no character above 127 at all - does no work: it returns
+///   the input untouched, without allocating a builder. When there is work to
+///   do, the text between two escapes is appended as one chunk rather than
+///   character by character, and the escape itself avoids System.Format,
+///   which is slow on a path that may run for every character.</summary>
 function EscapeNonAscii(const Json: string): string;
 begin
-  var Builder := TStringBuilder.Create(Length(Json));
+  var Start := 0;
+  var Builder: TStringBuilder := nil;
   try
-    for var Ch in Json do
-      if Ch <= #127 then
-        Builder.Append(Ch)
-      else
-        Builder.Append(System.SysUtils.Format('\u%.4x', [Ord(Ch)]));
+    for var I := 0 to Json.Length - 1 do
+      if Json.Chars[I] > #127 then
+      begin
+        // The result is longer than the input - one character becomes six.
+        if Builder = nil then
+          Builder := TStringBuilder.Create(Round(Json.Length * 1.3));
+
+        Builder.Append(Json, Start, I - Start);
+        Builder.Append('\u');
+        Builder.Append(IntToHex(Ord(Json.Chars[I]), 4));
+        Start := I + 1;
+      end;
+
+    if Builder = nil then
+      Exit(Json);
+
+    Builder.Append(Json, Start, Json.Length - Start);
     Result := Builder.ToString;
   finally
     Builder.Free;
