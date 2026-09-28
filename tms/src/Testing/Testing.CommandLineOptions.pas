@@ -101,7 +101,7 @@ begin
   option.Hidden := true;
 
   option := TOptionsRegistry.RegisterOption<Boolean>(
-    'test-log-uncompress', '', 'Uses the uncompress events so we can test them..',
+    'test-log-uncompress', '', 'Uses the uncompress events so we can test them.',
     procedure(const Value: Boolean)
     begin
       TestParameters.LogUncompress := Value
@@ -109,6 +109,14 @@ begin
   option.HasValue := False;
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-fixed-version', '', 'Fixes the tms version to 3.5 so test won''t fail when we update versions.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.FixedVersion := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
 
 end;
 

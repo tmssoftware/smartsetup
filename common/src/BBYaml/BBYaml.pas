@@ -14,7 +14,7 @@ unit BBYaml;
 // in text editors. It is enough for our needs, but I wouldn't use as a general YAML parser unless you can control the format.
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBClasses, BBStrings;
+uses Classes, SysUtils, Generics.Collections, BBError, BBClasses, BBStrings;
 type
 
 TBBYamlReader = class
@@ -180,9 +180,9 @@ begin
   end;
 
   if Assigned(Section.ArrayMainAction) then Section.ArrayMainAction(Name, Value, ErrorInfo);
-  if Section.ArrayActions <> nil then
+  if Section.FlowArrayActions <> nil then
   begin
-    Section.GetFlowArray(Value, Section.ArrayActions, nil, ErrorInfo);
+    Section.GetFlowArray(Value, Section.FlowArrayActions, nil, TSectionValueTypes.NoValues, ErrorInfo);
   end;
 
 end;
@@ -200,7 +200,7 @@ begin
 
   Result := Result.Trim(TrimWhitespace);
   if (Result = '') then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
-  Result := BBYamlUnescapeString(Result);
+  Result := BBYamlUnescapeString(Result, ErrorInfo);
 
 end;
 
@@ -259,8 +259,8 @@ end;
 
 function TBBYamlSectionProcessor.GetKeyString(const s: string): string;
 begin
-  if s.StartsWith('-') then exit('- ' + BBYamlUnescapeString(s.Substring(1).Trim(TrimWhiteSpace)));
-  Result := BBYamlUnescapeString(s);
+  if s.StartsWith('-') then exit('- ' + BBYamlUnescapeString(s.Substring(1).Trim(TrimWhiteSpace), ErrorInfo));
+  Result := BBYamlUnescapeString(s, ErrorInfo);
 end;
 
 procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty: boolean);
@@ -270,7 +270,7 @@ begin
   idx := Line.IndexOf(':');
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
   Name := GetKeyString(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)));
-  Value := BBYamlUnescapeString(Line.Substring(idx + 1).Trim(TrimWhitespace));
+  Value := BBYamlUnescapeString(Line.Substring(idx + 1).Trim(TrimWhitespace), ErrorInfo);
   if CanBeEmpty then exit;
 
   if MustHaveValue and (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);

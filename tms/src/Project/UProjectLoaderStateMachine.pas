@@ -2,7 +2,7 @@ unit UProjectLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBClasses, UProjectDefinition, SysUtils, Generics.Collections, UCoreTypes, Deget.CoreTypes;
+uses BBClasses, BBError, UProjectDefinition, SysUtils, Generics.Collections, UCoreTypes, Deget.CoreTypes;
 type
   TSectionDef = class(TSection)
   protected
@@ -311,8 +311,11 @@ type
   end;
 
   TFileLinkSectionDef = class(TSectionDef)
+  private
+    OsFlowArrayActions: TListOfActions;
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    destructor Destroy; override;
     class function SectionNameStatic: string; override;
   end;
 
@@ -525,14 +528,14 @@ begin
       begin
         var FrameworkName := Project.GetFrameworkName(fr);
         if FrameworkName = '' then continue;
-        ArrayActions.AddOrSetValue(FrameworkName, Capture(fr));
+        FlowArrayActions.AddOrSetValue(FrameworkName, Capture(fr));
       end;
 
     end;
-  ArrayActions := TListOfActions.Create;
-  ArrayActions.Add('design', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsDesign := true; end);
-  ArrayActions.Add('runtime', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsRuntime := true; end);
-  ArrayActions.Add('exe', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.PackageType := TPackageType.Exe; end);
+  FlowArrayActions := TListOfActions.Create;
+  FlowArrayActions.Add('design', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsDesign := true; end);
+  FlowArrayActions.Add('runtime', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsRuntime := true; end);
+  FlowArrayActions.Add('exe', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.PackageType := TPackageType.Exe; end);
 end;
 
 
@@ -1339,24 +1342,29 @@ begin
   Actions.Add('link to folder', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.FileLinks.Last.LinkToFolder := value; end);
   Actions.Add('os', procedure (value: string; ErrorInfo: TErrorInfo)
   begin
-    GetFlowArray(value, ArrayActions, procedure(value: string; ErrorInfo: TErrorInfo)
-    begin
-    end, ErrorInfo);
+    GetFlowArray(value, OsFlowArrayActions, nil, TSectionValueTypes.NoValues, ErrorInfo);
   end);
 
-  ArrayActions := TListOfActions.Create;
-  ArrayActions.Add('windows', procedure(value: string; ErrorInfo: TErrorInfo)
+
+  OsFlowArrayActions := TListOfActions.Create;
+  OsFlowArrayActions.Add('windows', procedure(value: string; ErrorInfo: TErrorInfo)
   begin
     Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.windows];
   end);
-  ArrayActions.Add('linux', procedure(value: string; ErrorInfo: TErrorInfo)
+  OsFlowArrayActions.Add('linux', procedure(value: string; ErrorInfo: TErrorInfo)
   begin
     Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.linux];
   end);
-  ArrayActions.Add('mac', procedure(value: string; ErrorInfo: TErrorInfo)
+  OsFlowArrayActions.Add('mac', procedure(value: string; ErrorInfo: TErrorInfo)
   begin
     Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.mac];
   end);
+end;
+
+destructor TFileLinkSectionDef.Destroy;
+begin
+  OsFlowArrayActions.Free;
+  inherited;
 end;
 
 class function TFileLinkSectionDef.SectionNameStatic: string;
@@ -1467,7 +1475,9 @@ begin
     begin
       aPackage.GenerateFrom := value;
       aPackage.GenerateFromFullFileName := CombinePath(Project.RootFolder, value);
-      if not TFile.Exists(aPackage.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + aPackage.GenerateFromFullFileName + '". ' + ErrorInfo.ToString);
+
+      //Checking here it will not allow to even do a tms spec if the file doesn't exist. We will move the check to where we need the file.
+      //if not TFile.Exists(aPackage.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + aPackage.GenerateFromFullFileName + '". ' + ErrorInfo.ToString);
     end);
   Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo)
     begin

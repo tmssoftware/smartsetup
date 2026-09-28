@@ -16,14 +16,14 @@ unit BBCmd;
 
 
 interface
-uses Classes, SysUtils, BBClasses, Generics.Collections, BBStrings;
+uses Classes, SysUtils, BBError, BBClasses, Generics.Collections, BBStrings;
 
 type
 
 TBBCmdReader = class
   private
-    class procedure ParseParameter(const Parameter: string; const SectionSeparator: string; out Sections: TArray<string>; out Value: string);
-    class procedure ProcessArray(const ArrayStr: string; const ClearArray: TProc; const ArrayAction: TActionNameValue; const ErrorInfo: TErrorInfo);
+    class procedure ParseParameter(const Parameter: string; const SectionSeparator: string; const ErrorInfo: TErrorInfo; out Sections: TArray<string>; out Value: string);
+    class procedure ProcessArray(const ArrayStr: string; const ClearArray: TProc; const ArrayAction: TActionNameValue; const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
     class procedure ProcessOneParameter(const Parameter, SectionSeparator: string; const MainSection: TSection; const OnlyValidate: boolean);
     class function IsSeparator(const Parameter: string; const Position: integer;
       const SectionSeparator: string): boolean; static;
@@ -55,7 +55,7 @@ begin
 end;
 
 class procedure TBBCmdReader.ProcessArray(const ArrayStr: string; const ClearArray: TProc;
-  const ArrayAction: TActionNameValue; const ErrorInfo: TErrorInfo);
+  const ArrayAction: TActionNameValue; const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
 begin
   if ArrayStr.Trim = '' then
   begin
@@ -66,24 +66,7 @@ begin
     end;
   end;
 
-  TSection.GetFlowArray(ArrayStr.Trim, nil,
-    procedure(Value: string; ErrorInfo: TErrorInfo)
-    begin
-      var ElementName := Value;
-      var ElementValue := '';
-      var idx := Value.IndexOf(':');
-      if idx < 0 then idx := Value.IndexOf('=');
-      
-      if idx > 0 then
-      begin
-        ElementName := Value.Substring(0, idx).Trim;
-        ElementValue := BBYamlUnescapeString(Value.Substring(idx + 1).Trim).Trim;
-      end;
-
-
-      ArrayAction(ElementName, ElementValue, ErrorInfo);
-    end
-    , ErrorInfo);
+  TSection.GetFlowArray(ArrayStr.Trim, nil, ArrayAction, SectionValueTypes, ErrorInfo);
 end;
 
 class function TBBCmdReader.IsSeparator(const Parameter: string; const Position: integer; const SectionSeparator: string): boolean;
@@ -97,7 +80,7 @@ begin
   Result := true;
 end;
 
-class procedure TBBCmdReader.ParseParameter(const Parameter, SectionSeparator: string; out Sections: TArray<string>;
+class procedure TBBCmdReader.ParseParameter(const Parameter, SectionSeparator: string; const ErrorInfo: TErrorInfo; out Sections: TArray<string>;
   out Value: string);
 begin
   Value := '';
@@ -121,7 +104,7 @@ begin
       end;
       if Parameter[i] = '=' then
       begin
-        Value := BBYamlUnescapeString(Parameter.Substring(i).Trim);
+        Value := BBYamlUnescapeString(Parameter.Substring(i).Trim, ErrorInfo);
         EndParameter := i - 1;
         break;
       end;
@@ -145,10 +128,10 @@ class procedure TBBCmdReader.ProcessOneParameter(const Parameter, SectionSeparat
 begin
   var SectionsStr: TArray<string> := nil;
   var Value: string;
-  ParseParameter(Parameter, SectionSeparator, SectionsStr, Value);
 
   var ErrorInfo := TCMDErrorInfo.Create(Parameter);
   try
+    ParseParameter(Parameter, SectionSeparator, ErrorInfo, SectionsStr, Value);
     var Section := MainSection;
     for var i := Low(SectionsStr) to High(SectionsStr) - 1 do
     begin
@@ -175,7 +158,7 @@ begin
       begin
         if not OnlyValidate then
         begin
-          ProcessArray(Value, Section.ClearArrayValues, Section.ArrayMainAction, ErrorInfo);
+          ProcessArray(Value, Section.ClearArrayValues, Section.ArrayMainAction, Section.SectionValueTypes, ErrorInfo);
         end;
       end
       else if Section.ContainsArrays then
@@ -183,12 +166,17 @@ begin
         if not OnlyValidate then ProcessArray(value, Section.ClearArrayValues,
           procedure(N, V: string; ErrorInfo: TErrorInfo)
           begin
-            if ((Section.Actions <> nil) and Section.Actions.TryGetValue(N, Action)) then
+            if (Section.Actions = nil) then
+            begin
+              Section := Section.GotoChild(N, ErrorInfo);
+            end
+            else if (Section.Actions.TryGetValue(N, Action)) then
             begin
               Action(V, ErrorInfo);
             end
             else Section.ThrowInvalidTag(N, ErrorInfo);
-           end, ErrorInfo);
+           end,
+           Section.SectionValueTypes, ErrorInfo);
       end
       else if not OnlyValidate then raise Exception.Create('Can''t access section: ' + ActionStr + ' from the command line. ' + ErrorInfo.ToString);
     end;

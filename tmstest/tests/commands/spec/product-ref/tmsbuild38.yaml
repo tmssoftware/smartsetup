@@ -1,0 +1,77 @@
+# =====================================================================================================
+# TMS Smart Setup configuration file for product TMS Example for VCL
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+# =====================================================================================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.5
+
+# General information about the product.
+application:
+  id: potato.salad
+  name: TMS Example for VCL
+  description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
+  company name: TMS Software
+  copyright: tmssoftware
+  license: MIT
+  license url: https://opensource.org/licenses/MIT
+  url: https://www.tmssoftware.com/
+  docs: https://doc.tmssoftware.com/
+  version file: version.txt
+
+# Frameworks are just a group of supported IDEs and platforms. You can define as much as you want with any name you desire, and then combine them to specify what platforms and IDEs the packages support.
+supported frameworks:
+  vcl:
+    ide since: delphi7
+    ide until: delphi12
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+    c++ builder support: true
+  fmx:
+    ide since: delphixe2
+    platforms:
+      - win32intel
+      - win64intel
+      - macos32intel
+      - macos64intel
+      - macos64arm
+      - iossimulator
+      - iosdevice32
+      - iosdevice64
+      - android32
+      - android64
+      - iossimulator64arm
+      - win64xintel
+      - winarm64ec
+  lcl:
+    ide since: lazarus
+    ide until: lazarus
+    platforms:
+      - win32intel
+  product2:
+    ide since: delphixe
+    platforms:
+      - win32intel
+    dependencies:
+      - tms.product2
+      - ~tms.product3
+
+# The settings in the this section are only needed if the packages don't follow smartsetup conventions.
+package options:
+  package folders:
+    delphirio: Rad Studio 10.3 Rio
+    delphisydney+: Rad Studio Sydney To 11
+    delphi12+: Rad Studio 12 And Newer
+  lib suffixes:
+    delphi11: _D11
+    delphi12: _D12
+  extra defines:
+    - add: MYDEFINE
+    - remove: OTHERDEFINE
+    - add: ANOTHERDEFINE
+
+# Only applies to executables.
+exe options:
+  compile with: latest

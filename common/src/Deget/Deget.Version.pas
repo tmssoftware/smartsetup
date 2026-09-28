@@ -83,6 +83,11 @@ type
     procedure Clear;
   end;
 
+{$IFDEF DEBUG}
+  procedure DegetVersion_InternalTests;
+{$ENDIF}
+
+
 implementation
 
 uses
@@ -593,7 +598,8 @@ begin
   Assert(not TVersion.TryFromString('1.2.3+meta', Tmp));
 end;
 
-initialization
+procedure DegetVersion_InternalTests;
+begin
   AssertSemverOrder;
   Assert(TLenientVersion.Create('v2.0-rc3', TVersionType.FreeForm) < TLenientVersion.Create('v2.0', TVersionType.FreeForm));
   Assert(TLenientVersion.Create('v12.0-rc3', TVersionType.FreeForm) > TLenientVersion.Create('v2.0', TVersionType.FreeForm));
@@ -611,7 +617,7 @@ initialization
   Assert((TLenientVersion.Create('0..1', TVersionType.FreeForm) < TLenientVersion.Create('0..2', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) < TLenientVersion.Create('1.2.1', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) > TLenientVersion.Create('1.2-rc.6', TVersionType.FreeForm)));
-
+end;
 
 {$ENDIF}
 

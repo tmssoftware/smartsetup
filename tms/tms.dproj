@@ -447,6 +447,9 @@
         <DCCReference Include="src\Commands\Commands.SelfUpdate.Verify.pas"/>
         <DCCReference Include="..\common\src\System\TMSSystem.Signatures.pas"/>
         <DCCReference Include="src\Downloads\Downloads.FileNameManager.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBError.pas"/>
+        <DCCReference Include="src\Testing\Testing.InternalTests.pas"/>
+        <DCCReference Include="src\Commands\Commands.InternalTesting.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

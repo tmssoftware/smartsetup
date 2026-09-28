@@ -1,7 +1,7 @@
 unit Snapshot.Reader;
 
 interface
-  uses Classes, SysUtils, Generics.Collections, Status.Manager, BBYaml, BBClasses, Deget.Version;
+  uses Classes, SysUtils, Generics.Collections, Status.Manager, BBError, BBYaml, BBClasses, Deget.Version;
 
   procedure LoadSnapshot(const FileName: string; const Products: TList<TProductStatus>);
 implementation

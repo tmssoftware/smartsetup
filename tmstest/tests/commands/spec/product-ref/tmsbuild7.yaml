@@ -1,0 +1,15 @@
+# =====================================================================================================
+# TMS Smart Setup configuration file for product TMS Example for VCL
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+# =====================================================================================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.5
+
+# General information about the product.
+application:
+  id: potato.salad
+  name: TMS Example for VCL
+  description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
+  company name: TMS Software
+  copyright: tmssoftware

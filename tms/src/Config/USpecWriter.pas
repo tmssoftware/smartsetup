@@ -61,7 +61,11 @@ type
   end;
 
 implementation
-uses Types, JSON, UTmsBuildSystemUtils;
+uses Types, JSON,
+{$IFDEF DEBUG}
+     Testing.Globals,
+{$endif}
+     UTmsBuildSystemUtils;
 
 
 
@@ -574,6 +578,13 @@ function TSpecWriter.OnMember(const Sender: TBBYamlWriter;
 const
   {$i ../../../Version.inc}
 begin
+  {$IFDEF DEBUG}
+    if TestParameters.FixedVersion then
+    begin
+      if FullName = 'minimum required tmsbuild version:' then exit('3.5');
+    end;
+  {$ENDIF}
+
   if FullName = 'minimum required tmsbuild version:' then exit(TMSVersion);
 
   //application

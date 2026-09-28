@@ -566,9 +566,7 @@ begin
   var Product: TProjectDefinition := nil;
   var PackageManager: TPackageManager := nil;
   try
-    if Template = ''
-      then Product := TProjectDefinition.Create('')
-      else Product := TProjectLoader.LoadProjectDefinitionFromFile(Template, '', true, Specs);
+    Product := TProjectLoader.LoadProjectDefinitionFromFile(Template, '', true, Specs);
 
     PackageManager := TPackageManager.Create;
     var TmsBuildFileName := TPath.Combine(TDirectory.GetCurrentDirectory, ChangeExtension('tmsbuild.yaml'));

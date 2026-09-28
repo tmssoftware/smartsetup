@@ -2,7 +2,7 @@ unit UConfigLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBArrays, BBClasses, Megafolders.Definition,
+uses BBError, BBArrays, BBClasses, Megafolders.Definition,
      UConfigDefinition, Generics.Collections, SysUtils,
      Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
 

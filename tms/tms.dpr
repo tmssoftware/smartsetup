@@ -227,7 +227,10 @@ uses
   SBOM.Generator in 'src\SBOM\SBOM.Generator.pas',
   Commands.SelfUpdate.Verify in 'src\Commands\Commands.SelfUpdate.Verify.pas',
   TMSSystem.Signatures in '..\common\src\System\TMSSystem.Signatures.pas',
-  Downloads.FileNameManager in 'src\Downloads\Downloads.FileNameManager.pas';
+  Downloads.FileNameManager in 'src\Downloads\Downloads.FileNameManager.pas',
+  BBError in '..\common\src\BBYaml\BBError.pas',
+  Testing.InternalTests in 'src\Testing\Testing.InternalTests.pas',
+  Commands.InternalTesting in 'src\Commands\Commands.InternalTesting.pas';
 
 begin
   try
