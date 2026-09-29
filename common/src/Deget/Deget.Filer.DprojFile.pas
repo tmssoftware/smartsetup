@@ -1751,6 +1751,7 @@ end;
 function TDProjModifier.IsExe(const NodeName: string): boolean;
 begin
   if NodeName = 'DCC_ExeOutput' then exit(true);
+  if NodeName = 'FinalOutputDir' then exit(true); //cpp
   Result := false;
 end;
 
