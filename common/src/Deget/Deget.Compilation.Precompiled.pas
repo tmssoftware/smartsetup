@@ -74,13 +74,7 @@ end;
 procedure TPrecompiledCompiler.DoCompile(const ProjectFile: string;
   Settings: TPrecompiledCompilationSettings);
 begin
-  var LocalTargetConfig := '';
-  if Settings.TargetConfig.IsNull then
-  begin
-    LocalTargetConfig := 'Release';
-  end
-  else
-    LocalTargetConfig := Settings.TargetConfig.Value;
+  var LocalTargetConfig := Settings.GetTargetConfig;
 
   var SourceFolder := TPath.Combine(Settings.PrecompiledSource, DelphiSuffixes[Settings.IDEName], PlatformMacroString(Settings.IDEName, Settings.Platform) , LocalTargetConfig);
   var BaseProjectFolder := TPath.GetDirectoryName(ProjectFile);

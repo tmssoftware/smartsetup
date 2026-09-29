@@ -100,14 +100,14 @@ type
     function FindMsBuildInPath(const Path: string; const Env: TArray<string>): string;
     function FindMsBuild(const Env: TArray<string>): string;
     function ParseRSVars(const RSVars: string): TArray<string>;
-    function AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform;
+    function AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform; const TargetConfig: string;
       const ExistingEnv: TArray<string>): TArray<string>;
     procedure DoCompileWithBat(const ProjectFile: string; Settings: TMsBuildCompilationSettings);
     function DoCompileDirectly(const ProjectFile: string; Settings: TMsBuildCompilationSettings): boolean;
   private
     function InEnvVarOverrides(const Env: string;
       const EnvVarOverrides: TArray<TEnvVar>): boolean;
-    function GetEnvVarsForBat(const IDEInfo: IDelphiIDEInfo): string;
+    function GetEnvVarsForBat(const IDEInfo: IDelphiIDEInfo; const TargetConfig: string): string;
     function AddTMPEnv(const TmpVar: string; var ExistingEnv: TArray<string>;
       const TMPFolder: string): TArray<string>;
     function CppSystemIncludePath(const DelphiVersion: TIDEName;
@@ -115,7 +115,7 @@ type
     function CppExtraLinkPath(const DelphiVersion: TIDEName;
       const DPlat: TPlatform; const PlatformId: string; const ClassicCompiler: boolean): string;
     function AddCPPBuilderParameters(const ProjectFileName: string;
-      Settings: TMsBuildCompilationSettings; LocalSearchPath, TargetConfig: string): string;
+      Settings: TMsBuildCompilationSettings; LocalSearchPath: string): string;
 
     function AdaptPathEntry(const FileName, Entry: string; const SkipEntries: TArray<string>): string;
 
@@ -373,7 +373,7 @@ begin
   end;
 end;
 
-function TMSBuildCompiler.AddCPPBuilderParameters(const ProjectFileName: string; Settings: TMsBuildCompilationSettings; LocalSearchPath, TargetConfig: string): string;
+function TMSBuildCompiler.AddCPPBuilderParameters(const ProjectFileName: string; Settings: TMsBuildCompilationSettings; LocalSearchPath: string): string;
 var
   CppProjectIncludePath, CppProjectLinkPath: string;
   ClassicCompiler: boolean;
@@ -468,7 +468,7 @@ begin
   var IsCppBuilder := TPath.GetExtension(ProjectFileName).ToLowerInvariant = '.cbproj';
   if IsCppBuilder then
   begin
-    Result := Result + AddCPPBuilderParameters(ProjectFileName, Settings, LocalSearchPath, LocalTargetConfig);
+    Result := Result + AddCPPBuilderParameters(ProjectFileName, Settings, LocalSearchPath);
   end;
 
 
@@ -639,9 +639,9 @@ begin
   end;
 end;
 
-function TMSBuildCompiler.AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform; const ExistingEnv: TArray<string>): TArray<string>;
+function TMSBuildCompiler.AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform; const TargetConfig: string; const ExistingEnv: TArray<string>): TArray<string>;
 begin
-  var EnvVarOverrides := IDEInfo.GetEnvVarOverrides(Platform);
+  var EnvVarOverrides := IDEInfo.GetEnvVarOverrides(Platform, TargetConfig);
   Result := nil;
   SetLength(Result, Length(ExistingEnv) + Length(EnvVarOverrides));
   var iResult := 0;
@@ -692,7 +692,7 @@ begin
   //the IDE says.
   for var Platform in TDelphiIDEInfo.IDEPlatforms do
   begin
-    Env := AddEnvironmentOverrides(Settings.TargetPlatform.IDEInfo, Platform, Env);
+    Env := AddEnvironmentOverrides(Settings.TargetPlatform.IDEInfo, Platform, Settings.GetTargetConfig, Env);
   end;
 
   //To speed up bcc64 and other compilers. See https://github.com/tmssoftware/tms-smartsetup/issues/184
@@ -713,7 +713,7 @@ begin
   Result := true;
 end;
 
-function TMSBuildCompiler.GetEnvVarsForBat(const IDEInfo: IDelphiIDEInfo): string;
+function TMSBuildCompiler.GetEnvVarsForBat(const IDEInfo: IDelphiIDEInfo; const TargetConfig: string): string;
 begin
   //This method is not needed when debugging since Delphi will set those variables
   //and the spawned CMD will inherit them. But when running in a standalone
@@ -722,7 +722,7 @@ begin
   Result := '';
   for var Platform in TDelphiIDEInfo.IDEPlatforms do
   begin
-    var EnvOverrides := IDEInfo.GetEnvVarOverrides(Platform);
+    var EnvOverrides := IDEInfo.GetEnvVarOverrides(Platform, TargetConfig);
     for var Env in EnvOverrides do
     begin
       Result := Result + 'set ' + Env.Name + '=' + Env.Value + #13#10;
@@ -744,7 +744,7 @@ begin
     '%s'#13#10 +
     'cd /D %%FrameworkDir%% '#13#10 +
     'msbuild.exe %%*',
-    [Settings.TargetPlatform.IDEInfo.RsvarsFile, GetEnvVarsForBat(Settings.TargetPlatform.IDEInfo)]
+    [Settings.TargetPlatform.IDEInfo.RsvarsFile, GetEnvVarsForBat(Settings.TargetPlatform.IDEInfo, Settings.GetTargetConfig)]
   );
 //  Logger.Note('Batch file built');
 //  Logger.Note(Batch);

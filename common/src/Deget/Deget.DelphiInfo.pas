@@ -184,7 +184,7 @@ type
     // otherwise it will return the default value, from the rsvars.bat file
     function BdsCommonDir(const IDEPlatform: TPlatform): string;
 
-    function GetEnvVarOverrides(const IDEPlatform: TPlatform): TArray<TEnvVar>;
+    function GetEnvVarOverrides(const IDEPlatform: TPlatform; const TargetConfig: string): TArray<TEnvVar>;
 
 //    property Plats[Plat: TDelphiPlatformType]: TDelphiIDEPlatformInfo read GetPlats; default;
   end;
@@ -415,7 +415,7 @@ begin
   RegReadString(HKEY_CURRENT_USER, BaseKey64('Environment Variables', IDEPlatform), VarName, Result);
 end;
 
-function TDelphiIDEInfo.GetEnvVarOverrides(const IDEPlatform: TPlatform): TArray<TEnvVar>;
+function TDelphiIDEInfo.GetEnvVarOverrides(const IDEPlatform: TPlatform; const TargetConfig: string): TArray<TEnvVar>;
 var
   R: TRegistry;
 begin
@@ -444,6 +444,11 @@ begin
     R.Free;
   end;
 
+
+  var EnvProductVersion := TEnvVar.Create('ProductVersion', DelphiProductVersion[IDEName]);
+  var EnvPlatform := TEnvVar.Create('Platform', GetPlatform(IDEPlatform).BuildName);
+  var EnvConfig := TEnvVar.Create('Config', TargetConfig);
+  Result := Result + [EnvProductVersion, EnvPlatform, EnvConfig];
 end;
 
 function TDelphiIDEInfo.GetPathOverride(const IDEPlatform: TPlatform): string;
