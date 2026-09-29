@@ -29,9 +29,9 @@ type
     class constructor Create;
     class destructor Destroy;
   public
-    procedure DoCompile(const ProjectFile: string; IDEName: TIDEName; Settings: TPrecompiledCompilationSettings);
+    procedure DoCompile(const ProjectFile: string; Settings: TPrecompiledCompilationSettings);
   public
-    class procedure Build(const ProjectFile: string; IDEName: TIDEName; Settings: TPrecompiledCompilationSettings); static;
+    class procedure Build(const ProjectFile: string; Settings: TPrecompiledCompilationSettings); static;
     class function SupportsPlatform(const RootFolder: string; const IDEName: TIDEName; const Platform: TPlatform): boolean; static;
   end;
 
@@ -49,13 +49,13 @@ uses
 { TPrecompiledCompiler }
 
 class procedure TPrecompiledCompiler.Build(const ProjectFile: string;
-  IDEName: TIDEName; Settings: TPrecompiledCompilationSettings);
+  Settings: TPrecompiledCompilationSettings);
 var
   Compiler: TPrecompiledCompiler;
 begin
   Compiler := TPrecompiledCompiler.Create;
   try
-    Compiler.DoCompile(ProjectFile, IDEName, Settings);
+    Compiler.DoCompile(ProjectFile, Settings);
   finally
     Compiler.Free;
   end;
@@ -72,7 +72,7 @@ begin
 end;
 
 procedure TPrecompiledCompiler.DoCompile(const ProjectFile: string;
-  IDEName: TIDEName; Settings: TPrecompiledCompilationSettings);
+  Settings: TPrecompiledCompilationSettings);
 begin
   var LocalTargetConfig := '';
   if Settings.TargetConfig.IsNull then
@@ -84,7 +84,7 @@ begin
 
   var SourceFolder := TPath.Combine(Settings.PrecompiledSource, DelphiSuffixes[Settings.IDEName], PlatformMacroString(Settings.IDEName, Settings.Platform) , LocalTargetConfig);
   var BaseProjectFolder := TPath.GetDirectoryName(ProjectFile);
-  if Settings.HasMultiIDEPackages then BaseProjectFolder := TPath.Combine(BaseProjectFolder, DelphiProductVersion[IDEName]);
+  if Settings.HasMultiIDEPackages then BaseProjectFolder := TPath.Combine(BaseProjectFolder, DelphiProductVersion[Settings.IDEName]);
 
   var DestFolder := TPath.Combine(BaseProjectFolder, PlatformMacroString(Settings.IDEName, Settings.Platform) , LocalTargetConfig);
 

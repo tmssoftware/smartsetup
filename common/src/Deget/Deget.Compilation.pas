@@ -40,8 +40,24 @@ type
     property SearchPathsToPreserve: TArray<string> read FSearchPathsToPreserve write FSearchPathsToPreserve;
     property ExtraCompilerParameters: string read FExtraCompilerParameters write FExtraCompilerParameters;
 
+    function GetTargetConfig: string;
+
   end;
 
 implementation
+
+{ TCompilationSettings }
+
+function TCompilationSettings.GetTargetConfig: string;
+begin
+  if TargetConfig.IsNull then
+  begin
+    exit('Release');
+  end
+  else
+  begin
+    exit(TargetConfig.Value);
+  end;
+end;
 
 end.

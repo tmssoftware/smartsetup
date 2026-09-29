@@ -16,7 +16,7 @@ uses
   // Most straightforward and flexible way to compile a Delphi application
 // Based on the type of Settings (either tms build or TDcc32 compilation settings), it will
 // compile the Delphi .dproj (or .dpk) using the property compiler (dcc32 or msbuid).
-procedure DelphiCompile(const ProjectFile: string; IDEName: TIDEName; Settings: TCompilationSettings; const ATempFolder: string = '');
+procedure DelphiCompile(const ProjectFile: string; Settings: TCompilationSettings; const ATempFolder: string = '');
 
 
 function CreateDegetPackageCompilationSettings(BuildInfo: TProjectBuildInfo; PlatformInfo: IDelphiPlatformInfo;
@@ -185,20 +185,20 @@ begin
   Result.ExtraCompilerParameters := Config.CompilerParameters(Project.Application.Id, IDEName);
 end;
 
-procedure DelphiCompile(const ProjectFile: string; IDEName: TIDEName; Settings: TCompilationSettings;
+procedure DelphiCompile(const ProjectFile: string; Settings: TCompilationSettings;
   const ATempFolder: string = '');
 begin
   if Settings is TMsBuildCompilationSettings then
-    TMsBuildCompiler.Build(ProjectFile, IDEName, Settings as TMsBuildCompilationSettings, ATempFolder)
+    TMsBuildCompiler.Build(ProjectFile, Settings as TMsBuildCompilationSettings, ATempFolder)
   else
   if Settings is TDcc32CompilationSettings then
-    TDcc32Compiler.Build(ProjectFile, IDEName, Settings as TDcc32CompilationSettings, ATempFolder)
+    TDcc32Compiler.Build(ProjectFile, Settings as TDcc32CompilationSettings, ATempFolder)
   else
   if Settings is TBdsCompilationSettings then
-    TBdsCompiler.Build(ProjectFile, IDEName, Settings as TBdsCompilationSettings, ATempFolder)
+    TBdsCompiler.Build(ProjectFile, Settings as TBdsCompilationSettings, ATempFolder)
   else
   if Settings is TPrecompiledCompilationSettings then
-    TPrecompiledCompiler.Build(ProjectFile, IDEName, Settings as TPrecompiledCompilationSettings)
+    TPrecompiledCompiler.Build(ProjectFile, Settings as TPrecompiledCompilationSettings)
 
   else raise Exception.CreateFmt('Compilation settings "%s" not supported', [Settings.ClassName]);
 end;

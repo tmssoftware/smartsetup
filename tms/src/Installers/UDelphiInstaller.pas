@@ -281,7 +281,7 @@ begin
       if not BuildInfo.Project.DryRun then
       begin
         var TempProjFile := PackageInfo.TempPackageFileName(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig);
-        DelphiCompile(TempProjFile, IDEName, Settings, BuildInfo.Project.CompileTempFolder);
+        DelphiCompile(TempProjFile, Settings, BuildInfo.Project.CompileTempFolder);
       end;
     finally
       Settings.Free;
