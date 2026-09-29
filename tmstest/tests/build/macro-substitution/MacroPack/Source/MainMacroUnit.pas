@@ -11,5 +11,21 @@ interface
 {$ENDIF}
 
 implementation
+uses
+  System.Win.Crtl; //resolves malloc, free, memcpy...
+
+//The linked objects are only here to test that we can find them.
+//They reference zstd functions that live in other zstd objects, so we stub them.
+//They are never called.
+
+function ZSTD_loadDEntropy(entropy: Pointer; dict: Pointer; dictSize: NativeUInt): NativeUInt; cdecl;
+begin
+  Result := NativeUInt(-1);
+end;
+
+function ERR_getErrorString(code: Integer): PAnsiChar; cdecl;
+begin
+  Result := nil;
+end;
 
 end.

@@ -1400,8 +1400,11 @@ begin
   if SameText(TPath.GetExtension(Orig), '.cbproj') then
   begin
     var SourceCpp := TPath.ChangeExtension(Orig, '.cpp');
-    var TargetCpp := TPath.ChangeExtension(Temp, '.cpp');
-    TFile.Copy(SourceCpp, TargetCpp, True);
+    if TFile.Exists(SourceCpp) then //some console apps don't have it.
+    begin
+      var TargetCpp := TPath.ChangeExtension(Temp, '.cpp');
+      TFile.Copy(SourceCpp, TargetCpp, True);
+    end;
   end else
   if SameText(TPath.GetExtension(Orig), BinprojExtension) then
   begin

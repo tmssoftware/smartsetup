@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.0
+application:
+  id: macro-app-cpp
+  name: macro-app-cpp
+  description: Macro substitution test application for C++ Builder
+
+supported frameworks:
+  neutral:
+    ide since: delphi12
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+    c++ builder support: true
+
+exe options:
+  compile with: all
+  debug exes: true
+
+packages:
+  - MacroAppCpp: [neutral,exe]
+
+dependencies:
+  - macro.pack: macro.pack

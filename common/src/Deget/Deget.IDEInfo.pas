@@ -115,7 +115,7 @@ type
 
     procedure ForceIDEUpdate;
 
-    function GetEnvVarOverrides(const IDEPlatform: TPlatform; const TargetConfig: string): TArray<TEnvVar>;
+    function GetEnvVarOverrides(const IDEPlatform: TPlatform): TArray<TEnvVar>;
 
     function BaseKey(const SubKey: string = ''): string;
 

@@ -18,6 +18,7 @@ supported frameworks:
     platforms:
       - win32intel
       - win64intel
+      - win64xintel
     c++ builder support: true
 
 # List of packages in the library. Each package must have a unique name, and must be listed only once.

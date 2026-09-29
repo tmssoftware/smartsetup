@@ -5,7 +5,7 @@
 . test.setup
 
 tms config-write -p:"configuration for all products:compilation options:debug dcus=true" #check $(CONFIG) macro
-tms config-write -p:configuration-for-all-products:replace_platforms=[win32intel,win64intel] #check $(PLATFORM) macro
+tms config-write -p:configuration-for-all-products:replace_platforms=[win32intel,win64intel,win64xintel] #check $(PLATFORM) macro
 tms config-write -p:configuration-for-all-products:replace-delphi-versions=[delphi12,delphi13] #check $(PRODUCTVERSION) macro
 
 tms build
