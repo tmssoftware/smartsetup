@@ -3,13 +3,15 @@
 #include "MainMacroUnit.hpp"
 
 #ifdef _WIN64
-//#pragma link "zstd_ddict.o"  We aren't reading in the cppprojs yet
-#pragma link "zstd_common.o"
+#pragma link "unit42.o"
 #else
-#pragma link "zstd_common.obj"
+#pragma link "unit42.obj"
 #endif
+
+int Test(); // defined in unit42
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-
+  std::cout << Test() << std::endl;
+  return 0;
 }

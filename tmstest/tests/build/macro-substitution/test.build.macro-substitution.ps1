@@ -9,3 +9,18 @@ tms config-write -p:configuration-for-all-products:replace_platforms=[win32intel
 tms config-write -p:configuration-for-all-products:replace-delphi-versions=[delphi12,delphi13] #check $(PRODUCTVERSION) macro
 
 tms build
+#tms build -unregister
+
+#loop in the array of platforms.
+foreach ($platform in $('Win32', 'Win64', 'Win64x'))
+{
+    foreach ($ProductVersion in $('23.0', '37.0'))
+    {
+        $cmd = $("./MacroAppCpp/$ProductVersion/$platform/Debug/MacroAppCpp.exe")
+        $result = & $cmd
+        if ($result -ne 42) {
+            throw "The exe output folder is not respected for exes. Expected 42, got $result."
+        }
+    }
+}
+

@@ -22,5 +22,9 @@ exe options:
 packages:
   - MacroAppCpp: [neutral,exe]
 
+paths:
+  extra library paths:
+    - more-objs\$(PLATFORM)\$(CONFIG)\staticobjs
+
 dependencies:
   - macro.pack: macro.pack
