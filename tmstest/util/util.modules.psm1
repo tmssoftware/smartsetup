@@ -210,6 +210,18 @@ function bds {
         [Parameter(Mandatory = $false, Position=1)] [string[]] $RegistryKey = ""
     )
 
+    #if testapp isn't in the latest dproj version, it will ask for saving the changes when closing.
+    #so we set ProjectVersion to a high number to avoid that.
+    $fullProjectFile = (Resolve-Path $ProjectFile).Path
+    $xml = New-Object System.Xml.XmlDocument
+    $xml.PreserveWhitespace = $true
+    $xml.Load($fullProjectFile)
+    $versionNodes = $xml.SelectNodes("//*[local-name()='ProjectVersion']")
+    foreach ($node in $versionNodes) {
+        $node.InnerText = "99.0"
+    }
+    $xml.Save($fullProjectFile)
+
     $regCommand = ""
     if ($RegistryKey -ne "") {
         $regCommand = "-r $RegistryKey"
