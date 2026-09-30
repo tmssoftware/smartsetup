@@ -119,7 +119,7 @@ begin
 {$IFDEF MSWINDOWS}
   const TmsExe = 'tms.exe';
 {$ELSE}
-  const tms = 'tms';
+  const TmsExe = 'tms';
 {$ENDIF}
   var ExtractFolder := Config.Folders.TempSelfUpdateFolder;
   var tms := TPath.Combine(ExtractFolder, TmsExe);
