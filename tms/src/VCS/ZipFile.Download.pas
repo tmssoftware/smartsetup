@@ -13,8 +13,8 @@ type
 
   ZipDownloader = class
   private
-    class procedure GetFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
-    class procedure GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
+    class procedure GetFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean; const ETagFolder: string); static;
+    class procedure GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean; const ETagFolder: string); static;
     class procedure GetLocalFile(const DownloadUrl, FileNameOnDisk: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean); static;
     class function ReadETag(const ETagFileName: string;
       const ForceDownload: boolean; const DownloadLogger: TDownloadLogger): string; static;
@@ -26,7 +26,8 @@ type
 
   public
     //Downloads a full zipped repo to a file.
-    class procedure GetRepo(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false); static;
+    class procedure GetRepo(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger;
+      const ForceDownload: boolean = false; const ETagFolder: string = ''); static;
 
   end;
 
@@ -58,6 +59,7 @@ begin
   if not ForceDownload then
   begin
     if NewETag = '' then DownloadLogger(TVerbosity.Error, 'Server at url "' + DownloadUrl + '" doesn''t support ETags. USE ONLY SERVERS WITH ETAGs to avoid continually downloading the same file.');
+    TDirectory_CreateDirectory(TPath.GetDirectoryName(ETagFileName));
     TFile.WriteAllText(ETagFileName, NewETag, TEncoding.UTF8);
   end;
 end;
@@ -99,7 +101,7 @@ begin
 end;
 
 class procedure ZipDownloader.GetFile(const DownloadUrl, FileNameOnDisk, Server: string;
-  DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
+  DownloadLogger: TDownloadLogger; const ForceDownload: boolean; const ETagFolder: string);
 begin
   //Defensive scheme check: even if a tms.config.yaml was hand-edited or copied
   //from elsewhere with an http:// URL, we refuse to download from it unless
@@ -111,11 +113,11 @@ begin
   if DownloadUrl.StartsWith('file://', true) then
     GetLocalFile(RemoveFilePrefix(DownloadUrl), FileNameOnDisk, DownloadLogger, ForceDownload)
   else
-    GetHttpsFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload);
+    GetHttpsFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload, ETagFolder);
 end;
 
 //Code is from TParallelDownloader.DownloadFile. We could unify it, but for now I prefer to evolve it separately.
-class procedure ZipDownloader.GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean);
+class procedure ZipDownloader.GetHttpsFile(const DownloadUrl, FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean; const ETagFolder: string);
 begin
   var Client: TOfflineHTTPClient := TOfflineHTTPClient.Create;
   try
@@ -123,8 +125,17 @@ begin
     TDirectory_CreateDirectory(TPath.GetDirectoryName(FileNameOnDisk));
     var AResponse: IHTTPResponse;
     var TempFileName := TPath.Combine(Config.Folders.ZipFileTempFolder, TPath.GetFileName(FileNameOnDisk) + '.download');
-    var ETagFileName := FileNameOnDisk + '.etag';
-    var ETag := ReadETag(ETagFileName, ForceDownload, DownloadLogger);
+    var ETagFileName: string;
+    if ETagFolder = '' then ETagFileName := FileNameOnDisk + '.etag' else
+    begin
+      ETagFileName := CombinePath(ETagFolder, TPath.GetFileName(FileNameOnDisk) + '.etag');
+    end;
+
+    var ETag := '';
+    if (TFile.Exists(FileNameOnDisk)) then //even if etag is ok, if the file was deleted re-download it.
+    begin
+      ETag := ReadETag(ETagFileName, ForceDownload, DownloadLogger);
+    end;
 
     TDirectory_CreateDirectory(TPath.GetDirectoryName(TempFileName));
     var fs := TFileStream.Create(TempFileName, fmCreate);
@@ -224,9 +235,9 @@ begin
 end;
 
 class procedure ZipDownloader.GetRepo(const DownloadUrl,
-  FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false);
+  FileNameOnDisk, Server: string; DownloadLogger: TDownloadLogger; const ForceDownload: boolean = false; const ETagFolder: string = '');
 begin
-  GetFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload);
+  GetFile(DownloadUrl, FileNameOnDisk, Server, DownloadLogger, ForceDownload, ETagFolder);
 end;
 
 end.

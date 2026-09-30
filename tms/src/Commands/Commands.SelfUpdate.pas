@@ -2,7 +2,8 @@
 interface
 
 uses
-  System.SysUtils, System.StrUtils, VSoft.CommandLine.Options, UCommandLine, UMultiLogger, Deget.Version;
+  System.SysUtils, System.StrUtils, VSoft.CommandLine.Options, UCommandLine, UMultiLogger, Deget.Version,
+  ZipFile.Download;
 
 procedure RegisterSelfUpdateCommand;
 function NewSmartSetupAvailable: string; //returns empty is there are none.
@@ -15,7 +16,7 @@ uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
   Commands.GlobalConfig, System.Zip, Downloads.VersionManager,
-  UConfigDefinition, Fetching.Manager, ULogger,
+  UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character,
   UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
 
 
@@ -113,7 +114,61 @@ begin
   SmartSetupUpdated := true;
 end;
 
-procedure FetchSmartSetup;
+function GetVersionFromBundle(const ZipFileName: string): TVersion;
+begin
+  var ExtractFolder := Config.Folders.TempSelfUpdateFolder;
+  var tms := TPath.Combine(ExtractFolder, 'tms.exe');
+  try
+    var Zip := TZipFile.Create;
+    try
+      Zip.Open(ZipFileName, TZipMode.zmRead);
+      Zip.Extract('tms.exe', ExtractFolder);
+    finally
+      Zip.Free;
+    end;
+
+    const id = 'tms version ';
+    var VersionString: string;
+    ExecuteCommand(tms + ' version', '', VersionString);
+    var Idx := VersionString.IndexOf(id);
+    if (Idx < 0) then raise Exception.Create('Can''t find the version of the downloaded file.');
+    var V := VersionString.Substring(Idx + id.Length);
+    for var i := 0 to V.Length do
+    begin
+      if V.Chars[i].IsWhiteSpace then
+      begin
+        V := V.Substring(0, i);
+        break;
+      end;
+    end;
+
+
+    if not TVersion.TryFromString(V, Result) then raise Exception.Create('Invalid version number: "' + V + '"');
+
+  finally
+    System.SysUtils.DeleteFile(tms);
+  end;
+end;
+
+procedure FetchSmartSetupFromGithub;
+begin
+  var DownloadFileName := CombinePath(Config.Folders.MetaSelfUpdateFolder, 'tmssmartsetup.zip');
+
+  //At the time of writing this code, the url below doesn't incur in rate-limits.
+  //To check if it is using, them, the request should return a x-ratelimit-limit header or related.
+  //This url doesn't at this time, and github states there are no bandwith restrictions except for abuse: https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github#distributing-large-binaries
+  ZipDownloader.GetRepo(
+    'https://github.com/tmssoftware/smartsetup/releases/latest/download/tmssmartsetup.zip',
+    DownloadFileName,
+    'tms', Logger.Write, false);
+
+  var Version := GetVersionFromBundle(DownloadFileName);
+  var FinalFileName := TDownloadFileName.GenerateFileName(TRepositoryManager.TMSSetupProductId, Version) + '.zip';
+  TDirectory_CreateDirectory(Config.Folders.DownloadsFolder);
+  TFile.Copy(DownloadFileName, CombinePath(Config.Folders.DownloadsFolder, FinalFileName), true);
+end;
+
+procedure FetchSmartSetupFromApiServer;
 begin
   var ApiServer :=  TServerConfig.CreateInternalServer('tms'); //hardcoded. doesn't matter if tms is disabled.
   var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, ApiServer.AllowInsecureConnections, true);
@@ -132,6 +187,19 @@ begin
   finally
     Repo.Free;
   end;
+end;
+
+procedure FetchSmartSetup;
+begin
+  var GotUpdate := false;
+  try
+    FetchSmartSetupFromApiServer;
+    GotUpdate := true;
+  except on ex: Exception do
+    Logger.Trace('Can''t get update from API server: ' + ex.Message);
+  end;
+
+  if not GotUpdate then FetchSmartSetupFromGithub;
 
   RotateDownloads(Config.MaxVersionsPerProduct);
 
