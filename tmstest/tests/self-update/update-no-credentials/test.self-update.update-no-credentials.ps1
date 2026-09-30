@@ -46,7 +46,7 @@ else {
 
 $LogFile = tms log-view -print -text
 $LogFileContent = Get-Content -Path $LogFile -Raw
-if ($LogFileContent -like "*smartsetup.zip is up to date.*") {
+if ($LogFileContent -like "*tms.smartsetup.windows.zip is up to date.*") {
     Write-Host "Self-update log contains the expected message about not finding the Api server."
 }
 else {

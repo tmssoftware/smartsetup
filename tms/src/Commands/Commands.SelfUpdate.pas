@@ -116,20 +116,28 @@ end;
 
 function GetVersionFromBundle(const ZipFileName: string): TVersion;
 begin
+{$IFDEF MSWINDOWS}
+  const TmsExe = 'tms.exe';
+{$ELSE}
+  const tms = 'tms';
+{$ENDIF}
   var ExtractFolder := Config.Folders.TempSelfUpdateFolder;
-  var tms := TPath.Combine(ExtractFolder, 'tms.exe');
+  var tms := TPath.Combine(ExtractFolder, TmsExe);
   try
     var Zip := TZipFile.Create;
     try
       Zip.Open(ZipFileName, TZipMode.zmRead);
-      Zip.Extract('tms.exe', ExtractFolder);
+      Zip.Extract(TmsExe, ExtractFolder);
     finally
       Zip.Free;
     end;
 
+    // Verify the signature and publisher before executing downloaded code.
+    VerifySelfUpdateFile(ParamStr(0), tms);
+
     const id = 'tms version ';
     var VersionString: string;
-    ExecuteCommand(tms + ' version', '', VersionString);
+    ExecuteCommand('"' + tms + '" version', '', VersionString);
     var Idx := VersionString.IndexOf(id);
     if (Idx < 0) then raise Exception.Create('Can''t find the version of the downloaded file.');
     var V := VersionString.Substring(Idx + id.Length);
@@ -151,14 +159,26 @@ begin
 end;
 
 procedure FetchSmartSetupFromGithub;
+const
+  {$IFDEF MSWINDOWS}
+    SmartSetupId = 'tmssmartsetup';
+  {$ENDIF}
+  {$IFDEF LINUX}
+    SmartSetupId = 'tmssmartsetup.linux';
+  {$ENDIF}
+  {$IFDEF MACOS}
+    SmartSetupId = 'tmssmartsetup.macos';
+  {$ENDIF}
+
 begin
-  var DownloadFileName := CombinePath(Config.Folders.MetaSelfUpdateFolder, 'tmssmartsetup.zip');
+
+  var DownloadFileName := CombinePath(Config.Folders.MetaSelfUpdateFolder, TRepositoryManager.TMSSetupProductId + '.zip');
 
   //At the time of writing this code, the url below doesn't incur in rate-limits.
   //To check if it is using, them, the request should return a x-ratelimit-limit header or related.
   //This url doesn't at this time, and github states there are no bandwith restrictions except for abuse: https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github#distributing-large-binaries
   ZipDownloader.GetRepo(
-    'https://github.com/tmssoftware/smartsetup/releases/latest/download/tmssmartsetup.zip',
+    'https://github.com/tmssoftware/smartsetup/releases/latest/download/' + SmartSetupId + '.zip',
     DownloadFileName,
     'tms', Logger.Write, false);
 
