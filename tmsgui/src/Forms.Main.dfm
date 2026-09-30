@@ -19,15 +19,28 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 971
-    Height = 542
+    Height = 512
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
+    object LogSplitter: TSplitter
+      Left = 0
+      Top = 365
+      Width = 971
+      Height = 12
+      Cursor = crVSplit
+      Align = alBottom
+      Beveled = True
+      Color = clBtnFace
+      ParentColor = False
+      ResizeStyle = rsUpdate
+      ExplicitTop = 371
+    end
     object PageControl1: TPageControl
       Left = 0
       Top = 0
       Width = 971
-      Height = 383
+      Height = 365
       ActivePage = tsProducts
       Align = alClient
       MultiLine = True
@@ -39,7 +52,7 @@ object MainForm: TMainForm
           Left = 0
           Top = 35
           Width = 105
-          Height = 320
+          Height = 302
           Align = alLeft
           BevelEdges = [beRight]
           BevelKind = bkFlat
@@ -66,7 +79,7 @@ object MainForm: TMainForm
           Left = 105
           Top = 35
           Width = 753
-          Height = 320
+          Height = 302
           Align = alClient
           BorderStyle = bsNone
           Columns = <
@@ -116,7 +129,7 @@ object MainForm: TMainForm
           Left = 858
           Top = 35
           Width = 105
-          Height = 320
+          Height = 302
           Align = alRight
           BevelEdges = [beLeft]
           BevelKind = bkFlat
@@ -124,7 +137,7 @@ object MainForm: TMainForm
           TabOrder = 3
           DesignSize = (
             103
-            320)
+            302)
           object Button1: TButton
             Left = 8
             Top = 66
@@ -153,7 +166,7 @@ object MainForm: TMainForm
           end
           object Button4: TButton
             Left = 8
-            Top = 288
+            Top = 270
             Width = 89
             Height = 25
             Action = acConfigure
@@ -162,7 +175,7 @@ object MainForm: TMainForm
           end
           object btCredentials: TButton
             Left = 8
-            Top = 256
+            Top = 238
             Width = 89
             Height = 25
             Action = acCredentials
@@ -236,7 +249,7 @@ object MainForm: TMainForm
           Left = 0
           Top = 0
           Width = 963
-          Height = 355
+          Height = 337
           Align = alClient
           BorderStyle = bsNone
           Font.Charset = DEFAULT_CHARSET
@@ -253,99 +266,126 @@ object MainForm: TMainForm
     end
     object LogPanel: TPanel
       Left = 0
-      Top = 407
+      Top = 377
       Width = 971
       Height = 135
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
-      Visible = False
-      object LogSplitter: TSplitter
-        Left = 0
-        Top = 62
-        Width = 971
-        Height = 3
-        Cursor = crVSplit
-        Align = alBottom
-        Visible = False
-        ExplicitTop = 0
-        ExplicitWidth = 65
-      end
-      object mmLogDetails: TMemo
-        Left = 0
-        Top = 65
-        Width = 971
-        Height = 70
-        Align = alBottom
-        BorderStyle = bsNone
-        Ctl3D = True
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Consolas'
-        Font.Style = []
-        ParentCtl3D = False
-        ParentFont = False
-        ParentShowHint = False
-        ReadOnly = True
-        ScrollBars = ssVertical
-        ShowHint = False
-        TabOrder = 0
-        Visible = False
-        WordWrap = False
-      end
-      object lbLogItems: TListBox
+      object lbLog: TControlList
         Left = 0
         Top = 0
         Width = 971
-        Height = 62
+        Height = 135
         Align = alClient
-        BorderStyle = bsNone
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Segoe UI'
-        Font.Style = []
-        ItemHeight = 15
-        ParentFont = False
-        TabOrder = 1
-        OnClick = lbLogItemsClick
-      end
-    end
-    object ProgressPanel: TPanel
-      Left = 0
-      Top = 383
-      Width = 971
-      Height = 24
-      Align = alBottom
-      BevelOuter = bvNone
-      TabOrder = 2
-      object SpeedButton1: TSpeedButton
-        Left = 914
-        Top = 0
-        Width = 57
-        Height = 24
-        Action = acCancelExecution
-        Align = alRight
-        Flat = True
-        ExplicitLeft = 840
-        ExplicitHeight = 22
-      end
-      object ProgressBar: TProgressBar
-        Left = 0
-        Top = 0
-        Width = 914
-        Height = 24
-        Align = alClient
-        Smooth = True
+        ItemHeight = 24
+        ItemMargins.Left = 0
+        ItemMargins.Top = 0
+        ItemMargins.Right = 0
+        ItemMargins.Bottom = 0
+        ItemSelectionOptions.HotColorAlpha = 50
+        ItemSelectionOptions.SelectedColorAlpha = 70
+        ItemSelectionOptions.FocusedColorAlpha = 80
+        ParentColor = False
         TabOrder = 0
+        OnBeforeDrawItem = lbLogBeforeDrawItem
+        OnItemDblClick = acLogDetailsExecute
+        object lblError: TLabel
+          AlignWithMargins = True
+          Left = 76
+          Top = 4
+          Width = 711
+          Height = 16
+          Margins.Left = 20
+          Margins.Top = 4
+          Margins.Right = 4
+          Margins.Bottom = 4
+          Align = alClient
+          AutoSize = False
+          Caption = 'Error'
+          EllipsisPosition = epEndEllipsis
+          ShowAccelChar = False
+          Transparent = True
+          WordWrap = True
+          ExplicitWidth = 25
+          ExplicitHeight = 15
+        end
+        object btnShowLog: TControlListButton
+          AlignWithMargins = True
+          Left = 795
+          Top = 2
+          Width = 80
+          Height = 20
+          Margins.Left = 4
+          Margins.Top = 2
+          Margins.Right = 4
+          Margins.Bottom = 2
+          Action = acLogDetails
+          Align = alRight
+          Style = clbkToolButton
+          ExplicitTop = -3
+          ExplicitHeight = 14
+        end
+        object lblErrorCaption: TLabel
+          AlignWithMargins = True
+          Left = 3
+          Top = 4
+          Width = 13
+          Height = 16
+          Margins.Top = 4
+          Margins.Bottom = 4
+          Align = alLeft
+          Caption = #10060
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clRed
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
+          Font.Style = [fsBold]
+          ParentFont = False
+          ExplicitHeight = 15
+        end
+        object lblTime: TLabel
+          AlignWithMargins = True
+          Left = 22
+          Top = 4
+          Width = 31
+          Height = 16
+          Margins.Top = 4
+          Margins.Bottom = 4
+          Align = alLeft
+          Caption = '10:00'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -12
+          Font.Name = 'Segoe UI'
+          Font.Style = [fsBold]
+          ParentFont = False
+          ExplicitHeight = 15
+        end
+        object btnOpenHTMLLog: TControlListButton
+          AlignWithMargins = True
+          Left = 883
+          Top = 2
+          Width = 80
+          Height = 20
+          Margins.Left = 4
+          Margins.Top = 2
+          Margins.Right = 4
+          Margins.Bottom = 2
+          Action = acViewHtmlLog
+          Align = alRight
+          Style = clbkToolButton
+          ExplicitLeft = 856
+          ExplicitTop = 5
+        end
       end
     end
   end
   object StatusBar: TStatusBar
-    Left = 0
-    Top = 542
-    Width = 971
+    AlignWithMargins = True
+    Left = 3
+    Top = 539
+    Width = 965
     Height = 19
     Panels = <
       item
@@ -355,7 +395,44 @@ object MainForm: TMainForm
       item
         Bevel = pbNone
         Width = 300
+      end
+      item
+        Width = 50
+      end
+      item
+        Alignment = taRightJustify
+        Width = 200
       end>
+    OnClick = StatusBarClick
+  end
+  object ProgressPanel: TPanel
+    Left = 0
+    Top = 512
+    Width = 971
+    Height = 24
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 2
+    object SpeedButton1: TSpeedButton
+      Left = 914
+      Top = 0
+      Width = 57
+      Height = 24
+      Action = acCancelExecution
+      Align = alRight
+      Flat = True
+      ExplicitLeft = 840
+      ExplicitHeight = 22
+    end
+    object ProgressBar: TProgressBar
+      Left = 0
+      Top = 0
+      Width = 914
+      Height = 24
+      Align = alClient
+      Smooth = True
+      TabOrder = 0
+    end
   end
   object ActionList1: TActionList
     Left = 240
@@ -450,6 +527,16 @@ object MainForm: TMainForm
       OnExecute = acUnpinExecute
       OnUpdate = acUnpinUpdate
     end
+    object acLogDetails: TAction
+      Category = 'ErrorBox'
+      Caption = 'Details'
+      OnExecute = acLogDetailsExecute
+    end
+    object acViewHtmlLog: TAction
+      Category = 'ErrorBox'
+      Caption = 'Log'
+      OnExecute = acViewHtmlLogExecute
+    end
   end
   object BuildMenu: TPopupMenu
     Left = 848
@@ -476,5 +563,13 @@ object MainForm: TMainForm
     object Unpinversion1: TMenuItem
       Action = acUnpin
     end
+  end
+  object WorkingFolderDialog: TFileOpenDialog
+    FavoriteLinks = <>
+    FileTypes = <>
+    Options = [fdoPickFolders, fdoPathMustExist, fdoDontAddToRecent]
+    Title = 'Select folder to install smartsetup bundles'
+    Left = 480
+    Top = 288
   end
 end

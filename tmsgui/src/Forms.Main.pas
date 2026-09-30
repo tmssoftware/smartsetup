@@ -1,4 +1,4 @@
-unit Forms.Main;
+﻿unit Forms.Main;
 
 interface
 
@@ -6,7 +6,8 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
-  Forms.Config, UCommonTypes, Forms.Start;
+  Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
+  Vcl.VirtualImage;
 
 type
   TMainForm = class(TForm)
@@ -37,14 +38,8 @@ type
     Button4: TButton;
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
-    mmLogDetails: TMemo;
     LogPanel: TPanel;
-    ProgressPanel: TPanel;
-    SpeedButton1: TSpeedButton;
-    ProgressBar: TProgressBar;
     StatusBar: TStatusBar;
-    lbLogItems: TListBox;
-    LogSplitter: TSplitter;
     acVersionHistory: TAction;
     pmProducts: TPopupMenu;
     Openversionhistory1: TMenuItem;
@@ -62,6 +57,19 @@ type
     acUnpin: TAction;
     Pinversion1: TMenuItem;
     Unpinversion1: TMenuItem;
+    lbLog: TControlList;
+    lblError: TLabel;
+    btnShowLog: TControlListButton;
+    LogSplitter: TSplitter;
+    lblErrorCaption: TLabel;
+    lblTime: TLabel;
+    btnOpenHTMLLog: TControlListButton;
+    WorkingFolderDialog: TFileOpenDialog;
+    ProgressPanel: TPanel;
+    SpeedButton1: TSpeedButton;
+    ProgressBar: TProgressBar;
+    acLogDetails: TAction;
+    acViewHtmlLog: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -83,7 +91,6 @@ type
     procedure acUninstallExecute(Sender: TObject);
     procedure acConfigureUpdate(Sender: TObject);
     procedure acConfigureExecute(Sender: TObject);
-    procedure lbLogItemsClick(Sender: TObject);
     procedure acVersionHistoryUpdate(Sender: TObject);
     procedure acVersionHistoryExecute(Sender: TObject);
     procedure lvProductsCompare(Sender: TObject; Item1, Item2: TListItem; Data: Integer; var Compare: Integer);
@@ -101,12 +108,21 @@ type
     procedure acPinUpdate(Sender: TObject);
     procedure acUnpinExecute(Sender: TObject);
     procedure acPinExecute(Sender: TObject);
+    procedure lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+      ARect: TRect; AState: TOwnerDrawState);
+    procedure StatusBarClick(Sender: TObject);
+    procedure acLogDetailsExecute(Sender: TObject);
+    procedure acViewHtmlLogExecute(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
     SortColumn: Integer;
     SortDescending: Boolean;
     OverCaption: Boolean;
+    ProgressIndex: integer;
+    WorkingNestedLevel: integer;
+    WorkingTimer: TTimer;
+    LogDetailsForm: TLogDetailsForm;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
@@ -119,6 +135,12 @@ type
     procedure SortProducts;
     procedure UpdateSortArrows;
     function Repository: string;
+    function GetLogIco(const Item: TGUILogItem): string;
+
+    procedure StartWorking;
+    procedure UpdateWorking(Sender: TObject);
+    procedure StopWorking;
+    function GetLastError: string;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -143,7 +165,7 @@ implementation
 
 uses
   Winapi.ShellAPI, Winapi.CommCtrl,
-  UTheming,
+  UTheming, IOUtils,
   Forms.VersionPicker;
 
 {$R *.dfm}
@@ -244,6 +266,14 @@ begin
   TAction(Sender).Enabled := (Product <> nil) and GUI.CanInstallSelected;
 end;
 
+procedure TMainForm.acLogDetailsExecute(Sender: TObject);
+begin
+  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
+  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Output);
+  LogDetailsForm.ShowModal;
+end;
+
 procedure TMainForm.acPartialBuildExecute(Sender: TObject);
 begin
   GUI.ExecutePartialBuild(ProductProgressEvent);
@@ -332,6 +362,24 @@ begin
   TAction(Sender).Enabled := GetVersionHistoryUrl(Product) <> '';
 end;
 
+
+procedure TMainForm.acViewHtmlLogExecute(Sender: TObject);
+begin
+  var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
+  var SessionId := GUI.LogItems[RevIndex].SessionId;
+  if SessionId = '' then exit;
+
+  var LogFile := GUI.ExecuteLogView(SessionId, true);
+  if not TFile.Exists(LogFile) then
+  begin
+    GUI.LogItems[RevIndex].SessionId := ''; //file was deleted, we won't show the log button anymore.
+    exit;
+  end;
+
+  GUI.ExecuteLogView(SessionId, false);
+end;
+
 procedure TMainForm.cbServerChange(Sender: TObject);
 begin
   var Server := '';
@@ -414,6 +462,14 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := 4;  // sort by status by default
 
+  WorkingTimer := TTimer.Create(Self);
+  WorkingTimer.Enabled := false;
+  WorkingTimer.Interval := 500;
+  WorkingTimer.OnTimer := UpdateWorking;
+
+  LogDetailsForm := TLogDetailsForm.Create(Self); //keep so it doesn't keep resizing when you reopen it.
+  LogPanel.Height := 1; // 0 would not allow us to resize the box when closed.
+
   GUI := TGUIEnvironment.Create;
 
   GUI.OnProductsUpdated := ProductsUpdatedEvent;
@@ -426,6 +482,9 @@ begin
   GUI.OnRunFinish := RunFinishEvent;
   GUI.OnNewVersionDetected := NewVersionDetectedEvent;
   GUI.OnRunnerCreated := RunnerCreatedEvent;
+
+  GUI.StartWorking := StartWorking;
+  GUI.StopWorking := StopWorking;
 
   ShowInfo;
 
@@ -445,9 +504,25 @@ begin
   end;
 end;
 
+function TMainForm.GetLastError: string;
+begin
+  if GUI.LogItems.Count = 0 then exit('Unknown error');
+  exit(GUI.LogItems.Last.Output);
+end;
+
 procedure TMainForm.FormShow(Sender: TObject);
 begin
-  if not GUI.Info.FolderInitialized then
+  if not GUI.Info.Initialized then
+  begin
+    ShowMessage('Error initializing SmartSetup: ' + GetLastError);
+   // Application.Terminate;
+    Gui.Start;
+    exit;
+  end;
+
+  //Show the message only if there is no config file yet.
+  //If we used FolderInitialized here, it will be true in an empty folder. But we want to show the welcome in an empty folder.
+  if not TFile.Exists(GUI.Info.ConfigFile) then
   begin
     var TMS, Community: Boolean;
     if TStartForm.Execute(TMS, Community) then
@@ -462,7 +537,7 @@ begin
     end;
   end;
 
-  if GUI.Info.FolderInitialized then
+  if TFile.Exists(GUI.Info.ConfigFile) then
     GUI.Start
   else
     Application.Terminate;
@@ -521,19 +596,45 @@ begin
   acCredentials.Visible := GUI.Servers.IsEnabled('tms');
 end;
 
-procedure TMainForm.lbLogItemsClick(Sender: TObject);
+function TMainForm.GetLogIco(const Item: TGUILogItem): string;
 begin
-  var Line := lbLogItems.ItemIndex;
-  var Item: TGUILogItem := nil;
-  if Line >= 0 then
-    Item := TGUILogItem(lbLogItems.Items.Objects[Line]);
+  case Item.Level of
+    TLogLevel.Error: exit('❌');
+    TLogLevel.Info: exit('✔');
+    TLogLevel.Trace: exit('✔');
+  end;
+  Result :='';
+end;
 
-  var Details: string := '';
-  if Item <> nil then
-    Details := Item.Output;
-  mmLogDetails.Visible := Trim(Details) <> '';
-  mmLogDetails.Lines.Text := Details;
-  LogSplitter.Visible := mmLogDetails.Visible;
+procedure TMainForm.lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+  ARect: TRect; AState: TOwnerDrawState);
+begin
+  var RevIndex := GUI.LogItems.Count - 1 - AIndex;
+
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then
+  begin
+    lblError.Caption := 'Internal Error';
+    lblTime.Caption := '';
+    exit;
+  end;
+
+  lblError.Caption := GUI.LogItems[RevIndex].Text;
+  lblTime.Caption := TimeToStr(GUI.LogItems[RevIndex].DateTime);
+  btnOpenHTMLLog.Enabled := GUI.LogItems[RevIndex].SessionId <> ''; //To be 100% sure, we would need to do a if File.Exists here, but it would be too time consuming to put in BeforeDrawItem. So we guess. It might be that the file isn't there anymore, but then the button just won't do anything.
+  if btnOpenHTMLLog.Enabled then btnOpenHTMLLog.Caption := acViewHtmlLog.Caption else btnOpenHTMLLog.Caption := '';
+
+
+  lblErrorCaption.Caption := GetLogIco(GUI.LogItems[RevIndex]);
+  if GUI.LogItems[RevIndex].Level = TLogLevel.Error then
+  begin
+    lblErrorCaption.Font.Color := TColors.Red;
+    lblErrorCaption.StyleElements := lblErrorCaption.StyleElements - [TStyleElement.SeFont];
+  end
+  else
+  begin
+    lblErrorCaption.Font.Color := TColors.Black;
+    lblErrorCaption.StyleElements := lblErrorCaption.StyleElements + [TStyleElement.SeFont];
+  end;
 end;
 
 procedure TMainForm.LogItemGeneratedEvent(const Item: TGUILogItem);
@@ -541,9 +642,12 @@ begin
   var Text := FormatLogMessage(Item);
   TThread.Queue(nil, procedure
     begin
-      if not LogPanel.Visible then
-        LogPanel.Visible := True;
-      lbLogItems.AddItem(Text, Item);
+      if (LogPanel.Height <= 5) and (Item.Level = TLogLevel.Error) then
+      begin
+        LogPanel.Height := 300;
+      end;
+      lbLog.ItemCount := GUI.LogItems.Count;
+      lbLog.Refresh;
     end);
 end;
 
@@ -704,19 +808,56 @@ const
   {$I ..\..\version.inc}
 begin
   StatusBar.Panels[0].Text := TMSVersion;
+  StatusBar.Panels[2].Text := Repository;
+
   StatusBar.Panels[1].Text := GUI.Info.WorkingFolder;
-  if (Repository <> '') then
-  begin
-    if StatusBar.Panels.Count < 3 then
-      StatusBar.Panels.Add;
-    StatusBar.Panels[2].Text := Repository;
-  end;
 end;
 
 procedure TMainForm.SortProducts;
 begin
   lvProducts.AlphaSort;
   UpdateSortArrows;
+end;
+
+procedure TMainForm.StartWorking;
+begin
+  TThread.Queue(nil, procedure
+    begin
+      Inc(WorkingNestedLevel);
+      if (WorkingNestedLevel = 1) then StatusBar.Panels[3].Text := 'Working... ';
+      WorkingTimer.Enabled := WorkingNestedLevel > 0;
+    end);
+end;
+
+procedure TMainForm.StatusBarClick(Sender: TObject);
+begin
+  if GUI.IsRunning then exit;
+  
+  WorkingFolderDialog.DefaultFolder := GetCurrentDir;
+  if not WorkingFolderDialog.Execute then exit;
+
+  SetCurrentDir(WorkingFolderDialog.FileName);
+  GUI.RefreshInfo;
+  GUI.Start;
+  ShowInfo;
+end;
+
+procedure TMainForm.UpdateWorking(Sender: TObject);
+const
+  Blocks: Array[0.. 9] of string = ('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏');
+begin
+  StatusBar.Panels[3].Text := Blocks[(Length(Blocks) * 2 + 1 - ProgressIndex) mod Length(Blocks)] + Blocks[ProgressIndex] + ' Working... ';
+  if ProgressIndex < Length(Blocks) - 1 then Inc(ProgressIndex) else ProgressIndex := 0;
+end;
+
+procedure TMainForm.StopWorking;
+begin
+  TThread.Queue(nil, procedure
+    begin
+      if (WorkingNestedLevel > 0) then Dec(WorkingNestedLevel);
+      WorkingTimer.Enabled := WorkingNestedLevel > 0;
+      if (WorkingNestedLevel = 0) then StatusBar.Panels[3].Text := '';
+    end);
 end;
 
 procedure TMainForm.UpdateSortArrows;
