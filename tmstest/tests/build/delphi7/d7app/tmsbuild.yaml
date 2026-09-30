@@ -1,0 +1,22 @@
+minimum required tmsbuild version: 2.0
+  
+application:
+  id: testapp.tmsbuild
+  name: testapp
+
+supported frameworks:
+  vcl:
+    ide since: delphi7
+    platforms:
+      - win32intel
+      - win64intel
+
+packages:
+  - d7: [exe, vcl]
+
+exe options:
+  delphi versions: latest
+  debug exes: false
+
+dependencies:
+  - tms.vcl.uipack: vcl ui pack
