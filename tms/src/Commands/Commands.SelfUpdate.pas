@@ -14,7 +14,8 @@ implementation
 uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
-  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager,
+  Commands.GlobalConfig, System.Zip, Downloads.VersionManager,
+  UConfigDefinition, Fetching.Manager, ULogger,
   UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
 
 
@@ -112,6 +113,31 @@ begin
   SmartSetupUpdated := true;
 end;
 
+procedure FetchSmartSetup;
+begin
+  var ApiServer :=  TServerConfig.CreateInternalServer('tms'); //hardcoded. doesn't matter if tms is disabled.
+  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, ApiServer.AllowInsecureConnections, true);
+  try
+    var Manager := TFetchManager.Create(Config.Folders, Repo, nil);
+      try
+        Logger.StartSection(TMessageType.Update, 'Self-Updating SmartSetup');
+        try
+          Manager.UpdateItems;
+        finally
+          Logger.FinishSection(TMessageType.Update, false);
+        end;
+      finally
+        Manager.Free;
+      end;
+  finally
+    Repo.Free;
+  end;
+
+  RotateDownloads(Config.MaxVersionsPerProduct);
+
+
+end;
+
 var
   NoFetch: Boolean = False;
 
@@ -119,7 +145,7 @@ procedure RunSelfUpdateCommand;
 begin
   InitFolderBasedCommand;
   if not NoFetch then
-    ExecuteFetchAction([TRepositoryManager.TMSSetupProductId], TFetchMode.OnlyInstalled);
+    FetchSmartSetup;
 
   AutoUpdate;
 

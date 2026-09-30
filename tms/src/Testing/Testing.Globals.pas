@@ -17,6 +17,7 @@ type
     AllowVCSCommandsStartingWithMinus: boolean;
     WindowsPath: string;
     LogUncompress: boolean;
+    NoCredentials: boolean;
 
 
     procedure CheckOffline(const Method: string);

@@ -101,7 +101,7 @@ begin
   option.Hidden := true;
 
   option := TOptionsRegistry.RegisterOption<Boolean>(
-    'test-log-uncompress', '', 'Uses the uncompress events so we can test them..',
+    'test-log-uncompress', '', 'Uses the uncompress events so we can test them.',
     procedure(const Value: Boolean)
     begin
       TestParameters.LogUncompress := Value
@@ -109,6 +109,14 @@ begin
   option.HasValue := False;
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-no-credentials', '', 'Tests how we behave if the user didn''t enter any credentials.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.NoCredentials := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
 
 end;
 

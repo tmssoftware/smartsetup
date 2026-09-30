@@ -3,7 +3,7 @@
 
 . test.setup
 
-#tms server-enable tms false
+tms server-enable tms false
 tms server-enable community false
 
 $tmsexe = Get-Alias tms

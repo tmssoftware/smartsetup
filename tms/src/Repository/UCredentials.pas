@@ -122,6 +122,9 @@ end;
 constructor TCredentialsManager.Create(const ACredentialsFile, DefaultProfile, ServerName: string);
 begin
   FCredentialsFile := ACredentialsFile;
+{$IFDEF DEBUG}
+  if TestParameters.NoCredentials then FCredentialsFile := '$invalid-credentials';
+{$ENDIF}
   FDefaultProfile := DefaultProfile;
   FServerName := ServerName;
 end;
