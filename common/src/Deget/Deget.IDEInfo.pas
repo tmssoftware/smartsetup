@@ -17,6 +17,8 @@ type
   TEnvVar = record
     Name: string;
     Value: string;
+
+    constructor Create(const aName, aValue: string);
   end;
 
 
@@ -120,5 +122,13 @@ type
   end;
 
 implementation
+
+{ TEnvVar }
+
+constructor TEnvVar.Create(const aName, aValue: string);
+begin
+  Name := aName;
+  Value := aValue;
+end;
 
 end.

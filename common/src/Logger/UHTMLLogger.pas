@@ -449,18 +449,58 @@ begin
   Writer.WriteLine('<style>');
 
   Writer.WriteLine(':root {');
+  Writer.WriteLine('  color-scheme: light dark;');
   Writer.WriteLine('  --wrap: break-spaces;');
+  Writer.WriteLine('  --bg: #ffffff;');
+  Writer.WriteLine('  --fg: #000000;');
+  Writer.WriteLine('  --topbar-bg: #ffffff;');
+  Writer.WriteLine('  --button-border: #e5e7eb;');
+  Writer.WriteLine('  --button-active-bg: #f3f4f6;');
+  Writer.WriteLine('  --toggle-bg: #777;');
+  Writer.WriteLine('  --toggle-hover-bg: #555;');
+  Writer.WriteLine('  --toggle-fg: #ffffff;');
+  Writer.WriteLine('  --content-border: rgba(250, 224, 66, .45);');
+  Writer.WriteLine('  --error-bg: #f82323;');
+  Writer.WriteLine('  --error-hover-bg: #ff0000;');
+  Writer.WriteLine('  --error-fg: #d00000;');
+  Writer.WriteLine('  --caption-fg: navy;');
+  Writer.WriteLine('  --question-fg: purple;');
+  Writer.WriteLine('  --comment-fg: gray;');
+  Writer.WriteLine('  --conclusion-fg: green;');
+  Writer.WriteLine('}');
+
+  Writer.WriteLine('@media (prefers-color-scheme: dark) {');
+  Writer.WriteLine(':root {');
+  Writer.WriteLine('  --bg: #1e1e1e;');
+  Writer.WriteLine('  --fg: #d4d4d4;');
+  Writer.WriteLine('  --topbar-bg: #252526;');
+  Writer.WriteLine('  --button-border: #3c3c3c;');
+  Writer.WriteLine('  --button-active-bg: #3a3a3a;');
+  Writer.WriteLine('  --toggle-bg: #3f3f46;');
+  Writer.WriteLine('  --toggle-hover-bg: #52525b;');
+  Writer.WriteLine('  --toggle-fg: #f4f4f5;');
+  Writer.WriteLine('  --content-border: rgba(250, 224, 66, .25);');
+  Writer.WriteLine('  --error-bg: #a01515;');
+  Writer.WriteLine('  --error-hover-bg: #c81c1c;');
+  Writer.WriteLine('  --error-fg: #ff6b6b;');
+  Writer.WriteLine('  --caption-fg: #7aa2f7;');
+  Writer.WriteLine('  --question-fg: #c792ea;');
+  Writer.WriteLine('  --comment-fg: #9ca3af;');
+  Writer.WriteLine('  --conclusion-fg: #4ade80;');
+  Writer.WriteLine('}');
   Writer.WriteLine('}');
 
 
   Writer.WriteLine('body {');
   Writer.WriteLine('  font-family: monospace;');
+  Writer.WriteLine('  background: var(--bg);');
+  Writer.WriteLine('  color: var(--fg);');
   Writer.WriteLine('}');
 
   Writer.WriteLine('.topbar {');
   Writer.WriteLine('padding: 10px 16px;');
-  Writer.WriteLine('background: white;font-size: 12pt;font-weight: bold;');
-  Writer.WriteLine('color: black;');
+  Writer.WriteLine('background: var(--topbar-bg);font-size: 12pt;font-weight: bold;');
+  Writer.WriteLine('color: var(--fg);');
   Writer.WriteLine('position: fixed;');
   Writer.WriteLine('box-sizing: border-box;');
   Writer.WriteLine('top: 0;');
@@ -469,7 +509,9 @@ begin
 
   Writer.WriteLine('.action-button {');
   Writer.WriteLine('  float: right;');
-  Writer.WriteLine('  border: 1px solid #e5e7eb;');
+  Writer.WriteLine('  border: 1px solid var(--button-border);');
+  Writer.WriteLine('  background-color: transparent;');
+  Writer.WriteLine('  color: inherit;');
   Writer.WriteLine('  border-radius: .5rem;');
   Writer.WriteLine('  box-sizing: border-box;');
   Writer.WriteLine('  column-gap: 1rem;');
@@ -490,7 +532,7 @@ begin
   Writer.WriteLine('}');
 
   Writer.WriteLine('.action-button:active {');
-  Writer.WriteLine('  background-color: #f3f4f6;');
+  Writer.WriteLine('  background-color: var(--button-active-bg);');
   Writer.WriteLine('  box-shadow: -1px 2px 5px rgba(81,41,10,0.15),0px 1px 1px rgba(81,41,10,0.15);');
   Writer.WriteLine('  transform: translateY(0.125rem);');
   Writer.WriteLine('}');
@@ -509,8 +551,8 @@ begin
 
   Writer.WriteLine('.lbl-toggle {');
   Writer.WriteLine('  display: block;');
-  Writer.WriteLine('  background-color: #777;');
-  Writer.WriteLine('  color: white;');
+  Writer.WriteLine('  background-color: var(--toggle-bg);');
+  Writer.WriteLine('  color: var(--toggle-fg);');
   Writer.WriteLine('  cursor: pointer;');
   Writer.WriteLine('  padding: 6px;');
   Writer.WriteLine('  box-sizing: border-box;');
@@ -525,7 +567,7 @@ begin
   Writer.WriteLine('}');
 
   Writer.WriteLine('.lbl-toggle:hover {');
-  Writer.WriteLine('  background-color: #555;');
+  Writer.WriteLine('  background-color: var(--toggle-hover-bg);');
   Writer.WriteLine('}');
 
   Writer.WriteLine('.lbl-toggle::before {');
@@ -563,7 +605,7 @@ begin
   Writer.WriteLine('  font-family: monospace;');
 
  // Writer.WriteLine('  border-bottom: 1px solid rgba(250, 224, 66, .45);');
-  Writer.WriteLine('  border: 1px solid rgba(250, 224, 66, .45);');
+  Writer.WriteLine('  border: 1px solid var(--content-border);');
 
   Writer.WriteLine('  border-bottom-left-radius: 7px;');
   Writer.WriteLine('  border-bottom-right-radius: 7px;');
@@ -579,15 +621,15 @@ begin
   Writer.WriteLine('}');
 
   Writer.WriteLine('.box-error {');
-  Writer.WriteLine('  background-color: #f82323;');
+  Writer.WriteLine('  background-color: var(--error-bg);');
   Writer.WriteLine('}');
 
   Writer.WriteLine('.box-error:hover {');
-  Writer.WriteLine('  background-color: red;');
+  Writer.WriteLine('  background-color: var(--error-hover-bg);');
   Writer.WriteLine('}');
 
   Writer.WriteLine('.error-text {');
-  Writer.WriteLine('  color: red;');
+  Writer.WriteLine('  color: var(--error-fg);');
   Writer.WriteLine('  font-weight: bold;');
   Writer.WriteLine('}');
 
@@ -596,20 +638,20 @@ begin
   Writer.WriteLine('}');
 
   Writer.WriteLine('.msg-caption {');
-  Writer.WriteLine('  color: navy;');
+  Writer.WriteLine('  color: var(--caption-fg);');
   Writer.WriteLine('}');
 
   Writer.WriteLine('.msg-question {');
-  Writer.WriteLine('  color: purple;');
+  Writer.WriteLine('  color: var(--question-fg);');
   Writer.WriteLine('}');
 
   Writer.WriteLine('.msg-comment {');
-  Writer.WriteLine('  color: gray;');
+  Writer.WriteLine('  color: var(--comment-fg);');
   Writer.WriteLine('  font-style: italic;');
   Writer.WriteLine('}');
 
   Writer.WriteLine('.msg-conclusion {');
-  Writer.WriteLine('  color: green;');
+  Writer.WriteLine('  color: var(--conclusion-fg);');
   Writer.WriteLine('}');
 
   Writer.WriteLine('</style>');

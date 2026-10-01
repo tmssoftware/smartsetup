@@ -2,6 +2,7 @@
 
 interface
 
+procedure VerifySelfUpdateFile(const CurrentExePath, StagedExePath: string);
 procedure VerifySelfUpdateBundle(const CurrentExePath, BundleFolder: string);
 
 implementation

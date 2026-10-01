@@ -3,7 +3,7 @@
 
 . test.setup
 
-#tms server-enable tms false
+tms server-enable tms false
 tms server-enable community false
 
 $tmsexe = Get-Alias tms
@@ -34,6 +34,8 @@ else {
     throw "tmsgui.exe was not found after self-update."
 }
 
+Copy-Item $tmsexe.Definition "./tms.exe" -Force
+
 $log = ./tms.exe self-update
 if ($log -like "*You are using the latest version of TMS Smart Setup*") {
     Write-Host "No updates available, as expected."
@@ -42,7 +44,6 @@ else {
     throw "Unexpected output from self-update: $log"
 }
 
-Copy-Item $tmsexe.Definition "./tms.exe" -Force
 #signtool sign /tr http://rfc3161timestamp.globalsign.com/advanced /td SHA256 /fd SHA256 "./tms.exe"
 
 $log = ./tms.exe self-update -test-force-self-update

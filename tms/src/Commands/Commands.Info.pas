@@ -11,33 +11,35 @@ implementation
 
 uses
   System.JSON, Commands.CommonOptions, Commands.GlobalConfig,
-  UConfigDefinition, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter;
+  UConfigDefinition, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter, UMultiLogger;
 
-var
-  UseJson: Boolean = False;
 
 function HasCredentials: Boolean;
 begin
-  Result := false;
-  var Folders := ConfigNoCheck.Folders;
-  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
-  begin
-    var Server := Config.ServerConfig.GetServer(i);
+  try
+    Result := false;
+    var Folders := ConfigNoCheck.Folders;
+    for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+    begin
+      var Server := Config.ServerConfig.GetServer(i);
 
-    // HasCredentials is deprecated. We will keep the old behavior, which is "HasCredentials" indicates if the
-    // server "tms" has its credentials set.
-    if (not Server.Enabled) or (Server.ServerType <> TServerType.Api) or not SameText(Server.Name, 'tms') then Continue;
-    var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions, Server.Name);
-    try
-      var Credentials := Manager.ReadCredentials;
+      // HasCredentials is deprecated. We will keep the old behavior, which is "HasCredentials" indicates if the
+      // server "tms" has its credentials set.
+      if (not Server.Enabled) or (Server.ServerType <> TServerType.Api) or not SameText(Server.Name, 'tms') then Continue;
+      var Manager := CreateCredentialsManager(Folders.CredentialsFile(Server.Name), FetchOptions, Server.Name);
       try
-        if (Credentials.Email <> '') and (Credentials.Code <> '') then exit(true);
+        var Credentials := Manager.ReadCredentials;
+        try
+          if (Credentials.Email <> '') and (Credentials.Code <> '') then exit(true);
+        finally
+          Credentials.Free;
+        end;
       finally
-        Credentials.Free;
+        Manager.Free;
       end;
-    finally
-      Manager.Free;
     end;
+  except
+    Result := false; //we assume any error here as "there aren't valid credentials"
   end;
 end;
 
@@ -55,7 +57,7 @@ begin
     if TFile.Exists(ConfigFileName) then
       Json.AddPair('config file', ConfigFileName);
 
-    if UseJson then
+    if Logger.JsonMode then
       OutputJson(Json)
     else
       for var Pair in Json do
@@ -71,13 +73,7 @@ begin
     'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-info.html',
     'info');
 
-  var option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
-    procedure(const Value: Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
-
+  RegisterJsonOption(cmd);
   RegisterRepoOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Status, RunInfoCommand);

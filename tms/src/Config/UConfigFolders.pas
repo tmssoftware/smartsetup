@@ -29,6 +29,8 @@ type
     function VCSTempFolder: string;
     function ZipFileTempFolder: string;
     function DcuMegafolder: string;
+    function MetaSelfUpdateFolder: string;
+    function TempSelfUpdateFolder: string;
   end;
 
   TBuildFolders = class(TInterfacedObject, IBuildFolders)
@@ -64,6 +66,8 @@ type
     function VCSTempFolder: string;
     function ZipFileTempFolder: string;
     function DcuMegafolder: string;
+    function MetaSelfUpdateFolder: string;
+    function TempSelfUpdateFolder: string;
   end;
 
 implementation
@@ -208,6 +212,16 @@ end;
 function TBuildFolders.DcuMegafolder: string;
 begin
   Result := TPath.Combine(MetaFolder, 'lib')
+end;
+
+function TBuildFolders.MetaSelfUpdateFolder: string;
+begin
+  Result := TPath.Combine(MetaFolder, 'self-update')
+end;
+
+function TBuildFolders.TempSelfUpdateFolder: string;
+begin
+  Result := TPath.Combine(TempFolder, 'self-update')
 end;
 
 function TBuildFolders.DoctorUndoFolder: string;

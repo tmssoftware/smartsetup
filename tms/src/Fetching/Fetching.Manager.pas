@@ -33,7 +33,6 @@ type
     function GetProductDependencies(const ProductId: string): TArray<string>;
     function GetPinned: THashSet<string>;
   protected
-    procedure UpdateItems;
     property Repo: TRepositoryManager read FRepo;
     function InstalledProducts: TList<TFetchInfoFile>;
     function AllInstalledProductsIncludingManual: THashSet<string>;
@@ -43,6 +42,7 @@ type
     property FetchItems: TFetchItems read FFetchItems;
     procedure UpdateSelected(const ProductVersions: TArray<TProductVersion>);
     procedure UpdateInstalled(const ProductVersions: TArray<TProductVersion>);
+    procedure UpdateItems;
 
     property AlreadyHandledProducts: THashSet<string> read FAlreadyHandledProducts;
     property Pinned: THashSet<string> read GetPinned;

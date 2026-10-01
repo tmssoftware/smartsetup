@@ -443,7 +443,6 @@ begin
   finally
     R.Free;
   end;
-
 end;
 
 function TDelphiIDEInfo.GetPathOverride(const IDEPlatform: TPlatform): string;

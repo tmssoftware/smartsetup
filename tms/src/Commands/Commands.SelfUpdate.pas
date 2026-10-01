@@ -2,7 +2,8 @@
 interface
 
 uses
-  System.SysUtils, System.StrUtils, VSoft.CommandLine.Options, UCommandLine, UMultiLogger, Deget.Version;
+  System.SysUtils, System.StrUtils, VSoft.CommandLine.Options, UCommandLine, UMultiLogger, Deget.Version,
+  ZipFile.Download;
 
 procedure RegisterSelfUpdateCommand;
 function NewSmartSetupAvailable: string; //returns empty is there are none.
@@ -14,7 +15,8 @@ implementation
 uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
-  Commands.GlobalConfig, System.Zip, Actions.Fetch, Downloads.VersionManager,
+  Commands.GlobalConfig, System.Zip, Downloads.VersionManager, JSON,
+  UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character,
   UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
 
 
@@ -112,6 +114,117 @@ begin
   SmartSetupUpdated := true;
 end;
 
+function GetVersionFromBundle(const ZipFileName: string): TVersion;
+begin
+{$IFDEF MSWINDOWS}
+  const TmsExe = 'tms.exe';
+{$ELSE}
+  const TmsExe = 'tms';
+{$ENDIF}
+  var ExtractFolder := Config.Folders.TempSelfUpdateFolder;
+  var tms := TPath.Combine(ExtractFolder, TmsExe);
+  try
+    var Zip := TZipFile.Create;
+    try
+      Zip.Open(ZipFileName, TZipMode.zmRead);
+      Zip.Extract(TmsExe, ExtractFolder);
+    finally
+      Zip.Free;
+    end;
+
+    // Verify the signature and publisher before executing downloaded code.
+    VerifySelfUpdateFile(ParamStr(0), tms);
+
+    var JsonOutputString: string;
+    ExecuteCommand('"' + tms + '" info -json', '', JsonOutputString);
+
+    var JsonOutputParsed := TJSONValue.ParseJSONValue(JsonOutputString);
+    try
+      if not (JsonOutputParsed is TJSONObject) then
+      raise Exception.Create('Error getting version of the downloaded file. Could not parse info result as JSON object: "' + JsonOutputString + '"');
+      var JsonObject := TJSONObject(JsonOutputParsed);
+
+      var v := JsonObject.GetValue('tms version', 'invalid');
+      if v = 'invalid' then raise Exception.Create('Invalid version in downloaded file: "' + JsonOutputString + '"');
+
+      if not TVersion.TryFromString(V, Result) then raise Exception.Create('Invalid version number: "' + V + '"');
+    finally
+      JsonOutputParsed.Free;
+    end;
+
+  finally
+    System.SysUtils.DeleteFile(tms);
+  end;
+end;
+
+procedure FetchSmartSetupFromGithub;
+const
+  {$IFDEF MSWINDOWS}
+    SmartSetupId = 'tmssmartsetup';
+  {$ENDIF}
+  {$IFDEF LINUX}
+    SmartSetupId = 'tmssmartsetup.linux';
+  {$ENDIF}
+  {$IFDEF MACOS}
+    SmartSetupId = 'tmssmartsetup.macos';
+  {$ENDIF}
+
+begin
+
+  var DownloadFileName := CombinePath(Config.Folders.MetaSelfUpdateFolder, TRepositoryManager.TMSSetupProductId + '.zip');
+
+  //At the time of writing this code, the url below doesn't incur in rate-limits.
+  //To check if it is using, them, the request should return a x-ratelimit-limit header or related.
+  //This url doesn't at this time, and github states there are no bandwith restrictions except for abuse: https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github#distributing-large-binaries
+  ZipDownloader.GetRepo(
+    'https://github.com/tmssoftware/smartsetup/releases/latest/download/' + SmartSetupId + '.zip',
+    DownloadFileName,
+    'tms', Logger.Write, false);
+
+  var Version := GetVersionFromBundle(DownloadFileName);
+  var FinalFileName := TDownloadFileName.GenerateFileName(TRepositoryManager.TMSSetupProductId, Version) + '.zip';
+  TDirectory_CreateDirectory(Config.Folders.DownloadsFolder);
+  TFile.Copy(DownloadFileName, CombinePath(Config.Folders.DownloadsFolder, FinalFileName), true);
+end;
+
+procedure FetchSmartSetupFromApiServer;
+begin
+  var ApiServer :=  TServerConfig.CreateInternalServer('tms'); //hardcoded. doesn't matter if tms is disabled.
+  var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, ApiServer.AllowInsecureConnections, true);
+  try
+    var Manager := TFetchManager.Create(Config.Folders, Repo, nil);
+      try
+        Logger.StartSection(TMessageType.Update, 'Self-Updating SmartSetup');
+        try
+          Manager.UpdateItems;
+        finally
+          Logger.FinishSection(TMessageType.Update, false);
+        end;
+      finally
+        Manager.Free;
+      end;
+  finally
+    Repo.Free;
+  end;
+end;
+
+procedure FetchSmartSetup;
+begin
+  var GotUpdate := false;
+  try
+    FetchSmartSetupFromApiServer;
+    GotUpdate := true;
+  except on ex: Exception do
+    Logger.Trace('Can''t get update from API server: ' + ex.Message);
+  end;
+
+  if not GotUpdate then FetchSmartSetupFromGithub;
+
+  RotateDownloads(Config.MaxVersionsPerProduct);
+
+
+end;
+
 var
   NoFetch: Boolean = False;
 
@@ -119,7 +232,7 @@ procedure RunSelfUpdateCommand;
 begin
   InitFolderBasedCommand;
   if not NoFetch then
-    ExecuteFetchAction([TRepositoryManager.TMSSetupProductId], TFetchMode.OnlyInstalled);
+    FetchSmartSetup;
 
   AutoUpdate;
 

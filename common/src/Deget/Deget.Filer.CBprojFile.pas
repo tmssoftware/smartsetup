@@ -125,7 +125,7 @@ begin
         Data.Win32ClangCompiler := not Node.NodeValue;
 
       var UnitSearchPath := Info.Node.ChildNodes.FindNode('DCC_UnitSearchPath');
-      var ExeOutputPath := Info.Node.ChildNodes.FindNode('DCC_ExeOutput');
+      var ExeOutputPath := Info.Node.ChildNodes.FindNode('FinalOutputDir');
       var Defines := Info.Node.ChildNodes.FindNode('DCC_Define');
       if (UnitSearchPath <> nil) or (ExeOutputPath <> nil) then
       begin

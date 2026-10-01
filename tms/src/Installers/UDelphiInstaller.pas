@@ -281,7 +281,7 @@ begin
       if not BuildInfo.Project.DryRun then
       begin
         var TempProjFile := PackageInfo.TempPackageFileName(BuildInfo.Project.ProjectId, Config.Folders.ParallelFolder, BuildConfig);
-        DelphiCompile(TempProjFile, IDEName, Settings, BuildInfo.Project.CompileTempFolder);
+        DelphiCompile(TempProjFile, Settings, BuildInfo.Project.CompileTempFolder);
       end;
     finally
       Settings.Free;
@@ -1400,8 +1400,11 @@ begin
   if SameText(TPath.GetExtension(Orig), '.cbproj') then
   begin
     var SourceCpp := TPath.ChangeExtension(Orig, '.cpp');
-    var TargetCpp := TPath.ChangeExtension(Temp, '.cpp');
-    TFile.Copy(SourceCpp, TargetCpp, True);
+    if TFile.Exists(SourceCpp) then //some console apps don't have it.
+    begin
+      var TargetCpp := TPath.ChangeExtension(Temp, '.cpp');
+      TFile.Copy(SourceCpp, TargetCpp, True);
+    end;
   end else
   if SameText(TPath.GetExtension(Orig), BinprojExtension) then
   begin

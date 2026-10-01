@@ -12,14 +12,18 @@ uses
 var
   FetchOptions: TFetchOptions; // better remove this later and not make logging depending on fetch options
 
-procedure FinishLogging;
+procedure FinishLogging(const JsonMode: boolean);
 procedure AlertAboutNewVersions(const NewSmartSetupVersion: string);
 procedure AlertAboutDiskSpace;
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
 
 implementation
 uses Commands.GlobalConfig, Commands.SelfUpdate,
-     UTmsBuildSystemUtils, Deget.Version, Commands.CommonOptions, Threading, BBYaml.Writer, UConfigWriter;
+     UTmsBuildSystemUtils, Deget.Version, Commands.CommonOptions, Threading,
+{$IFDEF DEBUG}
+     Testing.Globals,
+{$ENDIF}
+     BBYaml.Writer, UConfigWriter;
 const
   {$i ../../../Version.inc}
 
@@ -59,10 +63,12 @@ begin
 end;
 
 var LogFile: string;
+var SessionId: string;
 
 procedure StartLogging;
 begin
   LogFile := Config.Folders.LogFile;
+  SessionId := FormatDateTime('yyyy-mm-dd-hh-nn-ss.zzz', Now);
   TDirectory_CreateDirectory(TPath.GetDirectoryName(LogFile));
   Logger.AddLogger(TPlainTextLogger.Create(LogFile));
   Logger.AddLogger(THTMLLogger.Create(LogFile + '.html'));
@@ -76,6 +82,8 @@ begin
   Logger.Trace('Working dir: ' + Config.Folders.RootFolder);
   Logger.Trace('Build cores: ' + IntToStr(TThreadPool.Default.MaxWorkerThreads));
   Logger.Trace('');
+  Logger.Info('Session Id: ' + SessionId);
+  Logger.Trace('');
   Logger.StartSection(TMessageType.Configuration, 'Configuration:');
   Logger.Trace(TConfigWriter.GetProperty(Config, '', TWritingFormat.Minimal, false, false));
   Logger.FinishSection(TMessageType.Configuration);
@@ -84,10 +92,12 @@ begin
   Logger.FinishSection(TMessageType.BasicInfo);
 end;
 
-procedure FinishLogging;
+procedure FinishLogging(const JsonMode: boolean);
 begin
   if LogFile <> '' then
-    LogRotate(LogFile);
+  begin
+    LogRotate(LogFile, SessionId);
+  end;
   if ExitCode <> 0 then
   begin
     WriteLn;
@@ -103,22 +113,22 @@ begin
       else
         WriteLn('There were errors. No log files generated.');
 
-    if NeedsToRestartIDE then
-    begin
-      WriteLn;
-      WriteLn('**********************************************************');
-      WriteLn('** SOME FILES WERE LOCKED DURING THE PROCESS.           **');
-      WriteLn('** PLEASE RESTART RAD STUDIO IF YOU WANT TO START USING **');
-      WriteLn('** THE COMPONENTS THAT INSTALLED CORRECTLY.             **');
-      WriteLn('**********************************************************');
-      WriteLn;
-    end;
+      if NeedsToRestartIDE then
+      begin
+        WriteLn;
+        WriteLn('**********************************************************');
+        WriteLn('** SOME FILES WERE LOCKED DURING THE PROCESS.           **');
+        WriteLn('** PLEASE RESTART RAD STUDIO IF YOU WANT TO START USING **');
+        WriteLn('** THE COMPONENTS THAT INSTALLED CORRECTLY.             **');
+        WriteLn('**********************************************************');
+        WriteLn;
+      end;
 
     end;
   end
   else
   begin
-    if NeedsToRestartIDE then
+    if NeedsToRestartIDE and not JsonMode then
     begin
       WriteLn;
       WriteLn('*************************************************************************************');
@@ -140,7 +150,11 @@ end;
 
 procedure AlertAboutNewVersions(const NewSmartSetupVersion: string);
 begin
-  if (NewSmartSetupVersion <> '') and not SmartSetupUpdated then
+  if ((NewSmartSetupVersion <> '') and not SmartSetupUpdated)
+{$IFDEF DEBUG}
+  or TestParameters.AlertNewVersions
+{$ENDIF}
+  then
   begin
     WriteLn;
     WriteLn('There is a new version of TMS Smart Setup available');
@@ -162,7 +176,11 @@ begin
   if GetDiskFreeSpaceEx(PChar(ConfigNoCheck.Folders.RootFolder), TotalFree, TotalSpace, nil) then
   begin
     // Warn if disk space is lower than 500 MB
-    if TotalFree < DiskSpaceWarningLimit then
+    if (TotalFree < DiskSpaceWarningLimit)
+    {$IFDEF DEBUG}
+    or TestParameters.LowDiskSpace
+    {$ENDIF}
+    then
     begin
       WriteLn;
       WriteLn(Format('WARNING: You only have %d MB left in disk. TMS Smart Setup might not work properly.',

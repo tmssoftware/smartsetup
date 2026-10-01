@@ -8,17 +8,16 @@ procedure RegisterConfigReadCommand;
 implementation
 uses UCommandLine, Commands.CommonOptions,
      UConfigWriter, Types, Commands.GlobalConfig,
-     BBCmd, UConfigLoaderStateMachine, BBYaml.Writer;
+     BBCmd, UConfigLoaderStateMachine, BBYaml.Writer, UMultiLogger;
 
 var
   VariableName: string;
-  UseJson: boolean;
   CmdSyntax: boolean;
 
 
 procedure RunConfigReadCommand;
 begin
-  WriteLn(TConfigWriter.GetProperty(Config, VariableName, TWritingFormat.NoComments, UseJson, CmdSyntax));
+  WriteLn(TConfigWriter.GetProperty(Config, VariableName, TWritingFormat.NoComments, Logger.JsonMode, CmdSyntax));
 end;
 
 
@@ -40,12 +39,7 @@ begin
   option.AllowMultiple := False;
   option.Required := false;
 
-  option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
-    procedure(const Value: Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
+  RegisterJsonOption(cmd);
 
   option := cmd.RegisterOption<Boolean>('cmd', '', 'show the property names as you need them in the command line',
     procedure(const Value: Boolean)

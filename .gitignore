@@ -99,3 +99,6 @@ tms/.claude/settings.local.json
 .claude/settings.local.json
 tmstest/.claude
 tmstest/tests/semver/beta-version/triple-trouble/Win32
+tmstest/tests/build/macro-substitution/cppobj-generator/Win32
+tmstest/tests/build/macro-substitution/cppobj-generator/Win64
+tmstest/tests/build/macro-substitution/cppobj-generator/Win64x

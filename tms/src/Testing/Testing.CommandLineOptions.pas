@@ -110,6 +110,33 @@ begin
   option.Hidden := true;
 
   option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-no-credentials', '', 'Tests how we behave if the user didn''t enter any credentials.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.NoCredentials := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-low-disk-space', '', 'Tests how we behave when there is little disk space left.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.LowDiskSpace := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-alert-new-versions', '', 'Tests how we behave when there is a new version to download.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.AlertNewVersions := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
+  option := TOptionsRegistry.RegisterOption<Boolean>(
     'test-fixed-version', '', 'Fixes the tms version to 3.5 so test won''t fail when we update versions.',
     procedure(const Value: Boolean)
     begin
@@ -117,7 +144,6 @@ begin
     end);
   option.HasValue := False;
   option.Hidden := true;
-
 end;
 
 {$ENDIF}

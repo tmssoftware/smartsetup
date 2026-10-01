@@ -9,6 +9,8 @@ procedure RegisterGlobalOptions;
 procedure RegisterRepoOption(cmd: TCommandDefinition);
 procedure RegisterNoBuildOption(cmd: TCommandDefinition; Action: TConstProc<Boolean>);
 procedure RegisterNoFetchOption(cmd: TCommandDefinition; Action: TConstProc<Boolean>);
+procedure RegisterJsonOption(cmd: TCommandDefinition);
+
 procedure RegisterVersionCommand;
 procedure CheckAppAlreadyRunning;
 
@@ -174,6 +176,16 @@ begin
       FetchOptions.TargetRepository := Value;
     end);
   option.Hidden := True;
+end;
+
+procedure RegisterJsonOption(cmd: TCommandDefinition);
+begin
+  var option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
+    procedure(const Value: Boolean)
+    begin
+      Logger.JsonMode := Value;
+    end);
+  option.HasValue := False;
 end;
 
 procedure RegisterNoBuildOption(cmd: TCommandDefinition; Action: TConstProc<Boolean>);

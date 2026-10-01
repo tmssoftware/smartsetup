@@ -11,7 +11,6 @@ uses
   UProjectDefinition,
   UConfigDefinition,
   Deget.IDEInfo,
-  Deget.PackageConfig,
   Deget.IDETypes,
   Deget.Nullable;
 type
@@ -81,15 +80,15 @@ type
     FTempFolder: string;
     class constructor Create;
     class destructor Destroy;
-    procedure ModifyConfig(const IDEName: TIDEName; const ProjectFile: string;
+    procedure ModifyConfig(const ProjectFile: string;
       const Settings: TBdsCompilationSettings);
     function GetEnvVariablesForCE(const Settings: TBdsCompilationSettings): TArray<string>;
   public
-    function BuildBdsParameters(IDEName: TIDEName; Settings: TBdsCompilationSettings; const ErrFile: string; const RegEntry: string): string;
-    procedure DoCompile(const ProjectFile: string; IDEName: TIDEName; Settings: TBdsCompilationSettings);
+    function BuildBdsParameters(Settings: TBdsCompilationSettings; const ErrFile: string; const RegEntry: string): string;
+    procedure DoCompile(const ProjectFile: string; Settings: TBdsCompilationSettings);
     property TempFolder: string read FTempFolder write FTempFolder;
   public
-    class procedure Build(const ProjectFile: string; IDEName: TIDEName; Settings: TBdsCompilationSettings; ATempFolder: string);
+    class procedure Build(const ProjectFile: string; Settings: TBdsCompilationSettings; ATempFolder: string);
   end;
 
   TMSBuildCompiler = class
@@ -101,21 +100,23 @@ type
     function FindMsBuildInPath(const Path: string; const Env: TArray<string>): string;
     function FindMsBuild(const Env: TArray<string>): string;
     function ParseRSVars(const RSVars: string): TArray<string>;
+    function AddEnvVars(const EnvVars: TArray<TEnvVar>; const ExistingEnv: TArray<string>): TArray<string>;
     function AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform;
       const ExistingEnv: TArray<string>): TArray<string>;
-    procedure DoCompileWithBat(const ProjectFile: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings);
-    function DoCompileDirectly(const ProjectFile: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings): boolean;
+    function GetMacroEnvVars(const Settings: TMsBuildCompilationSettings): TArray<TEnvVar>;
+    procedure DoCompileWithBat(const ProjectFile: string; Settings: TMsBuildCompilationSettings);
+    function DoCompileDirectly(const ProjectFile: string; Settings: TMsBuildCompilationSettings): boolean;
   private
     function InEnvVarOverrides(const Env: string;
       const EnvVarOverrides: TArray<TEnvVar>): boolean;
-    function GetEnvVarsForBat(const IDEInfo: IDelphiIDEInfo): string;
+    function GetEnvVarsForBat(const Settings: TMsBuildCompilationSettings): string;
     function AddTMPEnv(const TmpVar: string; var ExistingEnv: TArray<string>;
       const TMPFolder: string): TArray<string>;
     function CppSystemIncludePath(const DelphiVersion: TIDEName;
       const DPlat: TPlatform; const ClassicCompiler: boolean): string;
     function CppExtraLinkPath(const DelphiVersion: TIDEName;
       const DPlat: TPlatform; const PlatformId: string; const ClassicCompiler: boolean): string;
-    function AddCPPBuilderParameters(const ProjectFileName: string; IDEName: TIDEName;
+    function AddCPPBuilderParameters(const ProjectFileName: string;
       Settings: TMsBuildCompilationSettings; LocalSearchPath: string): string;
 
     function AdaptPathEntry(const FileName, Entry: string; const SkipEntries: TArray<string>): string;
@@ -128,22 +129,22 @@ type
     function GetVarName(const s: string): string;
     function GetVarValue(const s: string): string;
   public
-    function BuildMsBuildParameters(const ProjectFileName: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings): string;
-    procedure DoCompile(const ProjectFile: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings);
+    function BuildMsBuildParameters(const ProjectFileName: string; Settings: TMsBuildCompilationSettings): string;
+    procedure DoCompile(const ProjectFile: string; Settings: TMsBuildCompilationSettings);
     property TempFolder: string read FTempFolder write FTempFolder;
   public
-    class procedure Build(const ProjectFile: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings; ATempFolder: string = '');
+    class procedure Build(const ProjectFile: string; Settings: TMsBuildCompilationSettings; ATempFolder: string = '');
   end;
 
   TDcc32Compiler = class
   strict private
     FTempFolder: string;
   public
-    function BuildDcc32Parameters(IDEName: TIDEName; Settings: TDcc32CompilationSettings): string;
-    procedure DoCompile(ProjectFile: string; IDEName: TIDEName; Settings: TDcc32CompilationSettings);
+    function BuildDcc32Parameters(Settings: TDcc32CompilationSettings): string;
+    procedure DoCompile(ProjectFile: string; Settings: TDcc32CompilationSettings);
     property TempFolder: string read FTempFolder write FTempFolder;
   public
-    class procedure Build(const ProjectFile: string; IDEName: TIDEName; Settings: TDcc32CompilationSettings; ATempFolder: string = '');
+    class procedure Build(const ProjectFile: string; Settings: TDcc32CompilationSettings; ATempFolder: string = '');
   end;
 
 procedure SetupResinator(const ResinatorPath, TempPath: string);
@@ -236,14 +237,14 @@ end;
 { TMSBuildCompiler }
 
 class procedure TMSBuildCompiler.Build(const ProjectFile: string;
-  IDEName: TIDEName; Settings: TMsBuildCompilationSettings; ATempFolder: string = '');
+  Settings: TMsBuildCompilationSettings; ATempFolder: string = '');
 var
   Compiler: TMsBuildCompiler;
 begin
   Compiler := TMsBuildCompiler.Create;
   try
     Compiler.TempFolder := ATempFolder;
-    Compiler.DoCompile(ProjectFile, IDEName, Settings);
+    Compiler.DoCompile(ProjectFile, Settings);
   finally
     Compiler.Free;
   end;
@@ -374,7 +375,7 @@ begin
   end;
 end;
 
-function TMSBuildCompiler.AddCPPBuilderParameters(const ProjectFileName: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings; LocalSearchPath: string): string;
+function TMSBuildCompiler.AddCPPBuilderParameters(const ProjectFileName: string; Settings: TMsBuildCompilationSettings; LocalSearchPath: string): string;
 var
   CppProjectIncludePath, CppProjectLinkPath: string;
   ClassicCompiler: boolean;
@@ -384,13 +385,13 @@ begin
   //so we will add them to the SystemIncludePath instead.
   //But as the bug is no more in Delphi 13, we go back to IncludePath for it.
   //The SystemIncludePath has to be constantly updated: for D12 it includes $(BDS)\lib\clang\15.0.7\include
-  //But fo D13 it is $(BDS)\lib\clang\20\include. So if we can avoid modifying it, better.
+  //But for D13 it is $(BDS)\lib\clang\20\include. So if we can avoid modifying it, better.
 
-  ReadLibPathsFromBCProj(ProjectFileName, IDEName, CppProjectIncludePath, CppProjectLinkPath, ClassicCompiler);
+  ReadLibPathsFromBCProj(ProjectFileName, Settings.TargetPlatform.IDEInfo.IDEName, CppProjectIncludePath, CppProjectLinkPath, ClassicCompiler);
   var Lsp := '';
   if Settings.TargetPlatform.IDEInfo.IDEName <> TIDEName.delphi12 then Lsp := LocalSearchPath;
 
-  Result := Result + ' /p:IncludePath=' + Quote( CppProjectIncludePath + Lsp);
+  Result := Result + ' /p:IncludePath=' + Quote(CppProjectIncludePath + Lsp);
 
   if Settings.TargetPlatform.IDEInfo.IDEName = TIDEName.delphi12 then
   begin
@@ -407,7 +408,7 @@ begin
 end;
 
 
-function TMSBuildCompiler.BuildMsBuildParameters(const ProjectFileName: string; IDEName: TIDEName; Settings: TMsBuildCompilationSettings): string;
+function TMSBuildCompiler.BuildMsBuildParameters(const ProjectFileName: string; Settings: TMsBuildCompilationSettings): string;
 var
   LocalTargetConfig: string;
   LocalDefines: string;
@@ -417,13 +418,7 @@ begin
 //  Logger.Note('Building MSBuild command line parameters');
 
   // target config
-  if Settings.TargetConfig.IsNull then
-  begin
-    LocalTargetConfig := 'RELEASE';
-//    Logger.Note(Format('TargetConfig not specified. Using "%s" as default target config', [LocalTargetConfig]));
-  end
-  else
-    LocalTargetConfig := Settings.TargetConfig;
+  LocalTargetConfig := Settings.GetTargetConfig;
 
   // build all or compile?
   if Settings.BuildMode = TBuildMode.Compile then
@@ -461,7 +456,7 @@ begin
 
   // build msbuild command line
   Result := Format(' /target:%s /nologo /p:config=%s /p:Platform="%s" /p:ProductVersion="%s"',
-    [LocalBuildMode, LocalTargetConfig, Settings.TargetPlatform.BuildName, DelphiProductVersion[IDEName]]);
+    [LocalBuildMode, LocalTargetConfig, Settings.TargetPlatform.BuildName, DelphiProductVersion[Settings.TargetPlatform.IDEInfo.IDEName]]);
 
   // Add local search path
   if LocalSearchPath <> '' then
@@ -475,7 +470,7 @@ begin
   var IsCppBuilder := TPath.GetExtension(ProjectFileName).ToLowerInvariant = '.cbproj';
   if IsCppBuilder then
   begin
-    Result := Result + AddCPPBuilderParameters(ProjectFileName, IDEName, Settings, LocalSearchPath);
+    Result := Result + AddCPPBuilderParameters(ProjectFileName, Settings, LocalSearchPath);
   end;
 
 
@@ -503,11 +498,11 @@ begin
 end;
 
 procedure TMSBuildCompiler.DoCompile(const ProjectFile: string;
-  IDEName: TIDEName; Settings: TMsBuildCompilationSettings);
+  Settings: TMsBuildCompilationSettings);
 begin
-  if DoCompileDirectly(ProjectFile, IDEName, Settings) then exit;
+  if DoCompileDirectly(ProjectFile, Settings) then exit;
 
-  DoCompileWithBat(ProjectFile, IDEName, Settings);
+  DoCompileWithBat(ProjectFile, Settings);
 end;
 
 function TMSBuildCompiler.FindVariable(const VariableName: string; const Env: TArray<string>; out VariableValue: string; const Level: integer): boolean;
@@ -646,27 +641,41 @@ begin
   end;
 end;
 
-function TMSBuildCompiler.AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform; const ExistingEnv: TArray<string>): TArray<string>;
+function TMSBuildCompiler.AddEnvVars(const EnvVars: TArray<TEnvVar>; const ExistingEnv: TArray<string>): TArray<string>;
 begin
-  var EnvVarOverrides := IDEInfo.GetEnvVarOverrides(Platform);
   Result := nil;
-  SetLength(Result, Length(ExistingEnv) + Length(EnvVarOverrides));
+  SetLength(Result, Length(ExistingEnv) + Length(EnvVars));
   var iResult := 0;
   for var OldEnv in ExistingEnv do
   begin
-    if not InEnvVarOverrides(OldEnv, EnvVarOverrides) then
+    if not InEnvVarOverrides(OldEnv, EnvVars) then
     begin
       Result[iResult] := OldEnv;
       inc(iResult);
     end;
   end;
 
-  for var EnvVarOverride in EnvVarOverrides do
+  for var EnvVar in EnvVars do
   begin
-    Result[iResult] := EnvVarOverride.Name + '=' + ExpandMacros(ExistingEnv, EnvVarOverride.Value);
+    Result[iResult] := EnvVar.Name + '=' + ExpandMacros(ExistingEnv, EnvVar.Value);
     inc(iResult);
   end;
   SetLength(Result, iResult);
+end;
+
+function TMSBuildCompiler.AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform; const ExistingEnv: TArray<string>): TArray<string>;
+begin
+  Result := AddEnvVars(IDEInfo.GetEnvVarOverrides(Platform), ExistingEnv);
+end;
+
+function TMSBuildCompiler.GetMacroEnvVars(const Settings: TMsBuildCompilationSettings): TArray<TEnvVar>;
+begin
+  //MSBuild doesn't expand macros like $(Platform) in the /p: parameters, but the Delphi targets
+  //will expand them from the environment. So we set them to the values of the platform we are building.
+  Result := [
+    TEnvVar.Create('ProductVersion', DelphiProductVersion[Settings.TargetPlatform.IDEInfo.IDEName]),
+    TEnvVar.Create('Platform', Settings.TargetPlatform.BuildName),
+    TEnvVar.Create('Config', Settings.GetTargetConfig)];
 end;
 
 function TMSBuildCompiler.AddTMPEnv(const TmpVar: string; var ExistingEnv: TArray<string>; const TMPFolder: string): TArray<string>;
@@ -686,7 +695,7 @@ begin
 end;
 
 function TMSBuildCompiler.DoCompileDirectly(const ProjectFile: string;
-  IDEName: TIDEName; Settings: TMsBuildCompilationSettings): boolean;
+  Settings: TMsBuildCompilationSettings): boolean;
 begin
   var Env := ParseRSVars(Settings.TargetPlatform.IDEInfo.RsvarsFile);
   if Env = nil then exit(false);
@@ -697,8 +706,12 @@ begin
   //Do not add the environment override until we found the path for MsBuild.
   //We want to search for the msbuild path in whatever is in rsvars.bat, not in what
   //the IDE says.
+  //Macros go first, so the IDE overrides can use them too.
+  Env := AddEnvVars(GetMacroEnvVars(Settings), Env);
   for var Platform in TDelphiIDEInfo.IDEPlatforms do
   begin
+    //Env vars can be in 'Environment Variables' or 'Environment Variables (x64)' entries.
+    //We will search in both.
     Env := AddEnvironmentOverrides(Settings.TargetPlatform.IDEInfo, Platform, Env);
   end;
 
@@ -710,7 +723,7 @@ begin
   try
 
     var Output := '';
-    if not ExecuteCommand(MsBuild + ' "' + ProjectFile + '" ' + BuildMsBuildParameters(ProjectFile, IDEName, Settings), '', Output, Env) then
+    if not ExecuteCommand(MsBuild + ' "' + ProjectFile + '" ' + BuildMsBuildParameters(ProjectFile, Settings), '', Output, Env) then
       raise Exception.Create('Failed to compile ' + ProjectFile);
 
   finally
@@ -720,16 +733,21 @@ begin
   Result := true;
 end;
 
-function TMSBuildCompiler.GetEnvVarsForBat(const IDEInfo: IDelphiIDEInfo): string;
+function TMSBuildCompiler.GetEnvVarsForBat(const Settings: TMsBuildCompilationSettings): string;
 begin
   //This method is not needed when debugging since Delphi will set those variables
   //and the spawned CMD will inherit them. But when running in a standalone
   //command window, if we don't add this fmxlinux will fail.
 
   Result := '';
+  for var Env in GetMacroEnvVars(Settings) do
+  begin
+    Result := Result + 'set ' + Env.Name + '=' + Env.Value + #13#10;
+  end;
+
   for var Platform in TDelphiIDEInfo.IDEPlatforms do
   begin
-    var EnvOverrides := IDEInfo.GetEnvVarOverrides(Platform);
+    var EnvOverrides := Settings.TargetPlatform.IDEInfo.GetEnvVarOverrides(Platform);
     for var Env in EnvOverrides do
     begin
       Result := Result + 'set ' + Env.Name + '=' + Env.Value + #13#10;
@@ -738,7 +756,7 @@ begin
 end;
 
 procedure TMSBuildCompiler.DoCompileWithBat(const ProjectFile: string;
-  IDEName: TIDEName; Settings: TMsBuildCompilationSettings);
+  Settings: TMsBuildCompilationSettings);
 var
   Batch: string;
   BatchFile: string;
@@ -751,7 +769,7 @@ begin
     '%s'#13#10 +
     'cd /D %%FrameworkDir%% '#13#10 +
     'msbuild.exe %%*',
-    [Settings.TargetPlatform.IDEInfo.RsvarsFile, GetEnvVarsForBat(Settings.TargetPlatform.IDEInfo)]
+    [Settings.TargetPlatform.IDEInfo.RsvarsFile, GetEnvVarsForBat(Settings)]
   );
 //  Logger.Note('Batch file built');
 //  Logger.Note(Batch);
@@ -759,7 +777,7 @@ begin
   try
     TDirectory_CreateDirectory(TPath.GetDirectoryName(BatchFile));
     TFile.WriteAllText(BatchFile, Batch);
-    if not ExecuteCommand(Format('cmd /C call "%s" "%s" %s', [BatchFile, ProjectFile, BuildMsBuildParameters(ProjectFile, IDEName, Settings)])) then
+    if not ExecuteCommand(Format('cmd /C call "%s" "%s" %s', [BatchFile, ProjectFile, BuildMsBuildParameters(ProjectFile, Settings)])) then
       raise Exception.Create('Failed to compile ' + ProjectFile);
   finally
      DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, BatchFile);
@@ -772,21 +790,20 @@ end;
 { TDcc32Compiler }
 
 class procedure TDcc32Compiler.Build(const ProjectFile: string;
-  IDEName: TIDEName; Settings: TDcc32CompilationSettings; ATempFolder: string = '');
+  Settings: TDcc32CompilationSettings; ATempFolder: string = '');
 var
   Compiler: TDcc32Compiler;
 begin
   Compiler := TDcc32Compiler.Create;
   try
     Compiler.TempFolder := ATempFolder;
-    Compiler.DoCompile(ProjectFile, IDEName, Settings);
+    Compiler.DoCompile(ProjectFile, Settings);
   finally
     Compiler.Free;
   end;
 end;
 
-function TDcc32Compiler.BuildDcc32Parameters(IDEName: TIDEName;
-  Settings: TDcc32CompilationSettings): string;
+function TDcc32Compiler.BuildDcc32Parameters(Settings: TDcc32CompilationSettings): string;
 var
   LocalDefines: string;
   LocalSearchPath: string;
@@ -874,7 +891,7 @@ begin
 
   // expand variables. No need for Delphi 2007 and up because we will use rsvars.bat
   // that already sets the environment variables
-  if IDEName = delphi7 then
+  if Settings.TargetPlatform.IDEInfo.IDEName = delphi7 then
     LocalSearchPath := StringReplace(LocalSearchPath, '$(DELPHI)',
       ExcludeTrailingPathDelimiter(Settings.TargetPlatform.IDEInfo.RootDir), [rfReplaceAll, rfIgnoreCase]);
 
@@ -906,7 +923,7 @@ begin
 
   if Settings.DcuOutputDir.HasValue then
   begin
-    if IDEName = delphi7 then
+    if Settings.TargetPlatform.IDEInfo.IDEName = delphi7 then
       Result := Result + '-N' + Quote(Settings.DcuOutputDir) + LB
     else
       Result := Result + '-N0' + Quote(Settings.DcuOutputDir) + LB;
@@ -921,7 +938,7 @@ begin
   Result := Result +
     '-Z' + LB; // if present, it's "never build"
 
-  if IDEName >= delphi2007 then
+  if Settings.TargetPlatform.IDEInfo.IDEName >= delphi2007 then
   begin
     Result := Result +
       '-JL' + LB;
@@ -931,7 +948,7 @@ begin
 end;
 
 procedure TDcc32Compiler.DoCompile(ProjectFile: string;
-  IDEName: TIDEName; Settings: TDcc32CompilationSettings);
+  Settings: TDcc32CompilationSettings);
 var
   Batch: string;
   BatchFile: string;
@@ -951,7 +968,7 @@ begin
   );
 
   // call rsvars.bat
-  if IDEName > delphi7 then
+  if Settings.TargetPlatform.IDEInfo.IDEName > delphi7 then
     Batch := Format('call "%s" '#13#10,
       [Settings.TargetPlatform.IDEInfo.RsvarsFile])
       + Batch;
@@ -984,7 +1001,7 @@ begin
       ProjectFile := TPath.ChangeExtension(ProjectFile, PkgExt);
 
     if not ExecuteCommand(
-      Format('cmd /C call "%s" "%s" %s', [BatchFile, ProjectFile, BuildDcc32Parameters(IDEName, Settings)]),
+      Format('cmd /C call "%s" "%s" %s', [BatchFile, ProjectFile, BuildDcc32Parameters(Settings)]),
       WorkingDir) then
       raise Exception.Create('Failed to compile ' + ProjectFile);
 
@@ -996,7 +1013,7 @@ end;
 
 { TBdsCompiler }
 
-class procedure TBdsCompiler.Build(const ProjectFile: string; IDEName: TIDEName;
+class procedure TBdsCompiler.Build(const ProjectFile: string;
   Settings: TBdsCompilationSettings; ATempFolder: string);
 begin
 var
@@ -1005,7 +1022,7 @@ begin
   Compiler := TBdsCompiler.Create;
   try
     Compiler.TempFolder := ATempFolder;
-    Compiler.DoCompile(ProjectFile, IDEName, Settings);
+    Compiler.DoCompile(ProjectFile, Settings);
   finally
     Compiler.Free;
   end;
@@ -1013,8 +1030,7 @@ end;
 
 end;
 
-function TBdsCompiler.BuildBdsParameters(IDEName: TIDEName;
-  Settings: TBdsCompilationSettings; const ErrFile: string; const RegEntry: string): string;
+function TBdsCompiler.BuildBdsParameters(Settings: TBdsCompilationSettings; const ErrFile: string; const RegEntry: string): string;
 begin
   Result := ' -b -ns -o"' + ErrFile + '" ';
   if RegEntry <> '' then Result := ' "-r' + RegEntry + '" ' + Result;
@@ -1031,15 +1047,9 @@ begin
   BDSLock.Free;
 end;
 
-procedure TBdsCompiler.ModifyConfig(const IDEName: TIDEName; const ProjectFile: string; const Settings: TBdsCompilationSettings);
+procedure TBdsCompiler.ModifyConfig(const ProjectFile: string; const Settings: TBdsCompilationSettings);
 begin
-  var LocalTargetConfig := '';
-  if Settings.TargetConfig.IsNull then
-  begin
-    LocalTargetConfig := 'Release';
-  end
-  else
-    LocalTargetConfig := Settings.TargetConfig.Value;
+  var LocalTargetConfig := Settings.GetTargetConfig;
 
   // Search Path
   var LocalSearchPath := '';
@@ -1066,7 +1076,7 @@ begin
         LocalSearchPath := '$(UnitSearchPath);' + Settings.ExtraSearchPath;
   end;
 
-  var DProjModifier := TDprojModifier.Create(ProjectFile, IDEName); //LocalTargetConfig, LocalSearchPath, );
+  var DProjModifier := TDprojModifier.Create(ProjectFile, Settings.TargetPlatform.IDEInfo.IDEName); //LocalTargetConfig, LocalSearchPath, );
   try
     var BaseNodeForSearch: IInterface := nil;
     try
@@ -1131,7 +1141,22 @@ begin
   Result := ['PATH=' + ExtPath];
 end;
 
-procedure TBdsCompiler.DoCompile(const ProjectFile: string; IDEName: TIDEName;
+function BdsLogHasSuccess(const Messages: string): boolean;
+const
+  // The IDE writes a line with the localized "Success" string at the end of a successful build.
+  // The IDE is only localized to English, German, French and Japanese. Strings taken from the
+  // coreideXXX.bpl/.de/.fr/.ja resources, and they are the same from Delphi 10.4 to Delphi 13.
+  SuccessStrings: array[0..3] of string = ('Success', 'Erfolg', 'Succ'#$00E8's', #$6210#$529F);
+begin
+  MatchStr(Messages, SuccessStrings);
+  for var s in SuccessStrings do
+  begin
+    if Messages.Contains(#10 + s + #13) or Messages.Contains(#10 + s + #10) then exit(true);
+  end;
+  Result := false;
+end;
+
+procedure TBdsCompiler.DoCompile(const ProjectFile: string;
   Settings: TBdsCompilationSettings);
 const
   RegEntryRoot = '$tmssmartsetup-tmp';
@@ -1144,13 +1169,13 @@ begin
     TMonitor.Enter(BDSLock);
     try
       Logger.Info('Rad Studio CE detected. Disabling multithreaded compilation.');
-      ModifyConfig(IDEName, ProjectFile, Settings); //This will modify the file in Parallel folder, so it doesn't matter.
+      ModifyConfig(ProjectFile, Settings); //This will modify the file in Parallel folder, so it doesn't matter.
       var DummyOutput := '';
       var Env := GetEnvVariablesForCE(Settings);
       var RegEntry := RegEntryRoot + '\' + GuidToStringN(TGUID.NewGuid);
       try
         if not ExecuteCommand(
-           BdsBuild + ' ' + BuildBdsParameters(IDEName, Settings, ErrFile, RegEntry) + ' "' + ProjectFile + '"',
+           BdsBuild + ' ' + BuildBdsParameters(Settings, ErrFile, RegEntry) + ' "' + ProjectFile + '"',
            '', DummyOutput, Env) then HasErrors :=true;
       finally
         var RootReg := TPath.GetDirectoryName(TPath.GetDirectoryName(Settings.TargetPlatform.IDEInfo.BaseKey));
@@ -1169,7 +1194,7 @@ begin
         Messages := TFile.ReadAllText(ErrFile);
       end;
       Logger.Trace(Messages);
-      if not Messages.Contains(#10'Success'#13) then HasErrors := true;
+      if not BdsLogHasSuccess(Messages) then HasErrors := true;
 
       if HasErrors then raise Exception.Create('Failed to compile ' + ProjectFile);
     finally
@@ -1193,7 +1218,7 @@ begin
       TDirectory_CreateDirectory(TempPath);
       TFile.WriteAllText(TPath.Combine(TempPath, 'resource_empty.rc'), '');
       try
-        var ResinatorCommand := '"' + ResinatorPath + '" -v resource_empty.rc -fo resource_empty.res';
+        var ResinatorCommand := '"' + ResinatorPath + '" -v -fo resource_empty.res resource_empty.rc ';
         ExecuteCommand(ResinatorCommand, TempPath);
       finally
         TryDeleteFileAndRemoveParentFolderIfEmpty(Config.Folders.LockedFilesFolder, TPath.Combine(TempPath, 'resource_empty.rc'));

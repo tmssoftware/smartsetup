@@ -11,12 +11,11 @@ implementation
 
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, Status.Manager, Deget.CoreTypes, UJsonPrinter, System.JSON,
-  Deget.Version;
+  Deget.Version, UMultiLogger;
 
 var
   EnableLog: Boolean = False;
   Detailed: Boolean = False;
-  UseJson: Boolean = False;
 
 procedure OutputAsJson(Products: TList<TProductStatus>);
 begin
@@ -93,8 +92,9 @@ begin
     begin
       Writeln('server: ' + Product.Server);
       Writeln('pinned: ' + BoolToStr(Product.Pinned, true));
-      var IDEPrinted := False;
       for var IDEName := Low(TIDEName) to High(TIDEName) do
+      begin
+        var IDEPrinted := False;
         for var Plat := Low(TPlatform) to High(TPlatform) do
           if Product.IDEStatus(IDEName).PlatformStatus(Plat).IsBuilt
             and Product.IDEStatus(IDEName).PlatformStatus(Plat).IsRegistered then
@@ -107,6 +107,7 @@ begin
 
             WriteLn('  - ' + PlatformId[Plat]);
           end;
+      end;
       WriteLn('');
     end;
   end;
@@ -119,7 +120,7 @@ begin
   try
     Manager.Update;
 
-    if UseJson then
+    if Logger.JsonMode then
       OutputAsJson(Manager.Products)
     else
       OutputAsText(Manager.Products);
@@ -149,12 +150,7 @@ begin
     end);
   option.HasValue := False;
 
-  option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
-    procedure(const Value: Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
+  RegisterJsonOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Status, RunListCommand);
 end;

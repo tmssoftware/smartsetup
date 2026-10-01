@@ -13,12 +13,11 @@ uses
 {$IFDEF MSWINDOWS}
   WinApi.Windows,
 {$ENDIF}
-  System.JSON, UConfigDefinition, Commands.CommonOptions, UTmsBuildSystemUtils, UJsonPrinter;
+  System.JSON, UConfigDefinition, Commands.CommonOptions, UTmsBuildSystemUtils, UJsonPrinter, UMultiLogger;
 
 var
   Print: Boolean = False;
   Check: Boolean = False;
-  UseJson: Boolean = False;
   NewEmail: string = '';
   NewCode: string = '';
   ServerName: string = 'tms';
@@ -128,7 +127,7 @@ end;
 
 procedure PrintCredentials(const Data: TJsonObject);
 begin
-  if UseJson then
+  if Logger.JsonMode then
     OutputJson(Data)
   else
   begin
@@ -189,12 +188,7 @@ begin
     end);
   option.HasValue := False;
 
-  option := cmd.RegisterOption<Boolean>('json', '', 'display credentials in JSON format, if print is specified',
-    procedure(const Value : Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
+  RegisterJsonOption(cmd);
 
   option := cmd.RegisterOption<Boolean>('check', '', 'check if credentials are valid before setting',
     procedure(const Value : Boolean)
