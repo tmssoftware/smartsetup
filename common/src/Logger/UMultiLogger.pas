@@ -6,9 +6,10 @@ uses ULogger, SysUtils;
 
 type
   TMultiLogger = class
-  var
+  private
     FVerbosity: TVerbosity;
     Loggers: Array of TLogger;
+    FJsonMode: boolean;
   public
     constructor Create(const aLoggers: array of TLogger);
     destructor Destroy; override;
@@ -52,6 +53,8 @@ type
 
     procedure StartSpinner;
     procedure StopSpinner;
+
+    property JsonMode: boolean read FJsonMode write FJsonMode;
   end;
 
 var
@@ -130,6 +133,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     try
+      if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
       Loggers[i].StartSpinner;
     except
       //nothing, we can't recover or even write the message. Maybe other logger will.
@@ -142,6 +146,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     try
+      if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
       Loggers[i].StopSpinner;
     except
       //nothing, we can't recover or even write the message. Maybe other logger will.
@@ -183,6 +188,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     if (not Loggers[i].IgnoresVerbosity) and (Verbosity > TVerbosity.info) then continue;
+    if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
     try
       Loggers[i].Info(Loggers[i].ProcessMsg(Message));
     except
@@ -199,6 +205,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     if (not Loggers[i].IgnoresVerbosity) and (Verbosity > TVerbosity.info) then continue;
+    if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
     try
       Loggers[i].Progress(Message, Progress);
     except
@@ -240,6 +247,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     if (not Loggers[i].IgnoresVerbosity) and (Verbosity > TVerbosity.trace) then continue;
+    if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
     try
       Loggers[i].Trace(Loggers[i].ProcessMsg(Message));
     except
@@ -260,6 +268,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     try
+      if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
       var ActualMsg := Message;
       if Process then ActualMsg := Loggers[i].ProcessMsg(Message);
       Loggers[i].Message(MessageKind, ActualMsg, NewLine);

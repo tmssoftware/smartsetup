@@ -9,11 +9,10 @@ procedure RegisterServerListCommand;
 implementation
 uses UCommandLine, Commands.CommonOptions,
      UConfigWriter, Commands.GlobalConfig, UConfigDefinition,
-     System.JSON, UJsonPrinter, Commands.Logging;
+     System.JSON, UJsonPrinter, Commands.Logging, UMultiLogger;
 
 var
   EnableLog: Boolean = False;
-  UseJson: Boolean = False;
 
 procedure OutputAsJson;
 begin
@@ -58,7 +57,7 @@ end;
 procedure RunServerListCommand;
 begin
   InitFolderBasedCommand(EnableLog);
-  if UseJson then
+  if Logger.JsonMode then
     OutputAsJson
   else
     OutputAsText;
@@ -80,12 +79,7 @@ begin
   option.HasValue := False;
   option.Hidden := True;
 
-  option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
-    procedure(const Value: Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
+  RegisterJsonOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Status, RunServerListCommand);
 end;

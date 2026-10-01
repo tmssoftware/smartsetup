@@ -11,11 +11,10 @@ implementation
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
   UJsonPrinter, UConfigDefinition, VCS.Manager, VCS.Registry, VCS.CoreTypes, VCS.Engine.Factory,
-  Fetching.ProductVersion, IOUtils, UTmsBuildSystemUtils;
+  Fetching.ProductVersion, IOUtils, UTmsBuildSystemUtils, UMultiLogger;
 
 var
   EnableLog: Boolean = False;
-  UseJson: Boolean = False;
   ProductId: string;
 
 type
@@ -130,7 +129,7 @@ begin
     if not Found then
       raise Exception.Create(Format('Could not find any product matching %s', [ProductId]));
 
-    if UseJson then
+    if Logger.JsonMode then
       OutputAsJson(OutputVersions)
     else
       OutputAsText(OutputVersions);
@@ -163,12 +162,7 @@ begin
   option.HasValue := False;
   option.Hidden := True;
 
-  option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
-    procedure(const Value: Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
+  RegisterJsonOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Status, RunVersionsRemoteCommand);
 end;

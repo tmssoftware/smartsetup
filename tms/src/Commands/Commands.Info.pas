@@ -11,10 +11,8 @@ implementation
 
 uses
   System.JSON, Commands.CommonOptions, Commands.GlobalConfig,
-  UConfigDefinition, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter;
+  UConfigDefinition, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter, UMultiLogger;
 
-var
-  UseJson: Boolean = False;
 
 function HasCredentials: Boolean;
 begin
@@ -59,7 +57,7 @@ begin
     if TFile.Exists(ConfigFileName) then
       Json.AddPair('config file', ConfigFileName);
 
-    if UseJson then
+    if Logger.JsonMode then
       OutputJson(Json)
     else
       for var Pair in Json do
@@ -75,13 +73,7 @@ begin
     'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-info.html',
     'info');
 
-  var option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
-    procedure(const Value: Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
-
+  RegisterJsonOption(cmd);
   RegisterRepoOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Status, RunInfoCommand);

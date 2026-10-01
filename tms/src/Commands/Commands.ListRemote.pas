@@ -10,11 +10,10 @@ procedure RegisterListRemoteCommand;
 implementation
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
-  UJsonPrinter, UConfigDefinition, VCS.Registry, Fetching.ProductVersion;
+  UJsonPrinter, UConfigDefinition, VCS.Registry, Fetching.ProductVersion, UMultiLogger;
 
 var
   EnableLog: Boolean = False;
-  UseJson: Boolean = False;
   RemoteServer: string;
 
 type
@@ -67,7 +66,7 @@ begin
       var Item := TJSONObject.Create;
       Root.AddPair(Product.Product.ProductId, Item);
 
-      //In the future we can include the version from tmsbuild.yaml here. It is simple, but most likely it will be wong as it won't be updated in the registry.
+      //In the future we can include the version from tmsbuild.yaml here. It is simple, but most likely it will be wrong as it won't be updated in the registry.
       Item.AddPair('version', '');
       Item.AddPair('version_type', TLenientVersion.IdFreeForm);
       Item.AddPair('name', Product.Product.Name);
@@ -143,7 +142,7 @@ begin
     try
       AddZipFileProducts(ListedZipFileProducts);
 
-      if UseJson then
+      if Logger.JsonMode then
         OutputAsJson(ListedAPIProducts, ListedZipFileProducts)
       else
         OutputAsText(ListedAPIProducts, ListedZipFileProducts);
@@ -171,12 +170,7 @@ begin
   option.HasValue := False;
   option.Hidden := True;
 
-  option := cmd.RegisterOption<Boolean>('json', '', 'output data in JSON format',
-    procedure(const Value: Boolean)
-    begin
-      UseJson := Value;
-    end);
-  option.HasValue := False;
+  RegisterJsonOption(cmd);
 
   option := cmd.RegisterOption<String>('server', '', 'if specified, we will only return the products from that server',
     procedure(const Value: String)

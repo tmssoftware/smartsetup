@@ -118,6 +118,24 @@ begin
   option.HasValue := False;
   option.Hidden := true;
 
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-low-disk-space', '', 'Tests how we behave when there is little disk space left.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.LowDiskSpace := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'test-alert-new-versions', '', 'Tests how we behave when there is a new version to download.',
+    procedure(const Value: Boolean)
+    begin
+      TestParameters.AlertNewVersions := Value
+    end);
+  option.HasValue := False;
+  option.Hidden := true;
+
 end;
 
 {$ENDIF}

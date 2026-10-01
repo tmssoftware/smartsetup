@@ -18,6 +18,8 @@ type
     WindowsPath: string;
     LogUncompress: boolean;
     NoCredentials: boolean;
+    LowDiskSpace: boolean;
+    AlertNewVersions: boolean;
 
 
     procedure CheckOffline(const Method: string);
