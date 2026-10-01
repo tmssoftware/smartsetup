@@ -15,7 +15,7 @@ implementation
 uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
-  Commands.GlobalConfig, System.Zip, Downloads.VersionManager,
+  Commands.GlobalConfig, System.Zip, Downloads.VersionManager, JSON,
   UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character,
   UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
 
@@ -135,23 +135,22 @@ begin
     // Verify the signature and publisher before executing downloaded code.
     VerifySelfUpdateFile(ParamStr(0), tms);
 
-    const id = 'tms version ';
-    var VersionString: string;
-    ExecuteCommand('"' + tms + '" version', '', VersionString);
-    var Idx := VersionString.IndexOf(id);
-    if (Idx < 0) then raise Exception.Create('Can''t find the version of the downloaded file.');
-    var V := VersionString.Substring(Idx + id.Length);
-    for var i := 0 to V.Length do
-    begin
-      if V.Chars[i].IsWhiteSpace then
-      begin
-        V := V.Substring(0, i);
-        break;
-      end;
+    var JsonOutputString: string;
+    ExecuteCommand('"' + tms + '" info -json', '', JsonOutputString);
+
+    var JsonOutputParsed := TJSONValue.ParseJSONValue(JsonOutputString);
+    try
+      if not (JsonOutputParsed is TJSONObject) then
+      raise Exception.Create('Error getting version of the downloaded file. Could not parse info result as JSON object: "' + JsonOutputString + '"');
+      var JsonObject := TJSONObject(JsonOutputParsed);
+
+      var v := JsonObject.GetValue('tms version', 'invalid');
+      if v = 'invalid' then raise Exception.Create('Invalid version in downloaded file: "' + JsonOutputString + '"');
+
+      if not TVersion.TryFromString(V, Result) then raise Exception.Create('Invalid version number: "' + V + '"');
+    finally
+      JsonOutputParsed.Free;
     end;
-
-
-    if not TVersion.TryFromString(V, Result) then raise Exception.Create('Invalid version number: "' + V + '"');
 
   finally
     System.SysUtils.DeleteFile(tms);
