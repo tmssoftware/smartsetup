@@ -1141,6 +1141,21 @@ begin
   Result := ['PATH=' + ExtPath];
 end;
 
+function BdsLogHasSuccess(const Messages: string): boolean;
+const
+  // The IDE writes a line with the localized "Success" string at the end of a successful build.
+  // The IDE is only localized to English, German, French and Japanese. Strings taken from the
+  // coreideXXX.bpl/.de/.fr/.ja resources, and they are the same from Delphi 10.4 to Delphi 13.
+  SuccessStrings: array[0..3] of string = ('Success', 'Erfolg', 'Succ'#$00E8's', #$6210#$529F);
+begin
+  MatchStr(Messages, SuccessStrings);
+  for var s in SuccessStrings do
+  begin
+    if Messages.Contains(#10 + s + #13) or Messages.Contains(#10 + s + #10) then exit(true);
+  end;
+  Result := false;
+end;
+
 procedure TBdsCompiler.DoCompile(const ProjectFile: string;
   Settings: TBdsCompilationSettings);
 const
@@ -1179,7 +1194,7 @@ begin
         Messages := TFile.ReadAllText(ErrFile);
       end;
       Logger.Trace(Messages);
-      if not Messages.Contains(#10'Success'#13) then HasErrors := true;
+      if not BdsLogHasSuccess(Messages) then HasErrors := true;
 
       if HasErrors then raise Exception.Create('Failed to compile ' + ProjectFile);
     finally
@@ -1203,7 +1218,7 @@ begin
       TDirectory_CreateDirectory(TempPath);
       TFile.WriteAllText(TPath.Combine(TempPath, 'resource_empty.rc'), '');
       try
-        var ResinatorCommand := '"' + ResinatorPath + '" -v resource_empty.rc -fo resource_empty.res';
+        var ResinatorCommand := '"' + ResinatorPath + '" -v -fo resource_empty.res resource_empty.rc ';
         ExecuteCommand(ResinatorCommand, TempPath);
       finally
         TryDeleteFileAndRemoveParentFolderIfEmpty(Config.Folders.LockedFilesFolder, TPath.Combine(TempPath, 'resource_empty.rc'));
