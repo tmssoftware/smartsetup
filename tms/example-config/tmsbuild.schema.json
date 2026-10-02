@@ -191,8 +191,15 @@
               "type": "array",
               "description": "List of package IDs that are WEAK dependencies for this framework.\nwhen a dependency starts with ~, it means \"NOT\". That is, the framework will be active is the dependency is NOT installed.",
               "items": {
-                "type": "string"
-              }
+                "type": "object",
+                "patternProperties": {
+                  "^.*$": {
+                    "type": "string",
+                    "description": "The ID and full name of the dependent product."
+                  }
+                }
+              },
+              "uniqueItems": true
             }
           },
           "required": ["ide since", "platforms"],
