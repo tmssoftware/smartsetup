@@ -194,6 +194,7 @@
                 "oneOf": [
                   { "type": "string" },
                   {
+                    "type": "object",
                     "patternProperties": {
                       "^.*$": {
                         "type": "string",
