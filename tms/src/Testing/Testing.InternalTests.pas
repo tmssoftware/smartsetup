@@ -15,6 +15,6 @@ begin
   BBClasses_InternalTests;
   DegetVersion_InternalTests;
   BBStrings_InternalTests;
-{$ENDIF}
 end;
+{$ENDIF}
 end.

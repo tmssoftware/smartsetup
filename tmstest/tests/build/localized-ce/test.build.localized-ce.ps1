@@ -9,7 +9,7 @@ if ($env:USERNAME -ne "WDAGUtilityAccount") {
     throw "This test is designed to run in a Windows Sandbox environment. Exiting the test."    
 }
 
-tms config-write -p:configuration-for-all-products:replace-platforms=[]
+tms config-write -p:configuration-for-all-products:replace-platforms=[win32intel,win64intel,winarm64ec] #check $(PLATFORM) macro
 
 
 Set-Alias bdssetlang "$($BDS_ROOT_DIR.RootDir)\bin\BDSSetLang.exe"
