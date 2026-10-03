@@ -27,9 +27,11 @@ var
 //No need to escape non-ascii characters, this will be saved as utf-8
 function XmlEscape(const s: string): string;
 begin
-  Result := StringReplace(s, '&lt;', '<', [rfReplaceAll]);
-  Result := StringReplace(Result, '&gt;', '>', [rfReplaceAll]);
-  Result := StringReplace(Result, '&amp', '&', [rfReplaceAll]);
+  //& must go first, or the other entities would be escaped twice.
+  Result := StringReplace(s, '&', '&amp;', [rfReplaceAll]);
+  Result := StringReplace(Result, '<', '&lt;', [rfReplaceAll]);
+  Result := StringReplace(Result, '>', '&gt;', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '&quot;', [rfReplaceAll]);
 end;
 
 //No need to escape non-ascii characters, this will be saved as utf-8
@@ -266,7 +268,7 @@ begin
   if ApplicationVersionString = '' then ApplicationVersionString := '0.0';
   var ApplicationVersion: TLenientVersion;
 
-  var IsSpecialBuild := false;
+  var IsSpecialBuild: boolean;
   var SemVer: TVersion;
   if TVersion.TryFromString(ApplicationVersionString, SemVer)
     then
@@ -414,13 +416,14 @@ end;
 function GetFileMasks(const PasFiles: TPasIncludeFiles; const DcrFiles: TIncludeFiles): TFileMasksList;
 begin
   Result := TFileMasksList.Create(nil);
-  var LastFolder := '';
+  //#0 can't be a folder name, so the first file always starts a folder, even if it is the project folder ('').
+  var LastFolder: string := #0;
   for var Pas in PasFiles do
   begin
     var FileName := Pas.FileName;
     var NextFolder := TPath.GetDirectoryName(FileName);
     if NextFolder <> LastFolder then Result.AddFolder(NextFolder);
-    NextFolder := LastFolder;
+    LastFolder := NextFolder;
     Result.SetIncludeFiles([TPath.GetFileName(FileName)]);
     Result.SetRecursive(false);
   end;
@@ -430,7 +433,7 @@ begin
     var FileName := Dcr.FileName;
     var NextFolder := TPath.GetDirectoryName(FileName);
     if NextFolder <> LastFolder then Result.AddFolder(NextFolder);
-    NextFolder := LastFolder;
+    LastFolder := NextFolder;
     Result.SetIncludeFiles([TPath.GetFileName(FileName)]);
     Result.SetRecursive(false);
   end;
