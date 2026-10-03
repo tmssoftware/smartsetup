@@ -408,6 +408,7 @@ var
   enumMoniker : IEnumMoniker;
   MonikerType : LongInt;
   unkInt  : IInterface;
+  FileInUse: IFileIsInUse;
   pAppName: PWidechar;
 begin
   Result := '';
@@ -427,17 +428,15 @@ begin
         begin
          if Succeeded(ROT.GetObject(enumIndex, unkInt)) then
           begin
-            if Succeeded(unkInt.QueryInterface(IID_IFileIsInUse, result)) then
+            //QueryInterface must write into an interface variable. It used to write into Result (a string),
+            //and the next string assignment then released that interface pointer as if it were a string.
+            if Succeeded(unkInt.QueryInterface(IID_IFileIsInUse, FileInUse)) then
             begin
-              var FileInUse := unkInt as IFileIsInUse;
-              if Assigned(FileInUse) then
+              if Succeeded(FileInUse.GetAppName(pAppName)) then
               begin
-                OleCheck(FileInUse.GetAppName(pAppName));
                 Result := pAppName;
                 CoTaskMemFree(pAppName);
-                exit;
               end;
-
               exit;
             end;
           end;
@@ -457,12 +456,15 @@ end;
 function FindProcessUsing(const FileName: string): string;
 {$IFDEF MSWINDOWS}
 begin
+  Result := '';
   try
-    CoInitialize(nil);
+    //Only balance a successful CoInitialize. On a thread already in another apartment (RPC_E_CHANGED_MODE)
+    //an unpaired CoUninitialize would tear down COM under the caller's live objects.
+    var ComInitialized := Succeeded(CoInitialize(nil));
     try
       Result := FindProcessUsingImpl(FileName);
     finally
-      CoUninitialize; //We must call FindProcessUsingImpl in a diff method, so all Interfaces have been released when we call CoUninitialize.
+      if ComInitialized then CoUninitialize; //We must call FindProcessUsingImpl in a diff method, so all Interfaces have been released when we call CoUninitialize.
     end;
   except
     //Nothing, we just can't get the app name.
