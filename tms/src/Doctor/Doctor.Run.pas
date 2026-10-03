@@ -13,6 +13,7 @@ type
 TDoctor = class
   private
     Checks: TObjectList<TCheck>;
+    RunId: string; //groups the undo records of one doctor run, so a later run doesn't overwrite them.
     procedure Run(const Check: TCheck; const FixErrors, Confirm: boolean; var FixesToApply, FixesManual: integer);
     function GetYesNoAnswer(const Key: string; const Fix: TFix): boolean;
     function GetNumericAnswer(const Key: string; const Fix: TFix): boolean;
@@ -182,8 +183,8 @@ begin
         Check.Fix(UndoInfo);
         var Persist := TFileSystemPersistence.Create(Config.Folders.DoctorUndoFolder, DoctorUndoExtension);
         try
-          Persist.List('test');
-          Persist.Store(UndoInfo.Value.ToString, 'test');
+          //One record per check. They used to share the key 'test', so each check overwrote the previous one.
+          Persist.Store(UndoInfo.Value.ToString, RunId, '', '', Check.Name);
         finally
           Persist.Free;
         end;
@@ -210,6 +211,7 @@ begin
   var FixesToApply := 0;
   var FixesApplied:= 0;
   var FixesManual := 0;
+  RunId := FormatDateTime('yyyymmdd"-"hhnnss"-"zzz', Now);
   for var Check in Checks do
   begin
     try
