@@ -252,7 +252,7 @@ begin
       repeat
         if AppIsTerminated or (Assigned(IsCanceledFunc) and IsCanceledFunc()) then
         begin
-          TerminateProcess(PI.hProcess, 0);
+          TerminateProcess(PI.hProcess, ERROR_CANCELLED); //not 0, or a canceled run reads as a success.
           CheckAppTerminated;
         end;
 
