@@ -72,6 +72,7 @@ type
     acViewHtmlLog: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormShow(Sender: TObject);
     procedure acInstallUpdate(Sender: TObject);
     procedure acUninstallUpdate(Sender: TObject);
@@ -127,7 +128,6 @@ type
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
     function CompareIcons(const Product1, Product2: TGUIProduct): Integer;
-    function FormatLogMessage(const Item: TGUILogItem): string;
     function FindProductItem(const ProductId: string): TListItem;
     procedure ShowInfo;
     function ProductFromItem(Item: TListItem): TGUIProduct;
@@ -245,6 +245,7 @@ end;
 procedure TMainForm.acInstallVersionExecute(Sender: TObject);
 begin
   var Product := ProductFromItem(lvProducts.Selected);
+  if Product = nil then exit;
 
   var Versions := TVersionInfoList.Create;
   try
@@ -370,6 +371,14 @@ begin
   var SessionId := GUI.LogItems[RevIndex].SessionId;
   if SessionId = '' then exit;
 
+  // "tms log-view" is a tms.exe run like any other, and every tms.exe start cleans the shared temp
+  // folders, so it must not run while an install or build is using them.
+  if GUI.IsRunning then
+  begin
+    ShowMessage('Please wait until the current operation finishes to open the log.');
+    exit;
+  end;
+
   var LogFile := GUI.ExecuteLogView(SessionId, true);
   if not TFile.Exists(LogFile) then
   begin
@@ -451,13 +460,6 @@ begin
   Result := nil;
 end;
 
-function TMainForm.FormatLogMessage(const Item: TGUILogItem): string;
-const
-  LogLevelStr: array[TLogLevel] of string = ('TRACE', 'INFO ', 'ERROR');
-begin
-  Result := Format('[%s] %s', [LogLevelStr[Item.Level], Item.Text]);
-end;
-
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := 4;  // sort by status by default
@@ -502,6 +504,15 @@ begin
     var tmsgui := ParamStr(0);
     ShellExecute(0, 'open', PWideChar(tmsgui), '-no-self-update', '', SW_SHOWNORMAL);
   end;
+end;
+
+procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  // Closing cancels the running job, which kills tms.exe wherever it is, so ask first.
+  // Not when relaunching after a self-update: that job is the one closing us.
+  if Relaunch or not GUI.IsRunning then exit;
+  CanClose := MessageDlg('An operation is still running. Closing will cancel it.' + sLineBreak + sLineBreak +
+    'Close anyway?', TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], 0, TMsgDlgBtn.mbNo) = mrYes;
 end;
 
 function TMainForm.GetLastError: string;
@@ -594,6 +605,8 @@ procedure TMainForm.InitiateAction;
 begin
   inherited;
   acCredentials.Visible := GUI.Servers.IsEnabled('tms');
+  // Changing the server reloads the product list, which can't run while another job is running.
+  cbServer.Enabled := not GUI.IsRunning;
 end;
 
 function TMainForm.GetLogIco(const Item: TGUILogItem): string;
@@ -639,7 +652,6 @@ end;
 
 procedure TMainForm.LogItemGeneratedEvent(const Item: TGUILogItem);
 begin
-  var Text := FormatLogMessage(Item);
   TThread.Queue(nil, procedure
     begin
       if (LogPanel.Height <= 5) and (Item.Level = TLogLevel.Error) then
@@ -767,7 +779,11 @@ end;
 
 procedure TMainForm.RunFinishEvent;
 begin
-  ProgressBar.Position := 0;
+  // Fired by the last job to finish, usually on a worker thread.
+  TThread.Queue(nil, procedure
+    begin
+      ProgressBar.Position := 0;
+    end);
 end;
 
 procedure TMainForm.RunnerCreatedEvent(Runner: TTmsRunner);
