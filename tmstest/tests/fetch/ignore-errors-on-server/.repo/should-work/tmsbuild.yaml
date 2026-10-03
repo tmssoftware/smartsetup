@@ -1,0 +1,15 @@
+# =====================================================================================================
+# TMS Smart Setup configuration file for product HashLib4Pascal
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+# =====================================================================================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.5
+
+# General information about the product.
+application:
+  id: product-ok
+  name: product ok
+  description: such an ok product.
+  url: https://github.com/product-ok.git
+  

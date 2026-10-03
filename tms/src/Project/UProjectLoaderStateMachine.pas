@@ -4,6 +4,9 @@ unit UProjectLoaderStateMachine;
 interface
 uses BBClasses, UProjectDefinition, SysUtils, Generics.Collections, UCoreTypes, Deget.CoreTypes;
 type
+  EUnsupportedTMSbuildVersion = class(Exception)
+  end;
+
   TSectionDef = class(TSection)
   protected
     Project: TProjectDefinition;
@@ -390,7 +393,7 @@ begin
   Actions := TListOfActions.Create;
   Actions.Add('minimum required tmsbuild version', procedure(value: string; ErrorInfo: TErrorInfo)
     begin
-      if (VersionNumberGreaterThanApp(value, ErrorInfo)) then raise Exception.Create('Project "'
+      if (VersionNumberGreaterThanApp(value, ErrorInfo)) then raise EUnsupportedTMSbuildVersion.Create('Project "'
           + aProject.FullPath + '" requires version ' + value + ' of SmartSetup. The current version is ' + TMSVersion + '. Please update SmartSetup to the latest version and retry.');
     end);
 
@@ -1467,7 +1470,7 @@ begin
     begin
       aPackage.GenerateFrom := value;
       aPackage.GenerateFromFullFileName := CombinePath(Project.RootFolder, value);
-      if not TFile.Exists(aPackage.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + aPackage.GenerateFromFullFileName + '". ' + ErrorInfo.ToString);
+      if not ErrorInfo.IgnoreOtherFiles and not TFile.Exists(aPackage.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + aPackage.GenerateFromFullFileName + '". ' + ErrorInfo.ToString);
     end);
   Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo)
     begin

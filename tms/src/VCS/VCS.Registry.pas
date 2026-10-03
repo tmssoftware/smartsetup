@@ -91,7 +91,7 @@ type
 
 implementation
 uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJsonSerializer,
-     System.Types, Zip, ZipFile.Download, UProjectLoader, UMultiLogger, VCS.Summary;
+     System.Types, Zip, ZipFile.Download, UProjectLoader, UMultiLogger, VCS.Summary, UProjectLoaderStateMachine;
 
 { TRegisteredProduct }
 
@@ -232,7 +232,25 @@ procedure TProductRegistry.LoadOnePreregisteredProduct(const ZipFileName, YamlFi
 begin
   var Project := TProjectDefinition.Create(ZipFileName);
   try
-    TProjectLoader.LoadDataIntoProject(YamlFileName, Text, Project, 'root:supported frameworks', true);
+    try
+      //if we stop reading at 'root:supported frameworks' then we will miss fetch options.
+      //We could either ensure fetch options come before supported frameworks, or just read the full file.
+
+      TProjectLoader.LoadDataIntoProject(YamlFileName, Text, Project, '', true);
+    except
+      on ex: EUnsupportedTMSbuildVersion do
+      begin
+        //just ignore products that we don't support.
+        exit;
+      end;
+      on ex: Exception do
+      begin
+        Logger.Info('Error loading project: ' + ex.Message); //not Logger.Error so it doesn't show in json output. We will ignore this product.
+        exit;
+      end;
+
+
+    end;
     FProducts.AddOrSetValue(Project.Application.Id, GetProductFromProject(Project, Server, Text, ZipFileName, YamlFileName));
   finally
     Project.Free;

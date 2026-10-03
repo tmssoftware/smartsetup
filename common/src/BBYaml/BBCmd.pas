@@ -39,7 +39,7 @@ TCMDErrorInfo = class(TErrorInfo)
 private
   Parameter: string;
 public
-  constructor Create(const aParameter: string);
+  constructor Create(const aIgnoreOtherFiles: boolean; const aParameter: string);
   function ToString: string; override;
 end;
 
@@ -147,7 +147,7 @@ begin
   var Value: string;
   ParseParameter(Parameter, SectionSeparator, SectionsStr, Value);
 
-  var ErrorInfo := TCMDErrorInfo.Create(Parameter);
+  var ErrorInfo := TCMDErrorInfo.Create(true, Parameter);
   try
     var Section := MainSection;
     for var i := Low(SectionsStr) to High(SectionsStr) - 1 do
@@ -201,8 +201,9 @@ end;
 
 { TCMDErrorInfo }
 
-constructor TCMDErrorInfo.Create(const aParameter: string);
+constructor TCMDErrorInfo.Create(const aIgnoreOtherFiles: boolean; const aParameter: string);
 begin
+  inherited Create(aIgnoreOtherFiles);
   Parameter := aParameter;
 end;
 

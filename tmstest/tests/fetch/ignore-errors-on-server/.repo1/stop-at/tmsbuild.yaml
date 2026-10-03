@@ -1,0 +1,19 @@
+# =====================================================================================================
+# TMS Smart Setup configuration file for product HashLib4Pascal
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+# =====================================================================================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3.5
+
+# General information about the product.
+application:
+  id: xor-el.hash-lib-4-pascal
+  name: HashLib4Pascal
+  description: Object Pascal library for hashing algorithms.
+  url: https://github.com/Xor-el/HashLib4Pascal.git
+
+# Frameworks are just a group of supported IDEs and platforms. You can define as much as you want with any name you desire, and then combine them to specify what platforms and IDEs the packages support.
+supported frameworks:
+some nonsense that shouldn't break tms list-remote
+  

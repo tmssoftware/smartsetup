@@ -122,7 +122,15 @@ function TBBYamlSectionProcessor.Process(const Section: TSection;
 begin
   if (Level <= Levels.Peek) or (SectionIsContainer(Section, Line)) then
   begin
-    exit(ChangeSection(Section, Line, Level));
+    Result := ChangeSection(Section, Line, Level);
+    if Aborted then exit(nil);
+    if (StopAt <> '') and (Result <> nil) and (Result.FullSectionName = StopAt) then
+    begin
+      Aborted := true;
+      exit(nil);
+    end;
+
+    exit;
   end;
 
   ProcessValue(Section, Line, Level);
