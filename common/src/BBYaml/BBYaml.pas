@@ -21,6 +21,7 @@ TBBYamlReader = class
   private
     class function CountSpaces(const Line: string): integer;
     class function UnescapeLine(const Line: string): string; static;
+    class function FindCommentStart(const s: string): integer; static;
   public
     class procedure ProcessStream(const Reader: TTextReader; const DisplayFileName: string; const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
     class procedure ProcessFile(const FileName: string; const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -31,7 +32,6 @@ const
 
 
 implementation
-uses Math;
 
 { TNotLockingStreamReader }
 
@@ -346,16 +346,48 @@ begin
   //If the line starts with #, it is always a comment.
   if Result.StartsWith('#') then exit('');
 
-  //If not, it has to have a space and a '#'
-  var idxSpace := Result.IndexOf(' #');
-  var idxTab :=  Result.IndexOf(#9 + '#');
-
-  var idx: integer;
-  if idxSpace < 0 then idx := idxTab else if idxTab < 0 then idx := idxSpace else idx := Min(idxSpace, idxTab);
-
-
+  //If not, it has to have a space and a '#', outside a quoted scalar.
+  //BBYamlEscapeString single-quotes values containing ' #', so they must survive here.
+  var idx := FindCommentStart(Result);
   if idx < 0 then exit;
   Result := Result.Substring(0, idx).Trim(TrimWhiteSpace); //trim because it can have more spaces.
+end;
+
+class function TBBYamlReader.FindCommentStart(const s: string): integer;
+begin
+  //A quote only opens a quoted scalar where a value can start: at the line start,
+  //after "key:" or "- ", or inside a flow array. An apostrophe in plain text (don't) is literal.
+  var InQuote: Char := #0;
+  var LastSignificant: Char := #0;
+  var i := 0;
+  while i < s.Length do
+  begin
+    var c := s.Chars[i];
+    if InQuote = '''' then
+    begin
+      if c = '''' then
+      begin
+        if (i + 1 < s.Length) and (s.Chars[i + 1] = '''') then inc(i) //'' is an escaped quote
+        else InQuote := #0;
+      end;
+    end
+    else if InQuote = '"' then
+    begin
+      if c = '\' then inc(i)
+      else if c = '"' then InQuote := #0;
+    end
+    else
+    begin
+      var CanStartValue := (i = 0) or CharInSet(s.Chars[i - 1], [' ', #9, '[', ',', '{']);
+      if CharInSet(c, ['''', '"']) and CanStartValue and CharInSet(LastSignificant, [#0, ':', '-', '[', ',', '{', '?']) then
+        InQuote := c
+      else if (c = '#') and (i > 0) and CharInSet(s.Chars[i - 1], [' ', #9]) then
+        exit(i - 1);
+    end;
+    if not CharInSet(c, [' ', #9]) then LastSignificant := c;
+    inc(i);
+  end;
+  Result := -1;
 end;
 
 { TFileErrorInfo }

@@ -24,15 +24,35 @@ end;
 
 function UnEscapeDoubleQuote(const s: string): string;
 begin
-  //Someday we can do a better parser here.
-  Result := s;
-  Result := Result.Replace('\b', #8, [rfReplaceAll]);
-  Result := Result.Replace('\t', #9, [rfReplaceAll]);
-  Result := Result.Replace('\n', #10, [rfReplaceAll]);
-  Result := Result.Replace('\r', #13, [rfReplaceAll]);
-  Result := Result.Replace('\\', '\', [rfReplaceAll]);
-  Result := Result.Replace('\/', '/', [rfReplaceAll]);
-  Result := Result.Replace('\"', '"', [rfReplaceAll]);
+  //Single pass, so an escaped backslash can't be combined with the next character.
+  //Sequential replaces turned "C:\\builds" into "C:\" + #8 + "uilds".
+  var sb := TStringBuilder.Create(s.Length);
+  try
+    var i := 0;
+    while i < s.Length do
+    begin
+      var c := s.Chars[i];
+      if (c = '\') and (i + 1 < s.Length) then
+      begin
+        var e := s.Chars[i + 1];
+        case e of
+          'b': sb.Append(#8);
+          't': sb.Append(#9);
+          'n': sb.Append(#10);
+          'r': sb.Append(#13);
+          '\', '/', '"': sb.Append(e);
+          else sb.Append(c).Append(e); //unknown escapes are kept as they were.
+        end;
+        inc(i, 2);
+        continue;
+      end;
+      sb.Append(c);
+      inc(i);
+    end;
+    Result := sb.ToString;
+  finally
+    sb.Free;
+  end;
 end;
 
 function BBYamlUnescapeString(const s: string): string;

@@ -301,7 +301,7 @@ var
   BracketDepth: Integer;
   StartPos, i: Integer;
 begin
-  if not s.StartsWith('[') and not s.EndsWith(']') then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
+  if not (s.StartsWith('[') and s.EndsWith(']')) then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
   Content := s.Substring(1, s.Length - 2);
 
   // Split by commas, but only at top level (not inside nested brackets)
