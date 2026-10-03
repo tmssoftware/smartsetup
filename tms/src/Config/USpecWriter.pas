@@ -678,12 +678,12 @@ end;
 
 procedure TSpecWriter.Save(const FileName: string; const WritingFormat: TWritingFormat; const UseJSON, CmdSyntax: boolean);
 begin
-  var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
-  try
-    SaveToStream(TextWriter, WritingFormat, UseJSON, CmdSyntax);
-  finally
-    TextWriter.Free;
-  end;
+  //Atomically, so an exception while writing doesn't leave a truncated tmsbuild.yaml.
+  SaveTextFileAtomically(FileName, TUTF8NoBOMEncoding.Instance,
+    procedure(TextWriter: TStreamWriter)
+    begin
+      SaveToStream(TextWriter, WritingFormat, UseJSON, CmdSyntax);
+    end);
 end;
 
 

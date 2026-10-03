@@ -37,7 +37,7 @@ public
 end;
 
 implementation
-uses SysUtils, IOUtils, UTmsBuildSystemUtils, Generics.Collections, UMultiLogger, Commands.GlobalConfig;
+uses SysUtils, Classes, IOUtils, UTmsBuildSystemUtils, Generics.Collections, UMultiLogger, Commands.GlobalConfig;
 
 { TFileSystemPersistence }
 
@@ -167,7 +167,12 @@ begin
   var f := GetFileName(Project, IDE, Platform, Package);
   TDirectory_CreateDirectory(TPath.GetDirectoryName(f));
 
-  TFile.WriteAllText(GetFileName(Project, IDE, Platform, Package), Data, TEncoding.UTF8)
+  //Atomically, so a crash doesn't leave a half-written uninstall record.
+  SaveTextFileAtomically(f, TEncoding.UTF8,
+    procedure(Writer: TStreamWriter)
+    begin
+      Writer.Write(Data);
+    end);
 end;
 
 function TFileSystemPersistence.RemoveExtraInfo(const s: string): string;
