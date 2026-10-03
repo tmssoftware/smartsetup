@@ -111,16 +111,16 @@ class procedure TFetchInfoFile.SaveInFolder(const Folder, ProductId: string; con
 begin
   ProductsWereModified:= true;
   TDirectory_CreateDirectory(Folder);
-  var sw := TStreamWriter.Create(CombinePath(Folder, TFetchInfoFile.FileName), false, TUTF8NoBOMEncoding.Instance);
-  try
-    sw.WriteLine(InfoProduct + ': ' + ProductId);
-    sw.WriteLine(InfoVersion + ': ' + Version.ToString);
-    sw.WriteLine(InfoVersionType + ': ' + Version.VersionTypeId);
-    sw.WriteLine(InfoServer + ': ' + Server);
-    sw.WriteLine(InfoPinned + ': ' + BoolToStr(Pinned, false));
-  finally
-    sw.Free;
-  end;
+  //Atomically: a truncated info file makes the product drop out of the installed list ("Invalid Product Id").
+  SaveTextFileAtomically(CombinePath(Folder, TFetchInfoFile.FileName), TUTF8NoBOMEncoding.Instance,
+    procedure(sw: TStreamWriter)
+    begin
+      sw.WriteLine(InfoProduct + ': ' + ProductId);
+      sw.WriteLine(InfoVersion + ': ' + Version.ToString);
+      sw.WriteLine(InfoVersionType + ': ' + Version.VersionTypeId);
+      sw.WriteLine(InfoServer + ': ' + Server);
+      sw.WriteLine(InfoPinned + ': ' + BoolToStr(Pinned, false));
+    end);
 end;
 
 

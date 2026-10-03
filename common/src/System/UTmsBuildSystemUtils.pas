@@ -23,6 +23,11 @@ procedure LaunchFile(const FileName: string);
 function FindProcessUsing(const FileName: string): string;
 function GuidToStringN(const Guid: TGuid): String;
 procedure TDirectory_CreateDirectory(const Path: string);
+/// <summary>
+/// Writes a text file so a crash or an exception while writing never leaves it truncated: the content is written
+/// to a temporary file in the same folder, which then replaces FileName in one step.
+/// </summary>
+procedure SaveTextFileAtomically(const FileName: string; const Encoding: TEncoding; const Write: TProc<TStreamWriter>);
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string; const DryRun: boolean; const Log: TProc<string>; var NeedsToRestartIDE: boolean); overload;
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string); overload;
 
@@ -500,6 +505,30 @@ begin
     end;
   finally
     TMonitor.Exit(CreateDirLock);
+  end;
+end;
+
+procedure SaveTextFileAtomically(const FileName: string; const Encoding: TEncoding; const Write: TProc<TStreamWriter>);
+begin
+  //Same folder, so the final rename stays on one disk and replaces the file in a single step.
+  var TempFileName := FileName + '.' + GuidToStringN(TGUID.NewGuid) + TempExtension;
+  try
+    var Writer := TStreamWriter.Create(TempFileName, false, Encoding);
+    try
+      Write(Writer);
+    finally
+      Writer.Free;
+    end;
+{$IFDEF MSWINDOWS}
+    if not MoveFileEx(PChar(TempFileName), PChar(FileName), MOVEFILE_REPLACE_EXISTING or MOVEFILE_WRITE_THROUGH) then
+      raise Exception.Create('Can''t replace "' + FileName + '". ' + SysErrorMessage(GetLastError));
+{$ELSE}
+    if not RenameFile(TempFileName, FileName) then //rename() replaces the target atomically.
+      raise Exception.Create('Can''t replace "' + FileName + '". ' + SysErrorMessage(GetLastError));
+{$ENDIF}
+  except
+    System.SysUtils.DeleteFile(TempFileName);
+    raise;
   end;
 end;
 
