@@ -460,7 +460,7 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  SortColumn := 4;  // sort by status by default
+  SortColumn := 5;  // sort by status by default (0 icons, 1 id, 2 name, 3 local version, 4 remote version, 5 status)
 
   WorkingTimer := TTimer.Create(Self);
   WorkingTimer.Enabled := false;
@@ -907,8 +907,9 @@ begin
         TThread.Queue(nil, procedure
           begin
             var ListItem := FindProductItem(Info.ProductId);
-            if (ListItem <> nil) and (ListItem.SubItems.Count > 3) then
-              ListItem.Subitems[3] := Format('%d%%', [Info.ProductPercent])
+            // SubItems[4] is the Status column; [3] is "Remote version", which the progress used to overwrite.
+            if (ListItem <> nil) and (ListItem.SubItems.Count > 4) then
+              ListItem.Subitems[4] := Format('%d%%', [Info.ProductPercent])
           end);
       end;
     end);
