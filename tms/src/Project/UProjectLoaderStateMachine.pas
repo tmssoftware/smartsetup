@@ -1467,7 +1467,9 @@ begin
     begin
       aPackage.GenerateFrom := value;
       aPackage.GenerateFromFullFileName := CombinePath(Project.RootFolder, value);
-      if not TFile.Exists(aPackage.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + aPackage.GenerateFromFullFileName + '". ' + ErrorInfo.ToString);
+      //When loading a registry entry (IgnoreOtherFiles), the product isn't fetched yet, so the file can't exist.
+      //Same as ReadVersionFile. See https://github.com/tmssoftware/smartsetup-registry/issues/11
+      if not ErrorInfo.IgnoreOtherFiles and not TFile.Exists(aPackage.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + aPackage.GenerateFromFullFileName + '". ' + ErrorInfo.ToString);
     end);
   Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo)
     begin

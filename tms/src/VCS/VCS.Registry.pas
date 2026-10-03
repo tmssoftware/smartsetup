@@ -270,7 +270,13 @@ begin
           var Bytes: TBytes;
           Zip.Read(i, Bytes);
           var Text := TEncoding.UTF8.GetString(Bytes);
-          LoadOnePreregisteredProduct(PredefinedRepositories, YamlFileName, Text, Server.Name);
+          //One entry this version can't read must not take the whole server down, or every command fails.
+          //See https://github.com/tmssoftware/smartsetup-registry/issues/11
+          try
+            LoadOnePreregisteredProduct(PredefinedRepositories, YamlFileName, Text, Server.Name);
+          except on ex: Exception do
+            Logger.Info('Warning: skipping "' + YamlFileName + '" from server ' + Server.Name + ': ' + ex.Message);
+          end;
         end;
       end;
     finally
