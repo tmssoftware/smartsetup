@@ -592,9 +592,12 @@ begin
   Result := procedure(value: string; ErrorInfo: TErrorInfo)
     begin
       Project.SetPackageFolders(dv, value, TPlusState.Plus);
-      for var dvi := Succ(dv) to High(TIDEName) do
+      if dv < High(TIDEName) then
       begin
-        Project.SetPackageFolders(dvi, value, TPlusState.Auto);
+        for var dvi := Succ(dv) to High(TIDEName) do
+        begin
+          Project.SetPackageFolders(dvi, value, TPlusState.Auto);
+        end;
       end;
     end;
 end;
