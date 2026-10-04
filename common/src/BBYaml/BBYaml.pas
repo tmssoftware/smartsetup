@@ -14,13 +14,13 @@ unit BBYaml;
 // in text editors. It is enough for our needs, but I wouldn't use as a general YAML parser unless you can control the format.
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBError, BBClasses, BBStrings;
+uses Classes, SysUtils, Generics.Collections, BBError, BBClasses, BBStrings, Character;
 type
 
 TBBYamlReader = class
   private
     class function CountSpaces(const Line: string): integer;
-    class function UnescapeLine(const Line: string): string; static;
+    class function LineIsEmpty(const Line: string): boolean; static;
   public
     class procedure ProcessStream(const Reader: TTextReader; const DisplayFileName: string; const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
     class procedure ProcessFile(const FileName: string; const MainSection: TSection; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -75,16 +75,19 @@ private
   Aborted: boolean;
   StopAt: string;
 
-  function ChangeSection(const Section: TSection; const Line: string; const Level: integer): TSection;
+  function ChangeSection(const Section: TSection; const Line, LineWithoutComments: string; const Level: integer): TSection;
 
   function SectionIsContainer(const Section: TSection; const childValue: string): boolean; virtual;
 
-  procedure ProcessValue(const Section: TSection; const Line: string; const Level: integer);
-  procedure ProcessArray(const Section: TSection; const Line, Name, Value: string);
+  procedure ProcessValue(const Section: TSection; const Line, LineWithoutComments: string; const Level: integer);
+  procedure ProcessArray(const Section: TSection; const Name, Value: string);
 
   function RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
-  procedure ParseColon(const Line: string; var Name, Value: string; const MustHaveValue, CanBeEmpty: boolean);
+  procedure ParseColon(const Line: string; var Name, Value: string; const MustHaveValue, CanBeEmpty, CanBeNameOnly: boolean);
   function GetKeyString(const s: string): string;
+  function RemoveComments(const s: string): string;
+    function FindColon(const Line: string): integer;
+    function GetValuePart(const Line: string; const Index: integer): string;
 
 public
   constructor Create(const FileName: string; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -120,19 +123,20 @@ end;
 function TBBYamlSectionProcessor.Process(const Section: TSection;
          const Line: string; const Level: integer): TSection;
 begin
-  if (Level <= Levels.Peek) or (SectionIsContainer(Section, Line)) then
+  var LineWithoutComments := RemoveComments(Line);
+  if (Level <= Levels.Peek) or (SectionIsContainer(Section, LineWithoutComments)) then
   begin
-    exit(ChangeSection(Section, Line, Level));
+    exit(ChangeSection(Section, Line, LineWithoutComments, Level));
   end;
 
-  ProcessValue(Section, Line, Level);
+  ProcessValue(Section, Line, LineWithoutComments, Level);
   if Aborted then exit(nil);
 
   Result := Section;
 end;
 
 procedure TBBYamlSectionProcessor.ProcessValue(const Section: TSection;
-  const Line: string;
+  const Line, LineWithoutComments: string;
   const Level: integer);
 var
   Name, Value: string;
@@ -140,21 +144,21 @@ var
 begin
   if Aborted then exit;
 
-  Name := Line;
+  Name := LineWithoutComments;
   Value := '';
 
   case Section.SectionValueTypes of
     TSectionValueTypes.Values:
-      ParseColon(Line, Name, Value, true, true);
+      ParseColon(Line, Name, Value, true, true, false);
 
     TSectionValueTypes.Both:
-      if Line.Contains(':') then ParseColon(Line, Name, Value, true, false);
+      ParseColon(Line, Name, Value, true, false, true);
 
   end;
 
   if (Assigned(Section.ArrayMainAction)) then
   begin
-    ProcessArray(Section, Line, RemoveArray(Name, false), Value);
+    ProcessArray(Section, RemoveArray(Name, false), Value);
     if (StopAt <> '') and (Section.FullSectionName + ':' + RemoveArray(Name, false) = StopAt) then Aborted := true;
     exit;
   end;
@@ -171,7 +175,7 @@ begin
 end;
 
 
-procedure TBBYamlSectionProcessor.ProcessArray(const Section: TSection; const Line, Name, Value: string);
+procedure TBBYamlSectionProcessor.ProcessArray(const Section: TSection; const Name, Value: string);
 begin
   if (Section.Duplicated <> nil) then
   begin
@@ -204,6 +208,34 @@ begin
 
 end;
 
+function TBBYamlSectionProcessor.RemoveComments(const s: string): string;
+begin
+  Result := s.Trim(TrimWhitespace);
+  if (Result.Length > 0) and ((Result.Chars[0] = '''') or (Result.Chars[0] = '"')) then
+  begin
+    var Index := 0;
+    var Str := BBYamlUnescapeStringToEnd(Result, Index, ErrorInfo);
+    var IndexWs := Index;
+    var LastNonWs := Index - 1;
+    while IndexWs < Result.Length do
+    begin
+      if (Result.Chars[IndexWs] = '#') and ((IndexWs <= 0) or (Result.Chars[IndexWs - 1].IsWhitespace)) then break;
+      if not (Result.Chars[IndexWs].IsWhiteSpace) then LastNonWs := IndexWs;
+      inc(IndexWs);
+    end;
+
+    exit(Str + Result.Substring(Index, LastNonWs - Index + 1));
+  end;
+
+  var index := -1;
+  while index < Result.Length - 1 do
+  begin
+    inc(index);
+    if (Result.Chars[index] = '#') and ((index <= 0) or (Result.Chars[index - 1].IsWhitespace))
+      then exit(Result.SubString(0, index - 1).Trim(TrimWhiteSpace));
+  end;
+end;
+
 function TBBYamlSectionProcessor.SectionIsContainer(const Section: TSection; const childValue: string): boolean;
 begin
   if (Section.Actions = nil) and (not Assigned(Section.ArrayMainAction)) then exit(true);
@@ -215,7 +247,7 @@ begin
   Result := Section.ChildSections.Count > 0;
 end;
 
-function TBBYamlSectionProcessor.ChangeSection(const Section: TSection; const Line: string; const Level: integer): TSection;
+function TBBYamlSectionProcessor.ChangeSection(const Section: TSection; const Line, LineWithoutComments: string; const Level: integer): TSection;
 var
   Name, Value: string;
 begin
@@ -234,10 +266,10 @@ begin
     Result := Result.Parent;
   end;
 
-  if (LevelDecreased) and (Level <= Lastlevel) and (Level > Levels.Peek) and (not SectionIsContainer(Result, Section.RemoveDoubleSpaces(Line))) then
+  if (LevelDecreased) and (Level <= Lastlevel) and (Level > Levels.Peek) and (not SectionIsContainer(Result, Section.RemoveDoubleSpaces(LineWithoutComments))) then
   begin
     //We are continuing an older section.
-    ProcessValue(Result, Line, Level);
+    ProcessValue(Result, Line, LineWithoutComments, Level);
     exit;
   end;
 
@@ -252,7 +284,7 @@ begin
 
   Levels.Push(Level);
 
-  ParseColon(Line, Name, Value, false, false);
+  ParseColon(Line, Name, Value, false, false, false);
   if Result.ContainsArrays then Name := RemoveArray(Name, Result.ArraysCanBeKeys);
   exit(Result.GotoChild(Name, ErrorInfo));
 end;
@@ -263,14 +295,55 @@ begin
   Result := BBYamlUnescapeString(s, ErrorInfo);
 end;
 
-procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty: boolean);
+function TBBYamlSectionProcessor.FindColon(const Line: string): integer;
+begin
+  var Index := -1;
+  if (Line.StartsWith('-')) then
+  begin
+    Inc(Index);
+  end;
+  while (Index < Line.Length) and (Line.Chars[Index].IsWhiteSpace) do Inc(Index);
+  var IndexStart := Index;
+  while (Index < Line.Length - 1) do
+  begin
+    Inc(Index);
+    if (IndexStart = Index - 1) and ((Line.Chars[Index] = '''') or (Line.Chars[Index] = '"')) then
+    begin
+      BBYamlUnescapeStringToEnd(Line, Index, ErrorInfo);
+      while (Index < Line.Length) and (Line.Chars[Index].IsWhiteSpace) do Inc(Index);
+
+      if (Index < Line.Length) and (Line.Chars[Index] = ':') then exit(Index);
+      exit(-1);
+    end;
+
+
+    if (Line.Chars[Index] = '#') and ((Index <= 0) or (Line.Chars[Index - 1].IsWhitespace))
+      then exit(-1);
+    if (Line.Chars[Index] = ':') then exit(Index);
+  end;
+  exit(-1);
+end;
+
+function TBBYamlSectionProcessor.GetValuePart(const Line: string; const Index: integer): string;
+begin
+  Result := RemoveComments(Line.Substring(Index + 1));
+end;
+
+procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty, CanBeNameOnly: boolean);
 var
   idx: integer;
 begin
-  idx := Line.IndexOf(':');
+  idx := FindColon(Line);
+  if CanBeNameOnly and (idx < 0) then
+  begin
+    Name := GetKeyString(TSection.RemoveDoubleSpaces(RemoveComments(Line))).Trim(TrimWhitespace);
+    Value := '';
+    exit;
+  end;
+
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
   Name := GetKeyString(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)));
-  Value := BBYamlUnescapeString(Line.Substring(idx + 1).Trim(TrimWhitespace), ErrorInfo);
+  Value := GetValuePart(Line, idx);
   if CanBeEmpty then exit;
 
   if MustHaveValue and (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
@@ -326,8 +399,9 @@ begin
       begin
         FullLine := Reader.ReadLine;
         SectionProcessor.IncrementLineNumber;
-        Line := TBBYamlReader.UnescapeLine(FullLine).Trim(TrimWhitespace);
-        if Line = '' then continue;
+        if LineIsEmpty(FullLine) then continue;
+
+        Line := FullLine.Trim(TrimWhitespace);
 
         Level := CountSpaces(FullLine);
         Section := SectionProcessor.Process(Section, Line, Level);
@@ -340,22 +414,16 @@ begin
     end;
 end;
 
-class function TBBYamlReader.UnescapeLine(const Line: string): string;
+class function TBBYamlReader.LineIsEmpty(const Line: string): boolean;
 begin
-  Result := Line.Trim(TrimWhitespace);
-  //If the line starts with #, it is always a comment.
-  if Result.StartsWith('#') then exit('');
+  var Trimmed := Line.Trim(TrimWhitespace);
+  //If the line starts with #, it is always a comment. If not, it has to have a space before.
+  // We can't know yet here if a # is a comment: it depends on the state.
+  // For example in the line 'a: "b#c"' # shouldn't be taken as comment.
+  // So in this method we will only remove the simple case of a line starting with #. We need to
+  // remove the comments when we know what we are reading.
 
-  //If not, it has to have a space and a '#'
-  var idxSpace := Result.IndexOf(' #');
-  var idxTab :=  Result.IndexOf(#9 + '#');
-
-  var idx: integer;
-  if idxSpace < 0 then idx := idxTab else if idxTab < 0 then idx := idxSpace else idx := Min(idxSpace, idxTab);
-
-
-  if idx < 0 then exit;
-  Result := Result.Substring(0, idx).Trim(TrimWhiteSpace); //trim because it can have more spaces.
+  Result := (Trimmed.Length = 0) or Trimmed.StartsWith('#');
 end;
 
 { TFileErrorInfo }

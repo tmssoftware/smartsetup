@@ -379,7 +379,7 @@ end;
 class procedure TSection.GetFlowArray(const s: string; const ArrActions: TListOfActions; const CallAction: TActionNameValue;
      const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
 begin
-  if not s.StartsWith('[') and not s.EndsWith(']') then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
+  if not s.StartsWith('[') or not s.EndsWith(']') then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
 
   var Index := 1;
   var IsFirst := true;
