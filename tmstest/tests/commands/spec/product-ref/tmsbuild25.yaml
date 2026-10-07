@@ -60,3 +60,8 @@ supported frameworks:
 
 # List of packages in the library. Each package must have a unique name, and must be listed only once.
 packages:
+  - Example_Core: [runtime,vcl,fmx]
+  - VCL_Example: [runtime,vcl]
+  - FMX_Example: [runtime,fmx]
+  - FMX_Example_DESIGN: [design,fmx]
+  - Example_That_Uses_Product2: [runtime,product2]

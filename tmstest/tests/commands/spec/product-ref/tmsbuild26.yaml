@@ -58,6 +58,14 @@ supported frameworks:
       - tms.product2
       - ~tms.product3
 
+# List of packages in the library. Each package must have a unique name, and must be listed only once.
+packages:
+  - Example_Core: [runtime,vcl,fmx]
+  - VCL_Example: [runtime,vcl]
+  - FMX_Example: [runtime,fmx]
+  - FMX_Example_DESIGN: [design,fmx]
+  - Example_That_Uses_Product2: [runtime,product2]
+
 # The settings in the this section are only needed if the packages don't follow smartsetup conventions.
 package options:
   package folders:

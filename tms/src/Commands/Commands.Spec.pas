@@ -564,11 +564,9 @@ end;
 procedure RunSpecCommand;
 begin
   var Product: TProjectDefinition := nil;
-  var PackageManager: TPackageManager := nil;
   try
     Product := TProjectLoader.LoadProjectDefinitionFromFile(Template, '', true, Specs);
 
-    PackageManager := TPackageManager.Create;
     var TmsBuildFileName := TPath.Combine(TDirectory.GetCurrentDirectory, ChangeExtension('tmsbuild.yaml'));
 
     TmsBuildFileName := Question('File to be created: ',
@@ -576,7 +574,16 @@ begin
 
     VerifyWeCanSave(TmsBuildFileName); //We don't want to ask all the questions and at the end crash because the folder is invalid.
 
-    if Interactive then AskQuestions(Product, PackageManager);
+    if Interactive then
+    begin
+      var PackageManager := TPackageManager.Create;
+      try
+        AskQuestions(Product, PackageManager);
+      finally
+        PackageManager.Free;
+      end;
+    end;
+
     var SpecWriter := TSpecWriter.Create(Product);
     try
       var WritingFormat := TWritingFormat.Minimal;
@@ -590,7 +597,6 @@ begin
     Logger.Message(TLogMessageKind.Conclusion, 'Spec file created at: "' + TmsBuildFileName + '"');
 
   finally
-    PackageManager.Free;
     Product.Free;
   end;
 end;
@@ -704,7 +710,7 @@ end;
 procedure TPackageManager.Load;
 begin
   var Files := TDirectory.GetFiles(TDirectory.GetCurrentDirectory, '*.dproj', TSearchOption.soAllDirectories);
-  if Length(Files) = 0 then raise Exception.Create('The folder "' + '" doesn''t containt any .dproj file on any of its subfolders. Run this command from a folder that has .dproj files somewhere below it.');
+  if Length(Files) = 0 then raise Exception.Create('The folder "' + '" doesn''t contain any .dproj file on any of its subfolders. Run this command from a folder that has .dproj files somewhere below it.');
 
   for var F in Files do
   begin

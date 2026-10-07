@@ -14,7 +14,7 @@ unit BBYaml;
 // in text editors. It is enough for our needs, but I wouldn't use as a general YAML parser unless you can control the format.
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBError, BBClasses, BBStrings, Character;
+uses Classes, SysUtils, Generics.Collections, BBError, BBClasses, BBStrings, BBFlow, Character;
 type
 
 TBBYamlReader = class
@@ -80,10 +80,9 @@ private
   function SectionIsContainer(const Section: TSection; const childValue: string): boolean; virtual;
 
   procedure ProcessValue(const Section: TSection; const Line, LineWithoutComments: string; const Level: integer);
-  procedure ProcessArray(const Section: TSection; const Name, Value: string);
 
   function RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
-  procedure ParseColon(const Line: string; var Name, Value: string; const MustHaveValue, CanBeEmpty, CanBeNameOnly: boolean);
+  procedure ParseColon(const Line: string; var Name, Value: string; const CanBeNameOnly: boolean);
   function GetKeyString(const s: string): string;
   function RemoveComments(const s: string): string;
     function FindColon(const Line: string): integer;
@@ -140,7 +139,7 @@ procedure TBBYamlSectionProcessor.ProcessValue(const Section: TSection;
   const Level: integer);
 var
   Name, Value: string;
-  Action: TAction;
+  Action: TActionNameValue;
 begin
   if Aborted then exit;
 
@@ -149,45 +148,27 @@ begin
 
   case Section.SectionValueTypes of
     TSectionValueTypes.Values:
-      ParseColon(Line, Name, Value, true, true, false);
+      ParseColon(Line, Name, Value, false);
 
     TSectionValueTypes.Both:
-      ParseColon(Line, Name, Value, true, false, true);
+    begin
+      ParseColon(Line, Name, Value, true);
+      //If the section doesn't have a colon Value will be ' '.
+     // if (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
+      Value := Value.Trim(TrimWhiteSpace);
+    end;
 
   end;
 
-  if (Assigned(Section.ArrayMainAction)) then
-  begin
-    ProcessArray(Section, RemoveArray(Name, false), Value);
-    if (StopAt <> '') and (Section.FullSectionName + ':' + RemoveArray(Name, false) = StopAt) then Aborted := true;
-    exit;
-  end;
   if Section.ContainsArrays then Name := RemoveArray(Name, Section.ArraysCanBeKeys);
 
   if ((Section.Actions <> nil) and Section.Actions.TryGetValue(Name, Action)) then
   begin
-    Action(Value, ErrorInfo);
+    Action(Name, Value, ErrorInfo);
   end
   else Section.ThrowInvalidTag(Name, ErrorInfo);
 
   if (StopAt <> '') and (Section.FullSectionName + ':' + Name = StopAt) then Aborted := true;
-
-end;
-
-
-procedure TBBYamlSectionProcessor.ProcessArray(const Section: TSection; const Name, Value: string);
-begin
-  if (Section.Duplicated <> nil) then
-  begin
-    if (Section.Duplicated.ContainsKey(Name)) then raise Exception.Create('Duplicated item in section ' + Section.SectionName + ': "' + Name + '" is already defined. ' + ErrorInfo.ToString);
-    Section.Duplicated.Add(Name, true);
-  end;
-
-  if Assigned(Section.ArrayMainAction) then Section.ArrayMainAction(Name, Value, ErrorInfo);
-  if Section.FlowArrayActions <> nil then
-  begin
-    Section.GetFlowArray(Value, Section.FlowArrayActions, nil, TSectionValueTypes.NoValues, ErrorInfo);
-  end;
 
 end;
 
@@ -238,10 +219,13 @@ end;
 
 function TBBYamlSectionProcessor.SectionIsContainer(const Section: TSection; const childValue: string): boolean;
 begin
-  if (Section.Actions = nil) and (not Assigned(Section.ArrayMainAction)) then exit(true);
-  if not childValue.EndsWith(':') then exit (false);
+  if ((Section.ChildSections = nil) or (Section.ChildSections.Count = 0)) and (Section.ChildSectionAction = nil) then exit(false);
 
-  if (Section.Actions <> nil) and (Section.Actions.ContainsKey(childValue.Substring(0, childValue.Length - 1))) then exit(false);
+  if (Section.Actions = nil) then exit(true);
+  var Idx := FindColon(childValue);
+  if Idx <= 0 then exit (false);
+
+  if (Section.Actions <> nil) and (Section.Actions.ContainsKey(childValue.Substring(0, Idx))) then exit(false);
   if Section.ChildSections = nil then raise Exception.Create('The section "' + Section.SectionName + '" doesn''t contain arrays or ChildSections');
 
   Result := Section.ChildSections.Count > 0;
@@ -284,9 +268,17 @@ begin
 
   Levels.Push(Level);
 
-  ParseColon(Line, Name, Value, false, false, false);
+  ParseColon(Line, Name, Value, false);
+  var IsFlowArray := Value.StartsWith('[');
+  if (Value <> '') and not IsFlowArray then raise Exception.Create('Invalid value: "' + Value + '" for tag "' + Name + '". It must be empty. ' + ErrorInfo.ToString);
   if Result.ContainsArrays then Name := RemoveArray(Name, Result.ArraysCanBeKeys);
-  exit(Result.GotoChild(Name, ErrorInfo));
+
+  Result := Result.GotoChild(Name, ErrorInfo);
+  if IsFlowArray then
+  begin
+    TBBFlowParser.GetFlowArray(Value, Result, ErrorInfo);
+  end;
+
 end;
 
 function TBBYamlSectionProcessor.GetKeyString(const s: string): string;
@@ -329,7 +321,7 @@ begin
   Result := RemoveComments(Line.Substring(Index + 1));
 end;
 
-procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const MustHaveValue: boolean; const CanBeEmpty, CanBeNameOnly: boolean);
+procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const CanBeNameOnly: boolean);
 var
   idx: integer;
 begin
@@ -337,17 +329,13 @@ begin
   if CanBeNameOnly and (idx < 0) then
   begin
     Name := GetKeyString(TSection.RemoveDoubleSpaces(RemoveComments(Line))).Trim(TrimWhitespace);
-    Value := '';
+    Value := ' ';
     exit;
   end;
 
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
   Name := GetKeyString(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)));
   Value := GetValuePart(Line, idx);
-  if CanBeEmpty then exit;
-
-  if MustHaveValue and (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
-  if not MustHaveValue and (Value <> '') then raise Exception.Create('Invalid value: "' + Value + '" for tag "' + Name + '". It must be empty. ' + ErrorInfo.ToString);
 end;
 
 

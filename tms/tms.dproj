@@ -450,6 +450,7 @@
         <DCCReference Include="..\common\src\BBYaml\BBError.pas"/>
         <DCCReference Include="src\Testing\Testing.InternalTests.pas"/>
         <DCCReference Include="src\Commands\Commands.InternalTesting.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBFlow.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

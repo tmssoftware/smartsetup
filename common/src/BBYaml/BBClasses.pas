@@ -30,7 +30,24 @@ TAction = reference to procedure(Value: string; ErrorInfo: TErrorInfo);
 TActionNameValue = reference to procedure(Name, Value: string; ErrorInfo: TErrorInfo);
 TChildSectionAction = reference to function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection;
 
-TListOfActions = TDictionary<string, TAction>;
+TListOfActions = class
+private
+  Actions: TDictionary<string, TActionNameValue>;
+  GenericAction: TActionNameValue;
+  AllowDuplicates: boolean;
+public
+  constructor Create; overload;
+  constructor Create(aGenericAction: TActionNameValue; const aAllowDuplicates: boolean); overload;
+  destructor Destroy; override;
+
+  function Keys: TEnumerable<string>;
+  function TryGetValue(const Key: string; var Value: TActionNameValue): Boolean;
+  function ContainsKey(const Key: string): Boolean;
+
+  procedure Add(const Name: string; const Action: TAction); overload;
+  procedure Add(const Name: string; const Action: TActionNameValue); overload;
+
+end;
 
 TSectionValueTypes = (Values, NoValues, Both);
 
@@ -38,22 +55,10 @@ TSection = class
 private
   FParent: TSection;
   FCreatedBy: string;
-  FChildSections: TSectionDictionary;
 
   function ListSectionsAndActions: string;
-  class function GetActions(const Act: TListOfActions): string;
-    class procedure GetFlowArrayItem(const s: string; const IsFirst: boolean; var Index: integer;
-      const OnItem: TActionNameValue;
-      const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo); static;
-    class function GetFlowItemString(const s: string; var Index: integer;
-      const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo): string; static;
-    class function GetFlowItemQuotedString(const s: string; var Index: integer;
-      const SectionValueTypes: TSectionValueTypes;
-      const ErrorInfo: TErrorInfo): string; static;
 
 public
-  ChildSectionAction: TChildSectionAction; //if defined, ChildSections is not used.
-
   function FullPath: string;
   function GotoChild(const Line: string; const ErrorInfo: TErrorInfo; const KeepValues: boolean = false): TSection;
   function GotoParent: TSection;
@@ -67,27 +72,29 @@ public
 
 public
   SectionValueTypes: TSectionValueTypes; //Only needed to set in data sections.
+
+  // Go to a child section
+  ChildSections: TSectionDictionary;
+  ChildSectionAction: TChildSectionAction; //if defined, ChildSections is not used.
+
+  // Name/value properties to set in the section.
   Actions: TListOfActions;
-  ArrayMainAction: TActionNameValue;
-  ContainsArrays: Boolean; //Only needs to be set it if not setting ArrayMainAction.
+
+  ContainsArrays: Boolean;
   ArraysCanBeKeys: boolean; //For backwards compat. A key can't be repeated in yaml, but we allowed it sometimes. When set to true, we will allow both "- value:" and "value:" values. This property is *only* for wrong existing data. Don't use it for new data.
 
   ClearArrayValues: TProc;  //allows to clear an array before adding new values.
 
-  Duplicated: TDictionary<string, boolean>; // keep it nil to allow duplicated values.
-  FlowArrayActions: TListOfActions;
-
   procedure ThrowInvalidTag(const Name: string; const ErrorInfo: TErrorInfo);
-  class procedure GetFlowArray(const s: string; const ArrActions: TListOfActions; const CallAction: TActionNameValue;
-    const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
 
   function ExtraInfo: string; virtual;
 
   procedure LoadedState(const State: TArrayOverrideBehavior); virtual;
 
   property Parent: TSection read FParent;
-  property ChildSections: TSectionDictionary read FChildSections;
   function Root: TSection;
+
+  class function GetActions(const Act: TListOfActions): string;
 
 public
   constructor Create(const aParent: TSection);
@@ -97,10 +104,6 @@ public
   function SectionName: string; virtual;
   function FullSectionName: string;
 end;
-
-{$IFDEF DEBUG}
-procedure BBClasses_InternalTests;
-{$ENDIF}
 
 implementation
 
@@ -172,15 +175,13 @@ begin
   FParent := aParent;
   if aParent <> nil then CreatedBy := Root.FCreatedBy;
 
-  FChildSections := TSectionDictionary.Create;
+  ChildSections := TSectionDictionary.Create;
 end;
 
 destructor TSection.Destroy;
 begin
-  FChildSections.Free;
+  ChildSections.Free;
   Actions.Free;
-  FlowArrayActions.Free;
-  Duplicated.Free;
   inherited;
 end;
 
@@ -296,112 +297,6 @@ begin
   '". It must be one of [' + ListSectionsAndActions + ']. ' + ErrorInfo.ToString);
 end;
 
-function GetFlowItemStopSet(const SectionValueTypes: TSectionValueTypes): TSysCharSet;
-begin
-  case SectionValueTypes of
-    TSectionValueTypes.Values: exit([':', '=']);
-    TSectionValueTypes.NoValues: exit([',', ']']);
-    TSectionValueTypes.Both: exit([',', ']', ':', '=']);
-  end;
-
-  raise Exception.Create('Internal error.');
-end;
-
-class function TSection.GetFlowItemQuotedString(const s: string; var Index: integer;
-  const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo): string;
-begin
-  var Start := Index;
-  var StopSet := GetFlowItemStopSet(SectionValueTypes);
-  Result := BBYamlUnescapeStringToEnd(s, Index, ErrorInfo);
-  while (Index < s.Length) and (s.Chars[Index].IsWhiteSpace) do Inc(Index);
-  if (Index >= s.Length) then raise Exception.Create('"' + s + '" is not a valid array. It must end with a bracket, like [value1, value2]. ' + ErrorInfo.ToString);
-  if not CharInSet(s.Chars[Index], StopSet) then raise Exception.Create('Unterminated item in array: "' + s.Substring(Start) + '". ' + ErrorInfo.ToString);
-  Inc(Index);
-end;
-
-class function TSection.GetFlowItemString(const s: string; var Index: integer;
-  const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo): string;
-begin
-  var StopSet := GetFlowItemStopSet(SectionValueTypes);
-
-  var Start := Index;
-  while true do
-  begin
-    Inc(Index);
-    if Index - 1 >= s.Length then raise Exception.Create('Unterminated item in array: "' + s.Substring(Start) + '". ' + ErrorInfo.ToString);
-
-    var c := s.Chars[Index - 1];
-    if CharInSet(c, StopSet) then
-    begin
-      exit(s.Substring(Start, Index - 1 - Start).Trim);
-    end;
-
-  end;
-end;
-
-class procedure TSection.GetFlowArrayItem(const s: string; const IsFirst: boolean; var Index: integer; const OnItem: TActionNameValue;
-  const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
-begin
-  while (Index < s.Length) and (s.Chars[Index].IsWhiteSpace) do Inc(Index);
-  if (Index >= s.Length) then raise Exception.Create('"' + s + '" is not a valid array. It must end with a bracket, like [value1, value2]. ' + ErrorInfo.ToString);
-  var Start := Index;
-
-  var Name := '';
-  var c := s.Chars[Index];
-
-  //sections with values (even if optional as in TSectionValueTypes.Both) can't have an array in the name.
-  if (c = '''') or (c = '"') then Name := GetFlowItemQuotedString(s, Index, SectionValueTypes, ErrorInfo)
-//  else if (c = '[') and (SectionValueTypes = TSectionValueTypes.NoValues)  then ProcessNestedArray(s, Index, OnItem, ErrorInfo)
-  else Name := GetFlowItemString(s, Index, SectionValueTypes, ErrorInfo);
-
-  if CharInSet(s.Chars[Index - 1], [',', ']']) then
-  begin
-    //Empty [] must have 0 values, not 1. But [''] should be 1.
-    if (not IsFirst) or (Name <> '') or (Index - 1 > Start) or (s.Chars[Index - 1] <> ']') then
-    begin
-      OnItem(Name, '', ErrorInfo);
-    end;
-    exit;
-  end;
-
-  if Index >= s.Length then raise Exception.Create('Unterminated item in array: "' + s.Substring(Start) + '". ' + ErrorInfo.ToString);
-
-  var Value := '';
-
-  c := s.Chars[Index];
-  if (c = '''') or (c = '"') then Value := GetFlowItemQuotedString(s, Index, TSectionValueTypes.NoValues, ErrorInfo)
-//  else if (c = '[') then ProcessNestedArray(s, Index, OnItem, ErrorInfo)
-  else Value := GetFlowItemString(s, Index, TSectionValueTypes.NoValues, ErrorInfo);
-
-  OnItem(Name, Value, ErrorInfo);
-end;
-
-class procedure TSection.GetFlowArray(const s: string; const ArrActions: TListOfActions; const CallAction: TActionNameValue;
-     const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
-begin
-  if not s.StartsWith('[') or not s.EndsWith(']') then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
-
-  var Index := 1;
-  var IsFirst := true;
-
-  while(Index < s.Length) do
-  begin
-    GetFlowArrayItem(s, IsFirst, Index,
-      procedure(Name, Value: string; ErrorInfo: TErrorInfo)
-      begin
-        if ArrActions <> nil then
-        begin
-          var Act: TAction;
-          if not ArrActions.TryGetValue(Name, Act) then raise Exception.Create('The name "' + Name +'" in the array ' + s + ' is not a valid value. It must be one of [' + GetActions(ArrActions) + ']. ' + ErrorInfo.ToString );
-          Act(Value, ErrorInfo);
-      end else CallAction(Name, Value, ErrorInfo);
-
-      end,
-      SectionValueTypes, ErrorInfo);
-      IsFirst := false;
-  end;
-end;
-
 function TSection.GetBool(const s: string;
   const ErrorInfo: TErrorInfo): boolean;
 begin
@@ -470,48 +365,70 @@ begin
   raise Exception.Create('Invalid value for TArrayOverrideBehavior.');
 end;
 
+{ TListOfActions }
 
-{$IFDEF DEBUG}
-procedure BBClasses_InternalTests;
-procedure TestFlowArray(const s: string; const ExpectedNames, ExpectedValues: TArray<string>; const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
+procedure TListOfActions.Add(const Name: string; const Action: TAction);
 begin
-    var Names: TArray<string> := nil;
-    var Values: TArray<string> := nil;
-    TSection.GetFlowArray(s, nil,
-    procedure (Name, Value: string; ErrorInfo: TErrorInfo)
+  Add(Name,
+    procedure(Name, Value: string; ErrorInfo: TErrorInfo)
     begin
-      Names := Names + [Name];
-      Values := Values + [Value];
-
-    end,
-    SectionValueTypes, ErrorInfo);
-
-    Assert(Length(ExpectedNames) = Length(Names), 'Array count was different');
-    for var i := 0 to High(ExpectedNames) do
-    begin
-      Assert(ExpectedNames[i] = Names[i], 'Names don''t match. Expected "' + ExpectedNames[i] + '" and got "' + Names[i] +'"');
-      if ExpectedValues = nil
-        then Assert('' = Values[i], 'Values don''t match. Expected "' + '" and got "' + Values[i] +'"')
-        else Assert(ExpectedValues[i] = Values[i], 'Values don''t match. Expected "' + ExpectedValues[i] + '" and got "' + Values[i] +'"')
-    end;
-
+      Action(Value, ErrorInfo);
+    end);
 end;
 
+procedure TListOfActions.Add(const Name: string; const Action: TActionNameValue);
 begin
-  var ErrorInfo := TErrorInfo.Create(false);
-  try
-    TestFlowArray('[runtime, rtl, legacy]', ['runtime', 'rtl', 'legacy'], nil, TSectionValueTypes.NoValues, ErrorInfo);
-    TestFlowArray('["a\"", ,c,]', ['a"', '', 'c',''], nil, TSectionValueTypes.NoValues, ErrorInfo);
-    TestFlowArray('["a, =b,"=''3,4''''='']', ['a, =b,'], ['3,4''='], TSectionValueTypes.Values, ErrorInfo);
-    TestFlowArray('[a, d=b,   c  :  cop,"o,="="4,"  ]', ['a', 'd', 'c', 'o,='], ['', 'b', 'cop','4,'], TSectionValueTypes.Both, ErrorInfo);
-    TestFlowArray('[]', [], nil, TSectionValueTypes.Both, ErrorInfo);
-    TestFlowArray('[      ]', [], nil, TSectionValueTypes.Both, ErrorInfo);
-    TestFlowArray('[,]', ['',''], nil, TSectionValueTypes.Both, ErrorInfo);
-    TestFlowArray('[""]', [''], nil, TSectionValueTypes.Both, ErrorInfo);
-    TestFlowArray('["   "]', ['   '], nil, TSectionValueTypes.Both, ErrorInfo);
-  finally
-    ErrorInfo.Free;
+  Actions.Add(Name, Action);
+end;
+
+function TListOfActions.ContainsKey(const Key: string): Boolean;
+begin
+  if Assigned(GenericAction) then exit(true);
+  Result := Actions.ContainsKey(Key);
+end;
+
+constructor TListOfActions.Create;
+begin
+  Actions := TDictionary<string, TActionNameValue>.Create;
+end;
+
+constructor TListOfActions.Create(aGenericAction: TActionNameValue; const aAllowDuplicates: boolean);
+begin
+  Create;
+  GenericAction := aGenericAction;
+  AllowDuplicates := aAllowDuplicates;
+end;
+
+destructor TListOfActions.Destroy;
+begin
+  Actions.Free;
+  inherited;
+end;
+
+function TListOfActions.Keys: TEnumerable<string>;
+begin
+  Result := Actions.Keys;
+end;
+
+function TListOfActions.TryGetValue(const Key: string; var Value: TActionNameValue): Boolean;
+begin
+var i:=0;
+i := 1;
+{
+  if (not AllowDuplicates and Actions.ContainsKey(Name)) then
+  begin
+    raise Exception.Create('Duplicated item in section ' + SectionName + ': "' + Name + '" is already defined. ' + ErrorInfo.ToString);
+  end;
+
+}
+
+  Result := Actions.TryGetValue(Key, Value);
+  if not Result and (Assigned(GenericAction)) then
+  begin
+    Actions.Add(Key, GenericAction);
+    Value := GenericAction;
+    exit(true);
   end;
 end;
-{$ENDIF}
+
 end.

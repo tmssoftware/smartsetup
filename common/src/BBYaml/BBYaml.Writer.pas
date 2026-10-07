@@ -134,7 +134,7 @@ type
     procedure Save(const aWriter: TTextWriter; const Schema: TJSONObject; const SchemaURL, HeaderComment: string);
   end;
 implementation
-uses BBClasses, System.JSON.Types, System.JSON.Utils;
+uses BBClasses, BBCmd, System.JSON.Types, System.JSON.Utils;
 
 { TBBYamlWriter }
 
@@ -215,6 +215,8 @@ end;
 
 function TBBYamlWriter.Quote(const s: string): string;
 begin
+  if CmdSyntax then exit(TBBCmdReader.EscapeForCmd(s));
+
   if not ToJSON then exit(s);
   var WriteBuffer: TCharArray := nil;
   SetLength(WriteBuffer, 5);
@@ -275,7 +277,9 @@ end;
 
 procedure TBBYamlWriter.OpenObject(const CollectionType: TYamlCollectionType; const i: integer);
 begin
-  if ToJSON and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Stack.GetIndent(i - 1) + '{');
+  if (ToJSON or (CmdSyntax)) and (CollectionType = TYamlCollectionType.Object) then
+
+     WriteLineRaw(Stack.GetIndent(i - 1) + '{');
   if CollectionType = TYamlCollectionType.FlowArray then
   begin
     Stack.IncInsideFlowArray;
@@ -289,7 +293,7 @@ procedure TBBYamlWriter.CloseObject(const CollectionType: TYamlCollectionType);
 begin
   var Indent := Stack.PreviousIndent;
   PendingComma := false;
-  if ToJSON and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Indent + '}');
+  if (ToJSON or (CmdSyntax and Stack.InsideFlowArray)) and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Indent + '}');
   if CollectionType = TYamlCollectionType.FlowArray then
   begin
     var CloseCmd := '';
@@ -313,7 +317,11 @@ begin
   IsValidValue := true;
   case jValue.ValueType of
     TYamlValueType.Boolean: if jValue.AsBoolean then exit(Prefix + 'true') else exit(Prefix + 'false');
-    TYamlValueType.String: exit(Prefix + BBYamlEscapeString(jValue.AsString, ToJSON));
+    TYamlValueType.String:
+    begin
+      Result := Prefix + BBYamlEscapeString(jValue.AsString, ToJSON);
+      exit;
+    end;
     TYamlValueType.Integer: exit(Prefix + IntToStr(jValue.AsInteger));
     TYamlValueType.Float: exit(Prefix + FloatToStr(jValue.AsFloat, TFormatSettings.Invariant));
     TYamlValueType.Empty:
@@ -739,7 +747,7 @@ begin
     if (FList[i].NameWritten) then continue;
     FList[i].NameWritten := true;
     if not InsideFilter(FullName) then continue;
-    if CmdSyntax and (FList[i].CollectionType <> TYamlCollectionType.FlowArray) then continue;
+    if CmdSyntax and (FList[i].CollectionType <> TYamlCollectionType.FlowArray) and not InsideFlowArray then continue;
 
     if InsideFilter(OldFullName) then NameWrite(GetIndent(i - 1) + ArrIndent(i - 1), FList[i].DisplayName, FullName, FList[i].Comment);
 

@@ -133,3 +133,35 @@ defines:
   available defines:
     - RTTI
     - USE_UNICODE
+
+# Add entries to HKCU. For the values, you can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%.%alternate-registry-key% is what the "alternate registry key" used by delphi, as specified in tms.config.yaml.value type can be String or DWORD. If omitted it is String.For the Keys, you can use the variable %bds% to access the registry path for the BDS install.
+registry keys:
+  - Software\tmssoftware\TMS WEB Core:
+      - value:
+          name: InstallDir
+          data: '%install-path%'
+      - value:
+          name: 'No'
+          type: dword
+          data: '2'
+  - Software\tmssoftware\TMS WEB Core\Components:
+      - value:
+          name: ' on'
+          data: 'off '
+
+# Register your help in Rad Studio.
+help:
+  file: ' Documentation/Example.chm'
+
+# Create entries in the start menu.
+links:
+  - link:
+      type: file
+      name: MyTool
+      target: Tools\MyTool.exe
+      description: A tool to do stuff.
+  - link:
+      type: file
+      name: MyOtherTool
+      target: Tools\MyOtherTool.exe
+      description: Another tool. The same as MyTool but cooler.

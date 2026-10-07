@@ -2,7 +2,7 @@ unit UProjectLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBClasses, BBError, UProjectDefinition, SysUtils, Generics.Collections, UCoreTypes, Deget.CoreTypes;
+uses BBClasses, BBError, BBFlow, UProjectDefinition, SysUtils, Generics.Collections, UCoreTypes, Deget.CoreTypes;
 type
   TSectionDef = class(TSection)
   protected
@@ -61,8 +61,17 @@ type
   TPackagesSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
-    function Capture(const fr: TFramework): TAction;
 
+    class function SectionNameStatic: string; override;
+  end;
+
+  TPackageFlowArraySectionDef = class(TSectionDef)
+  private
+    function Capture(const fr: TFramework): TAction;
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+
+    function SectionName: string; override;
     class function SectionNameStatic: string; override;
   end;
 
@@ -311,11 +320,14 @@ type
   end;
 
   TFileLinkSectionDef = class(TSectionDef)
-  private
-    OsFlowArrayActions: TListOfActions;
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
-    destructor Destroy; override;
+    class function SectionNameStatic: string; override;
+  end;
+
+  TFileLinkOsSectionDef = class(TSectionDef)
+  public
+    constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
     class function SectionNameStatic: string; override;
   end;
 
@@ -506,42 +518,77 @@ end;
 
 { TPackagesSectionDef }
 
-function TPackagesSectionDef.Capture(const fr: TFramework): TAction;
-begin
-  Result := procedure(value: string; ErrorInfo: TErrorInfo)
-    begin
-      Project.Packages.Last.Frameworks := Project.Packages.Last.Frameworks + [fr];
-    end;
-end;
-
 constructor TPackagesSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
+  //Duplicated := TDictionary<string, boolean>.Create;
+  var i := 9;
+  i := 4;
   ClearArrayValues := procedure begin Project.Packages.Clear;end;
+  ContainsArrays := true;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
-    begin
-      Project.Packages.Add(TPackage.Create(name));
-      for var fr := Low(TFramework) to High(TFramework) do
-      begin
-        var FrameworkName := Project.GetFrameworkName(fr);
-        if FrameworkName = '' then continue;
-        FlowArrayActions.AddOrSetValue(FrameworkName, Capture(fr));
-      end;
-
-    end;
-  FlowArrayActions := TListOfActions.Create;
-  FlowArrayActions.Add('design', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsDesign := true; end);
-  FlowArrayActions.Add('runtime', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsRuntime := true; end);
-  FlowArrayActions.Add('exe', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.PackageType := TPackageType.Exe; end);
+  ChildSectionAction :=
+  function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+  begin
+    Project.Packages.Add(TPackage.Create(Name));
+    Result := TPackageFlowArraySectionDef.Create(Self, Project);
+    ChildSections.Add(Name, Result);
+  end
 end;
 
 
 class function TPackagesSectionDef.SectionNameStatic: string;
 begin
   Result := 'packages';
+end;
+
+{ TPackageFlowArraySectionDef }
+
+function TPackageFlowArraySectionDef.Capture(const fr: TFramework): TAction;
+begin
+  Result := procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.Frameworks := Project.Packages.Last.Frameworks + [fr]; end;
+end;
+
+
+constructor TPackageFlowArraySectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  SectionValueTypes := TSectionValueTypes.NoValues;
+  ContainsArrays := true;
+
+  ClearArrayValues :=
+    procedure
+    begin
+      Project.Packages.Last.IsDesign := false;
+      Project.Packages.Last.IsRuntime := false;
+      Project.Packages.Last.PackageType := TPackageType.Package;
+      Project.Packages.Last.Frameworks := [];
+    end;
+
+  Actions := TListOfActions.Create;
+  Actions.Add('design', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsDesign := true; end);
+  Actions.Add('runtime', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.IsRuntime := true; end);
+  Actions.Add('exe', procedure (value: string; ErrorInfo: TErrorInfo) begin Project.Packages.Last.PackageType := TPackageType.Exe; end);
+
+  for var fr := Low(TFramework) to High(TFramework) do
+  begin
+    var FrameworkName := Project.GetFrameworkName(fr);
+    if FrameworkName = '' then continue;
+    Actions.Add(FrameworkName, Capture(fr));
+  end;
+end;
+
+function TPackageFlowArraySectionDef.SectionName: string;
+begin
+  Result := Project.Packages.Last.Name;
+end;
+
+
+class function TPackageFlowArraySectionDef.SectionNameStatic: string;
+begin
+  Result := 'package flowarray reader';
 end;
 
 { TPackageOptionsSectionDef }
@@ -671,7 +718,8 @@ begin
   inherited Create(aParent, aProject);
   ClearArrayValues := procedure begin Project.Dependencies.Clear;end;
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin Project.Dependencies.Add(TDependency.Create(name, value)); end;
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo) begin Project.Dependencies.Add(TDependency.Create(name, value)); end, false);
 end;
 
 class function TDependenciesSectionDef.SectionNameStatic: string;
@@ -737,13 +785,13 @@ constructor TSupportedDefinesSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.Defines.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo) begin
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     Project.Defines.AddOrSetValue(name, true);
-  end;
+  end, false);
 end;
 
 class function TSupportedDefinesSectionDef.SectionNameStatic: string;
@@ -988,12 +1036,12 @@ begin
   inherited Create(aParent, aProject);
   Framework := aFramework;
   SectionValueTypes := TSectionValueTypes.Both;
-  ContainsArrays := true;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       AddDependency(name, value);
-    end;
+    end, false);
 
 end;
 
@@ -1053,14 +1101,14 @@ constructor TExtraDebugDCUPathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.DebugDCUPaths.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.DebugDCUPaths.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1075,14 +1123,14 @@ constructor TExtraLibraryPathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.LibraryPathsBuildAndRegister.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.LibraryPathsBuildAndRegister.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1097,14 +1145,14 @@ constructor TBuildOnlyLibraryPathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.LibraryPathsBuildOnly.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.LibraryPathsBuildOnly.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1119,14 +1167,14 @@ constructor TExtraDelphiLibraryPathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.DelphiLibraryPaths.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.DelphiLibraryPaths.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1141,14 +1189,14 @@ constructor TExtraCppLibraryPathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.CppLibraryPaths.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.CppLibraryPaths.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1163,14 +1211,14 @@ constructor TExtraCppIncludePathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.CppIncludePaths.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.CppIncludePaths.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1185,14 +1233,14 @@ constructor TExtraBrowsingPathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.BrowsingPaths.Clear;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.BrowsingPaths.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1207,15 +1255,14 @@ constructor TWebCorePathSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ExtraPaths.WebCorePaths.Clear;end;
 
-
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.WebCorePaths.Add(name);
-    end;
+    end, false);
 
 end;
 
@@ -1230,14 +1277,14 @@ constructor TSearchPathsToPreserveSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin Project.ClearSearchPathsToPreserve;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.AddSearchPathToPreserve(name);
-    end;
+    end, false);
 
 end;
 
@@ -1340,39 +1387,45 @@ constructor TFileLinkSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
+  SectionValueTypes := TSectionValueTypes.Both;
   Actions := TListOfActions.Create;
   Actions.Add('file to link', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.FileLinks.Last.FileToLink := value; end );
   Actions.Add('link to folder', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.FileLinks.Last.LinkToFolder := value; end);
-  Actions.Add('os', procedure (value: string; ErrorInfo: TErrorInfo)
-  begin
-    GetFlowArray(value, OsFlowArrayActions, nil, TSectionValueTypes.NoValues, ErrorInfo);
-  end);
 
-
-  OsFlowArrayActions := TListOfActions.Create;
-  OsFlowArrayActions.Add('windows', procedure(value: string; ErrorInfo: TErrorInfo)
-  begin
-    Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.windows];
-  end);
-  OsFlowArrayActions.Add('linux', procedure(value: string; ErrorInfo: TErrorInfo)
-  begin
-    Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.linux];
-  end);
-  OsFlowArrayActions.Add('mac', procedure(value: string; ErrorInfo: TErrorInfo)
-  begin
-    Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.mac];
-  end);
-end;
-
-destructor TFileLinkSectionDef.Destroy;
-begin
-  OsFlowArrayActions.Free;
-  inherited;
+  ChildSections.Add(TFileLinkOsSectionDef.SectionNameStatic, TFileLinkOsSectionDef.Create(Self, aProject))
 end;
 
 class function TFileLinkSectionDef.SectionNameStatic: string;
 begin
   Result := 'link';
+end;
+
+{ TFileLinkOsSectionDef }
+
+constructor TFileLinkOsSectionDef.Create(const aParent: TSection;
+  const aProject: TProjectDefinition);
+begin
+  inherited Create(aParent, aProject);
+  Actions := TListOfActions.Create;
+  ContainsArrays := true;
+  SectionValueTypes := TSectionValueTypes.NoValues;
+  Actions.Add('windows', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin
+    Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.windows];
+  end);
+  Actions.Add('linux', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin
+    Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.linux];
+  end);
+  Actions.Add('mac', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin
+    Project.FileLinks.Last.OS := Project.FileLinks.Last.OS + [TOperatingSystem.mac];
+  end);
+end;
+
+class function TFileLinkOsSectionDef.SectionNameStatic: string;
+begin
+  Result := 'os';
 end;
 
 { TResourceCopiesSectionDef }
@@ -1548,7 +1601,7 @@ constructor TStandardFilesSectionDef.Create(const aParent: TSection;
   const SetRecursive: TProc<boolean>; const ClearFolders: TProc);
 begin
   inherited Create(aParent, aProject);
-  SectionValueTypes := TSectionValueTypes.NoValues;
+  //SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
   ClearArrayValues := procedure begin ClearFolders;end;
 

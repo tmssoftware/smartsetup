@@ -545,10 +545,10 @@ begin
   if idx = PropName.Length - 1 then exit(TYamlValue.MakeObject);
   var NewPropName := PropName.Substring(idx + 1);
   var Pkg := GetPackage(PropName.Substring(0, idx));
-  if not Pkg.AutoGenerate then exit(TYamlValue.MakeNull);
+  //if not Pkg.AutoGenerate then exit(TYamlValue.MakeNull);
 
   if NewPropName = 'generate from:' then exit(Nullable(Pkg.GenerateFrom));
-  if NewPropName = 'framework type:' then exit(Pkg.DelphiFrameworkType);
+  if NewPropName = 'framework type:' then exit(Nullable(Pkg.DelphiFrameworkType));
   if NewPropName = 'description:' then exit(Nullable(Pkg.Description));
   if NewPropName = 'requires:' then exit(Nullable(GetRequires(Pkg.Requires)));
   if NewPropName = 'files:' then if Pkg.FileMasks.Empty then exit(TYamlValue.MakeNull) else exit(TYamlValue.MakeArray(GetFileMasks(Pkg.FileMasks), false));

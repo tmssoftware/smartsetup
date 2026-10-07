@@ -58,6 +58,14 @@ supported frameworks:
       - tms.product2
       - ~tms.product3
 
+# List of packages in the library. Each package must have a unique name, and must be listed only once.
+packages:
+  - Example_Core: [runtime,vcl,fmx]
+  - VCL_Example: [runtime,vcl]
+  - FMX_Example: [runtime,fmx]
+  - FMX_Example_DESIGN: [design,fmx]
+  - Example_That_Uses_Product2: [runtime,product2]
+
 # The settings in the this section are only needed if the packages don't follow smartsetup conventions.
 package options:
   package folders:
@@ -71,6 +79,28 @@ package options:
     - add: MYDEFINE
     - remove: OTHERDEFINE
     - add: ANOTHERDEFINE
+
+# Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.
+# Note: This section must come after you have specified the "packages" section above.
+package definitions:
+  Example_Core:
+    framework type: NONE
+    description: description for the package
+    requires: rtl;dbrtl;FireDAC
+    files:
+      - source:
+          folder: source\core;
+          include file mask: '*'
+          exclude file mask: '*.dcu'
+          recursive: false
+      - source:
+          folder: source\advanced;
+          include folder mask: source
+          exclude folder mask: .svn
+          include file mask: '*.pas;*.rc'
+          recursive: true
+  VCL_Example:
+    generate from: VCL_Example.dpk
 
 # Only applies to executables.
 exe options:
@@ -86,15 +116,15 @@ paths:
   extra delphi library paths:
     - path1
     - path2\a\b
-    - '@linux64,win64intel: path3'
+    - '@linux64,win64intel: p''ath3'''''
   extra cpp library paths:
-    - path1
-    - path2\a\b
-    - '@linux64,win64intel: pa''th3'''
+    - \c:\\\nmy🚀\
+    - c:\/myfolder
+    - '@linux64,win64intel: pat\\\h3\\\'
   extra cpp include paths:
     - path1
     - path2\a\b
-    - "@linux64,win64intel: pa\"th3"
+    - '@linux64,win64intel: path3'
 
 # This section allows the user to save the defines he specifies in tms.config.yaml into a file that your product can include.
 # This is not needed when compiling with smart setup, as the defines will be automatically included, but allows users to compile the packages from the IDE ad include the same defines as they used when compiling with Smart Setup.
@@ -104,10 +134,52 @@ defines:
     - RTTI
     - USE_UNICODE
 
+# Add entries to HKCU. For the values, you can use the variables %product-id%, %install-path%, %install-date%, %install-time%, %version%, %alternate-registry-key%.%alternate-registry-key% is what the "alternate registry key" used by delphi, as specified in tms.config.yaml.value type can be String or DWORD. If omitted it is String.For the Keys, you can use the variable %bds% to access the registry path for the BDS install.
+registry keys:
+  - Software\tmssoftware\TMS WEB Core:
+      - value:
+          name: InstallDir
+          data: '%install-path%'
+      - value:
+          name: 'No'
+          type: dword
+          data: '2'
+  - Software\tmssoftware\TMS WEB Core\Components:
+      - value:
+          name: ' on'
+          data: 'off '
+
 # Register your help in Rad Studio.
 help:
   file: ' Documentation/Example.chm'
 
+# Create entries in the start menu.
+links:
+  - link:
+      type: file
+      name: MyTool
+      target: Tools\MyTool.exe
+      description: A tool to do stuff.
+  - link:
+      type: file
+      name: MyOtherTool
+      target: Tools\MyOtherTool.exe
+      description: Another tool. The same as MyTool but cooler.
+
+# Link files inside your bundle.
+file links:
+  - link:
+      file to link: example.dll
+      os: [windows,linux]
+
 # For checking if older products installed with a different method exist.
 other versions:
   - reg: HKEY_CURRENT_USER\SOFTWARE\tmssoftware\Example
+
+# Write here the application ids for the *direct* dependencies.
+# if "A" depends on "B" and "B" on "C", you can just write "B" as the "A" dependency.
+# You can also write "C" and it will still work, but it is not necessary. Only direct dependencies are needed.
+# If this is an application and you want it to depend in all the installed components, you can write 'all.installed.components' here instead of listing them.
+dependencies:
+  - tms.example2: TMS Example 2
+  - tms.example3: TMS Example 3

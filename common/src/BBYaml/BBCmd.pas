@@ -16,24 +16,27 @@ unit BBCmd;
 
 
 interface
-uses Classes, SysUtils, BBError, BBClasses, Generics.Collections, BBStrings;
+uses Classes, SysUtils, BBError, BBClasses, BBFlow, Generics.Collections, BBStrings;
 
 type
 
 TBBCmdReader = class
   private
     class procedure ParseParameter(const Parameter: string; const SectionSeparator: string; const ErrorInfo: TErrorInfo; out Sections: TArray<string>; out Value: string);
-    class procedure ProcessArray(const ArrayStr: string; const ClearArray: TProc; const ArrayAction: TActionNameValue; const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
+    class procedure ProcessArray(const ArrayStr: string; const Section: TSection; const ErrorInfo: TErrorInfo);
     class procedure ProcessOneParameter(const Parameter, SectionSeparator: string; const MainSection: TSection; const OnlyValidate: boolean);
     class function IsSeparator(const Parameter: string; const Position: integer;
       const SectionSeparator: string): boolean; static;
   public
     class procedure ProcessCommandLine(const Parameters: array of string; const MainSection: TSection; const SectionSeparator: string; const OnlyValidate: boolean);
     class function AdaptForCmd(const s, SectionSeparator: string): string; static;
+    class function EscapeForCmd(const s: string): string; static;
 end;
 
 implementation
 type
+TReplacementFunction = reference to function(const s: string; var Index: integer): string;
+
 
 TCMDErrorInfo = class(TErrorInfo)
 private
@@ -54,19 +57,10 @@ begin
   end;
 end;
 
-class procedure TBBCmdReader.ProcessArray(const ArrayStr: string; const ClearArray: TProc;
-  const ArrayAction: TActionNameValue; const SectionValueTypes: TSectionValueTypes; const ErrorInfo: TErrorInfo);
+class procedure TBBCmdReader.ProcessArray(const ArrayStr: string;
+  const Section: TSection; const ErrorInfo: TErrorInfo);
 begin
-  if ArrayStr.Trim = '' then
-  begin
-    if Assigned(ClearArray) then
-    begin
-      ClearArray;
-      exit;
-    end;
-  end;
-
-  TSection.GetFlowArray(ArrayStr.Trim, nil, ArrayAction, SectionValueTypes, ErrorInfo);
+  TBBFlowParser.GetFlowArray(ArrayStr.Trim, Section, ErrorInfo);
 end;
 
 class function TBBCmdReader.IsSeparator(const Parameter: string; const Position: integer; const SectionSeparator: string): boolean;
@@ -118,9 +112,61 @@ begin
   end;
 end;
 
+
+function StringEscape(const s: string; const EscapeChars: TSysCharSet; const OnEscape: TReplacementFunction): string;
+begin
+  var Start := 0;
+  var Builder: TStringBuilder := nil;
+  try
+    var i := -1;
+    while (i < s.Length - 1) do
+    begin
+      Inc(i);
+      if (CharInSet(s.Chars[i], EscapeChars)) then
+      begin
+        if Builder = nil then
+          Builder := TStringBuilder.Create(Round(s.Length + 32));
+
+        Builder.Append(s, Start, i - Start);
+        Builder.Append(OnEscape(s, i));
+        Start := i + 1;
+      end
+    end;
+
+    if Builder = nil then
+      Exit(s);
+
+    Builder.Append(s, Start, s.Length - Start);
+    Result := Builder.ToString;
+  finally
+    Builder.Free;
+  end;
+
+end;
+
 class function TBBCmdReader.AdaptForCmd(const s, SectionSeparator: string): string;
 begin
-  Result := s.Replace('_', ' ').Replace('-', ' ').Replace('#', SectionSeparator).Trim;
+  Result := StringEscape(s, ['_','-','#'],
+    function(const data: string; var Index: integer): string
+    begin
+      if (Index + 1 < Data.Length) and (Data.Chars[Index] = Data.Chars[Index + 1]) then
+      begin
+        Inc(Index);
+        exit(Data.Chars[Index]);
+      end
+      else if Data.Chars[Index] = '#' then exit(SectionSeparator)
+      else exit(' ');
+
+    end).Trim;
+end;
+
+class function TBBCmdReader.EscapeForCmd(const s: string): string;
+begin
+  Result := StringEscape(s, ['_','-','#'],
+    function(const data: string; var Index: integer): string
+    begin
+        exit(Data.Chars[Index] + Data.Chars[Index]);
+    end);
 end;
 
 class procedure TBBCmdReader.ProcessOneParameter(const Parameter, SectionSeparator: string;
@@ -144,40 +190,23 @@ begin
     end;
 
     var ActionStr := AdaptForCmd(SectionsStr[Length(SectionsStr) - 1], SectionSeparator);
-    var Action: TAction;
+    var Action: TActionNameValue;
 
-    if ((Section.Actions <> nil) and Section.Actions
-      .TryGetValue(ActionStr, Action)) then
+    if ((Section.Actions <> nil) and Section.Actions.TryGetValue(ActionStr, Action)) then
     begin
-      if not OnlyValidate then Action(Value, ErrorInfo);
+      if not OnlyValidate then Action(ActionStr, Value, ErrorInfo);
     end
     else
     begin
       Section := Section.GotoChild(ActionStr, ErrorInfo);
-      if (Assigned(Section.ArrayMainAction)) then
+      if Section.ContainsArrays then
       begin
         if not OnlyValidate then
         begin
-          ProcessArray(Value, Section.ClearArrayValues, Section.ArrayMainAction, Section.SectionValueTypes, ErrorInfo);
+          ProcessArray(Value, Section, ErrorInfo);
         end;
       end
-      else if Section.ContainsArrays then
-      begin
-        if not OnlyValidate then ProcessArray(value, Section.ClearArrayValues,
-          procedure(N, V: string; ErrorInfo: TErrorInfo)
-          begin
-            if (Section.Actions = nil) then
-            begin
-              Section := Section.GotoChild(N, ErrorInfo);
-            end
-            else if (Section.Actions.TryGetValue(N, Action)) then
-            begin
-              Action(V, ErrorInfo);
-            end
-            else Section.ThrowInvalidTag(N, ErrorInfo);
-           end,
-           Section.SectionValueTypes, ErrorInfo);
-      end
+
       else if not OnlyValidate then raise Exception.Create('Can''t access section: ' + ActionStr + ' from the command line. ' + ErrorInfo.ToString);
     end;
 

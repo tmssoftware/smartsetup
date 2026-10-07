@@ -230,7 +230,8 @@ uses
   Downloads.FileNameManager in 'src\Downloads\Downloads.FileNameManager.pas',
   BBError in '..\common\src\BBYaml\BBError.pas',
   Testing.InternalTests in 'src\Testing\Testing.InternalTests.pas',
-  Commands.InternalTesting in 'src\Commands\Commands.InternalTesting.pas';
+  Commands.InternalTesting in 'src\Commands\Commands.InternalTesting.pas',
+  BBFlow in '..\common\src\BBYaml\BBFlow.pas';
 
 begin
   try

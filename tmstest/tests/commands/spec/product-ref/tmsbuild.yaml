@@ -116,11 +116,11 @@ paths:
   extra delphi library paths:
     - path1
     - path2\a\b
-    - '@linux64,win64intel: path3'
+    - '@linux64,win64intel: p''ath3'''''
   extra cpp library paths:
-    - path1
-    - path2\a\b
-    - '@linux64,win64intel: path3'
+    - "c:\\\nmy🚀"
+    - c:\/myfolder
+    - '@linux64,win64intel: pat\"h3\"'
   extra cpp include paths:
     - path1
     - path2\a\b

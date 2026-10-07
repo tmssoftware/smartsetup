@@ -407,8 +407,11 @@ begin
   SectionValueTypes := TSectionValueTypes.NoValues;
 
   ClearArrayValues := procedure begin aConfig.ClearExcludedComponents;end;
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
+      begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end,
+    false);
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end;
 
 end;
 
@@ -433,7 +436,10 @@ begin
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin aConfig.ClearIncludedComponents;end;
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end;
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
+      begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end,
+    false);
 end;
 
 procedure TIncludedComponentsSectionConf.LoadedState(
@@ -458,7 +464,10 @@ begin
 
   ClearArrayValues := procedure begin aConfig.ClearAdditionalProductsFolders;end;
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end;
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
+      begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end,
+    false);
 end;
 
 procedure TAdditionalProductsFoldersSectionConf.LoadedState(
@@ -704,12 +713,12 @@ constructor TDefinesSectionConf.Create(const aParent: TSection;
   const aProductConfig: TProductConfigDefinition);
 begin
   inherited Create(aParent, aConfig, aProductConfig);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.Both;
 
   ClearArrayValues := procedure begin aProductConfig.ClearDefines;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo) begin
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     if GetBoolEx(value, ErrorInfo) then
     begin
       ProductConfig.AddDefine(name, ErrorInfo.ToString);
@@ -718,7 +727,7 @@ begin
     begin
       ProductConfig.RemoveDefine(name, ErrorInfo.ToString);
     end;
-  end;
+  end, false);
 end;
 
 procedure TDefinesSectionConf.LoadedState(
@@ -934,11 +943,11 @@ begin
 
   ClearArrayValues := procedure begin aConfig.DcuMegafolders.Clear;end;
 
-
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Config.DcuMegafolders.Add(TMegafolder.Create(name, value));
-    end;
+    end, true);
 end;
 
 procedure TDcuMegafoldersSectionConf.LoadedState(
@@ -964,10 +973,11 @@ begin
 
   ClearArrayValues := procedure begin aConfig.AutoSnapshotFilenames.Clear;end;
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
   begin
     aConfig.AutoSnapshotFilenames.Add(name, ErrorInfo.ToString);
-  end;
+  end, false);
 
 end;
 
