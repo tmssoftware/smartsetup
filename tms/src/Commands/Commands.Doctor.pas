@@ -38,7 +38,7 @@ begin
   end;
 
 {$ENDIF}
-  var Doctor := TDoctor.Create(TIDEName.delphi12, Config.AlternateRegistryKey);
+  var Doctor := TDoctor.Create(Config.AlternateRegistryKey);
   try
     Doctor.RunAllChecks(FixParam, ConfirmParam);
   finally
