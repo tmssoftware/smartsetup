@@ -83,10 +83,10 @@ private
 
   function SkipArray(const Name: String; const ContainsArrays: boolean): integer;
   function GetKey(const name: string; const ContainsArrays, ArraysCanBeKeys: boolean): string;
-  procedure ParseColon(const Line: string; out Name, Value: string; const CanBeNameOnly: boolean; const Section: TSection; const RemoveCommentsInFlowArrays: boolean);
-  function RemoveComments(const s: string; const ContainsArrays, RemoveCommentsInFlowArrays: boolean): string;
+  procedure ParseColon(const Line: string; out Name, Value: string; const CanBeNameOnly: boolean; const Section: TSection; const KeepCommentsInFlowArrays, ValueCanBeFlowArray: boolean);
+  function RemoveComments(const s: string; const ContainsArrays, keepCommentsInFlowArrays: boolean): string;
     function FindColon(const Line: string; const ContainsArrays: boolean): integer;
-    function GetValuePart(const Line: string; const Index: integer): string;
+    function GetValuePart(const Line: string; const Index: integer; const ValueCanBeFlowArray: boolean): string;
 
 public
   constructor Create(const FileName: string; const aStopAt: string; const aIgnoreOtherFiles: boolean);
@@ -153,11 +153,11 @@ begin
 
   case Section.SectionValueTypes of
     TSectionValueTypes.Values:
-      ParseColon(Line, Name, Value, false, Section, true);
+      ParseColon(Line, Name, Value, false, Section, true, false);
 
     TSectionValueTypes.Both:
     begin
-      ParseColon(Line, Name, Value, true, Section, true);
+      ParseColon(Line, Name, Value, true, Section, true, false);
       //If the section doesn't have a colon Value will be ' '.
      // if (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
       Value := Value.Trim(TrimWhiteSpace);
@@ -216,7 +216,7 @@ begin
 
 end;
 
-function TBBYamlSectionProcessor.RemoveComments(const s: string; const ContainsArrays, RemoveCommentsInFlowArrays: boolean): string;
+function TBBYamlSectionProcessor.RemoveComments(const s: string; const ContainsArrays, KeepCommentsInFlowArrays: boolean): string;
 begin
   Result := s.Trim(TrimWhitespace);
 
@@ -227,7 +227,7 @@ begin
   var StartIndex := Index;
 
 
-  if RemoveCommentsInFlowArrays and ((Result.Chars[Index] = '[') or  (Result.Chars[Index] = '{'))
+  if KeepCommentsInFlowArrays and ((Result.Chars[Index] = '[') or  (Result.Chars[Index] = '{'))
     then exit(Result); //We can't remove the comment yet, it could be ['Number # 1']
 
   if (Result.Length > Index) and ((Result.Chars[Index] = '''') or (Result.Chars[Index] = '"')) then
@@ -245,8 +245,8 @@ begin
     exit(Arr + Result.Substring(StartIndex, LastNonWs - StartIndex + 1));
   end;
 
-  while Index < Result.Length - 1 do
-    begin
+  while Index < Result.Length do
+  begin
     if (Result.Chars[Index] = '#') and ((Index <= 0) or (Result.Chars[Index - 1].IsWhitespace))
       then exit(Result.SubString(0, Index - 1).Trim(TrimWhiteSpace));
     Inc(Index);
@@ -304,7 +304,7 @@ begin
 
   Levels.Push(Level);
 
-  ParseColon(Line, Name, Value, false, Result, false);
+  ParseColon(Line, Name, Value, false, Result, false, true);
   var IsFlowArray := Value.StartsWith('[');
   if (Value <> '') and not IsFlowArray then raise Exception.Create('Invalid value: "' + Value + '" for tag "' + Name + '". It must be empty. ' + ErrorInfo.ToString);
 
@@ -320,47 +320,47 @@ function TBBYamlSectionProcessor.FindColon(const Line: string; const ContainsArr
 begin
   var Index := SkipArray(Line, ContainsArrays);
   while (Index < Line.Length) and (Line.Chars[Index].IsWhiteSpace) do Inc(Index);
-  var IndexStart := Index;
-  while (Index < Line.Length - 1) do
+
+  //A quoted key can contain ":" and "#", so we skip the full string.
+  if (Index < Line.Length) and ((Line.Chars[Index] = '''') or (Line.Chars[Index] = '"')) then
   begin
-    Inc(Index);
-    if (IndexStart = Index - 1) and ((Line.Chars[Index] = '''') or (Line.Chars[Index] = '"')) then
-    begin
-      BBYamlUnescapeStringToEnd(Line, Index, ErrorInfo);
-      while (Index < Line.Length) and (Line.Chars[Index].IsWhiteSpace) do Inc(Index);
+    BBYamlUnescapeStringToEnd(Line, Index, ErrorInfo);
+    while (Index < Line.Length) and (Line.Chars[Index].IsWhiteSpace) do Inc(Index);
 
-      if (Index < Line.Length) and (Line.Chars[Index] = ':') then exit(Index);
-      exit(-1);
-    end;
+    if (Index < Line.Length) and (Line.Chars[Index] = ':') then exit(Index);
+    exit(-1);
+  end;
 
-
+  while (Index < Line.Length) do
+  begin
     if (Line.Chars[Index] = '#') and ((Index <= 0) or (Line.Chars[Index - 1].IsWhitespace))
       then exit(-1);
     if (Line.Chars[Index] = ':') then exit(Index);
+    Inc(Index);
   end;
   exit(-1);
 end;
 
-function TBBYamlSectionProcessor.GetValuePart(const Line: string; const Index: integer): string;
+function TBBYamlSectionProcessor.GetValuePart(const Line: string; const Index: integer; const ValueCanBeFlowArray: boolean): string;
 begin
-  Result := BBYamlUnescapeString(RemoveComments(Line.Substring(Index + 1), false, false), ErrorInfo);
+  Result := BBYamlUnescapeString(RemoveComments(Line.Substring(Index + 1), false, ValueCanBeFlowArray), ErrorInfo);
 end;
 
-procedure TBBYamlSectionProcessor.ParseColon(const Line: string; out Name, Value: string; const CanBeNameOnly: boolean; const Section: TSection; const RemoveCommentsInFlowArrays: boolean);
+procedure TBBYamlSectionProcessor.ParseColon(const Line: string; out Name, Value: string; const CanBeNameOnly: boolean; const Section: TSection; const KeepCommentsInFlowArrays, ValueCanBeFlowArray: boolean);
 var
   idx: integer;
 begin
   idx := FindColon(Line, Section.ContainsArrays);
   if CanBeNameOnly and (idx < 0) then
   begin
-    Name := GetKey(TSection.RemoveDoubleSpaces(RemoveComments(Line, Section.ContainsArrays, RemoveCommentsInFlowArrays)), Section.ContainsArrays, Section.ArraysCanBeKeys).Trim(TrimWhitespace);
+    Name := GetKey(TSection.RemoveDoubleSpaces(RemoveComments(Line, Section.ContainsArrays, KeepCommentsInFlowArrays)), Section.ContainsArrays, Section.ArraysCanBeKeys).Trim(TrimWhitespace);
     Value := ' ';
     exit;
   end;
 
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
   Name := GetKey(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)), Section.ContainsArrays, Section.ArraysCanBeKeys);
-  Value := GetValuePart(Line, idx);
+  Value := GetValuePart(Line, idx, ValueCanBeFlowArray);
 end;
 
 

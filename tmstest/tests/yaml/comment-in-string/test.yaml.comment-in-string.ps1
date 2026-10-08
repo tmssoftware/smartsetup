@@ -115,3 +115,37 @@ if ($result -ne '[startmenu]')
 {
     throw "error reading skip register: got '" + $result + "'"  
 }
+
+$result = Invoke-WithExitCodeIgnored {tms list -config:tms.config-3.yaml}
+
+if (-not ($result -join "^n").Contains('Invalid value: "x" for tag "a:b"') )
+{
+    throw "Invalid parse: The key should be 'a:b' and was: " + $result
+}
+
+# tmsbuild-1.yaml has:
+#  - a flow array with # and : inside quoted strings, and a comment after it.
+#  - array items ending with a lone #.
+#  - a quoted key containing a colon and a #.
+tms spec -non-interactive -template:.\tmsbuild-1.yaml -json
+$tmsbuildJson = Get-Content -Path .\tmsbuild.json -Raw | ConvertFrom-Json -AsHashtable
+
+$expectedCppIncludePaths = @('a #b', 'c:d', 'e', 'f ] #g')
+$cppIncludePaths = $tmsbuildJson['paths']['extra cpp include paths']
+if (($cppIncludePaths -join '|') -ne ($expectedCppIncludePaths -join '|')) {
+    throw "Expected extra cpp include paths to be '$($expectedCppIncludePaths -join '|')', but got '$($cppIncludePaths -join '|')'"
+}
+
+$expectedDelphiLibraryPaths = @('path1', 'path2\a\b', "@linux64,win64intel: p'ath3''")
+$delphiLibraryPaths = $tmsbuildJson['paths']['extra delphi library paths']
+if (($delphiLibraryPaths -join '|') -ne ($expectedDelphiLibraryPaths -join '|')) {
+    throw "Expected extra delphi library paths to be '$($expectedDelphiLibraryPaths -join '|')', but got '$($delphiLibraryPaths -join '|')'"
+}
+
+$dependency = $tmsbuildJson['dependencies'] | Where-Object { $_.ContainsKey('tms.example:4 #x') }
+if ($null -eq $dependency) {
+    throw "Expected a dependency named 'tms.example:4 #x', but got: $($tmsbuildJson['dependencies'] | ConvertTo-Json -Compress)"
+}
+if ($dependency['tms.example:4 #x'] -ne 'TMS # Example 4') {
+    throw "Expected dependency 'tms.example:4 #x' to be 'TMS # Example 4', but got '$($dependency['tms.example:4 #x'])'"
+}

@@ -1604,7 +1604,6 @@ constructor TStandardFilesSectionDef.Create(const aParent: TSection;
   const SetRecursive: TProc<boolean>; const ClearFolders: TProc);
 begin
   inherited Create(aParent, aProject);
-  //SectionValueTypes := TSectionValueTypes.NoValues;
   ContainsArrays := true;
   ClearArrayValues := procedure begin ClearFolders;end;
 

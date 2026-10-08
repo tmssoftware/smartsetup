@@ -29,6 +29,7 @@ type
     procedure ProcessName(const Name: string);
     procedure ProcessNameAndValue(const Name, Value: string);
     class procedure ClearSectionValues(const aSection: TSection); static;
+    function IsTrailingComma: boolean;
   public
     constructor Create(const aLine: string; const aIndex: integer; const aSection: TSection; const aErrorInfo: TErrorInfo);
     destructor Destroy; override;
@@ -175,13 +176,10 @@ begin
     try
        InnerParser.Parse(RecursionLevel + 1);
        Index := InnerParser.Index;
-       var ValueType := Section.SectionValueTypes;
-       if (IsValue) then ValueType := TSectionValueTypes.NoValues;
-       var StopSet := GetFlowItemStopSet(ValueType);
        SkipWhitespace('"' + Line.Substring(IndexStart) + '" is not a valid flow item. It must end with a "' + FlowEnd + '". ' + ErrorInfo.ToString);
-       //yaml allows to skip {} inside []. Like for example [{Example_Core: [runtime, vcl, fmx]}] is the same as [Example_Core: [runtime, vcl, fmx]]
-       //if we allow the {}, then the next test will fail.
-       //if not CharInSet(Line.Chars[Index], StopSet + [FlowEnd]) then raise Exception.Create('Unterminated item at position ' + IntToStr(Index + 1) +' of string: "' + Line.Substring(IndexStart) + '". ' + ErrorInfo.ToString);
+       //After a nested [] or {} (be it a name or a value) the only valid things are a comma or the end of this collection.
+       if not CharInSet(Line.Chars[Index], [',', FlowEnd])
+         then raise Exception.Create('Unexpected data after item at position ' + IntToStr(Index + 1) +' of string: "' + Line.Substring(IndexStart) + '". ' + ErrorInfo.ToString);
        Inc(Index);
     finally
       InnerParser.Free;
@@ -203,7 +201,7 @@ begin
       raise Exception.Create('Error parsing object "' + Line + '". It refers to an element that doesn''t exist. ' + ErrorInfo.ToString);
       exit;
     end;
-    ProcessName(Name);
+    if not IsTrailingComma then ProcessName(Name);
     exit;
   end;
 
@@ -242,8 +240,9 @@ begin
     GetFlowItem;
   end;
   SkipWhitespace('');
-  if (RecursionLevel = 0) and (Index < Line.Length) and (Line.Chars[Index] <> '#')
-    then raise Exception.Create('"' + Line + '" is not a valid object/array. It has data after the end of the array. ' + ErrorInfo.ToString);
+  if (RecursionLevel = 0) and (Index < Line.Length)
+    then if (Line.Chars[Index] <> '#') or ((Index > 0) and (not Line.Chars[Index - 1].IsWhiteSpace))
+      then raise Exception.Create('"' + Line + '" is not a valid object/array. It has data after the end of the array: "' + Line.Substring(Index) + '". ' + ErrorInfo.ToString);
 
 end;
 
@@ -320,6 +319,22 @@ begin
   Result := false; //starts with [ but ends without ]
 end;
 
+function TBBFlowParser.IsTrailingComma: boolean;
+begin
+  if Index - 1 >= Line.Length then exit(false);
+  if not (Line.Chars[Index - 1] = FlowEnd) then exit(false);
+
+  for var i := Index - 2 downto 0 do
+  begin
+    if not Line.Chars[i].IsWhiteSpace then
+    begin
+      exit(Line.Chars[i] = ',');
+    end;
+  end;
+
+  Result := false;
+end;
+
 {$IFDEF DEBUG}
 type
   TBBFlowTestNameValue = class
@@ -355,7 +370,7 @@ begin
   inherited Create(nil);
   Names := TObjectList<TBBFlowTestNameValue>.Create;
   if ExpectedValues <> nil then
-  begin
+    begin
     Actions := TListOfActions.Create;
     for var i := Low(ExpectedNames) to High(ExpectedNames) do
     begin
@@ -433,21 +448,35 @@ end;
 begin
   var ErrorInfo := TErrorInfo.Create(false);
   try
+    TestFlowArray('["a\"", ,c,]', ['a"', '', 'c'], nil, TSectionValueTypes.NoValues, ErrorInfo);
+
+
     TestFlowArray('[exe,vcl]', ['exe', 'vcl'], nil, TSectionValueTypes.NoValues, ErrorInfo);
+    TestFlowArray('[exe,vcl] #', ['exe', 'vcl'], nil, TSectionValueTypes.NoValues, ErrorInfo);
     TestFlowArray('[runtime, rtl, legacy]', ['runtime', 'rtl', 'legacy'], nil, TSectionValueTypes.NoValues, ErrorInfo);
     TestFlowArray('[ runtime   , "rtl", legacy ]   ', ['runtime', 'rtl', 'legacy'], nil, TSectionValueTypes.NoValues, ErrorInfo);
-    TestFlowArray('["a\"", ,c,]', ['a"', '', 'c',''], nil, TSectionValueTypes.NoValues, ErrorInfo);
+    TestFlowArray('["a\"", ,c,]', ['a"', '', 'c'], nil, TSectionValueTypes.NoValues, ErrorInfo);
     TestFlowArray('["a, =b,"=''3,4''''='']', ['a, =b,'], ['3,4''='], TSectionValueTypes.Values, ErrorInfo);
     TestFlowArray('[a, d=b,   c  :  cop,"o,="="4,"  ]', ['a', 'd', 'c', 'o,='], ['', 'b', 'cop','4,'], TSectionValueTypes.Both, ErrorInfo);
     TestFlowArray('[]', [], nil, TSectionValueTypes.Both, ErrorInfo);
     TestFlowArray('[      ]', [], nil, TSectionValueTypes.Both, ErrorInfo);
-    TestFlowArray('[,]', ['',''], nil, TSectionValueTypes.Both, ErrorInfo);
-    TestFlowArray('[   ,  ]  ', ['',''], nil, TSectionValueTypes.Both, ErrorInfo);
+    TestFlowArray('[,]', [''], nil, TSectionValueTypes.Both, ErrorInfo);
+    TestFlowArray('[,'''']', ['',''], nil, TSectionValueTypes.Both, ErrorInfo);
+    TestFlowArray('[   ,  ]  ', [''], nil, TSectionValueTypes.Both, ErrorInfo);
     TestFlowArray('[""]', [''], [''], TSectionValueTypes.Both, ErrorInfo);
     TestFlowArray('["   "]', ['   '], nil, TSectionValueTypes.Both, ErrorInfo);
+    TestFlowArray('[x: [a], b: c]',  ['x', 'a', 'b'], ['', '', 'c'], TSectionValueTypes.Both, ErrorInfo);
     TestFlowArrayErr('[exe, "vcl"d]', 'Unterminated item', TSectionValueTypes.NoValues, ErrorInfo);
     TestFlowArrayErr('[exe, "vcl"]]', 'It has data after the end of the array', TSectionValueTypes.NoValues, ErrorInfo);
     TestFlowArrayErr('[exe, "vcl"]  ]', 'It has data after the end of the array', TSectionValueTypes.NoValues, ErrorInfo);
+    TestFlowArrayErr('[exe, "vcl"]#', 'It has data after the end of the array', TSectionValueTypes.NoValues, ErrorInfo);
+
+    TestFlowArray('[[a], [b] ]', ['a', 'b'], nil, TSectionValueTypes.NoValues, ErrorInfo);
+    TestFlowArray('[{a: [x]}]', ['a', 'x'], nil, TSectionValueTypes.Both, ErrorInfo);
+    TestFlowArrayErr('[[a]junk, b]', 'Unexpected data after item', TSectionValueTypes.NoValues, ErrorInfo);
+    TestFlowArrayErr('[a: [x]junk, b]', 'Unexpected data after item', TSectionValueTypes.Both, ErrorInfo);
+    TestFlowArrayErr('[{a: [x]} junk]', 'Unexpected data after item', TSectionValueTypes.Both, ErrorInfo);
+
   finally
     ErrorInfo.Free;
   end;
@@ -455,4 +484,6 @@ end;
 
 {$ENDIF}
 
+initialization
+BBFlow_InternalTests
 end.
