@@ -42,7 +42,7 @@ TCMDErrorInfo = class(TErrorInfo)
 private
   Parameter: string;
 public
-  constructor Create(const aParameter: string);
+  constructor Create(const aIgnoreOtherFiles: boolean; const aParameter: string);
   function ToString: string; override;
 end;
 
@@ -175,7 +175,7 @@ begin
   var SectionsStr: TArray<string> := nil;
   var Value: string;
 
-  var ErrorInfo := TCMDErrorInfo.Create(Parameter);
+  var ErrorInfo := TCMDErrorInfo.Create(true, Parameter);
   try
     ParseParameter(Parameter, SectionSeparator, ErrorInfo, SectionsStr, Value);
     var Section := MainSection;
@@ -218,8 +218,9 @@ end;
 
 { TCMDErrorInfo }
 
-constructor TCMDErrorInfo.Create(const aParameter: string);
+constructor TCMDErrorInfo.Create(const aIgnoreOtherFiles: boolean; const aParameter: string);
 begin
+  inherited Create(aIgnoreOtherFiles);
   Parameter := aParameter;
 end;
 

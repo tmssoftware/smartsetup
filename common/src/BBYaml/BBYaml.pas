@@ -125,7 +125,15 @@ begin
   var LineWithoutComments := RemoveComments(Line);
   if (Level <= Levels.Peek) or (SectionIsContainer(Section, LineWithoutComments)) then
   begin
-    exit(ChangeSection(Section, Line, LineWithoutComments, Level));
+    Result := ChangeSection(Section, Line, LineWithoutComments, Level);
+    if Aborted then exit(nil);
+    if (StopAt <> '') and (Result <> nil) and (Result.FullSectionName = StopAt) then
+    begin
+      Aborted := true;
+      exit(nil);
+    end;
+
+    exit;
   end;
 
   ProcessValue(Section, Line, LineWithoutComments, Level);
