@@ -31,7 +31,7 @@
 -s:"package definitions:Example__Core:framework type = NONE"
 -s:"package definitions:Example__Core:description = description for the package"
 -s:"package definitions:Example__Core:requires = rtl;dbrtl;FireDAC"
--s:"package definitions:Example__Core:files = [{source ={folder = source\core;,include file mask = '*',exclude file mask = '*.dcu',recursive = false}},{source ={folder = source\advanced;,include folder mask = source,exclude folder mask = .svn,include file mask = '*.pas;*.rc',recursive = true}}]"
+-s:"package definitions:Example__Core:files = [{source ={folder = source\core;,include file mask = '*',exclude file mask = '*.dcu'}},{source ={folder = source\advanced;,include folder mask = source,exclude folder mask = .svn,include file mask = '*.pas;*.rc',recursive = true}}]"
 -s:"package definitions:VCL__Example:generate from = VCL_Example.dpk"
 -s:"exe options:compile with = latest"
 -s:"paths:extra library paths = [path1,path2\a\b,'@linux64,win64intel: path3']"

@@ -528,7 +528,7 @@ begin
   //Duplicated := TDictionary<string, boolean>.Create;
   var i := 9;
   i := 4;
-  ClearArrayValues := procedure begin Project.Packages.Clear;end;
+  ClearArrayValues := procedure begin Project.Packages.Clear; ChildSections.Clear; end;
   ContainsArrays := true;
 
   ChildSectionAction :=
@@ -825,7 +825,7 @@ constructor TRegistryKeysSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ContainsArrays := true;
-  ClearArrayValues := procedure begin Project.RegistryEntries.Clear;end;
+  ClearArrayValues := procedure begin Project.RegistryEntries.Clear; ChildSections.Clear; end;
 
   ChildSectionAction :=
     function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection

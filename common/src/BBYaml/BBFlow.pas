@@ -200,7 +200,7 @@ begin
 
     if Section.SectionValueTypes = TSectionValueTypes.Values then
     begin
-      raise Exception.Create('Error parsing object "' + Line + '. It refers to an element that doesn''t exist' + ErrorInfo.ToString);
+      raise Exception.Create('Error parsing object "' + Line + '". It refers to an element that doesn''t exist. ' + ErrorInfo.ToString);
       exit;
     end;
     ProcessName(Name);
@@ -242,25 +242,26 @@ begin
     GetFlowItem;
   end;
   SkipWhitespace('');
-  if (RecursionLevel = 0) and (Index < Line.Length)
+  if (RecursionLevel = 0) and (Index < Line.Length) and (Line.Chars[Index] <> '#')
     then raise Exception.Create('"' + Line + '" is not a valid object/array. It has data after the end of the array. ' + ErrorInfo.ToString);
 
 end;
 
 class procedure TBBFlowParser.ClearSectionValues(const aSection: TSection);
 begin
+  if Assigned(aSection.ClearArrayValues) then
   begin
-    if Assigned(aSection.ClearArrayValues) then
-    begin
-      aSection.ClearArrayValues();
-      exit;
-    end;
+    aSection.ClearArrayValues();
   end;
 end;
 
 class procedure TBBFlowParser.GetFlowArray(const s: string; const aSection: TSection; const ErrorInfo: TErrorInfo);
 begin
-  if s.Trim = '' then ClearSectionValues(aSection);
+  if s.Trim = '' then
+  begin
+    ClearSectionValues(aSection);
+    exit;
+  end;
 
   if not s.StartsWith('[') then
   begin

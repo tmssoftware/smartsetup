@@ -37,7 +37,7 @@ function Check-Write-Array-Error {
 }
 
 Check-Write-Array-Error 'packages = [JOSE = [runtime],JOSE_TaurusTLSProvider = [runtime,exe],JOSE_CryptoLib4PascalProvider = [runtime]' `
-'Error: Unterminated item: "[JOSE = [runtime],JOSE_TaurusTLSProvider = [runtime,exe],JOSE_CryptoLib4PascalProvider = [runtime]"'
+'Error: "[JOSE = [runtime],JOSE_TaurusTLSProvider = [runtime,exe],JOSE_CryptoLib4PascalProvider = [runtime]" is not a valid flow item. It must end with a "]"'
 
 Check-Write-Array "[TMS WEB Core = [value ={name = InstallDir,data = '%install- #path%'}, value={name = 'No',type = dword,data = '2'}],Components = [value={name = ' on',data = 'off '}]]" `
 @(

@@ -81,11 +81,11 @@ private
 
   procedure ProcessValue(const Section: TSection; const Line, LineWithoutComments: string; const Level: integer);
 
-  function RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
-  procedure ParseColon(const Line: string; var Name, Value: string; const CanBeNameOnly: boolean);
-  function GetKeyString(const s: string): string;
-  function RemoveComments(const s: string): string;
-    function FindColon(const Line: string): integer;
+  function SkipArray(const Name: String; const ContainsArrays: boolean): integer;
+  function GetKey(const name: string; const ContainsArrays, ArraysCanBeKeys: boolean): string;
+  procedure ParseColon(const Line: string; out Name, Value: string; const CanBeNameOnly: boolean; const Section: TSection; const RemoveCommentsInFlowArrays: boolean);
+  function RemoveComments(const s: string; const ContainsArrays, RemoveCommentsInFlowArrays: boolean): string;
+    function FindColon(const Line: string; const ContainsArrays: boolean): integer;
     function GetValuePart(const Line: string; const Index: integer): string;
 
 public
@@ -122,7 +122,7 @@ end;
 function TBBYamlSectionProcessor.Process(const Section: TSection;
          const Line: string; const Level: integer): TSection;
 begin
-  var LineWithoutComments := RemoveComments(Line);
+  var LineWithoutComments := RemoveComments(Line, Section.ContainsArrays, false);
   if (Level <= Levels.Peek) or (SectionIsContainer(Section, LineWithoutComments)) then
   begin
     Result := ChangeSection(Section, Line, LineWithoutComments, Level);
@@ -151,24 +151,25 @@ var
 begin
   if Aborted then exit;
 
-  Name := LineWithoutComments;
-  Value := '';
-
   case Section.SectionValueTypes of
     TSectionValueTypes.Values:
-      ParseColon(Line, Name, Value, false);
+      ParseColon(Line, Name, Value, false, Section, true);
 
     TSectionValueTypes.Both:
     begin
-      ParseColon(Line, Name, Value, true);
+      ParseColon(Line, Name, Value, true, Section, true);
       //If the section doesn't have a colon Value will be ' '.
      // if (Value = '') then raise Exception.Create('Empty value for tag "' + Name + '". It must be have a value. ' + ErrorInfo.ToString);
       Value := Value.Trim(TrimWhiteSpace);
     end;
 
-  end;
+    else
+    begin
+      Name := GetKey(LineWithoutComments, Section.ContainsArrays, Section.ArraysCanBeKeys);
+      Value := '';
+    end;
 
-  if Section.ContainsArrays then Name := RemoveArray(Name, Section.ArraysCanBeKeys);
+  end;
 
   if ((Section.Actions <> nil) and Section.Actions.TryGetValue(Name, Action)) then
   begin
@@ -180,30 +181,58 @@ begin
 
 end;
 
-function TBBYamlSectionProcessor.RemoveArray(const name: string; const ArraysCanBeKeys: boolean): string;
+function TBBYamlSectionProcessor.SkipArray(const Name: string; const ContainsArrays: boolean): integer;
+begin
+  Result := 0;
+  if Name.StartsWith('-') then
+  begin
+    if ContainsArrays then
+    begin
+      Result := 1;
+      while (Result < Name.Length) and (Name.Chars[Result].IsWhiteSpace)
+        do Inc(Result);
+      
+    end;
+  end;
+end;
+
+function TBBYamlSectionProcessor.GetKey(const name: string; const ContainsArrays, ArraysCanBeKeys: boolean): string;
 begin
   Result := name;
-  if not name.StartsWith('-') then
+  if ContainsArrays then
   begin
-    if not ArraysCanBeKeys then raise Exception.Create('The name "' + name + '" is part of an array and must start with "-". ' + ErrorInfo.ToString);
-  end else
-  begin
-    Result := name.Substring(1);
+    if not name.StartsWith('-') then
+    begin
+      if not ArraysCanBeKeys then raise Exception.Create('The name "' + name + '" is part of an array and must start with "-". ' + ErrorInfo.ToString);
+    end else
+    begin
+      Result := name.Substring(1);
+    end;
   end;
 
   Result := Result.Trim(TrimWhitespace);
-  if (Result = '') then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
+  if (Result = '') and ContainsArrays then raise Exception.Create('The name "' + name + '" is empty. It must be in the form "- value". ' + ErrorInfo.ToString);
   Result := BBYamlUnescapeString(Result, ErrorInfo);
 
 end;
 
-function TBBYamlSectionProcessor.RemoveComments(const s: string): string;
+function TBBYamlSectionProcessor.RemoveComments(const s: string; const ContainsArrays, RemoveCommentsInFlowArrays: boolean): string;
 begin
   Result := s.Trim(TrimWhitespace);
-  if (Result.Length > 0) and ((Result.Chars[0] = '''') or (Result.Chars[0] = '"')) then
+
+  var Index := SkipArray(Result, ContainsArrays);
+  if Index >= Result.Length then exit;
+  var Arr := '';
+  if (Index > 0) then Arr := '- ';
+  var StartIndex := Index;
+
+
+  if RemoveCommentsInFlowArrays and ((Result.Chars[Index] = '[') or  (Result.Chars[Index] = '{'))
+    then exit(Result); //We can't remove the comment yet, it could be ['Number # 1']
+
+  if (Result.Length > Index) and ((Result.Chars[Index] = '''') or (Result.Chars[Index] = '"')) then
   begin
-    var Index := 0;
-    var Str := BBYamlUnescapeStringToEnd(Result, Index, ErrorInfo);
+    BBYamlUnescapeStringToEnd(Result, Index, ErrorInfo);
     var IndexWs := Index;
     var LastNonWs := Index - 1;
     while IndexWs < Result.Length do
@@ -213,15 +242,14 @@ begin
       inc(IndexWs);
     end;
 
-    exit(Str + Result.Substring(Index, LastNonWs - Index + 1));
+    exit(Arr + Result.Substring(StartIndex, LastNonWs - StartIndex + 1));
   end;
 
-  var index := -1;
-  while index < Result.Length - 1 do
-  begin
-    inc(index);
-    if (Result.Chars[index] = '#') and ((index <= 0) or (Result.Chars[index - 1].IsWhitespace))
-      then exit(Result.SubString(0, index - 1).Trim(TrimWhiteSpace));
+  while Index < Result.Length - 1 do
+    begin
+    if (Result.Chars[Index] = '#') and ((Index <= 0) or (Result.Chars[Index - 1].IsWhitespace))
+      then exit(Result.SubString(0, Index - 1).Trim(TrimWhiteSpace));
+    Inc(Index);
   end;
 end;
 
@@ -230,10 +258,10 @@ begin
   if ((Section.ChildSections = nil) or (Section.ChildSections.Count = 0)) and (Section.ChildSectionAction = nil) then exit(false);
 
   if (Section.Actions = nil) then exit(true);
-  var Idx := FindColon(childValue);
+  var Idx := FindColon(childValue, Section.ContainsArrays);
   if Idx <= 0 then exit (false);
 
-  if (Section.Actions <> nil) and (Section.Actions.ContainsKey(childValue.Substring(0, Idx))) then exit(false);
+  if (Section.Actions <> nil) and (Section.Actions.ContainsKey(BBYamlUnescapeString(childValue.Substring(0, Idx).Trim, ErrorInfo))) then exit(false);
   if Section.ChildSections = nil then raise Exception.Create('The section "' + Section.SectionName + '" doesn''t contain arrays or ChildSections');
 
   Result := Section.ChildSections.Count > 0;
@@ -276,10 +304,9 @@ begin
 
   Levels.Push(Level);
 
-  ParseColon(Line, Name, Value, false);
+  ParseColon(Line, Name, Value, false, Result, false);
   var IsFlowArray := Value.StartsWith('[');
   if (Value <> '') and not IsFlowArray then raise Exception.Create('Invalid value: "' + Value + '" for tag "' + Name + '". It must be empty. ' + ErrorInfo.ToString);
-  if Result.ContainsArrays then Name := RemoveArray(Name, Result.ArraysCanBeKeys);
 
   Result := Result.GotoChild(Name, ErrorInfo);
   if IsFlowArray then
@@ -289,19 +316,9 @@ begin
 
 end;
 
-function TBBYamlSectionProcessor.GetKeyString(const s: string): string;
+function TBBYamlSectionProcessor.FindColon(const Line: string; const ContainsArrays: boolean): integer;
 begin
-  if s.StartsWith('-') then exit('- ' + BBYamlUnescapeString(s.Substring(1).Trim(TrimWhiteSpace), ErrorInfo));
-  Result := BBYamlUnescapeString(s, ErrorInfo);
-end;
-
-function TBBYamlSectionProcessor.FindColon(const Line: string): integer;
-begin
-  var Index := -1;
-  if (Line.StartsWith('-')) then
-  begin
-    Inc(Index);
-  end;
+  var Index := SkipArray(Line, ContainsArrays);
   while (Index < Line.Length) and (Line.Chars[Index].IsWhiteSpace) do Inc(Index);
   var IndexStart := Index;
   while (Index < Line.Length - 1) do
@@ -326,23 +343,23 @@ end;
 
 function TBBYamlSectionProcessor.GetValuePart(const Line: string; const Index: integer): string;
 begin
-  Result := RemoveComments(Line.Substring(Index + 1));
+  Result := BBYamlUnescapeString(RemoveComments(Line.Substring(Index + 1), false, false), ErrorInfo);
 end;
 
-procedure TBBYamlSectionProcessor.ParseColon(const Line: string; var Name, Value: string; const CanBeNameOnly: boolean);
+procedure TBBYamlSectionProcessor.ParseColon(const Line: string; out Name, Value: string; const CanBeNameOnly: boolean; const Section: TSection; const RemoveCommentsInFlowArrays: boolean);
 var
   idx: integer;
 begin
-  idx := FindColon(Line);
+  idx := FindColon(Line, Section.ContainsArrays);
   if CanBeNameOnly and (idx < 0) then
   begin
-    Name := GetKeyString(TSection.RemoveDoubleSpaces(RemoveComments(Line))).Trim(TrimWhitespace);
+    Name := GetKey(TSection.RemoveDoubleSpaces(RemoveComments(Line, Section.ContainsArrays, RemoveCommentsInFlowArrays)), Section.ContainsArrays, Section.ArraysCanBeKeys).Trim(TrimWhitespace);
     Value := ' ';
     exit;
   end;
 
   if (idx < 0) then raise Exception.Create('The text "' + Line + '" needs a colon. ' + ErrorInfo.ToString);
-  Name := GetKeyString(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)));
+  Name := GetKey(TSection.RemoveDoubleSpaces(Line.Substring(0, idx).Trim(TrimWhitespace)), Section.ContainsArrays, Section.ArraysCanBeKeys);
   Value := GetValuePart(Line, idx);
 end;
 

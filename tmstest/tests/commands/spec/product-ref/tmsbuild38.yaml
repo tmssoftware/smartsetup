@@ -92,7 +92,6 @@ package definitions:
           folder: source\core;
           include file mask: '*'
           exclude file mask: '*.dcu'
-          recursive: false
       - source:
           folder: source\advanced;
           include folder mask: source

@@ -545,7 +545,6 @@ begin
   if idx = PropName.Length - 1 then exit(TYamlValue.MakeObject);
   var NewPropName := PropName.Substring(idx + 1);
   var Pkg := GetPackage(PropName.Substring(0, idx));
-  //if not Pkg.AutoGenerate then exit(TYamlValue.MakeNull);
 
   if NewPropName = 'generate from:' then exit(Nullable(Pkg.GenerateFrom));
   if NewPropName = 'framework type:' then exit(Nullable(Pkg.DelphiFrameworkType));
@@ -553,12 +552,12 @@ begin
   if NewPropName = 'requires:' then exit(Nullable(GetRequires(Pkg.Requires)));
   if NewPropName = 'files:' then if Pkg.FileMasks.Empty then exit(TYamlValue.MakeNull) else exit(TYamlValue.MakeArray(GetFileMasks(Pkg.FileMasks), false));
   if NewPropName = 'files:source:' then exit(TYamlValue.MakeObject);
-  if NewPropName = 'files:source:folder:' then exit(Pkg.FileMasks.FileMasks[ArrIndex].BaseFolder);
+  if NewPropName = 'files:source:folder:' then exit(Nullable(Pkg.FileMasks.FileMasks[ArrIndex].BaseFolder));
   if NewPropName = 'files:source:include folder mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].IncludeFolders));
   if NewPropName = 'files:source:exclude folder mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].ExcludeFolders));
   if NewPropName = 'files:source:include file mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].IncludeFiles));
   if NewPropName = 'files:source:exclude file mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].ExcludeFiles));
-  if NewPropName = 'files:source:recursive:' then exit(Pkg.FileMasks.FileMasks[ArrIndex].Recursive);
+  if NewPropName = 'files:source:recursive:' then exit(Nullable(Pkg.FileMasks.FileMasks[ArrIndex].Recursive));
 
   raise Exception.Create('Unknown property: ' + PropName);
 end;

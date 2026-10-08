@@ -509,7 +509,7 @@ constructor TDelphiVersionsSectionConf.Create(const aParent: TSection;
   const aProductConfig: TProductConfigDefinition);
 begin
   inherited Create(aParent, aConfig, aProductConfig);
-  SectionValueTypes := TSectionValueTypes.NoValues;
+  SectionValueTypes := TSectionValueTypes.Both;
   ContainsArrays := true;
 
   ClearArrayValues := procedure begin aProductConfig.ClearIDENames;end;

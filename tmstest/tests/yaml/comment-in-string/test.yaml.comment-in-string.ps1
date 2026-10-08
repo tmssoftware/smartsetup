@@ -3,7 +3,7 @@
 . test.setup
 
 
-function Check-Write {
+function Test-Write {
     param (
         [string]$value,
         [boolean]$quoted = $false,
@@ -20,7 +20,7 @@ function Check-Write {
     }
 }
 
-function Check-Write-Array {
+function Test-Write-Array {
     param (
         [string]$value,
         [string[]]$items
@@ -54,7 +54,7 @@ function Check-Write-Array {
 
 }
 
-function Check-WriteJson {
+function Test-WriteJson {
     param (
         [string]$value
     )
@@ -67,18 +67,18 @@ function Check-WriteJson {
 }
 
 
-Check-Write '#potato' $true
-Check-Write 'tomato #potato' $true
-Check-Write 'tomato#potato' $false
-Check-Write '#tomatopotato' $true
-Check-Write 'tomato # potato #tomato#' $true
-Check-Write "doesn't exist" $false
-Check-Write "doesn ' t exist" $false
-Check-Write "rock-'n-roll" $false
-Check-Write "rock,'n,'roll" $false
-Check-Write "rock,'n, #,'roll" $false "'rock,''n, #,''roll'"
-Check-Write "rock # roll" $true
-Check-Write "' rock roll '" $false
+Test-Write '#potato' $true
+Test-Write 'tomato #potato' $true
+Test-Write 'tomato#potato' $false
+Test-Write '#tomatopotato' $true
+Test-Write 'tomato # potato #tomato#' $true
+Test-Write "doesn't exist" $false
+Test-Write "doesn ' t exist" $false
+Test-Write "rock-'n-roll" $false
+Test-Write "rock,'n,'roll" $false
+Test-Write "rock,'n, #,'roll" $false "'rock,''n, #,''roll'"
+Test-Write "rock # roll" $true
+Test-Write "' rock roll '" $false
 
 #copy the file tms.config-0.yaml to tms.config.yaml, and check that the values are read correctly.
 Copy-Item -Path "./tms.config-0.yaml" -Destination "./tms.config.yaml" -Force
@@ -88,15 +88,30 @@ if ($prodfolder -ne "rock,'n,") {
 }
 
 
-Check-WriteJson '#potato'
-Check-WriteJson 'tomato #potato'
-Check-WriteJson 'tomato#potato'
-Check-WriteJson 'tomato # potato #tomato#'
-Check-WriteJson "doesn't exist" 
-Check-WriteJson "rock-'n-roll" 
-Check-WriteJson "rock,'n-roll" 
+Test-WriteJson '#potato'
+Test-WriteJson 'tomato #potato'
+Test-WriteJson 'tomato#potato'
+Test-WriteJson 'tomato # potato #tomato#'
+Test-WriteJson "doesn't exist" 
+Test-WriteJson "rock-'n-roll" 
+Test-WriteJson "rock,'n-roll" 
 
-Check-Write-Array '[a,b,c]' @('a','b','c') 
-Check-Write-Array '[#potato,tomato #potato, tomato#potato]' @('#potato','tomato #potato','tomato#potato') 
-Check-Write-Array "[a-'b,,'don''t', 'tomato #potato']" @('a-''b', "", "don't", "tomato #potato")  
-Check-Write-Array "[a-'b,'don''t', m #i- #ne]" @('a-''b', "don't", "m #i- #ne")  
+Test-Write-Array '[a,b,c]' @('a','b','c') 
+Test-Write-Array '[#potato,tomato #potato, tomato#potato]' @('#potato','tomato #potato','tomato#potato') 
+Test-Write-Array "[a-'b,,'don''t', 'tomato #potato']" @('a-''b', "", "don't", "tomato #potato")  
+Test-Write-Array "[a-'b,'don''t', m #i- #ne]" @('a-''b', "don't", "m #i- #ne")  
+
+tms config-write -p:tms-smart-setup-options:git:clone-command="none" -add-config:tms.config-1.yaml -add-config:tms.config-2.yaml
+
+$result = tms config-read "tms smart setup options:excluded products"
+
+if ($result -ne "['tms.e # xample1',' #tms.  example2']")
+{
+    throw "error reading excluded products: got '" + $result + "'"  
+}
+
+$result = tms config-read "configuration for all products:options:skip register"
+if ($result -ne '[startmenu]')
+{
+    throw "error reading skip register: got '" + $result + "'"  
+}

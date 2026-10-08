@@ -24,6 +24,7 @@ public
   function TryGetValue(const name: string; out Section: TSection; const ErrorInfo: TErrorInfo; const KeepValues: boolean): boolean;
   procedure Add(const aKey: string; const aValue: TSection);
   function Count: integer;
+  procedure Clear;
 end;
 
 TAction = reference to procedure(Value: string; ErrorInfo: TErrorInfo);
@@ -117,6 +118,11 @@ destructor TSectionDictionary.Destroy;
 begin
   FData.Free;
   inherited;
+end;
+
+procedure TSectionDictionary.Clear;
+begin
+  FData.Clear;
 end;
 
 function TSectionDictionary.Count: integer;
@@ -425,7 +431,6 @@ i := 1;
   Result := Actions.TryGetValue(Key, Value);
   if not Result and (Assigned(GenericAction)) then
   begin
-    Actions.Add(Key, GenericAction);
     Value := GenericAction;
     exit(true);
   end;
