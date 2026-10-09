@@ -72,8 +72,25 @@ Check-Write-Array "[TMS WEB Core = [value ={name = InstallDir,data = '%install- 
   ]
 }
 '@
-
 )
+
+Check-Write-Array "[TMS WEB Core = [value ={name = No, type = dword, data = '2',}],]" `
+@(
+    @'
+{
+  "TMS WEB Core": [
+    {
+      "value": {
+        "name": "No",
+        "type": "dword",
+        "data": "2"
+      }
+    }
+  ]
+}
+'@
+)
+
 
 Check-Write-Array-Error 'packages = [JOSE = [runtime,rtl,rtl2plus, crypto4pascal],"JOSE_TaurusTLSProvider" = [runtime,taurus],JOSE_CryptoLib4PascalProvider = [runtime,crypto4pascal]]' `
 'Error: "rtl" is an invalid child section for "packages:JOSE". It must be one of: ["design", "runtime", "exe"].'

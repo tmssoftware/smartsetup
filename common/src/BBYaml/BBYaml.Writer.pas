@@ -293,7 +293,7 @@ procedure TBBYamlWriter.CloseObject(const CollectionType: TYamlCollectionType);
 begin
   var Indent := Stack.PreviousIndent;
   PendingComma := false;
-  if (ToJSON or CmdSyntax) and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Indent + '}');
+  if (ToJSON or (CmdSyntax and Stack.InsideFlowArray)) and (CollectionType = TYamlCollectionType.Object) then WriteLineRaw(Indent + '}');
   if CollectionType = TYamlCollectionType.FlowArray then
   begin
     var CloseCmd := '';

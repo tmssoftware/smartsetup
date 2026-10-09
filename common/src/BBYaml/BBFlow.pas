@@ -18,8 +18,8 @@ type
 
     procedure SkipWhitespace(const ErrorMsg: string);
     function GetFlowItemStopSet(const SectionValueType: TSectionValueTypes): TSysCharSet;
-    function GetFlowItemFreeString(const SectionValueType: TSectionValueTypes): string;
-    function GetFlowItemQuotedString(const SectionValueType: TSectionValueTypes): string;
+    function GetFlowItemFreeString(const StopSet: TSysCharSet): string;
+    function GetFlowItemQuotedString(const StopSet: TSysCharSet): string;
     class function GetEndOfFlowItem(const c: char): char; static;
     procedure Parse(const aRecursionLevel: integer);
     procedure GetFlowItem;
@@ -30,6 +30,8 @@ type
     procedure ProcessNameAndValue(const Name, Value: string);
     class procedure ClearSectionValues(const aSection: TSection); static;
     function IsTrailingComma: boolean;
+    function CheckValue(const ValueName: string;
+      const ExpectedValueType: TSectionValueTypes): string;
   public
     constructor Create(const aLine: string; const aIndex: integer; const aSection: TSection; const aErrorInfo: TErrorInfo);
     destructor Destroy; override;
@@ -115,20 +117,17 @@ begin
   raise Exception.Create('Internal error.');
 end;
 
-function TBBFlowParser.GetFlowItemQuotedString(const SectionValueType: TSectionValueTypes): string;
+function TBBFlowParser.GetFlowItemQuotedString(const StopSet: TSysCharSet): string;
 begin
   var Start := Index;
-  var StopSet := GetFlowItemStopSet(SectionValueType);
   Result := BBYamlUnescapeStringToEnd(Line, Index, ErrorInfo);
   SkipWhitespace('"' + Line.Substring(Start) + '" is not a valid flow item. It must end with a "' + FlowEnd + '". ' + ErrorInfo.ToString);
   if not CharInSet(Line.Chars[Index], StopSet) then raise Exception.Create('Unterminated item at position ' + IntToStr(Index + 1) +' of string: "' + Line.Substring(Start) + '". ' + ErrorInfo.ToString);
   Inc(Index);
 end;
 
-function TBBFlowParser.GetFlowItemFreeString(const SectionValueType: TSectionValueTypes): string;
+function TBBFlowParser.GetFlowItemFreeString(const StopSet: TSysCharSet): string;
 begin
-  var StopSet := GetFlowItemStopSet(SectionValueType);
-
   var Start := Index;
   while true do
   begin
@@ -144,6 +143,22 @@ begin
   end;
 end;
 
+function TBBFlowParser.CheckValue(const ValueName: string; const ExpectedValueType: TSectionValueTypes): string;
+begin
+  if ValueName = '' then exit('');
+
+  var StopSet := GetFlowItemStopSet(ExpectedValueType);
+  if not CharInSet(Line.Chars[Index - 1], StopSet) then
+  begin
+    case ExpectedValueType of
+      TSectionValueTypes.Values: raise Exception.Create('There is no value specified for the Key "' + ValueName + '". It should be specified as Key:Value or Key=Value. ' + ErrorInfo.ToString);
+      TSectionValueTypes.NoValues,
+      TSectionValueTypes.Both: raise Exception.Create('Internal error. We should always stop correctly for SectionValueTypes.Both or NoValues. In value "' + ValueName + '". ' + ErrorInfo.ToString);
+    end;
+  end;
+  Result := ValueName;  
+end;
+
 function TBBFlowParser.GetFlowNameOrValue(const IsValue: Boolean; out IsFlowItem: boolean): string;
 begin
   IsFlowItem := false;
@@ -152,17 +167,20 @@ begin
   var ValueType := Section.SectionValueTypes;
   if (IsValue) then ValueType := TSectionValueTypes.NoValues;
 
+  //we need to stop if we find one of comma or flowend, even if we are reading the key for a value.
+  //but we will raise an exception unless the value is empty.
+  var StopSet := GetFlowItemStopSet(ValueType) + [',', FlowEnd]; //Should not affect ValueTypes of NoValues or Both.
 
   Result := '';
   var c := Line.Chars[Index];
 
-  if (c = '''') or (c = '"') then exit(GetFlowItemQuotedString(ValueType))
+  if (c = '''') or (c = '"') then exit(CheckValue(GetFlowItemQuotedString(StopSet), ValueType))
   else if ((c = '[') or (c = '{'))  then
   begin
     IsFlowItem := true;
     exit('');
   end
-  else exit(GetFlowItemFreeString(ValueType));
+  else exit(CheckValue(GetFlowItemFreeString(StopSet), ValueType));
 end;
 
 function TBBFlowParser.AtEndOfFlowElement: boolean;
@@ -188,6 +206,9 @@ end;
 
 procedure TBBFlowParser.GetFlowItem;
 begin
+  if IsTrailingComma 
+    then exit;
+  
   var IsFlowItem := false;
   var Name := GetFlowNameOrValue(false, IsFlowItem);
   if IsFlowItem then ParseFlowElement(false);
@@ -198,10 +219,14 @@ begin
 
     if Section.SectionValueTypes = TSectionValueTypes.Values then
     begin
+      if Name = '' then
+      begin
+        ProcessNameAndValue('','');
+        exit;
+      end;      
       raise Exception.Create('Error parsing object "' + Line + '". It refers to an element that doesn''t exist. ' + ErrorInfo.ToString);
-      exit;
     end;
-    if not IsTrailingComma then ProcessName(Name);
+    ProcessName(Name);
     exit;
   end;
 
@@ -322,14 +347,20 @@ end;
 function TBBFlowParser.IsTrailingComma: boolean;
 begin
   if Index - 1 >= Line.Length then exit(false);
-  if not (Line.Chars[Index - 1] = FlowEnd) then exit(false);
+  if (Line.Chars[Index - 1] <> ',') then exit(false);
 
-  for var i := Index - 2 downto 0 do
+  while Index < Line.Length do
   begin
-    if not Line.Chars[i].IsWhiteSpace then
+    if not Line.Chars[Index].IsWhiteSpace then
     begin
-      exit(Line.Chars[i] = ',');
+      if Line.Chars[Index] = FlowEnd then
+      begin
+        Inc(Index);
+        exit(true);
+      end;
+      exit(false);
     end;
+    Inc(Index);
   end;
 
   Result := false;
@@ -448,8 +479,12 @@ end;
 begin
   var ErrorInfo := TErrorInfo.Create(false);
   try
-    TestFlowArray('["a\"", ,c,]', ['a"', '', 'c'], nil, TSectionValueTypes.NoValues, ErrorInfo);
 
+
+    TestFlowArray('[a: b,]', ['a'],['b'], TSectionValueTypes.Values, ErrorInfo);
+    TestFlowArray('[a: b   ,     ]', ['a'],['b'], TSectionValueTypes.Values, ErrorInfo);
+    TestFlowArray('[a: b,'''':'''',]', ['a', ''],['b', ''], TSectionValueTypes.Values, ErrorInfo);
+    TestFlowArray('[a: b,,]', ['a', ''],['b', ''], TSectionValueTypes.Values, ErrorInfo);
 
     TestFlowArray('[exe,vcl]', ['exe', 'vcl'], nil, TSectionValueTypes.NoValues, ErrorInfo);
     TestFlowArray('[exe,vcl] #', ['exe', 'vcl'], nil, TSectionValueTypes.NoValues, ErrorInfo);
@@ -464,6 +499,7 @@ begin
     TestFlowArray('[,'''']', ['',''], nil, TSectionValueTypes.Both, ErrorInfo);
     TestFlowArray('[   ,  ]  ', [''], nil, TSectionValueTypes.Both, ErrorInfo);
     TestFlowArray('[""]', [''], [''], TSectionValueTypes.Both, ErrorInfo);
+    TestFlowArray('[a: b,]', ['a'],['b'], TSectionValueTypes.Values, ErrorInfo);
     TestFlowArray('["   "]', ['   '], nil, TSectionValueTypes.Both, ErrorInfo);
     TestFlowArray('[x: [a], b: c]',  ['x', 'a', 'b'], ['', '', 'c'], TSectionValueTypes.Both, ErrorInfo);
     TestFlowArrayErr('[exe, "vcl"d]', 'Unterminated item', TSectionValueTypes.NoValues, ErrorInfo);
@@ -483,7 +519,4 @@ begin
 end;
 
 {$ENDIF}
-
-initialization
-BBFlow_InternalTests
 end.

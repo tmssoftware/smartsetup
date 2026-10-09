@@ -118,7 +118,7 @@ if ($result -ne '[startmenu]')
 
 $result = Invoke-WithExitCodeIgnored {tms list -config:tms.config-3.yaml}
 
-if (-not ($result -join "^n").Contains('Invalid value: "x" for tag "a:b"') )
+if (-not ($result -join "`n").Contains('Invalid value: "x" for tag "a:b"') )
 {
     throw "Invalid parse: The key should be 'a:b' and was: " + $result
 }
