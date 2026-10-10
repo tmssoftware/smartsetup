@@ -4,7 +4,7 @@ interface
 
 uses
   Generics.Collections, System.SysUtils, System.Classes, System.Types, Xml.XMLIntf, Win.ComObj, WinApi.ActiveX,
-  Deget.CoreTypes;
+  Deget.CoreTypes, UTmsBuildSystemUtils;
 
 type
   TProjectGroupItem = class
@@ -22,6 +22,7 @@ type
   strict private
     FXml: IXmlDocument;
     FFileName: string;
+    FComInitializer: TComInitializer;
     function GetXml: IXmlDocument;
   strict protected
     function ProjectNode: IXMLNode;
@@ -64,13 +65,13 @@ constructor TGroupProjFiler.Create(const AFileName: string);
 begin
   inherited Create;
   FFileName := AFileName;
-  CoInitialize(nil);
+  FComInitializer := TComInitializer.Create;
 end;
 
 destructor TGroupProjFiler.Destroy;
 begin
   FXml := nil;
-  CoUninitialize;
+  FComInitializer.Free;
   inherited;
 end;
 
@@ -216,7 +217,7 @@ begin
   var GroupName := TPath.GetFileNameWithoutExtension(TargetGroupFile);
   var TargetFolder := TPath.GetDirectoryName(TargetGroupFile);
 
-  CoInitializeEx(nil, COINIT_MULTITHREADED);
+  var ComInitializer := TComInitializer.Create(true);
   try
     // Load default empty files
     begin
@@ -261,7 +262,7 @@ begin
       Writer.Free;
     end;
   finally
-    CoUninitialize;
+    ComInitializer.Free;
   end;
 end;
 

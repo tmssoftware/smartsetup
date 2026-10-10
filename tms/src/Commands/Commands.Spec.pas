@@ -14,7 +14,7 @@ uses
   Deget.Version, Deget.Filer.Types, Deget.IDETypes,
   Generics.Collections,
 {$IFDEF MSWINDOWS}
-  Windows, ActiveX,
+  Windows,
 {$ENDIF}
   Deget.CoreTypes, BBYaml.Writer, XMLDoc, XMLIntf;
 
@@ -41,6 +41,7 @@ type
   private
     FExes: TList<string>;
     FPackages: TObjectOrderedDictionary<string, TPackageDataList>;
+    FComInitializer: TComInitializer;
     function HasUnsolvedDependencies(const Deps: THashSet<string>; const AllPackages: TObjectOrderedDictionary<string, THashSet<string>>; const SortedPackages: TOrderedDictionary<string, bool>): boolean;
   public
     property Exes: TList<string> read FExes;
@@ -652,9 +653,7 @@ end;
 
 constructor TPackageManager.Create;
 begin
-{$IFDEF MSWINDOWS}
-  CoInitialize(nil);
-{$ENDIF}
+  FComInitializer := TComInitializer.Create;
   FExes := TList<string>.Create;
   FPackages := TObjectOrderedDictionary<string, TPackageDataList>.Create([doOwnsValues]);
   Load;
@@ -664,9 +663,7 @@ destructor TPackageManager.Destroy;
 begin
   FExes.Free;
   FPackages.Free;
-{$IFDEF MSWINDOWS}
-  CoUninitialize;
-{$ENDIF}
+  FComInitializer.Free;
   inherited;
 end;
 

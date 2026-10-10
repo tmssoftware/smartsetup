@@ -20,7 +20,7 @@ procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCa
 function CombinePath(const RootPath, RelPath: string): string;
 procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean; const AlreadyVisited: THashSet<string>);
 procedure LaunchFile(const FileName: string);
-function FindProcessUsing(const FileName: string): string;
+
 function GuidToStringN(const Guid: TGuid): String;
 procedure TDirectory_CreateDirectory(const Path: string);
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string; const DryRun: boolean; const Log: TProc<string>; var NeedsToRestartIDE: boolean); overload;
@@ -42,6 +42,21 @@ function TPath_IsPathRooted(const s: string): boolean;
 
 
 type
+  //Initializes COM for the current thread in Create, and uninitializes it in Destroy only if Create succeeded.
+  //If the thread is already in another apartment, CoInitialize fails with RPC_E_CHANGED_MODE, and an unpaired
+  //CoUninitialize would tear down COM under the caller's live objects. On non-Windows platforms this does nothing.
+  //Free it on the same thread that created it, and after releasing all COM interfaces used while it was alive.
+  //If it is freed on another thread, it skips CoUninitialize: leaking one init on the creating thread is harmless,
+  //uninitializing the wrong thread is not.
+  TComInitializer = class
+  private
+    FInitialized: boolean;
+    FThreadId: TThreadID;
+  public
+    constructor Create(const Multithreaded: boolean = false);
+    destructor Destroy; override;
+  end;
+
   TUTF8NoBOMEncoding = class(TUTF8Encoding)
   private
     class var
@@ -56,7 +71,7 @@ type
 implementation
 uses IOUtils, System.Hash, StrUtils, Masks, System.Types,
     {$IFDEF MSWINDOWS}
-      Winapi.ShellAPI, Winapi.Windows, ActiveX, ComObj, Winapi.ShlObj;
+      Winapi.ShellAPI, Winapi.Windows, ActiveX;
     {$ENDIF MSWINDOWS}
     {$IFDEF POSIX}
       Posix.Stdlib;
@@ -400,80 +415,28 @@ begin
 {$ENDIF POSIX}
 end;
 
-function FindProcessUsingImpl(const FileName: string): string;
+{ TComInitializer }
+
+constructor TComInitializer.Create(const Multithreaded: boolean);
+begin
+  inherited Create;
 {$IFDEF MSWINDOWS}
-var
-  ROT : IRunningObjectTable;
-  mFile, enumIndex, Prefix : IMoniker;
-  enumMoniker : IEnumMoniker;
-  MonikerType : LongInt;
-  unkInt  : IInterface;
-  pAppName: PWidechar;
-begin
-  Result := '';
-  try
-    OleCheck(GetRunningObjectTable(0, ROT));
-    OleCheck(CreateFileMoniker(PWideChar(FileName), mFile));
-
-    OleCheck(ROT.EnumRunning(enumMoniker));
-
-    while (enumMoniker.Next(1, enumIndex, nil) = S_OK) do
-    begin
-      OleCheck(enumIndex.IsSystemMoniker(MonikerType));
-      if MonikerType = MKSYS_FILEMONIKER then
-      begin
-        if Succeeded(mFile.CommonPrefixWith(enumIndex, Prefix)) and
-           (mFile.IsEqual(Prefix) = S_OK) then
-        begin
-         if Succeeded(ROT.GetObject(enumIndex, unkInt)) then
-          begin
-            if Succeeded(unkInt.QueryInterface(IID_IFileIsInUse, result)) then
-            begin
-              var FileInUse := unkInt as IFileIsInUse;
-              if Assigned(FileInUse) then
-              begin
-                OleCheck(FileInUse.GetAppName(pAppName));
-                Result := pAppName;
-                CoTaskMemFree(pAppName);
-                exit;
-              end;
-
-              exit;
-            end;
-          end;
-        end;
-      end;
-    end;
-  except
-    //Nothing, we just can't get the app name.
-  end;
-
-{$ELSE}
-begin
-  Result := '';
+  FThreadId := TThread.CurrentThread.ThreadID;
+  if Multithreaded then FInitialized := Succeeded(CoInitializeEx(nil, COINIT_MULTITHREADED))
+  else FInitialized := Succeeded(CoInitialize(nil));
 {$ENDIF}
 end;
 
-function FindProcessUsing(const FileName: string): string;
+destructor TComInitializer.Destroy;
+begin
 {$IFDEF MSWINDOWS}
-begin
-  try
-    CoInitialize(nil);
-    try
-      Result := FindProcessUsingImpl(FileName);
-    finally
-      CoUninitialize; //We must call FindProcessUsingImpl in a diff method, so all Interfaces have been released when we call CoUninitialize.
-    end;
-  except
-    //Nothing, we just can't get the app name.
-  end;
-
-{$ELSE}
-begin
-  Result := '';
+{$IFDEF DEBUG}
+  Assert(FThreadId = TThread.CurrentThread.ThreadID, 'TComInitializer freed on a different thread than the one that created it.');
 {$ENDIF}
+  if FInitialized and (FThreadId = TThread.CurrentThread.ThreadID) then CoUninitialize;
+{$ENDIF}
+  inherited;
 end;
-
 
 function GuidToStringN(const Guid: TGuid): String;
 begin
@@ -502,13 +465,6 @@ begin
     TMonitor.Exit(CreateDirLock);
   end;
 end;
-
-  function _FindLockingApp(const FileName: string): string;
-  begin
-    var LockingApp := FindProcessUsing(FileName);
-    Result := '';
-    if LockingApp <> '' then Result := Format(' Locked by "%s".', [LockingApp]);
-  end;
 
   procedure DeleteFileOrMoveToLocked(const LockFolder, FileName:      string);
   begin
@@ -593,9 +549,8 @@ begin
         begin
           NeedsToRestartIDE := true;
           var TempFileName := TPath.Combine(LockFolder, TPath.GetFileName(FileName)) + '.' + GuidToStringN(TGUID.NewGuid) + TempExtension;
-          var LockingApp := _FindLockingApp(FileName); // find the handle before moving it.
           RenameAndCheck(FileName, TempFileName);
-          if (Assigned(Log)) then Log(Format('File "%s" seems to be locked. Moved to "%s"%s.', [FileName, TempFileName, LockingApp]));
+          if (Assigned(Log)) then Log(Format('File "%s" seems to be locked. Moved to "%s".', [FileName, TempFileName]));
         end;
       end;
     end;
