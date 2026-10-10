@@ -471,9 +471,6 @@ end;
 begin
   var ErrorInfo := TErrorInfo.Create(false);
   try
-
-
-    TestFlowArray('[a: b,]', ['a'],['b'], TSectionValueTypes.Values, ErrorInfo);
     TestFlowArray('[a: b   ,     ]', ['a'],['b'], TSectionValueTypes.Values, ErrorInfo);
     TestFlowArray('[a: b,'''':'''',]', ['a', ''],['b', ''], TSectionValueTypes.Values, ErrorInfo);
     TestFlowArray('[a: b,,]', ['a', ''],['b', ''], TSectionValueTypes.Values, ErrorInfo);

@@ -64,7 +64,6 @@ type
   TPackagesSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
-    destructor Destroy; override;
 
     class function SectionNameStatic: string; override;
   end;
@@ -539,11 +538,6 @@ begin
   end
 end;
 
-
-destructor TPackagesSectionDef.Destroy;
-begin
-  inherited;
-end;
 
 class function TPackagesSectionDef.SectionNameStatic: string;
 begin

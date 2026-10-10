@@ -105,7 +105,7 @@ public
   class function GetActions(const Act: TListOfActions): string;
 
   procedure ClearValues;
-  function HasClearArrayValues: boolean;
+  function SupportsAddReplace: boolean;
 
 public
   constructor Create(const aParent: TSection);
@@ -167,7 +167,7 @@ begin
     if FData.TryGetValue(name.Substring(SectionAddPrefix.Length), Section) then
     begin
       Section.LoadedState(TArrayOverrideBehavior.Add);
-      exit(true);
+      exit(Section.SupportsAddReplace);
     end;
   end;
 
@@ -177,7 +177,7 @@ begin
     begin
       Section.ClearValues;
       Section.LoadedState(TArrayOverrideBehavior.Replace);
-      exit(true);
+      exit(Section.SupportsAddReplace);
     end;
   end;
 
@@ -259,7 +259,7 @@ begin
     begin
       Result := Result + sep + '"' + v.SectionName +'"';
       Sep := ', ';
-      if Assigned(v.ClearArrayValues) then Result := Result + sep +  '"' + SectionAddPrefix + v.SectionName +'"' +  sep + '"' + SectionReplacePrefix + v.SectionName +'"';
+      if SupportsAddReplace then Result := Result + sep +  '"' + SectionAddPrefix + v.SectionName +'"' +  sep + '"' + SectionReplacePrefix + v.SectionName +'"';
     end;
   end;
 
@@ -373,7 +373,7 @@ begin
   Result := Parent;
 end;
 
-function TSection.HasClearArrayValues: boolean;
+function TSection.SupportsAddReplace: boolean;
 begin
   Result := Assigned(ClearArrayValues);
 end;
