@@ -1,0 +1,29 @@
+#####################################
+# TMS Smart Setup definition file.
+# Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+#####################################
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 2.1
+  
+application:
+  id: tms.testapp
+  name: Test app for xml & <escape>
+  description: An example that uses &, <> and other xml-escape characters.
+  
+supported frameworks:
+  vcl:
+    ide since: delphi7
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+    c++ builder support: true
+
+packages:
+  - xmlencodetest: [exe, vcl]
+
+dependencies:
+  - all.installed.components: all
+

@@ -1,0 +1,40 @@
+#####################################
+# TMS Smart Setup definition file.
+# Do not modify this file. To configure smart setup, edit tms.config.yaml instead.
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+#####################################
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 2.1
+  
+application:
+  id: tms.example # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
+  name: TMS Example for VCL & FMX
+  description: An example that uses &, <> and other xml-escape characters.
+  
+supported frameworks:
+  vcl:
+    ide since: delphi7
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+    c++ builder support: true
+
+packages:
+  - Escaped_Core: [runtime, vcl]
+
+# Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.
+# Note: This section must come after you have specified the "packages" section above.
+package definitions:
+  Escaped_Core:
+    framework type: NONE # can be NONE, FMX or VCL
+    description: An example that uses &, <> and other xml-escape characters.
+    requires: rtl
+    files:
+      - source:
+          folder: src
+          include file mask: 'ok.*;okidoki.*'                  # separate masks with ;.
+      - source:
+          folder: src2
+          include file mask: 'ok2.*;okidoki2.*'                  # separate masks with ;.
