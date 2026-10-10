@@ -102,7 +102,7 @@ begin
   begin
     if not ForceExcluded and not Config.IsIncluded(TPath.GetFileName(Product)) then
     begin
-      AllIncluded := true;
+      AllIncluded := false;
       continue;
     end;
     
