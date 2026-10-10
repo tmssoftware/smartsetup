@@ -12,7 +12,6 @@ procedure ParseEntry(const reg: string; var Root: HKEY; var Key, Value: string);
 const
   HKCU = 'HKEY_CURRENT_USER\';
   HKLM = 'HKEY_LOCAL_MACHINE\';
-  HKLMMisspelled = 'HKEY_CURRENT_LOCAL_MACHINE\'; //accepted for compatibility: it was the only HKLM prefix that parsed in older versions.
 begin
   Key := reg;
   var P := Key.LastIndexOf('\') + 1;
@@ -34,13 +33,6 @@ begin
   begin
     Root := HKEY_LOCAL_MACHINE;
     Key := Key.Substring(HKLM.Length);
-    exit;
-  end;
-
-  if Key.StartsWith(HKLMMisspelled, true) then
-  begin
-    Root := HKEY_LOCAL_MACHINE;
-    Key := Key.Substring(HKLMMisspelled.Length);
     exit;
   end;
 
