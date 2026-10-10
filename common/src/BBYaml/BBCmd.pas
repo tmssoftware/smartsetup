@@ -192,7 +192,7 @@ begin
     var ActionStr := AdaptForCmd(SectionsStr[Length(SectionsStr) - 1], SectionSeparator);
     var Action: TActionNameValue;
 
-    if ((Section.Actions <> nil) and Section.Actions.TryGetValue(ActionStr, Action)) then
+    if ((Section.Actions <> nil) and Section.Actions.TryGetValue(ActionStr, Action, ErrorInfo)) then
     begin
       if not OnlyValidate then Action(ActionStr, Value, ErrorInfo);
     end

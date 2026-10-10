@@ -171,7 +171,7 @@ begin
 
   end;
 
-  if ((Section.Actions <> nil) and Section.Actions.TryGetValue(Name, Action)) then
+  if ((Section.Actions <> nil) and Section.Actions.TryGetValue(Name, Action, ErrorInfo)) then
   begin
     Action(Name, Value, ErrorInfo);
   end

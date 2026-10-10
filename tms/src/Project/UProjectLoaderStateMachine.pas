@@ -64,6 +64,7 @@ type
   TPackagesSectionDef = class(TSectionDef)
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition);
+    destructor Destroy; override;
 
     class function SectionNameStatic: string; override;
   end;
@@ -503,9 +504,9 @@ constructor TSupportedFrameworksSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then exit;
       Result := TFrameworkVersionSectionDef.Create(Self, aProject, Name);
       ChildSections.Add(Name, Result);
     end;
@@ -525,21 +526,24 @@ constructor TPackagesSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  //Duplicated := TDictionary<string, boolean>.Create;
-  var i := 9;
-  i := 4;
   ClearArrayValues := procedure begin Project.Packages.Clear; ChildSections.Clear; end;
   ContainsArrays := true;
 
   ChildSectionAction :=
-  function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+  function(Name: string; ErrorInfo: TErrorInfo): TSection
   begin
+    if ChildSections.Contains(Name) then raise Exception.Create('Duplicated item in section ' + SectionName + ': "' + Name +'" is already defined. ' + ErrorInfo.ToString);
     Project.Packages.Add(TPackage.Create(Name));
     Result := TPackageFlowArraySectionDef.Create(Self, Project);
     ChildSections.Add(Name, Result);
   end
 end;
 
+
+destructor TPackagesSectionDef.Destroy;
+begin
+  inherited;
+end;
 
 class function TPackagesSectionDef.SectionNameStatic: string;
 begin
@@ -722,7 +726,7 @@ begin
   ClearArrayValues := procedure begin Project.Dependencies.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo) begin Project.Dependencies.Add(TDependency.Create(name, value)); end, false);
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo) begin Project.Dependencies.Add(TDependency.Create(name, value)); end, false);
 end;
 
 class function TDependenciesSectionDef.SectionNameStatic: string;
@@ -792,7 +796,7 @@ begin
   ClearArrayValues := procedure begin Project.Defines.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo) begin
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     Project.Defines.AddOrSetValue(name, true);
   end, false);
 end;
@@ -828,9 +832,9 @@ begin
   ClearArrayValues := procedure begin Project.RegistryEntries.Clear; ChildSections.Clear; end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then exit;
       Result := TRegistryEntrySectionDef.Create(Self, aProject, Name);
       ChildSections.Add(Name, Result);
     end;
@@ -979,7 +983,7 @@ end;
 
 class function TFrameworkVersionSectionDef.SectionNameStatic: string;
 begin
-  Result := 'Platforms';
+  Result := 'platforms';
 end;
 
 { TSectionFrameworkPlatformsDef }
@@ -996,7 +1000,7 @@ begin
   ClearArrayValues := procedure begin Framework.Platforms := [];end;
 
 
-  Actions := TListOfActions.Create;
+  Actions := TListOfActions.Create(SectionName, false);
   for dp := Low(TPlatform) to High(TPlatform) do
   begin
     Actions.Add(PlatformId[dp], Capture(dp));
@@ -1041,7 +1045,7 @@ begin
   SectionValueTypes := TSectionValueTypes.Both;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       AddDependency(name, value);
     end, false);
@@ -1108,7 +1112,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.DebugDCUPaths.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.DebugDCUPaths.Add(name);
     end, false);
@@ -1130,7 +1134,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.LibraryPathsBuildAndRegister.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.LibraryPathsBuildAndRegister.Add(name);
     end, false);
@@ -1152,7 +1156,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.LibraryPathsBuildOnly.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.LibraryPathsBuildOnly.Add(name);
     end, false);
@@ -1174,7 +1178,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.DelphiLibraryPaths.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.DelphiLibraryPaths.Add(name);
     end, false);
@@ -1196,7 +1200,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.CppLibraryPaths.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.CppLibraryPaths.Add(name);
     end, false);
@@ -1218,7 +1222,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.CppIncludePaths.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.CppIncludePaths.Add(name);
     end, false);
@@ -1240,7 +1244,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.BrowsingPaths.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.BrowsingPaths.Add(name);
     end, false);
@@ -1262,7 +1266,7 @@ begin
   ClearArrayValues := procedure begin Project.ExtraPaths.WebCorePaths.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.ExtraPaths.WebCorePaths.Add(name);
     end, false);
@@ -1284,7 +1288,7 @@ begin
   ClearArrayValues := procedure begin Project.ClearSearchPathsToPreserve;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Project.AddSearchPathToPreserve(name);
     end, false);
@@ -1309,9 +1313,9 @@ begin
   ChildSections.Add(TLinkSectionDef.SectionNameStatic, TLinkSectionDef.Create(Self, aProject));
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then
       begin
         Project.Shortcuts.Add(TShortcutDefinition.Create(TShortcutType.filelink, '', '', '', ''));
         exit;
@@ -1367,9 +1371,9 @@ begin
   ClearArrayValues := procedure begin Project.FileLinks.Clear;end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then
       begin
         Project.FileLinks.Add(TFileLinkDefinition.Create);
         exit;
@@ -1442,9 +1446,9 @@ begin
   ClearArrayValues := procedure begin Project.ResourceCopies.Clear; end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then
       begin
         Project.ResourceCopies.Add(TResourceCopyDefinition.Create);
         exit;
@@ -1500,9 +1504,9 @@ constructor TPackageDefinitionsSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then exit;
       var Package := FindPackage(Name, Project.Packages);
       if Package = nil then raise Exception.Create('Cannot find the package ' + Name + ' in the section "packages". ' + ErrorInfo.ToString);
 

@@ -21,32 +21,37 @@ public
   constructor Create;
   destructor Destroy; override;
   function Values: TEnumerable<TSection>;
-  function TryGetValue(const name: string; out Section: TSection; const ErrorInfo: TErrorInfo; const KeepValues: boolean): boolean;
+  function TryGetValue(const name: string; out Section: TSection; const ErrorInfo: TErrorInfo): boolean;
   procedure Add(const aKey: string; const aValue: TSection);
   function Count: integer;
+  function Contains(const name: string): boolean;
   procedure Clear;
 end;
 
 TAction = reference to procedure(Value: string; ErrorInfo: TErrorInfo);
 TActionNameValue = reference to procedure(Name, Value: string; ErrorInfo: TErrorInfo);
-TChildSectionAction = reference to function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection;
+TChildSectionAction = reference to function(Name: string; ErrorInfo: TErrorInfo): TSection;
 
 TListOfActions = class
 private
   Actions: TDictionary<string, TActionNameValue>;
   GenericAction: TActionNameValue;
-  AllowDuplicates: boolean;
+  Duplicates: THashSet<string>;
+  SectionName: string;
 public
   constructor Create; overload;
-  constructor Create(aGenericAction: TActionNameValue; const aAllowDuplicates: boolean); overload;
+  constructor Create(const aSectionName: string; const aAllowDuplicates: boolean); overload;
+  constructor Create(const aSectionName: string; aGenericAction: TActionNameValue; const aAllowDuplicates: boolean); overload;
   destructor Destroy; override;
 
   function Keys: TEnumerable<string>;
-  function TryGetValue(const Key: string; var Value: TActionNameValue): Boolean;
+  function TryGetValue(const Key: string; var Value: TActionNameValue; const ErrorInfo: TErrorInfo): Boolean;
   function ContainsKey(const Key: string): Boolean;
 
   procedure Add(const Name: string; const Action: TAction); overload;
   procedure Add(const Name: string; const Action: TActionNameValue); overload;
+
+  procedure ResetDuplicates;
 
 end;
 
@@ -61,7 +66,7 @@ private
 
 public
   function FullPath: string;
-  function GotoChild(const Line: string; const ErrorInfo: TErrorInfo; const KeepValues: boolean = false): TSection;
+  function GotoChild(const Line: string; const ErrorInfo: TErrorInfo): TSection;
   function GotoParent: TSection;
   class function RemoveDoubleSpaces(const s: string): string;
 
@@ -70,6 +75,9 @@ public
   function GetInt(const s: string; const ErrorInfo: TErrorInfo): integer;
 
   property CreatedBy: string read FCreatedBy write FCreatedBy;
+
+strict protected
+  ClearArrayValues: TProc;  //allows to clear an array before adding new values.
 
 public
   SectionValueTypes: TSectionValueTypes; //Only needed to set in data sections.
@@ -84,7 +92,6 @@ public
   ContainsArrays: Boolean;
   ArraysCanBeKeys: boolean; //For backwards compat. A key can't be repeated in yaml, but we allowed it sometimes. When set to true, we will allow both "- value:" and "value:" values. This property is *only* for wrong existing data. Don't use it for new data.
 
-  ClearArrayValues: TProc;  //allows to clear an array before adding new values.
 
   procedure ThrowInvalidTag(const Name: string; const ErrorInfo: TErrorInfo);
 
@@ -96,6 +103,9 @@ public
   function Root: TSection;
 
   class function GetActions(const Act: TListOfActions): string;
+
+  procedure ClearValues;
+  function HasClearArrayValues: boolean;
 
 public
   constructor Create(const aParent: TSection);
@@ -125,6 +135,11 @@ begin
   FData.Clear;
 end;
 
+function TSectionDictionary.Contains(const name: string): boolean;
+begin
+  Result := FData.ContainsKey(name);
+end;
+
 function TSectionDictionary.Count: integer;
 begin
   Result := FData.Count;
@@ -132,17 +147,17 @@ end;
 
 procedure TSectionDictionary.Add(const aKey: string; const aValue: TSection);
 begin
-  FData.Add (aKey, aValue);
+  FData.Add(aKey, aValue);
 end;
 
 
 
 function TSectionDictionary.TryGetValue(const name: string;
-  out Section: TSection; const ErrorInfo: TErrorInfo; const KeepValues: boolean): boolean;
+  out Section: TSection; const ErrorInfo: TErrorInfo): boolean;
 begin
   if FData.TryGetValue(name, Section) then
   begin
-    if not KeepValues and Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
+    Section.ClearValues;
     Section.LoadedState(TArrayOverrideBehavior.None);
     exit(true);
   end;
@@ -152,7 +167,7 @@ begin
     if FData.TryGetValue(name.Substring(SectionAddPrefix.Length), Section) then
     begin
       Section.LoadedState(TArrayOverrideBehavior.Add);
-      exit(Assigned(Section.ClearArrayValues));
+      exit(true);
     end;
   end;
 
@@ -160,9 +175,9 @@ begin
   begin
     if FData.TryGetValue(name.Substring(SectionReplacePrefix.Length), Section) then
     begin
-      if not KeepValues and Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
+      Section.ClearValues;
       Section.LoadedState(TArrayOverrideBehavior.Replace);
-      exit(Assigned(Section.ClearArrayValues));
+      exit(true);
     end;
   end;
 
@@ -285,6 +300,12 @@ begin
   SetLength(Result, iResult);
 end;
 
+procedure TSection.ClearValues;
+begin
+  if Assigned(ClearArrayValues) then ClearArrayValues;
+  if Actions <> nil then Actions.ResetDuplicates;
+end;
+
 function TSection.Root: TSection;
 begin
   Result := Self;
@@ -328,18 +349,18 @@ begin
 
 end;
 
-function TSection.GotoChild(const Line: string; const ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection;
+function TSection.GotoChild(const Line: string; const ErrorInfo: TErrorInfo): TSection;
 begin
   if Assigned(ChildSectionAction) then
   begin
-    var ChildAction := ChildSectionAction(Line, ErrorInfo, KeepValues);
+    var ChildAction := ChildSectionAction(Line, ErrorInfo);
     if ChildAction <> nil then
     begin
       exit(ChildAction);
     end;
 
   end;
-  if not ChildSections.TryGetValue(Line, Result, ErrorInfo, KeepValues) then
+  if not ChildSections.TryGetValue(Line, Result, ErrorInfo) then
   begin
     raise Exception.Create('"' + Line +
       '" is an invalid child section for "' + FullSectionName + '". It must be one of: ['
@@ -350,6 +371,11 @@ end;
 function TSection.GotoParent: TSection;
 begin
   Result := Parent;
+end;
+
+function TSection.HasClearArrayValues: boolean;
+begin
+  Result := Assigned(ClearArrayValues);
 end;
 
 function TArrayOverrideBehavior_FromString(const value: string): TArrayOverrideBehavior;
@@ -387,6 +413,11 @@ begin
   Actions.Add(Name, Action);
 end;
 
+procedure TListOfActions.ResetDuplicates;
+begin
+  if Duplicates <> nil then Duplicates.Clear;
+end;
+
 function TListOfActions.ContainsKey(const Key: string): Boolean;
 begin
   if Assigned(GenericAction) then exit(true);
@@ -398,15 +429,25 @@ begin
   Actions := TDictionary<string, TActionNameValue>.Create;
 end;
 
-constructor TListOfActions.Create(aGenericAction: TActionNameValue; const aAllowDuplicates: boolean);
+constructor TListOfActions.Create(const aSectionName: string; const aAllowDuplicates: boolean);
 begin
   Create;
+  if not aAllowDuplicates then
+  begin
+    Duplicates := THashSet<string>.Create;
+  end;
+  SectionName := aSectionName;
+end;
+
+constructor TListOfActions.Create(const aSectionName: string; aGenericAction: TActionNameValue; const aAllowDuplicates: boolean);
+begin
+  Create(aSectionName, aAllowDuplicates);
   GenericAction := aGenericAction;
-  AllowDuplicates := aAllowDuplicates;
 end;
 
 destructor TListOfActions.Destroy;
 begin
+  Duplicates.Free;
   Actions.Free;
   inherited;
 end;
@@ -416,17 +457,13 @@ begin
   Result := Actions.Keys;
 end;
 
-function TListOfActions.TryGetValue(const Key: string; var Value: TActionNameValue): Boolean;
+function TListOfActions.TryGetValue(const Key: string; var Value: TActionNameValue; const ErrorInfo: TErrorInfo): Boolean;
 begin
-var i:=0;
-i := 1;
-{
-  if (not AllowDuplicates and Actions.ContainsKey(Name)) then
+  if (Duplicates <> nil) then
   begin
-    raise Exception.Create('Duplicated item in section ' + SectionName + ': "' + Name + '" is already defined. ' + ErrorInfo.ToString);
+    if (Duplicates.Contains(Key)) then raise Exception.Create('Duplicated item in section ' + SectionName + ': "' + Key + '" is already defined. ' + ErrorInfo.ToString);
+    Duplicates.Add(Key);
   end;
-
-}
 
   Result := Actions.TryGetValue(Key, Value);
   if not Result and (Assigned(GenericAction)) then

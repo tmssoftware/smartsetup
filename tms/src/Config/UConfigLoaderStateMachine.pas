@@ -225,9 +225,9 @@ begin
   ChildSections.Add(TTmsBuildOptionsSectionConf.SectionNameStatic, TTmsBuildOptionsSectionConf.Create(Self, aConfig));
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then exit;
 
       if not Name.StartsWith('configuration for ')
         then raise Exception.Create('The name "' + Name
@@ -235,7 +235,7 @@ begin
                    + TTmsBuildOptionsSectionConf.SectionNameStatic + '". ' + ErrorInfo.ToString);
 
       Name := Name.Substring(('configuration for ').Length).Trim;
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then exit;
 
       Result := TProductSectionConf.Create(Self, aConfig, Name, ErrorInfo);
       ChildSections.Add(Name, Result);
@@ -408,7 +408,7 @@ begin
 
   ClearArrayValues := procedure begin aConfig.ClearExcludedComponents;end;
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
       begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end,
     false);
 
@@ -437,7 +437,7 @@ begin
   ClearArrayValues := procedure begin aConfig.ClearIncludedComponents;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
       begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end,
     false);
 end;
@@ -465,7 +465,7 @@ begin
   ClearArrayValues := procedure begin aConfig.ClearAdditionalProductsFolders;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
       begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end,
     false);
 end;
@@ -514,7 +514,7 @@ begin
 
   ClearArrayValues := procedure begin aProductConfig.ClearIDENames;end;
 
-  Actions := TListOfActions.Create;
+  Actions := TListOfActions.Create(SectionName, false);
   for var dv := Low(TIDEName) to High(TIDEName) do
   begin
     Actions.Add(IDEId[dv], Capture(dv));
@@ -563,7 +563,7 @@ begin
 
   ClearArrayValues := procedure begin aProductConfig.ClearPlatforms;end;
 
-  Actions := TListOfActions.Create;
+  Actions := TListOfActions.Create(SectionName, false);
   for dp := Low(TPlatform) to High(TPlatform) do
   begin
     Actions.Add(PlatformId[dp], Capture(dp));
@@ -718,7 +718,7 @@ begin
   ClearArrayValues := procedure begin aProductConfig.ClearDefines;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo) begin
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     if GetBoolEx(value, ErrorInfo) then
     begin
       ProductConfig.AddDefine(name, ErrorInfo.ToString);
@@ -787,9 +787,9 @@ begin
   end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then
       begin
         if (Result.CreatedBy <> Root.CreatedBy) then
         begin
@@ -944,7 +944,7 @@ begin
   ClearArrayValues := procedure begin aConfig.DcuMegafolders.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure (name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Config.DcuMegafolders.Add(TMegafolder.Create(name, value));
     end, true);
@@ -974,7 +974,7 @@ begin
   ClearArrayValues := procedure begin aConfig.AutoSnapshotFilenames.Clear;end;
 
   ContainsArrays := true;
-  Actions := TListOfActions.Create(procedure(name, value: string; ErrorInfo: TErrorInfo)
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
   begin
     aConfig.AutoSnapshotFilenames.Add(name, ErrorInfo.ToString);
   end, false);

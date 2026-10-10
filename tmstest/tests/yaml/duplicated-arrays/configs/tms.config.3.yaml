@@ -1,0 +1,15 @@
+# Duplicated item in section auto snapshot filenames: "tms.snaphot.yaml" is already defined.
+# ====================================
+# TMS Smart Setup configuration file
+# Modify settings as needed.
+# ====================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json
+
+
+# General options that are not 'per product'.
+tms smart setup options:
+
+   auto snapshot filenames:
+    - tms.snaphot.yaml
+    - tms.snaphot.yaml
+

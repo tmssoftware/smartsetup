@@ -28,7 +28,6 @@ type
     procedure ParseFlowElement(const IsValue: Boolean);
     procedure ProcessName(const Name: string);
     procedure ProcessNameAndValue(const Name, Value: string);
-    class procedure ClearSectionValues(const aSection: TSection); static;
     function IsTrailingComma: boolean;
     function CheckValue(const ValueName: string;
       const ExpectedValueType: TSectionValueTypes): string;
@@ -68,7 +67,7 @@ begin
  if (Section.Actions <> nil) then
  begin
    var Action: TActionNameValue;
-   if Section.Actions.TryGetValue(Name, Action) then
+   if Section.Actions.TryGetValue(Name, Action, ErrorInfo) then
    begin
      Action(Name, '', ErrorInfo);
      exit;
@@ -83,7 +82,7 @@ begin
   if (Section.Actions <> nil) then
   begin
     var Action: TActionNameValue;
-    if (Section.Actions.TryGetValue(Name, Action)) then
+    if (Section.Actions.TryGetValue(Name, Action, ErrorInfo)) then
     begin
       Action(Name, Value, ErrorInfo);
       exit;
@@ -251,7 +250,7 @@ begin
   //Empty [] must have 0 values, not 1. But [''] should be 1.
   if IsEmptyObject(Line, Index) then
   begin
-    ClearSectionValues(Section);
+    Section.ClearValues;
     exit;
   end;
 
@@ -271,19 +270,12 @@ begin
 
 end;
 
-class procedure TBBFlowParser.ClearSectionValues(const aSection: TSection);
-begin
-  if Assigned(aSection.ClearArrayValues) then
-  begin
-    aSection.ClearArrayValues();
-  end;
-end;
 
 class procedure TBBFlowParser.GetFlowArray(const s: string; const aSection: TSection; const ErrorInfo: TErrorInfo);
 begin
   if s.Trim = '' then
   begin
-    ClearSectionValues(aSection);
+    aSection.ClearValues;
     exit;
   end;
 
@@ -410,7 +402,7 @@ begin
   end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
       Names.Add(TBBFlowTestNameValue.Create(Name, ''));
       Result := Self;

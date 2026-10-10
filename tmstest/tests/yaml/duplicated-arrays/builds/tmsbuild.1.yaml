@@ -1,0 +1,24 @@
+# Duplicated item in section platforms: "win32intel" is already defined.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmslaztest.b
+  name: "LB"
+  url: "file://lazarus-repos/L_B-A"
+
+supported frameworks:
+  rtl:
+    ide since: lazarus
+    platforms: 
+      - all
+      - win32intel
+      - win32intel
+  
+packages:
+  - l_b: [runtime, rtl]
+
+dependencies:
+  - tmslaztest.a: Lazarus A
+

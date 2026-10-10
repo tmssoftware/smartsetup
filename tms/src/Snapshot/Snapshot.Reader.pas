@@ -84,7 +84,7 @@ begin
   ClearArrayValues := procedure begin FProducts.Clear;end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
       var Product := TProductStatus.Create;
       Products.Add(Product);

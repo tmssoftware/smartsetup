@@ -1,0 +1,40 @@
+#OK
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmslaztest.b
+  name: "LB"
+  url: "file://lazarus-repos/L_B-A"
+
+supported frameworks:
+  rtl:
+    ide since: lazarus
+    platforms: 
+      - all
+
+  
+packages:
+  - l_b: [runtime]
+
+registry keys:
+  - Software\tmssoftware\TMS WEB Core:
+      - value:
+          name: InstallDir
+          data: '%install-path%'
+
+      - value: 
+          name: WebServerWait
+          type: dword
+          data: '2'
+          
+  - Software\tmssoftware\TMS WEB Core:
+     - value:
+          name: TMS WEB Core
+          data: Software\tmssoftware\TMS WEB Core
+
+
+dependencies:
+  - tmslaztest.a: Lazarus A
+

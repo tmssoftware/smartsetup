@@ -1,0 +1,13 @@
+# Duplicated item in section defines: "MYDEF" is already defined.
+# ====================================
+# TMS Smart Setup configuration file
+# Modify settings as needed.
+# ====================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json
+
+
+configuration for all products:
+  compilation options:
+    defines:
+      - MYDEF
+      - MYDEF
