@@ -1,0 +1,44 @@
+package Escaped_Core;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS ON}
+{$RANGECHECKS ON}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'An example that uses &, <> and other xml-escape characters.'}
+{$LIBSUFFIX AUTO}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  rtl;
+
+contains
+  main in '..\main.pas',
+  ok.myunit in '..\src\ok.myunit.pas',
+  okidoki.myunit in '..\src\okidoki.myunit.pas',
+  ok2.myunit in '..\src2\ok2.myunit.pas',
+  main2 in 'main2.pas',
+  okidoki2.myunit in '..\src2\okidoki2.myunit.pas';
+
+end.

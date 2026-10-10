@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 2.1
+  
+application:
+  id: tms.example.generated # use a short descriptive name in the form company.product. This id will be used everywhere by tms smart setup to refer to this product.
+  name: TMS Generated Example for VCL & FMX
+  description: An generated <example>.
+  
+supported frameworks:
+  vcl:
+    ide since: delphi7
+    platforms:
+      - win32intel
+      - win64intel
+      - win64xintel
+    c++ builder support: true
+
+packages:
+  - Escaped_Core: [runtime, vcl]
+
+# Only include this section if the library doesn't provide its own packages, or those are unusable. In that case, we will create them with the definitions below.
+# Note: This section must come after you have specified the "packages" section above.
+package definitions:
+  Escaped_Core:
+    generate from: pkg-src\generator.dpk 
