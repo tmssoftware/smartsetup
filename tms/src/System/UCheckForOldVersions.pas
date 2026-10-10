@@ -11,7 +11,7 @@ uses Windows, Deget.Registry;
 procedure ParseEntry(const reg: string; var Root: HKEY; var Key, Value: string);
 const
   HKCU = 'HKEY_CURRENT_USER\';
-  HKLM = 'HKEY_CURRENT_LOCAL_MACHINE\';
+  HKLM = 'HKEY_LOCAL_MACHINE\';
 begin
   Key := reg;
   var P := Key.LastIndexOf('\') + 1;
