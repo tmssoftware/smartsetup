@@ -315,9 +315,9 @@ begin
 
   ProcessAlerts;
 
-  // Handle bad execution
+  // Handle bad execution. A canceled run was killed, so its exit code says nothing; callers check IsCanceled.
   FLastExitcode := ExitCode;
-  if not IgnoreExitCode then
+  if not IgnoreExitCode and not FIsCanceled then
     CheckLastExitCode(Params);
 end;
 
