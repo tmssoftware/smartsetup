@@ -226,7 +226,14 @@ The rules are:
  1. Look at the path for the property in tms.config.yaml. Say we want to change the skip-register setting: it is under `configuration for all products`, then `options`, then `skip register`
  2. Replace the spaces with "-" signs. *Note: This step is optional. You can still write the names with spaces, but you will need to quote them so the command line accepts them*.
  3. Join the sections with ":"
- 4. If the variable you want to set is an array (like, for example, the delphi versions), you set it by putting the elements between brackets and separating them with commas. For example: [delphi11,delphi12]. You can specify if you want to add those values to the existing array or replace the existing array by prepending `add-` or `replace-` to the name of the property. If the property is "delphi-versions", you can set "add-delphi-versions" instead to add to the existing values. ("replace" is the same as writing nothing, but we have the option so you can be more explicit in what you want to do)
+ 4. If the variable you want to set is an array (like, for example, the delphi versions), you set it by putting the elements between brackets and separating them with commas. For example: [delphi11,delphi12]. **You can specify if you want to add those values to the existing array or replace the existing array by prepending `add-` or `replace-` to the name of the property.** If the property is "delphi-versions", you can set "add-delphi-versions" instead to add to the existing values. ("replace" is the same as writing nothing, but we have the option so you can be more explicit in what you want to do).
+
+Some special cases:
+
+ - If a name contains a `:`, write it as `#`, so it is not taken as a section separator. To write a literal `_`, `-` or `#` in a name, double it: `__`, `--` or `##`.
+ - Array elements can be quoted, so they can contain commas or brackets: `['c:\my, folder', other]`. A trailing comma is ignored: `[a, b,]` has two elements, as per the YAML 1.2 standard.
+ - Arrays can contain other arrays, using `name:[values]` for each element. For example, `-s:"packages=[Example_Core:[runtime,vcl]]"` in [tms spec](xref:SmartSetup.Command.Spec).
+ - `[]` or an empty value clears the array.
 
  Some examples (the first and the second are similar, but the second omits step 2 above):
 
@@ -265,6 +272,14 @@ So, if you wanted to change the autosnapshot filenames to save to two places, yo
 tms config-write -p:"tms smart setup options:auto snapshot filenames = [tms.snapshot.yaml, ../../tms.snapshot.yaml]"
 ```
 {{/Tip}}
+
+{{#Important}}
+As mentioned above, when writing arrays, there are two possibilities:
+  * You might want to add and element to an existing list. For example, you have a list of defines, and want to add a new one.
+  * You might want to completely replace the array with a new list. You have a list of defines, and want to replace it by another.
+
+There is no simple "default" answer that can be used always. So SmartSetup provides the possibility to prepend `add-` or `replace-` to array property names, to be explicit about what you want to do. `add-defines=[mydefine]` will add the define to the existing list. `replace-defines=[mydefine]` will remove all existing defines and set it to only contain `mydefine`.
+{{/Important}}
 
 ### Adding extra settings to an existing configuration file.
 
