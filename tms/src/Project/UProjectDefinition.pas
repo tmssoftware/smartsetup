@@ -82,6 +82,23 @@ type
     procedure ClearFolders;
   end;
 
+  TUniqueFileList = class
+  private
+    FList: TOrderedDictionary<string, boolean>;
+    function GetItems(i: integer): string;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure Include(const FileName: string);
+    function Count: integer;
+
+    property Items[i: integer]: string read GetItems; default;
+
+    function GetEnumerator: TEnumerator<string>;
+
+  end;
+
   TPackage = class
   private
     FName: string;
@@ -93,10 +110,11 @@ type
     FGenerateFromFullFileName: string;
     FDescription: string;
     FDelphiFrameworkType: string;
-    FRequires: TArray<string>;
+    FRequires: TUniqueFileList;
     FFileMasks: TFileMasksList;
   public
     constructor Create(const aName: string);
+    destructor Destroy; override;
     property Name: string read FName write FName;
     property IsRuntime: boolean read FIsRuntime write FIsRuntime;
     property IsDesign: boolean read FIsDesign write FIsDesign;
@@ -109,7 +127,7 @@ type
     property GenerateFromFullFileName: string read FGenerateFromFullFileName write FGenerateFromFullFileName;
     property Description: string read FDescription write FDescription;
     property DelphiFrameworkType: string read FDelphiFrameworkType write FDelphiFrameworkType;
-    property Requires: TArray<string> read FRequires write FRequires;
+    property Requires: TUniqueFileList read FRequires write FRequires;
     property FileMasks: TFileMasksList read FFileMasks write FFileMasks;
 
     function AutoGenerate: boolean;
@@ -703,7 +721,14 @@ end;
 
 constructor TPackage.Create(const aName: string);
 begin
+  FRequires := TUniqueFileList.Create;
   Name := aName;
+end;
+
+destructor TPackage.Destroy;
+begin
+  FRequires.Free;
+  inherited;
 end;
 
 { TDependency }
@@ -1094,6 +1119,39 @@ begin
   var tmp := Last;
   tmp.SetRecursive(value);
   Last := tmp;
+end;
+
+{ TUniqueFileList }
+
+procedure TUniqueFileList.Include(const FileName: string);
+begin
+  FList.AddOrSetValue(FileName, true);
+end;
+
+function TUniqueFileList.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+constructor TUniqueFileList.Create;
+begin
+  FList := TOrderedDictionary<string, boolean>.Create;
+end;
+
+destructor TUniqueFileList.Destroy;
+begin
+  FList.Free;
+  inherited;
+end;
+
+function TUniqueFileList.GetEnumerator: TEnumerator<string>;
+begin
+  Result := FList.Keys.GetEnumerator;
+end;
+
+function TUniqueFileList.GetItems(i: integer): string;
+begin
+  Result := FList.KeyList[i];
 end;
 
 end.

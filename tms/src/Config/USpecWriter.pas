@@ -515,13 +515,13 @@ begin
 
 end;
 
-function GetRequires(const Requires: TArray<string>): string;
+function GetRequires(const Requires: TUniqueFileList): string;
 begin
   Result := '';
   for var r in Requires do
   begin
     if Result <> '' then Result := Result + ';';
-    if r.EndsWith('.dcp') then Result := Result + r.Substring(0, r.Length - Length('.dcp'));
+    Result := Result + r;
   end;
 
 end;

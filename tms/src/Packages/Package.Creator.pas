@@ -17,8 +17,9 @@ uses SysUtils, Classes, Zip, System.Types, Util.Replacer, Deget.Filer.DprojFile,
 type
 TPackageAndDpk = class(TPackage)
 public
-  PackData: TDpkData;
-  AllFiles: TArray<string>;
+  AllPasFiles: TUniqueFileList;
+  AllDcrFiles: TUniqueFileList;
+  constructor Create;
   destructor Destroy; override;
 end;
 var
@@ -27,9 +28,11 @@ var
 //No need to escape non-ascii characters, this will be saved as utf-8
 function XmlEscape(const s: string): string;
 begin
-  Result := StringReplace(s, '&lt;', '<', [rfReplaceAll]);
-  Result := StringReplace(Result, '&gt;', '>', [rfReplaceAll]);
-  Result := StringReplace(Result, '&amp', '&', [rfReplaceAll]);
+  //& must go first, or the other entities would be escaped twice.
+  Result := StringReplace(s, '&', '&amp;', [rfReplaceAll]);
+  Result := StringReplace(Result, '<', '&lt;', [rfReplaceAll]);
+  Result := StringReplace(Result, '>', '&gt;', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '&quot;', [rfReplaceAll]);
 end;
 
 //No need to escape non-ascii characters, this will be saved as utf-8
@@ -38,11 +41,23 @@ begin
   Result := StringReplace(s, '''', '''''', [rfReplaceAll]);
 end;
 
-function GetDpkSection(const Data: TArray<string>; const Transform: TFunc<string, string>): string;
+procedure CheckIncludedFile(const RootFolder, FileName: string);
+begin
+  var FullFileName := TPath.GetFullPath(TPath.Combine(RootFolder, 'packages', 'dx', FileName));
+    if FolderIsOutside(FullFileName, [RootFolder])
+      then raise Exception.Create('The sources of the package can''t be outside the root folder of the project.' +
+        ' Source folder is: "' +  FullFileName + '" and the root folder is "' + RootFolder + '"');
+
+
+end;
+
+function GetDpkSection(const RootFolder: string; const Data: TUniqueFileList; const Transform: TFunc<string, string>): string;
 begin
   Result := '';
   for var Entry in Data do
   begin
+    CheckIncludedFile(RootFolder, Entry);
+
     var EntryTransformed := Transform(Entry);
     if EntryTransformed = '' then continue;
 
@@ -70,6 +85,14 @@ begin
   Result := false;
 end;
 
+type
+TUniqueFileListWithExtension = record
+  Files: TUniqueFileList;
+  Extension: string;
+
+  constructor Create(const aFiles: TUniqueFileList; const aExtension: string = '');
+end;
+
 function DCCReference(const s: string): string;
 begin
   // Forms are like:
@@ -91,13 +114,18 @@ begin
   Result := '<None Include="' + XmlEscape(s) + '"/>';
 end;
 
-function GetDccReferences(const Data: array of TArray<string>): string;
+function GetDccReferences(const RootFolder: string; const Data: array of TUniqueFileListWithExtension): string;
 begin
   Result := '';
+
+
   for var List in Data do
   begin
-    for var Entry in List do
+    for var EntryOriginal in List.Files do
     begin
+      var Entry := EntryOriginal + List.Extension;
+      CheckIncludedFile(RootFolder, Entry);
+
       var DccRef := DCCReference(Entry);
       if DccRef = '' then continue;
 
@@ -160,30 +188,25 @@ begin
   Result := false;
 end;
 
-function GetFiles(const Project: TProjectDefinition; const Masks: TFileMasksList): TArray<string>;
+procedure GetFiles(const Project: TProjectDefinition; const Masks: TFileMasksList; const PasFiles, DcrFiles: TUniqueFileList);
 begin
-  var ListResult := TList<string>.Create;
-  try
-    for var Mask in Masks.FileMasks do
+  for var Mask in Masks.FileMasks do
+  begin
+    var RootFolder := TPath.GetFullPath(TPath.Combine(Project.RootFolder, Mask.BaseFolder));
+    if FolderIsOutside(RootFolder, [Project.RootFolder])
+      then raise Exception.Create('The sources of the package can''t be outside the root folder of the project.' +
+      ' Source folder is: "' + RootFolder + '" and the root folder is "' + Project.RootFolder + '"');
+
+    ScanFiles(RootFolder, Mask.IncludeFolders, Mask.ExcludeFolders, Mask.IncludeFiles, Mask.ExcludeFiles,
+    procedure(FileName, RelPath: string)
     begin
-      var RootFolder := TPath.GetFullPath(TPath.Combine(Project.RootFolder, Mask.BaseFolder));
-      if FolderIsOutside(RootFolder, [Project.RootFolder])
-        then raise Exception.Create('The sources of the package can''t be outside the root folder of the project.' +
-        ' Source folder is: "' + RootFolder + '" and the root folder is "' + Project.RootFolder + '"');
-
-      ScanFiles(RootFolder, Mask.IncludeFolders, Mask.ExcludeFolders, Mask.IncludeFiles, Mask.ExcludeFiles,
-      procedure(FileName, RelPath: string)
-      begin
-        ListResult.Add(TPath.Combine('..', '..', Mask.BaseFolder, RelPath));
-      end,
-      Mask.Recursive);
-    end;
-
-    Result := ListResult.ToArray;
-  finally
-    ListResult.Free;
+      var TargetName := TPath.Combine('..', '..', Mask.BaseFolder, RelPath);
+      if SameText(TPath.GetExtension(TargetName), '.dcr')
+        then DcrFiles.Include(TargetName)
+        else PasFiles.Include(TargetName);
+    end,
+    Mask.Recursive);
   end;
-
 end;
 
 function GetUnitSearchPath(const Project: TProjectDefinition): string;
@@ -210,6 +233,16 @@ begin
   exit(ExistingPackage.Description);
 end;
 
+function GetDcrsInDpk(const Files: TUniqueFileList): string;
+begin
+  Result := '';
+  for var f in Files do
+  begin
+    Result := Result + '{$R ''' + DelphiEscape(f) + '''}' + Newline;
+  end;
+
+end;
+
 function ReplaceVariable(const varName: string; const IDEName: TIDEName; const Project: TProjectDefinition; const Package: TPackage; out IsEscaped: boolean): string;
 begin
   IsEscaped := false;
@@ -227,15 +260,24 @@ begin
 
   if varName = 'lib-suffix-dpk' then begin IsEscaped := true; exit(GetLibSuffix(IDEName, true).ToUpperInvariant); end;
   if varName = 'lib-suffix-dproj' then exit(GetLibSuffixDproj(IDEName));
-  if varName = 'requires' then begin IsEscaped := true; exit(GetDpkSection(ExistingPackage.Requires + Package.Requires, function(s: string): string begin Result := DelphiEscape(TPath.GetFileNameWithoutExtension(s)); end)); end;
+  if varName = 'requires' then begin IsEscaped := true; exit(GetDpkSection(Project.RootFolder, ExistingPackage.Requires, function(s: string): string begin Result := DelphiEscape(TPath.GetFileName(s)); end)); end;
   if varName = 'unit-search-path' then exit(GetUnitSearchPath(Project));
   
   if varName  = 'product-version' then if IDEName < TIDEName.delphixe2 then exit(DelphiProductVersion[IDEName]) else exit('$(ProductVersion)');
   if varName = 'debug-information-false' then if IDEName <= TIDEName.delphixe4 then exit('false') else exit('0');                                              
   
   var PackagePlatforms := GetPackagePlatforms(Project, Package);
-  var PackageFiles := ExistingPackage.AllFiles;
-  if varName = 'contains' then begin IsEscaped := true; exit(GetDpkSection(PackageFiles, function(s: string): string begin Result := GetDpkContain(s); end));end;
+  if varName = 'contains' then
+    begin
+      IsEscaped := true;
+      exit(GetDpkSection(Project.RootFolder, ExistingPackage.AllPasFiles, function(s: string): string begin Result := GetDpkContain(s); end));
+    end;
+
+  if varName = 'dcrs' then
+    begin
+      IsEscaped := true;
+      exit(GetDcrsInDpk(ExistingPackage.AllDcrFiles));
+    end;
 
   //If we always return a new guid, the projects will recompile every time we recreate them.
   //if varName = 'guid' then exit(GuidToString(TGuid.NewGuid));
@@ -246,7 +288,15 @@ begin
   if varName = 'framework-type' then exit(Package.DelphiFrameworkType);
   if varName = 'targeted-platforms' then exit(TargetedPlatforms(PackagePlatforms));
   if varName = 'cpp-output' then exit(GetCppOutput(SupportsCppBuilder(Project, Package)));
-  if varName = 'dcc-references' then begin IsEscaped := true; exit(GetDccReferences([Package.Requires, PackageFiles])); end;
+  if varName = 'dcc-references' then
+    begin
+      IsEscaped := true;
+      exit(GetDccReferences(Project.RootFolder,
+        [TUniqueFileListWithExtension.Create(ExistingPackage.Requires, '.dcp'),
+         TUniqueFileListWithExtension.Create(ExistingPackage.AllDcrFiles),
+         TUniqueFileListWithExtension.Create(ExistingPackage.AllPasFiles)
+        ]));
+    end;
 
   if varName = 'plat-android' then exit(HasPlatform(TPlatform.android32, PackagePlatforms));
   if varName = 'plat-android64' then exit(HasPlatform(TPlatform.android64, PackagePlatforms));
@@ -262,11 +312,11 @@ begin
 
   //verinfo
   var ApplicationVersionString := Project.Application.Version;
-  if ApplicationVersionString = '' then ApplicationVersionString := TStatusManager.GetInstalledVersion(TLenientVersion.Create('', TVersionType.FreeForm), Project.Application.Id, TPath.GetDirectoryName(Project.FullPath));
+  if ApplicationVersionString = '' then ApplicationVersionString := TStatusManager.GetInstalledVersion(TLenientVersion.Create('', TVersionType.FreeForm), Project.Application.Id, Project.RootFolder);
   if ApplicationVersionString = '' then ApplicationVersionString := '0.0';
   var ApplicationVersion: TLenientVersion;
 
-  var IsSpecialBuild := false;
+  var IsSpecialBuild: boolean;
   var SemVer: TVersion;
   if TVersion.TryFromString(ApplicationVersionString, SemVer)
     then
@@ -349,18 +399,36 @@ begin
   Result := TIDEName.delphi11; //currently this is the only folder in the zip.
 end;
 
-procedure CopyDpk(const Source, Target: string; const IDEName: TIDEName);
+procedure CopyDpk(const RootFolder, Source, Target: string; const IDEName: TIDEName);
 begin
   TDirectory_CreateDirectory(TPath.GetDirectoryName(Target));
   TFile.Copy(Source, Target, true);
-  if ExistingPackage.PackData = nil then exit;
 
   var Writer := TDpkWriter.Create(Target, IDEName);
   try
     // Package files
     Writer.RemoveDeprecatedRes;
-    Writer.UpdateDcrFiles(ExistingPackage.PackData.DcrFiles, function(FileName: string): string begin Result := TPath.Combine('..','..', FileName); end);
-    Writer.UpdatePasFiles(ExistingPackage.PackData.PasFiles, function(FileName: string): string begin Result := TPath.Combine('..','..', FileName); end);
+
+    Writer.UpdateDcrFiles(ExistingPackage.AllDcrFiles.Count,
+      function(i: integer): string
+      begin
+        Result := ExistingPackage.AllDcrFiles[i];
+        CheckIncludedFile(RootFolder, Result);
+      end,
+      function(FileName: string): string begin Result := FileName; end);
+
+    Writer.UpdatePasFiles(ExistingPackage.AllPasFiles.Count,
+       procedure(const i: integer; out FileName, FormName: string)
+       begin
+         FormName := '';
+         FileName := ExistingPackage.AllPasFiles[i];
+         CheckIncludedFile(RootFolder, FileName);
+       end,
+       function(FileName: string): string begin Result := FileName; end
+    );
+
+    Writer.UpdateRequires(ExistingPackage.Requires.Count, function(i: integer): string begin Result := ExistingPackage.Requires[i]; end);
+
     Writer.UpdateDllSuffix(GetLibSuffix(IDEName, false));
     Writer.Flush;
   finally
@@ -381,7 +449,7 @@ begin
       if (Package.GenerateFromFullFileName <> '') then
       begin
         if not TFile.Exists(Package.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + Package.GenerateFromFullFileName + '". Check the section "generate from" at ' + Project.FullPath);
-        CopyDpk(Package.GenerateFromFullFileName, BaseFileName + '.dpk', TargetIDEName);
+        CopyDpk(Project.RootFolder, Package.GenerateFromFullFileName, BaseFileName + '.dpk', TargetIDEName);
       end else
       begin
         Zip.Read(DelphiSuffixes[TemplateFolder(TargetIDEName)] + '/Package.dpk', Template);
@@ -411,73 +479,68 @@ begin
   for var ide in BreakingIDEs do if Project.SupportsIDE(ide) then Result := Result + [ide];
 end;
 
-
-function GetFileMasks(const PasFiles: TPasIncludeFiles; const DcrFiles: TIncludeFiles): TFileMasksList;
+function AdaptPath(const SourceFolder, TargetFolder, FileName: string): string;
 begin
-  Result := TFileMasksList.Create(nil);
-  var LastFolder := '';
-  for var Pas in PasFiles do
-  begin
-    var FileName := Pas.FileName;
-    var NextFolder := TPath.GetDirectoryName(FileName);
-    if NextFolder <> LastFolder then Result.AddFolder(NextFolder);
-    NextFolder := LastFolder;
-    Result.SetIncludeFiles([TPath.GetFileName(FileName)]);
-    Result.SetRecursive(false);
-  end;
+  Result := ExtractRelativePath(
+      IncludeTrailingPathDelimiter(TargetFolder),
+      TPath.GetFullPath(TPath.Combine(SourceFolder, FileName)));
+end;
 
-  for var Dcr in DcrFiles do
+procedure AddFilesFromDproj(const FileList: TUniqueFileList; const Project: TProjectDefinition; const DProjFile: string; const Files: IIncludeFiles);
+begin
+  for var i := 0 to Files.Count - 1 do
   begin
-    var FileName := Dcr.FileName;
-    var NextFolder := TPath.GetDirectoryName(FileName);
-    if NextFolder <> LastFolder then Result.AddFolder(NextFolder);
-    NextFolder := LastFolder;
-    Result.SetIncludeFiles([TPath.GetFileName(FileName)]);
-    Result.SetRecursive(false);
+    var FileName := Files.GetFile(i).FileName;
+    FileList.Include(AdaptPath(TPath.GetDirectoryName(DProjFile), TPath.Combine(Project.RootFolder, 'packages', 'dx'), FileName));
   end;
 end;
 
-procedure AdaptPaths(const SourceDir, TargetDir: string; const Data: TDpkData);
+
+procedure CopyRequires(const SourceRequires: TUniqueFileList; const TargetRequires: TUniqueFileList);
 begin
-  for var Pas in Data.PasFiles do
+  for var i := 0 to SourceRequires.Count - 1 do
   begin
-    Pas.FileName := ExtractRelativePath(
-      IncludeTrailingPathDelimiter(TargetDir),
-      TPath.GetFullPath(TPath.Combine(SourceDir, Pas.FileName)));
-  end;
-  for var Dcr in Data.DcrFiles do
-  begin
-    Dcr.FileName := ExtractRelativePath(
-      IncludeTrailingPathDelimiter(TargetDir),
-      TPath.GetFullPath(TPath.Combine(SourceDir, Dcr.FileName)));
+    TargetRequires.Include(SourceRequires[i]);
   end;
 end;
 
+
+procedure AddRequires(const SourceRequires: TStrings; const TargetRequires: TUniqueFileList);
+begin
+  for var i := 0 to SourceRequires.Count - 1 do
+  begin
+    TargetRequires.Include(SourceRequires[i]);
+  end;
+end;
 
 function ReadPackage(const Project: TProjectDefinition; const Package: TPackage): TPackageAndDpk;
 begin
-  Result := TPackageAndDpk.Create('');
-  var FileName := Package.GenerateFromFullFileName;
-  var ProjectFolder := TPath.GetDirectoryName(Project.FullPath);
+  Result := TPackageAndDpk.Create;
+  CopyRequires(Package.Requires, Result.Requires);
 
-  if FileName <> '' then
+  var GenerateFromFileName := Package.GenerateFromFullFileName;
+  if GenerateFromFileName <> '' then
   begin
     if not TFile.Exists(FileName) then raise Exception.Create('Can''t find file: "' + FileName + '". Check the section "generate from" at ' + Project.FullPath);
-    Result.PackData := TDpkData.Create;
-    var Reader := TDpkReader.Create(FileName, TIDEName.delphi6);
+    var PackData := TDpkData.Create;
     try
-      Reader.ReadData(Result.PackData);
-      AdaptPaths(TPath.GetDirectoryName(FileName), ProjectFolder, Result.PackData);
-      Result.Description := Result.PackData.Description;
-      Result.Requires := Result.PackData.Requires.ToStringArray;
+      var Reader := TDpkReader.Create(GenerateFromFileName, TIDEName.delphi6);
+      try
+        Reader.ReadData(PackData);
+        Result.Description := PackData.Description;
+        AddRequires(PackData.Requires, Result.Requires);
 
-      Result.FileMasks := GetFileMasks(Result.PackData.PasFiles, Result.PackData.DcrFiles);
+        AddFilesFromDproj(Result.AllPasFiles, Project, GenerateFromFileName, PackData.PasFiles);
+        AddFilesFromDproj(Result.AllDcrFiles, Project, GenerateFromFileName, PackData.DcrFiles);
+      finally
+        Reader.Free;
+      end;
     finally
-      Reader.Free;
+      PackData.Free;
     end;
   end;
 
-  Result.AllFiles := GetFiles(Project, Result.FileMasks) + GetFiles(Project, Package.FileMasks)
+  GetFiles(Project, Package.FileMasks, Result.AllPasFiles, Result.AllDcrFiles);
 
 end;
 
@@ -504,10 +567,27 @@ begin
 end;
 { TPackageAndDpk }
 
+constructor TPackageAndDpk.Create;
+begin
+  inherited Create('');
+  AllPasFiles := TUniqueFileList.Create;
+  AllDcrFiles := TUniqueFileList.Create;
+end;
+
 destructor TPackageAndDpk.Destroy;
 begin
-  PackData.Free;
+  AllPasFiles.Free;
+  AllDcrFiles.Free;
   inherited;
+end;
+
+{ TUniqueFileListWithExtension }
+
+constructor TUniqueFileListWithExtension.Create(const aFiles: TUniqueFileList;
+  const aExtension: string);
+begin
+  Files := aFiles;
+  Extension := aExtension;
 end;
 
 end.
