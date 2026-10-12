@@ -521,7 +521,7 @@ begin
   var GenerateFromFileName := Package.GenerateFromFullFileName;
   if GenerateFromFileName <> '' then
   begin
-    if not TFile.Exists(FileName) then raise Exception.Create('Can''t find file: "' + FileName + '". Check the section "generate from" at ' + Project.FullPath);
+    if not TFile.Exists(GenerateFromFileName) then raise Exception.Create('Can''t find file: "' + GenerateFromFileName + '". Check the section "generate from" at ' + Project.FullPath);
     var PackData := TDpkData.Create;
     try
       var Reader := TDpkReader.Create(GenerateFromFileName, TIDEName.delphi6);

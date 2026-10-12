@@ -362,17 +362,17 @@ end;
 
 function TConfigWriter.GetDefines(const CfgProduct: TProductConfigDefinition): TYamlValue;
 begin
-  var Defines := CfgProduct.Defines;
+  var CfgDefines := CfgProduct.CfgDefines;
   var YamlArray: TArray<TYamlValue> := nil;
   
-  if (Defines.Count > 0) or CmdFormat then
+  if (CfgDefines.Count > 0) or CmdFormat then
   begin
-    var ArrResult := Defines.Keys.ToArray;
+    var ArrResult := CfgDefines.Keys.ToArray;
 
     SetLength(YamlArray, Length(ArrResult));
     for var i := Low(ArrResult) to High(ArrResult) do
     begin
-      if Defines[ArrResult[i]] then YamlArray[i] := ArrResult[i] else YamlArray[i] := TYamlValue.MakeObject([ArrResult[i]]);
+      if CfgDefines[ArrResult[i]] then YamlArray[i] := ArrResult[i] else YamlArray[i] := TYamlValue.MakeObject([ArrResult[i]]);
     end;
   end
   else
@@ -394,8 +394,8 @@ end;
 
 function TConfigWriter.GetDefine(const CfgProduct: TProductConfigDefinition; const Define: string): TYamlValue;
 begin
-  var Defines := CfgProduct.Defines;
-  Result := Defines[Define];
+  var CfgDefines := CfgProduct.CfgDefines;
+  Result := CfgDefines[Define];
 end;
 
 function TConfigWriter.GetProductBool(const CfgProduct: TProductConfigDefinition; const Key: string; const KeyDefault: boolean): TYamlValue;

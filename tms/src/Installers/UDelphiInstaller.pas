@@ -220,7 +220,7 @@ begin
   end;
 end;
 
-function ExcludeDefine(const Define: string; const PackageExtraDefines: TList<string>): boolean;
+function PkgExcludeDefine(const Define: string; const PackageExtraDefines: TList<string>): boolean;
 begin
   Result := false;
   for var d in PackageExtraDefines do
@@ -230,21 +230,38 @@ begin
   end;
 end;
 
-function ProcessDefines(const DefineString: string; const PackageExtraDefines: TList<string>): string;
+function CfgExcludeDefine(const Define: string; const CfgRemoveDefines: TArray<string>): boolean;
 begin
-  if PackageExtraDefines = nil then exit(DefineString); //most common case.
+  Result := false;
+  for var d in CfgRemoveDefines do
+  begin
+    if (SameText(Define.Trim(), d)) then exit(true);
+  end;
+end;
+
+
+function ProcessDefines(const DefineString: string; const PackageExtraDefines: TList<string>; const CfgRemoveDefines: TArray<string>): string;
+begin
+  if ((PackageExtraDefines = nil) or (PackageExtraDefines.Count = 0)) and (Length(CfgRemoveDefines) = 0) then exit(DefineString); //most common case.
   var SplitDefines := DefineString.Split([';'], TStringSplitOptions.ExcludeEmpty);
   Result := '';
-  for var Extra in PackageExtraDefines do
+  if PackageExtraDefines <> nil then
   begin
-    if Extra.StartsWith('-') then continue;
-    if Result <> '' then Result := Result + ';';
-    Result := Result + Extra;
+    for var Extra in PackageExtraDefines do
+    begin
+      if Extra.StartsWith('-') then continue;
+      if CfgExcludeDefine(Extra, CfgRemoveDefines) then continue;
+
+      if Result <> '' then Result := Result + ';';
+      Result := Result + Extra;
+    end;
   end;
   for var Def in SplitDefines do
   begin
-    if ExcludeDefine(Def, PackageExtraDefines) then continue;
-    Result := Result + ';' + Def;
+    if ((PackageExtraDefines <> nil) and PkgExcludeDefine(Def, PackageExtraDefines)) or CfgExcludeDefine(Def, CfgRemoveDefines) then continue;
+
+    if Result <> '' then Result := Result + ';';
+    Result := Result + Def;
   end;
 end;
 
@@ -273,10 +290,10 @@ begin
     Logger.Progress(Format('Building package %s for "%s.%s" with %s config.', [Package.Name, DisplayName, PlatformId[PlatformInfo.PlatType], BuildConfig]), BuildInfo.Project.Progress);
     var Settings := CreateDegetPackageCompilationSettings(BuildInfo.Project, PlatformInfo, PackageInfo, IDEName, BuildConfig, DoCBuilder);
     try
-      Settings.Defines := String.Join(';', BuildInfo.Project.Defines);
+      Settings.Defines := String.Join(';', BuildInfo.Project.AddDefines);
       var PkgDefines := PackageInfo.Defines(BuildConfig);
-      if PkgDefines <> '' then Settings.Defines := ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines) + ';' + Settings.Defines;
-      
+      Settings.Defines := ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines, BuildInfo.Project.RemoveDefines) + ';' + Settings.Defines;
+
 
       if not BuildInfo.Project.DryRun then
       begin
@@ -1282,7 +1299,7 @@ var
 
   procedure AddExtraInfoToDproj(const DProjModifier: TDprojModifier);
   begin
-    var Defines := String.Join(';', BuildInfo.Project.Defines);
+    var Defines := String.Join(';', BuildInfo.Project.AddDefines);
     var BaseNodeForDefines: IInterface := nil;
     try
       DProjModifier.LoopOverAllNodes(function (NodeName, NodeText: string; PropGroupIsBase: boolean): string
@@ -1290,7 +1307,7 @@ var
           if (NodeName = '/#document/Project/PropertyGroup/DCC_Define/#text') then
             begin;
               if PropGroupIsBase then BaseNodeForDefines := nil;
-              var PkgDefines := ProcessDefines(NodeText, BuildInfo.Project.Project.PackageExtraDefines);
+              var PkgDefines := ProcessDefines(NodeText, BuildInfo.Project.Project.PackageExtraDefines, BuildInfo.Project.RemoveDefines);
               if Defines<>'' then exit(Defines + ';' + PkgDefines);
               exit(PkgDefines);
             end;

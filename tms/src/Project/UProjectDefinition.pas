@@ -336,7 +336,7 @@ type
     FApplication: TApplicationDefinition;
     FNotSupportedIDEs: TIDENameSet;
     FPackages: TListOfPackages;
-    FDefines: TOrderedDictionary<string, boolean>;
+    FAllowedDefines: TOrderedDictionary<string, boolean>;
     FRegistryEntries: TObjectList<TRegistryEntry>;
     FHelpFile: string;
     FDependencies: TObjectList<TDependency>;
@@ -374,7 +374,7 @@ type
     property NotSupportedIDEs: TIDENameSet read FNotSupportedIDEs write FNotSupportedIDEs;
     property Packages: TListOfPackages read FPackages;
     property DefinesFilename: string read FDefinesFilename write FDefinesFilename;
-    property Defines: TOrderedDictionary<string, boolean> read FDefines;
+    property AllowedDefines: TOrderedDictionary<string, boolean> read FAllowedDefines;
     property RegistryEntries: TObjectList<TRegistryEntry> read FRegistryEntries;
     property HelpFile: string read FHelpFile write FHelpFile;
     property Dependencies: TObjectList<TDependency> read FDependencies;
@@ -399,7 +399,7 @@ type
 
 
     function RootFolder: string;
-    function ListDefines: string;
+    function ListAllowedDefines: string;
 
     property NeedsCompiling: TPlatsCompiled read FNeedsCompiling write FNeedsCompiling;
     property IncludeInBuild: boolean read FIncludeInBuild write FIncludeInBuild;
@@ -478,7 +478,7 @@ begin
   FPackages := TListOfPackages.Create;
   FDependencies := TObjectList<TDependency>.Create;
   FWeakDependencies := TObjectList<TDependency>.Create;
-  FDefines := TOrderedDictionary<string, boolean>.Create;
+  FAllowedDefines := TOrderedDictionary<string, boolean>.Create;
   FRegistryEntries := TObjectList<TRegistryEntry>.Create;
   FRegisteredFrameworks := TObjectDictionary<string, TFrameworkDefinition>.Create([doOwnsValues]);
   FExtraPaths := TCompilerPaths.Create;
@@ -499,7 +499,7 @@ begin
 
   FDependencies.Free;
   FWeakDependencies.Free;
-  FDefines.Free;
+  FAllowedDefines.Free;
   FRegistryEntries.Free;
   FRegisteredFrameworks.Free;
   FExtraPaths.Free;
@@ -579,9 +579,9 @@ begin
   Result := false;
 end;
 
-function TProjectDefinition.ListDefines: string;
+function TProjectDefinition.ListAllowedDefines: string;
 begin
-  var Defs := Defines.Keys.ToArray;
+  var Defs := AllowedDefines.Keys.ToArray;
   TArray.Sort<string>(Defs);
   Result := String.Join(', ', Defs);
 end;

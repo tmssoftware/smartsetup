@@ -715,17 +715,17 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
   SectionValueTypes := TSectionValueTypes.Both;
 
-  ClearArrayValues := procedure begin aProductConfig.ClearDefines;end;
+  ClearArrayValues := procedure begin aProductConfig.ClearCfgDefines;end;
 
   ContainsArrays := true;
   Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     if GetBoolEx(value, ErrorInfo) then
     begin
-      ProductConfig.AddDefine(name, ErrorInfo.ToString);
+      ProductConfig.AddCfgDefine(name, ErrorInfo.ToString);
     end
     else
     begin
-      ProductConfig.RemoveDefine(name, ErrorInfo.ToString);
+      ProductConfig.RemoveCfgDefine(name, ErrorInfo.ToString);
     end;
   end, false);
 end;

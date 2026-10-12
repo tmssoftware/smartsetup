@@ -63,7 +63,7 @@ type
     FPlatformsModified: Boolean;
     FIdeNames: TIDENameSet;
     FIdeNamesModified: Boolean;
-    FDefines: TOrderedDictionary<string, boolean>;
+    FCfgDefines: TOrderedDictionary<string, boolean>;
     FCreatedBy: String;
     FPrefixedProperties: TProductPrefixedPropertiesArray;
     function GetPrefixedProperties(
@@ -99,12 +99,12 @@ type
     function GetIDENames: TIDENameSet;
     function GetPlatforms: TPlatformSet;
 
-    procedure AddDefine(const def: string; const LineInfo: string);
-    procedure RemoveDefine(const def: string; const LineInfo: string);
-    procedure ClearDefines;
+    procedure AddCfgDefine(const def: string; const LineInfo: string);
+    procedure RemoveCfgDefine(const def: string; const LineInfo: string);
+    procedure ClearCfgDefines;
     property ProductId: string read FProductId;
 
-    property Defines: TOrderedDictionary<string, boolean> read FDefines;
+    property CfgDefines: TOrderedDictionary<string, boolean> read FCfgDefines;
 
     function ListDefines: string;
     property CreatedBy: string read FCreatedBy write FCreatedBy;
@@ -287,7 +287,7 @@ type
     function IsExcluded(const ProductId: String): boolean;
     function IsIncluded(const ProductId: String): boolean; overload;
     function IsIncluded(const ProductId, Mask: String): boolean; overload;
-    function GetAllDefines(const ProductId: string): TArray<string>;
+    function GetAllCfgDefines(const ProductId: string; const Added: boolean): TArray<string>;
     function GetDefinesOnlyForProject(const ProductId: string): TArray<string>;
 
     function GetIDENames(const ProductId: string): TIDENameSet;
@@ -426,16 +426,23 @@ begin
   Result := ResultValue;
 end;
 
-function TConfigDefinition.GetAllDefines(
-  const ProductId: string): TArray<string>;
+function TConfigDefinition.GetAllCfgDefines(
+  const ProductId: string; const Added: boolean): TArray<string>;
 begin
-  var Defines := THashSet<string>.Create;
+  var Defines := THashSet<string>.Create(TIStringComparer.Ordinal);
   try
     Products.LoopOverAllMatches(ProductId, procedure(Product: TProductConfigDefinition)
       begin
-        for var s in Product.Defines.Keys do
+        for var s in Product.CfgDefines.Keys do
         begin
-          if Product.Defines[s] then Defines.Add(s) else Defines.Remove(s);
+          if Added then
+          begin
+            if Product.CfgDefines[s] then Defines.Add(s) else Defines.Remove(s);
+          end else
+          begin
+            if not Product.CfgDefines[s] then Defines.Add(s) else Defines.Remove(s);
+          end;
+
         end;
       end);
 
@@ -455,18 +462,8 @@ begin
   var Product: TProductConfigDefinition;
   if Products.TryGetValue(ProductId, Product) then
   begin
-    SetLength(Result, Product.Defines.Count);
-    var i := 0;
-    for var s in Product.Defines.Keys do
-    begin
-      if (Product.Defines[s]) then
-      begin
-        Result[i] := s;
-        inc(i);
-      end;
-    end;
-    if i < Length(Result) then SetLength(Result, i);
-
+    //Both added and removed defines, so we can warn about typos in either.
+    Result := Product.CfgDefines.Keys.ToArray;
   end;
 
   //We'll sort them to avoid returning always different values as this is a dictionary.
@@ -1000,9 +997,9 @@ begin
   FPrefixedProperties[index] := value;
 end;
 
-procedure TProductConfigDefinition.ClearDefines;
+procedure TProductConfigDefinition.ClearCfgDefines;
 begin
-  FDefines.Clear;
+  FCfgDefines.Clear;
 end;
 
 procedure TProductConfigDefinition.ClearIDENames;
@@ -1034,14 +1031,14 @@ begin
   Result := FPrefixedProperties[index];
 end;
 
-procedure TProductConfigDefinition.AddDefine(const def, LineInfo: string);
+procedure TProductConfigDefinition.AddCfgDefine(const def, LineInfo: string);
 begin
-  Defines.Add(def, true);
+  CfgDefines.Add(def, true);
 end;
 
-procedure TProductConfigDefinition.RemoveDefine(const def, LineInfo: string);
+procedure TProductConfigDefinition.RemoveCfgDefine(const def, LineInfo: string);
 begin
-  Defines.Add(def, false);
+  CfgDefines.Add(def, false);
 end;
 
 constructor TProductConfigDefinition.Create(const aProductId: string);
@@ -1051,7 +1048,7 @@ begin
   StringProperties := TDictionary<string, string>.Create;
   BoolProperties := TDictionary<string, boolean>.Create;
   IntProperties := TDictionary<string, integer>.Create;
-  FDefines := TOrderedDictionary<string, boolean>.Create;
+  FCfgDefines := TOrderedDictionary<string, boolean>.Create;
 end;
 
 destructor TProductConfigDefinition.Destroy;
@@ -1059,14 +1056,19 @@ begin
   BoolProperties.Free;
   StringProperties.Free;
   IntProperties.Free;
-  FDefines.Free;
+  FCfgDefines.Free;
   inherited;
 end;
 
 function TProductConfigDefinition.ListDefines: string;
 begin
-  var Defs := Defines.Keys.ToArray;
+  var Defs := CfgDefines.Keys.ToArray;
   TArray.Sort<string>(Defs);
+  //Removed defines get a "-" prefix, so switching a define from true to false changes the result and forces a rebuild.
+  for var i := 0 to High(Defs) do
+  begin
+    if not CfgDefines[Defs[i]] then Defs[i] := '-' + Defs[i];
+  end;
   Result := String.Join(', ', Defs);
 end;
 

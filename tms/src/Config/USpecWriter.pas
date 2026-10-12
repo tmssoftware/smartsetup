@@ -654,7 +654,7 @@ begin
   //defines:
   if FullName = 'defines:' then exit(TYamlValue.MakeObject);
   if FullName = 'defines:defines filename:' then exit(FProduct.DefinesFilename);
-  if FullName = 'defines:available defines:' then exit(TYamlValue.MakeArray(FProduct.Defines.Keys.ToArray, false));
+  if FullName = 'defines:available defines:' then exit(TYamlValue.MakeArray(FProduct.AllowedDefines.Keys.ToArray, false));
 
   //registry keys:
   if FullName = 'registry keys:' then exit(TYamlValue.MakeArray(GetRegistryKeys, false));

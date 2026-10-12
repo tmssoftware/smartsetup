@@ -63,7 +63,8 @@ type
     FDebugDCUs: boolean;
     FBuildEvents: boolean;
     FAddSourceCodeToLibraryPath: boolean;
-    FDefines: TArray<string>;
+    FAddDefines: TArray<string>;
+    FRemoveDefines: TArray<string>;
     FCompileTempFolder: string;
     FBplFolder: string;
     FPreBuildFailed: boolean;
@@ -122,7 +123,8 @@ type
     property DebugDCUs: boolean read FDebugDCUs;
     property BuildEvents: boolean read FBuildEvents;
     property AddSourceCodeToLibraryPath: boolean read FAddSourceCodeToLibraryPath;
-    property Defines: TArray<string> read FDefines;
+    property AddDefines: TArray<string> read FAddDefines;
+    property RemoveDefines: TArray<string> read FRemoveDefines;
 
     property CompileTempFolder: string read FCompileTempFolder;
     property BplFolder: string read FBplFolder;
@@ -165,7 +167,8 @@ begin
   begin
     FAddSourceCodeToLibraryPath := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.AddSourceCodeToLibraryPath, false);
   end;
-  FDefines := aConfig.GetAllDefines(ProjectId);
+  FAddDefines := aConfig.GetAllCfgDefines(ProjectId, true);
+  FRemoveDefines := aConfig.GetAllCfgDefines(ProjectId, false);
   FCompileTempFolder := aConfig.Folders.CompileTempFolder;
   FBplFolder := aConfig.Folders.BplFolder;
   FAlternateRegistryKey := aConfig.AlternateRegistryKey;

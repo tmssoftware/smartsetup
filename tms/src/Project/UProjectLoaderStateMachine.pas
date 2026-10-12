@@ -787,11 +787,11 @@ constructor TSupportedDefinesSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
   SectionValueTypes := TSectionValueTypes.NoValues;
-  ClearArrayValues := procedure begin Project.Defines.Clear;end;
+  ClearArrayValues := procedure begin Project.AllowedDefines.Clear;end;
 
   ContainsArrays := true;
   Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo) begin
-    Project.Defines.AddOrSetValue(name, true);
+    Project.AllowedDefines.AddOrSetValue(name, true);
   end, false);
 end;
 
