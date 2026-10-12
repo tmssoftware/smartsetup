@@ -53,7 +53,7 @@ type
     FInitialized: boolean;
     FThreadId: TThreadID;
   public
-    constructor Create(const Multithreaded: boolean = false);
+    constructor Create;
     destructor Destroy; override;
   end;
 
@@ -417,13 +417,12 @@ end;
 
 { TComInitializer }
 
-constructor TComInitializer.Create(const Multithreaded: boolean);
+constructor TComInitializer.Create;
 begin
   inherited Create;
 {$IFDEF MSWINDOWS}
   FThreadId := TThread.CurrentThread.ThreadID;
-  if Multithreaded then FInitialized := Succeeded(CoInitializeEx(nil, COINIT_MULTITHREADED))
-  else FInitialized := Succeeded(CoInitialize(nil));
+  FInitialized := Succeeded(CoInitialize(nil));
 {$ENDIF}
 end;
 

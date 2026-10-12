@@ -424,7 +424,7 @@ var
   EmptyDProjFile: TBytes;
   Writer: TDprojWriter;
 begin
-  var ComInitializer := TComInitializer.Create(true);
+  var ComInitializer := TComInitializer.Create;
   try
     var PackageName := TPath.GetFileNameWithoutExtension(TargetDprojFile);
     var TargetFolder := TPath.GetDirectoryName(TargetDprojFile);

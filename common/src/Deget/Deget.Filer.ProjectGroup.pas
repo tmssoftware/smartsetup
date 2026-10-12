@@ -217,7 +217,7 @@ begin
   var GroupName := TPath.GetFileNameWithoutExtension(TargetGroupFile);
   var TargetFolder := TPath.GetDirectoryName(TargetGroupFile);
 
-  var ComInitializer := TComInitializer.Create(true);
+  var ComInitializer := TComInitializer.Create;
   try
     // Load default empty files
     begin
