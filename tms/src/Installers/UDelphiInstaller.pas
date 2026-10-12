@@ -220,48 +220,46 @@ begin
   end;
 end;
 
-function PkgExcludeDefine(const Define: string; const PackageExtraDefines: TList<string>): boolean;
+function JoinDefines(const A, B: string): string;
 begin
-  Result := false;
-  for var d in PackageExtraDefines do
-  begin
-    if not d.StartsWith('-') then continue;
-    if (SameText(Define.Trim(), d.Substring(1).Trim)) then exit(true);
-  end;
+  if A = '' then exit(B);
+  if B = '' then exit(A);
+  Result := A + ';' + B;
 end;
-
-function CfgExcludeDefine(const Define: string; const CfgRemoveDefines: TArray<string>): boolean;
-begin
-  Result := false;
-  for var d in CfgRemoveDefines do
-  begin
-    if (SameText(Define.Trim(), d)) then exit(true);
-  end;
-end;
-
 
 function ProcessDefines(const DefineString: string; const PackageExtraDefines: TList<string>; const CfgRemoveDefines: TArray<string>): string;
 begin
   if ((PackageExtraDefines = nil) or (PackageExtraDefines.Count = 0)) and (Length(CfgRemoveDefines) = 0) then exit(DefineString); //most common case.
-  var SplitDefines := DefineString.Split([';'], TStringSplitOptions.ExcludeEmpty);
-  Result := '';
-  if PackageExtraDefines <> nil then
-  begin
-    for var Extra in PackageExtraDefines do
+
+  //Defines removed either by the package ("-DEF" in extra defines) or by the config.
+  var Excluded := THashSet<string>.Create(TIStringComparer.Ordinal);
+  try
+    for var d in CfgRemoveDefines do Excluded.Add(d.Trim);
+    if PackageExtraDefines <> nil then
     begin
-      if Extra.StartsWith('-') then continue;
-      if CfgExcludeDefine(Extra, CfgRemoveDefines) then continue;
-
-      if Result <> '' then Result := Result + ';';
-      Result := Result + Extra;
+      for var d in PackageExtraDefines do
+      begin
+        if d.StartsWith('-') then Excluded.Add(d.Substring(1).Trim);
+      end;
     end;
-  end;
-  for var Def in SplitDefines do
-  begin
-    if ((PackageExtraDefines <> nil) and PkgExcludeDefine(Def, PackageExtraDefines)) or CfgExcludeDefine(Def, CfgRemoveDefines) then continue;
 
-    if Result <> '' then Result := Result + ';';
-    Result := Result + Def;
+    Result := '';
+    if PackageExtraDefines <> nil then
+    begin
+      for var Extra in PackageExtraDefines do
+      begin
+        if Extra.StartsWith('-') or Excluded.Contains(Extra.Trim) then continue;
+        Result := JoinDefines(Result, Extra);
+      end;
+    end;
+
+    for var Def in DefineString.Split([';'], TStringSplitOptions.ExcludeEmpty) do
+    begin
+      if Excluded.Contains(Def.Trim) then continue;
+      Result := JoinDefines(Result, Def);
+    end;
+  finally
+    Excluded.Free;
   end;
 end;
 
@@ -292,7 +290,7 @@ begin
     try
       Settings.Defines := String.Join(';', BuildInfo.Project.AddDefines);
       var PkgDefines := PackageInfo.Defines(BuildConfig);
-      Settings.Defines := ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines, BuildInfo.Project.RemoveDefines) + ';' + Settings.Defines;
+      Settings.Defines := JoinDefines(ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines, BuildInfo.Project.RemoveDefines), Settings.Defines);
 
 
       if not BuildInfo.Project.DryRun then
@@ -1308,8 +1306,7 @@ var
             begin;
               if PropGroupIsBase then BaseNodeForDefines := nil;
               var PkgDefines := ProcessDefines(NodeText, BuildInfo.Project.Project.PackageExtraDefines, BuildInfo.Project.RemoveDefines);
-              if Defines<>'' then exit(Defines + ';' + PkgDefines);
-              exit(PkgDefines);
+              exit(JoinDefines(Defines, PkgDefines));
             end;
 
           if not BuildInfo.Project.BuildEvents then

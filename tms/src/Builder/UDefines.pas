@@ -31,14 +31,14 @@ begin
     sw.WriteLine('// This file was generated automatically by TMS Smart Setup.');
     sw.WriteLine('// Do not modify it, as it will be overwritten every time you rebuild.');
     sw.WriteLine('// To change the values below, modify tms.config.yaml and re-run tms build.');
-    var Defines := Config.GetAllCfgDefines(Project.Application.Id, true);
+    var Defines, RemovedDefines: TArray<string>;
+    Config.GetAllCfgDefines(Project.Application.Id, Defines, RemovedDefines);
 
     for var def in Defines do
     begin
       sw.WriteLine('{$DEFINE ' + def + '}');
     end;
 
-    var RemovedDefines := Config.GetAllCfgDefines(Project.Application.Id, false);
     for var def in RemovedDefines do
     begin
       sw.WriteLine('{$UNDEF ' + def + '}');

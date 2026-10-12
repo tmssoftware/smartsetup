@@ -167,8 +167,7 @@ begin
   begin
     FAddSourceCodeToLibraryPath := aConfig.ReadBoolProperty(ProjectId, ConfigKeys.AddSourceCodeToLibraryPath, false);
   end;
-  FAddDefines := aConfig.GetAllCfgDefines(ProjectId, true);
-  FRemoveDefines := aConfig.GetAllCfgDefines(ProjectId, false);
+  aConfig.GetAllCfgDefines(ProjectId, FAddDefines, FRemoveDefines);
   FCompileTempFolder := aConfig.Folders.CompileTempFolder;
   FBplFolder := aConfig.Folders.BplFolder;
   FAlternateRegistryKey := aConfig.AlternateRegistryKey;

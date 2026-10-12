@@ -287,7 +287,7 @@ type
     function IsExcluded(const ProductId: String): boolean;
     function IsIncluded(const ProductId: String): boolean; overload;
     function IsIncluded(const ProductId, Mask: String): boolean; overload;
-    function GetAllCfgDefines(const ProductId: string; const Added: boolean): TArray<string>;
+    procedure GetAllCfgDefines(const ProductId: string; out AddDefines, RemoveDefines: TArray<string>);
     function GetDefinesOnlyForProject(const ProductId: string): TArray<string>;
 
     function GetIDENames(const ProductId: string): TIDENameSet;
@@ -426,29 +426,34 @@ begin
   Result := ResultValue;
 end;
 
-function TConfigDefinition.GetAllCfgDefines(
-  const ProductId: string; const Added: boolean): TArray<string>;
+procedure TConfigDefinition.GetAllCfgDefines(
+  const ProductId: string; out AddDefines, RemoveDefines: TArray<string>);
 begin
-  var Defines := THashSet<string>.Create(TIStringComparer.Ordinal);
+  //Defines are case-insensitive in Delphi, so "Foo" and "FOO" are the same define. The last value set wins.
+  var Defines := TDictionary<string, boolean>.Create(TIStringComparer.Ordinal);
   try
     Products.LoopOverAllMatches(ProductId, procedure(Product: TProductConfigDefinition)
       begin
-        for var s in Product.CfgDefines.Keys do
-        begin
-          if Added then
-          begin
-            if Product.CfgDefines[s] then Defines.Add(s) else Defines.Remove(s);
-          end else
-          begin
-            if not Product.CfgDefines[s] then Defines.Add(s) else Defines.Remove(s);
-          end;
-
-        end;
+        for var s in Product.CfgDefines.Keys do Defines.AddOrSetValue(s, Product.CfgDefines[s]);
       end);
 
-    Result := Defines.ToArray;
-    //We'll sort them to avoid returning always different values as this is a dictionary.
-    TArray.Sort<string>(Result);
+    var AddList := TList<string>.Create;
+    var RemoveList := TList<string>.Create;
+    try
+      for var Def in Defines do
+      begin
+        if Def.Value then AddList.Add(Def.Key) else RemoveList.Add(Def.Key);
+      end;
+
+      //We'll sort them to avoid returning always different values as this is a dictionary.
+      AddList.Sort;
+      RemoveList.Sort;
+      AddDefines := AddList.ToArray;
+      RemoveDefines := RemoveList.ToArray;
+    finally
+      RemoveList.Free;
+      AddList.Free;
+    end;
   finally
     Defines.Free;
   end;
