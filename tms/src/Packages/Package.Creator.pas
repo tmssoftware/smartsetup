@@ -69,20 +69,25 @@ begin
 
 end;
 
+function Matches(const s: string; const aMatches: array of string): boolean;
+begin
+  for var m in aMatches do if SameText(s, m) then exit(true);
+  Result := false;
+end;
+
+function AllowedInContains(const s: string): boolean;
+begin
+  Result := not Matches(TPath.GetExtension(s), ['.dfm', '.fmx', '.dcp', '.dcr', '.rc']);
+end;
+
 function GetDpkContain(const s: string): string;
 begin
   //We aren't handling forms here. Those are 'a in b.pas {Form1}'
   //But we don't know the form name. We could try to guess it by opening the dfm,
   //but dfms can be binary. We could ask for them in the yaml, but it is a little too much work.
   //In reality the packages will compile the same, so it doesn't seem worth the extra effort to specify the forms.
-  if not SameText(TPath.GetExtension(s), '.pas') then exit('');
+  if not AllowedInContains(s) then exit('');
   Result := DelphiEscape(TPath.GetFileNameWithoutExtension(s)) + ' in ''' + s + '''';
-end;
-
-function Matches(const s: string; const aMatches: array of string): boolean;
-begin
-  for var m in aMatches do if SameText(s, m) then exit(true);
-  Result := false;
 end;
 
 type
@@ -399,6 +404,23 @@ begin
   Result := TIDEName.delphi11; //currently this is the only folder in the zip.
 end;
 
+function GetAllowedInContains(const Files: TUniqueFileList): TArray<string>;
+begin
+  Result := nil;
+  SetLength(Result, Files.Count);
+  var Index := 0;
+  for var i := 0 to Files.Count - 1 do
+  begin
+    if AllowedInContains(Files[i]) then
+    begin
+      Result[Index] := Files[i];
+      Inc(Index);
+    end;
+  end;
+
+  SetLength(Result, Index);
+end;
+
 procedure CopyDpk(const RootFolder, Source, Target: string; const IDEName: TIDEName);
 begin
   TDirectory_CreateDirectory(TPath.GetDirectoryName(Target));
@@ -417,11 +439,12 @@ begin
       end,
       function(FileName: string): string begin Result := FileName; end);
 
-    Writer.UpdatePasFiles(ExistingPackage.AllPasFiles.Count,
+    var OnlyAllowed := GetAllowedInContains(ExistingPackage.AllPasFiles);
+    Writer.UpdatePasFiles(Length(OnlyAllowed),
        procedure(const i: integer; out FileName, FormName: string)
        begin
          FormName := '';
-         FileName := ExistingPackage.AllPasFiles[i];
+         FileName := OnlyAllowed[i];
          CheckIncludedFile(RootFolder, FileName);
        end,
        function(FileName: string): string begin Result := FileName; end
