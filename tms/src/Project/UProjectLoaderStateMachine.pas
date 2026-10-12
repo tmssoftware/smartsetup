@@ -1606,8 +1606,9 @@ begin
   ClearArrayValues := procedure begin ClearFolders;end;
 
 
-  ChildSections.Add(TStandardFilesSourceSectionDef.SectionNameStatic, TStandardFilesSourceSectionDef.Create(Self, aProject,
-    AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask, SetRecursive));
+  ChildSections.Add(TStandardFilesSourceSectionDef.SectionNameStatic,
+    TStandardFilesSourceSectionDef.Create(Self, aProject,
+      AddFolder, SetIncludeFolderMask, SetExcludeFolderMask, SetIncludeFileMask, SetExcludeFileMask, SetRecursive));
 end;
 
 class function TStandardFilesSectionDef.SectionNameStatic: string;

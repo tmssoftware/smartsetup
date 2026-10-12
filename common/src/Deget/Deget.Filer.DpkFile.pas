@@ -636,7 +636,7 @@ begin
   begin
     var FileName, FormName: string;
     GetFile(I, FileName, FormName);
-    if FileName = '' then continue;
+    if (FileName = '') then raise Exception.Create('Unexpected empty file name inside file "' + FileName +'".');
     
     var LineContent := Format('%s in ''%s''', [TPath.GetFileNameWithoutExtension(FileName), Adapt(NameAdapter, FileName)]);
     if FormName <> '' then
