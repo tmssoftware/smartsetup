@@ -1,6 +1,7 @@
 package Escaped_Core;
 
 {$R *.res}
+{$R '..\images\mydcr.dcr'}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -31,14 +32,18 @@ package Escaped_Core;
 {$IMPLICITBUILD OFF}
 
 requires
-  rtl;
+  rtl, dbrtl;
 
 contains
   main in '..\main.pas',
   ok.myunit in '..\src\ok.myunit.pas',
+  init3 in '..\src &  2\init3.pas',
+  init1 in '..\src &  2\init1.pas',
+  init2 in '..\src\init2.pas',
+  init4 in '..\src3\init4.pas',
   okidoki.myunit in '..\src\okidoki.myunit.pas',
-  ok2.myunit in '..\src2\ok2.myunit.pas',
+  ok2.myunit in '..\src &  2\ok2.myunit.pas',
   main2 in 'main2.pas',
-  okidoki2.myunit in '..\src2\okidoki2.myunit.pas';
+  okidoki2.myunit in '..\src &  2\okidoki2.myunit.pas';
 
 end.

@@ -5,7 +5,7 @@ program generate_fromtest;
 {$R *.res}
 
 uses
-  System.SysUtils, main;
+  System.SysUtils, main, init1, init2, init3, init4, init5;
 
 begin
   WriteLn(domain)

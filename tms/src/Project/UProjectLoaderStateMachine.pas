@@ -218,8 +218,8 @@ type
     FPackage: TPackage;
 
     function ValidateDelphiFrameworkType(const value: string; const ErrorInfo: TErrorInfo): string;
-    function GetRequires(const value: string;
-      const ErrorInfo: TErrorInfo): TArray<string>;
+    procedure AddRequires(const value: string; const Files: TUniqueFileList;
+      const ErrorInfo: TErrorInfo);
     function GetMasks(const Masks: string): TArray<string>;
   public
     constructor Create(const aParent: TSection; const aProject: TProjectDefinition; const aPackage: TPackage);
@@ -1480,7 +1480,7 @@ begin
     end);
   Actions.Add('requires', procedure(value: string; ErrorInfo: TErrorInfo)
     begin
-      aPackage.Requires := GetRequires(value, ErrorInfo);
+       AddRequires(value, aPackage.Requires, ErrorInfo);
     end);
 
     ChildSections.Add(TStandardFilesSectionDef.SectionNameStatic,
@@ -1510,10 +1510,10 @@ begin
 
 end;
 
-function TPackageDefinitionSectionDef.GetRequires(const value: string; const ErrorInfo: TErrorInfo): TArray<string>;
+procedure TPackageDefinitionSectionDef.AddRequires(const value: string; const Files: TUniqueFileList; const ErrorInfo: TErrorInfo);
 begin
-  Result := value.Split([';'], TStringSplitOptions.ExcludeEmpty);
-  for var i := 0 to High(Result) do Result[i] := Result[i].Trim + '.dcp';
+  var Items := value.Split([';'], TStringSplitOptions.ExcludeEmpty);
+  for var i := 0 to High(Items) do Files.Include(Items[i].Trim);
 
 end;
 

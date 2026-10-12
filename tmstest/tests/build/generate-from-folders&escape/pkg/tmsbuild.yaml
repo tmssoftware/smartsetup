@@ -24,3 +24,15 @@ packages:
 package definitions:
   Escaped_Core:
     generate from: pkg-src\generator.dpk 
+    files:
+      - source:
+          folder: src3
+          include file mask: "*.pas"
+          recursive: false
+    requires: vcl;rtl
+      
+
+resources:
+  - resource:
+      copy from: pkg-src\images\*
+      copy to: images
