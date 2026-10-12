@@ -43,7 +43,7 @@ begin
     'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-log-view.html',
     'log-view [<options>]');
 
-   var optionSessionId := cmd.RegisterUnNamedOption<string>('Session Id for an old log. If not specified, the last log will be opened.', 'SessionId',
+   var optionSessionId := cmd.RegisterUnNamedOption<string>('Session Id for an old log. If not specified, the last log will be opened.', 'session-id',
     procedure(const Value : String)
     begin
       SessionId := Value;

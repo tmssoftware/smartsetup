@@ -12,7 +12,7 @@ uses
   WinApi.ActiveX,
 
   Deget.Nullable,
-  Deget.CoreTypes, Deget.IDEInfo, Deget.Filer.Types;
+  Deget.CoreTypes, Deget.IDEInfo, Deget.Filer.Types, UTmsBuildSystemUtils;
 
   // Note: package update (writer) is not working fine with Delphi 2007
   // because the form is very different from other Delphis. For now it will be
@@ -168,6 +168,7 @@ type
     FIDEName: TIDEName;
     FFileName: string;
     FIDEInfo: IDelphiIDEInfo;
+    FComInitializer: TComInitializer;
     function GetXml: IXmlDocument;
   strict protected
     FXml: IXmlDocument;
@@ -332,7 +333,7 @@ type
 
 implementation
 uses
-  System.IOUtils, Xml.XMLDoc, System.Variants, Deget.DelphiInfo, Deget.IDETypes, UTmsBuildSystemUtils;
+  System.IOUtils, Xml.XMLDoc, System.Variants, Deget.DelphiInfo, Deget.IDETypes;
 
 const
 {$IF CompilerVersion <= 37.0} //We will check for CompilerVersion = 37, which includes 3.1 which doesn't need it. But it doesn't matter, it will work anyway.
@@ -375,7 +376,7 @@ begin
   FFileName := AFileName;
   FIDEName := AIDEName;
   FIDEInfo := TDelphiIDEInfo.Create(AIDEName);
-  CoInitialize(nil);
+  FComInitializer := TComInitializer.Create;
 end;
 
 function TDprojFiler.DelphiPersonalityNode: IXmlNode;
@@ -398,7 +399,7 @@ end;
 destructor TDprojFiler.Destroy;
 begin
   FXml := nil;
-  CoUninitialize;
+  FComInitializer.Free;
   inherited;
 end;
 
@@ -423,7 +424,7 @@ var
   EmptyDProjFile: TBytes;
   Writer: TDprojWriter;
 begin
-  CoInitializeEx(nil, COINIT_MULTITHREADED);
+  var ComInitializer := TComInitializer.Create(true);
   try
     var PackageName := TPath.GetFileNameWithoutExtension(TargetDprojFile);
     var TargetFolder := TPath.GetDirectoryName(TargetDprojFile);
@@ -463,7 +464,7 @@ begin
       Writer.Free;
     end;
   finally
-    CoUninitialize;
+    ComInitializer.Free;
   end;
 end;
 
@@ -485,10 +486,7 @@ begin
       FXml.LoadFromFile(FileName);
     except on ex: Exception do
       begin
-        var process := FindProcessUsing(FileName);
-        if process <> '' then process := ' (locked by: "' + process + '")';
-
-        raise Exception.Create(ex.Message + ' File: ' + FileName + process);
+        raise Exception.Create(ex.Message + ' File: ' + FileName);
       end;
     end;
  end;
@@ -928,10 +926,7 @@ begin
       Xml.SaveToFile(FileName);
   except on ex: Exception do
     begin
-      var process := FindProcessUsing(FileName);
-      if process <> '' then process := ' (locked by: "' + process + '")';
-
-        raise Exception.Create(ex.Message + ' File: ' + FileName + process);
+      raise Exception.Create(ex.Message + ' File: ' + FileName);
     end;
   end;
 end;
@@ -1923,10 +1918,7 @@ begin
     Xml.SaveToFile(DestFileName);
   except on ex: Exception do
     begin
-      var process := FindProcessUsing(DestFileName);
-      if process <> '' then process := ' (locked by: "' + process + '")';
-
-        raise Exception.Create(ex.Message + ' File: ' + DestFileName + process);
+      raise Exception.Create(ex.Message + ' File: ' + DestFileName);
     end;
   end;
 end;

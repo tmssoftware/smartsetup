@@ -448,6 +448,7 @@ begin
 
       if (Package.GenerateFromFullFileName <> '') then
       begin
+        if not TFile.Exists(Package.GenerateFromFullFileName) then raise Exception.Create('Can''t find file: "' + Package.GenerateFromFullFileName + '". Check the section "generate from" at ' + Project.FullPath);
         CopyDpk(Project.RootFolder, Package.GenerateFromFullFileName, BaseFileName + '.dpk', TargetIDEName);
       end else
       begin
@@ -520,6 +521,7 @@ begin
   var GenerateFromFileName := Package.GenerateFromFullFileName;
   if GenerateFromFileName <> '' then
   begin
+    if not TFile.Exists(FileName) then raise Exception.Create('Can''t find file: "' + FileName + '". Check the section "generate from" at ' + Project.FullPath);
     var PackData := TDpkData.Create;
     try
       var Reader := TDpkReader.Create(GenerateFromFileName, TIDEName.delphi6);

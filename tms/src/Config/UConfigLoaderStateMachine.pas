@@ -2,7 +2,7 @@ unit UConfigLoaderStateMachine;
 {$i ../../tmssetup.inc}
 
 interface
-uses BBArrays, BBClasses, Megafolders.Definition,
+uses BBError, BBArrays, BBClasses, Megafolders.Definition,
      UConfigDefinition, Generics.Collections, SysUtils,
      Deget.CoreTypes, UMultiLogger, UConfigKeys, ULogger;
 
@@ -225,9 +225,9 @@ begin
   ChildSections.Add(TTmsBuildOptionsSectionConf.SectionNameStatic, TTmsBuildOptionsSectionConf.Create(Self, aConfig));
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then exit;
 
       if not Name.StartsWith('configuration for ')
         then raise Exception.Create('The name "' + Name
@@ -235,7 +235,7 @@ begin
                    + TTmsBuildOptionsSectionConf.SectionNameStatic + '". ' + ErrorInfo.ToString);
 
       Name := Name.Substring(('configuration for ').Length).Trim;
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then exit;
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then exit;
 
       Result := TProductSectionConf.Create(Self, aConfig, Name, ErrorInfo);
       ChildSections.Add(Name, Result);
@@ -407,8 +407,11 @@ begin
   SectionValueTypes := TSectionValueTypes.NoValues;
 
   ClearArrayValues := procedure begin aConfig.ClearExcludedComponents;end;
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
+      begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end,
+    false);
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddExcludedComponent(name, ErrorInfo.ToString); end;
 
 end;
 
@@ -433,7 +436,10 @@ begin
   SectionValueTypes := TSectionValueTypes.NoValues;
   ClearArrayValues := procedure begin aConfig.ClearIncludedComponents;end;
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end;
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
+      begin aConfig.AddIncludedComponent(name, ErrorInfo.ToString); end,
+    false);
 end;
 
 procedure TIncludedComponentsSectionConf.LoadedState(
@@ -458,7 +464,10 @@ begin
 
   ClearArrayValues := procedure begin aConfig.ClearAdditionalProductsFolders;end;
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo) begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end;
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
+      begin aConfig.AddAdditionalProductsFolder(name, ErrorInfo.ToString); end,
+    false);
 end;
 
 procedure TAdditionalProductsFoldersSectionConf.LoadedState(
@@ -500,12 +509,12 @@ constructor TDelphiVersionsSectionConf.Create(const aParent: TSection;
   const aProductConfig: TProductConfigDefinition);
 begin
   inherited Create(aParent, aConfig, aProductConfig);
-  SectionValueTypes := TSectionValueTypes.NoValues;
+  SectionValueTypes := TSectionValueTypes.Both;
   ContainsArrays := true;
 
   ClearArrayValues := procedure begin aProductConfig.ClearIDENames;end;
 
-  Actions := TListOfActions.Create;
+  Actions := TListOfActions.Create(SectionName, false);
   for var dv := Low(TIDEName) to High(TIDEName) do
   begin
     Actions.Add(IDEId[dv], Capture(dv));
@@ -554,7 +563,7 @@ begin
 
   ClearArrayValues := procedure begin aProductConfig.ClearPlatforms;end;
 
-  Actions := TListOfActions.Create;
+  Actions := TListOfActions.Create(SectionName, false);
   for dp := Low(TPlatform) to High(TPlatform) do
   begin
     Actions.Add(PlatformId[dp], Capture(dp));
@@ -704,12 +713,12 @@ constructor TDefinesSectionConf.Create(const aParent: TSection;
   const aProductConfig: TProductConfigDefinition);
 begin
   inherited Create(aParent, aConfig, aProductConfig);
-  Duplicated := TDictionary<string, boolean>.Create;
   SectionValueTypes := TSectionValueTypes.Both;
 
   ClearArrayValues := procedure begin aProductConfig.ClearDefines;end;
 
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo) begin
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo) begin
     if GetBoolEx(value, ErrorInfo) then
     begin
       ProductConfig.AddDefine(name, ErrorInfo.ToString);
@@ -718,7 +727,7 @@ begin
     begin
       ProductConfig.RemoveDefine(name, ErrorInfo.ToString);
     end;
-  end;
+  end, false);
 end;
 
 procedure TDefinesSectionConf.LoadedState(
@@ -778,9 +787,9 @@ begin
   end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
-      if ChildSections.TryGetValue(Name, Result, ErrorInfo, KeepValues) then
+      if ChildSections.TryGetValue(Name, Result, ErrorInfo) then
       begin
         if (Result.CreatedBy <> Root.CreatedBy) then
         begin
@@ -934,11 +943,11 @@ begin
 
   ClearArrayValues := procedure begin aConfig.DcuMegafolders.Clear;end;
 
-
-  ArrayMainAction := procedure (name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo)
     begin
       Config.DcuMegafolders.Add(TMegafolder.Create(name, value));
-    end;
+    end, true);
 end;
 
 procedure TDcuMegafoldersSectionConf.LoadedState(
@@ -964,10 +973,11 @@ begin
 
   ClearArrayValues := procedure begin aConfig.AutoSnapshotFilenames.Clear;end;
 
-  ArrayMainAction := procedure(name, value: string; ErrorInfo: TErrorInfo)
+  ContainsArrays := true;
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
   begin
     aConfig.AutoSnapshotFilenames.Add(name, ErrorInfo.ToString);
-  end;
+  end, false);
 
 end;
 

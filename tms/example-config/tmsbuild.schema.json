@@ -229,7 +229,6 @@
             "uniqueItems": true
           }
         },
-        "uniqueItems": true,
         "additionalProperties": false
       },
       "uniqueItems": true,
