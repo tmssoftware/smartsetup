@@ -202,7 +202,7 @@ begin
   // default settings for packages
   // this is for now hard coded. We have to revise and test code to see if changing to other values would work
 
-  if MultiIDEPackage then
+  if MultiIDEPackage or AIsExe then   //exes don't have a /packages folder, so they will crash if you have more than one
   begin
     FDcuOutputDir := '.\$(ProductVersion)\$(Platform)\$(Config)';
   end else
