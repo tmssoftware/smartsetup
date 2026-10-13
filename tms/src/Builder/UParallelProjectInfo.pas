@@ -108,16 +108,26 @@ begin
 
   end;
 
+  //Projects with nothing to run (e.g. their pre-build failed) are done. They must also release the projects
+  //waiting for them, same as a task that finished with an error; otherwise those waited forever.
+  //Done before scheduling, so the released projects can start in this same pass.
+  var KeysWithoutRun := TList<string>.Create;
+  try
+    for var p in Projects do
+      if not Assigned(p.Value.Run) then KeysWithoutRun.Add(p.Key);
+    for var key in KeysWithoutRun do
+    begin
+      Projects.Remove(key);
+      RemoveTaskFromAllDeps(key);
+    end;
+  finally
+    KeysWithoutRun.Free;
+  end;
+
   var KeysToRemove := TList<string>.Create;
   try
     for var p in Projects do
     begin
-      if not Assigned(p.Value.Run) then
-      begin
-        KeysToRemove.Add(p.Key);
-        continue;
-      end;
-
       if p.Value.WithoutDependencies then
       begin
         Result.Names[k] := p.Key;
@@ -173,13 +183,19 @@ begin
       begin
         for var task in Tasks.Tasks do task.Cancel;
         TTask.WaitForAll(Tasks.Tasks);
-        exit;
       end;
-    end
-    else
-    begin
-      Tasks := GetProjectsWithoutDependencies(Tasks);
+      exit; //also when nothing is running, or the loop would spin forever.
     end;
+
+    Tasks := GetProjectsWithoutDependencies(Tasks);
+
+    //Nothing running and nothing could start: the remaining projects wait for something that will never
+    //finish (a dependency that isn't in the build). TTask.WaitForAny returns at once for an empty array,
+    //so without this the loop spun at 100% CPU forever.
+    if (Length(Tasks.Tasks) = 0) and (Projects.Count > 0) then
+      raise Exception.Create('Internal error: these projects are waiting for dependencies that will never be built: '
+        + string.Join(', ', Projects.Keys.ToArray));
+
     TTask.WaitForAny(Tasks.Tasks, 1000);
   end;
 end;
