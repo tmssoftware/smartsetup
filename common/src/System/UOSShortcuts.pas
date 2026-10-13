@@ -19,7 +19,7 @@ end;
 
 procedure CreateShortcut(const LinkFileName, TargetFileName, Description, WorkingDirectory: string);
 begin
-  CoInitialize(nil);
+  var ComInitializer := TComInitializer.Create;
   try
     var LinkFolder := TPath.GetDirectoryName(LinkFileName);
     if not TDirectory.Exists(LinkFolder) then TDirectory_CreateDirectory(LinkFolder);
@@ -36,7 +36,7 @@ begin
     Err := 'Can''t save shortcut ' + LinkFileName;
     Check(FileLink.Save(PChar(LinkFileName), false), Err);
   finally
-     CoUninitialize;
+     ComInitializer.Free;
   end;
 end;
 

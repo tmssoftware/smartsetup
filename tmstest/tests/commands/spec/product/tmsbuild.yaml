@@ -152,9 +152,27 @@ paths:
      - path2\a\b
      - '@linux64,win64intel: path3' #only added to the linux64 and win64 library path
   
+  extra delphi library paths:
+      #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path
+    - path1 # relative to the root of the project. do not start with a \. You can also use /, tmsbuild will fix it according ot the OS.
+    - path2\a\b
+    - '@linux64,win64intel: p''ath3''''' #only added to the linux64 and win64 library path
+  
+  extra cpp library paths:
+      #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path
+    - "c:\\\nmy\uD83D\uDE80"
+    - "c:\\\/myfolder"
+    - '@linux64,win64intel: pat\"h3\"' #only added to the linux64 and win64 library path
+  
   extra browsing paths:
   
   extra debug dcu path:
+
+  extra cpp include paths:
+      #include only paths not in the files in the dpr. You can add them to a platform only by writing for example - @platform: path
+    - path1 # relative to the root of the project. do not start with a \. You can also use /, tmsbuild will fix it according ot the OS.
+    - path2\a\b
+    - '@linux64,win64intel: path3' #only added to the linux64 and win64 library path
 
   web core paths: #paths to register in webcore
     # - path1

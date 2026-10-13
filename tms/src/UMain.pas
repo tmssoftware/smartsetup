@@ -29,6 +29,7 @@ uses
   Commands.Pin,
   Commands.Snapshot,
   Commands.Restore,
+  Commands.InternalTesting,
   Commands.SBOMGenerate;
 
 procedure Run;
@@ -68,6 +69,9 @@ var
 
 procedure Start;
 begin
+{$IFDEF DEBUG}
+  RegisterInternalTesting;
+{$ENDIF}
   // Register common command-line stuff (help command, for example)
   RegisterCommonOptions;
 

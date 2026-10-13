@@ -120,7 +120,6 @@ end;
 procedure TServerConfigForm.FormCreate(Sender: TObject);
 begin
   cbServerType.Items.Clear;
-  cbServerType.Items.Add('');
   cbServerType.Items.Add('api');
   cbServerType.Items.Add('zipfile');
 end;

@@ -229,7 +229,6 @@
             "uniqueItems": true
           }
         },
-        "uniqueItems": true,
         "additionalProperties": false
       },
       "uniqueItems": true,
@@ -528,7 +527,8 @@
             },
             "requires": {
               "type": "string",
-              "description": "Write the dcp packages this package requires. don't include the dcp extension."
+              "description": "String with all the dcp packages this package requires. Separate them with ';' and don't include the dcp extension.",
+              "examples": ["vcl;rtl;my_dependency"]
             },
             "files": {
               "type": "array",
@@ -814,7 +814,7 @@
     },
     "resources": {
       "type": ["array", "null"],
-      "description": "By default, we copy all dfms/dcr/res/etc to the output folder, so those files are in the library path.\nBut in some cases, for example if you have a directive like {$R resources\resource.dcr}, you need to copy the resources from the resources folder to output\resources. \nYou can specify those files to be copied here. But this section shouldn't be needed in most cases.",
+      "description": "By default, we copy all dfms/dcr/res/etc to the output folder, so those files are in the library path.\nBut in some cases, for example if you have a directive like {$R resources\\resource.dcr}, you need to copy the resources from the resources folder to output\\resources. \nYou can specify those files to be copied here. But this section shouldn't be needed in most cases.",
       "items": {
         "type": "object",
         "properties": {

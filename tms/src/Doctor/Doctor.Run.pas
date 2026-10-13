@@ -18,7 +18,7 @@ TDoctor = class
     function GetNumericAnswer(const Key: string; const Fix: TFix): boolean;
     procedure WriteQuestion(const Fix: TFix);
   public
-    constructor Create(const IDEName: TIDEName; const AlternateRegistryKey: string);
+    constructor Create(const AlternateRegistryKey: string);
     destructor Destroy; override;
     procedure RunAllChecks(const FixErrors, Confirm: boolean);
 end;
@@ -38,7 +38,7 @@ uses
 
 { TDoctor }
 
-constructor TDoctor.Create(const IDEName: TIDEName; const AlternateRegistryKey: string);
+constructor TDoctor.Create(const AlternateRegistryKey: string);
 begin
   inherited Create;
   Checks := TObjectList<TCheck>.Create;

@@ -50,7 +50,6 @@ uses UIDEUtils, UMultiLogger, SysUtils, IOUtils, Generics.Defaults,
      Xml.XMLDoc, Xml.XMLIntf, Variants, UTmsBuildSystemUtils,
      {$IFDEF MSWINDOWS}
      Windows,
-     ActiveX,
      {$ENDIF}
      Deget.CommandLine;
 
@@ -241,15 +240,11 @@ end;
 
 procedure PatchLpkDependencies(const SourceFile, DestFile: string; const ManagedPackages: TDictionary<string, string>);
 begin
-{$IFDEF MSWINDOWS}
-  CoInitialize(nil);
-{$ENDIF}
+  var ComInitializer := TComInitializer.Create;
   try
     DoPatchLpk(SourceFile, DestFile, ManagedPackages);
   finally
-{$IFDEF MSWINDOWS}
-    CoUninitialize;
-{$ENDIF}
+    ComInitializer.Free;
   end;
 end;
 

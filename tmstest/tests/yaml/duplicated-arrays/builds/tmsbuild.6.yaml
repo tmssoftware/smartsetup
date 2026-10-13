@@ -1,0 +1,36 @@
+#OK
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmslaztest.b
+  name: "LB"
+  url: "file://lazarus-repos/L_B-A"
+
+supported frameworks:
+  rtl:
+    ide since: lazarus
+    platforms: 
+      - all
+
+  
+packages:
+  - l_b: [runtime]
+
+package definitions:
+  l_b:
+    framework type: NONE # can be NONE, FMX or VCL
+    description: description for the package
+    requires: rtl;dbrtl;FireDAC   #write the dcp packages this package requires. don't include the dcp extension.
+    files:
+      - source:
+          folder: source\core;  # Include the files in the folder.
+          include file mask: '*'                  # separate masks with ;.
+          exclude file mask: '*.dcu'
+      - source:
+          folder: source\advanced;  # Include the files in the folder.
+
+dependencies:
+  - tmslaztest.a: Lazarus A
+

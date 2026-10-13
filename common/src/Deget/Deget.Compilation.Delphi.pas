@@ -1139,6 +1139,9 @@ begin
   var LinkedFolder := TPath.Combine(Settings.BplFolder, Win32Platform.PlatformMacroValue);
   var ExtPath := AddPaths(GetEnvironmentVariable('PATH'), LinkedFolder, true);
   Result := ['PATH=' + ExtPath];
+
+  //not sure it helps, but just in case
+  Result := Result + ['DBK_ENABLE_WAITCHAIN=0'];
 end;
 
 function BdsLogHasSuccess(const Messages: string): boolean;
