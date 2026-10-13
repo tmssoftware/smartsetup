@@ -77,7 +77,11 @@ end;
 
 function AllowedInContains(const s: string): boolean;
 begin
-  Result := not Matches(TPath.GetExtension(s), ['.dfm', '.fmx', '.dcp', '.dcr', '.rc']);
+  //while the best would be to allow other extensions to pass trough if the user
+  //set so in the masks or in the "generate from" dpk, this could break existing stuff.
+  //So we will only allow .pas in contains.
+  //Result := not Matches(TPath.GetExtension(s), ['.dfm', '.fmx', '.dcp', '.dcr', '.rc']);
+  Result := Matches(TPath.GetExtension(s), ['.pas']);
 end;
 
 function GetDpkContain(const s: string): string;
