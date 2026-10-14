@@ -99,17 +99,14 @@ type
     function ExpandPath(const aPath: string; const Env: TArray<string>; const Level: integer): string;
     function FindMsBuildInPath(const Path: string; const Env: TArray<string>): string;
     function FindMsBuild(const Env: TArray<string>): string;
-    function ParseRSVars(const RSVars: string): TArray<string>;
     function AddEnvVars(const EnvVars: TArray<TEnvVar>; const ExistingEnv: TArray<string>): TArray<string>;
     function AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform;
       const ExistingEnv: TArray<string>): TArray<string>;
     function GetMacroEnvVars(const Settings: TMsBuildCompilationSettings): TArray<TEnvVar>;
-    procedure DoCompileWithBat(const ProjectFile: string; Settings: TMsBuildCompilationSettings);
     function DoCompileDirectly(const ProjectFile: string; Settings: TMsBuildCompilationSettings): boolean;
   private
     function InEnvVarOverrides(const Env: string;
       const EnvVarOverrides: TArray<TEnvVar>): boolean;
-    function GetEnvVarsForBat(const Settings: TMsBuildCompilationSettings): string;
     function AddTMPEnv(const TmpVar: string; var ExistingEnv: TArray<string>;
       const TMPFolder: string): TArray<string>;
     function CppSystemIncludePath(const DelphiVersion: TIDEName;
@@ -169,6 +166,29 @@ uses
   UOSFileLinks,
   Deget.Registry,
   UMultiLogger;
+
+function ParseRSVars(const RSVars: string): TArray<string>;
+begin
+  Result := nil;
+  if not TFile.Exists(RSVars) then exit;
+  var Lines := TFile.ReadAllLines(RSVars);
+  SetLength(Result, Length(Lines));
+  var ResultCount := 0;
+  for var i := 0 to High(Lines) do
+  begin
+    var line := Trim(Lines[i]);
+    if line = '' then continue;
+    if line.StartsWith('@ECHO ', true) then continue;
+    if line.StartsWith('@SET ', true) then
+    begin
+      Result[ResultCount] := line.Substring(5).Trim;
+      inc (ResultCount);
+      continue;
+    end;
+    continue; //do not complain in an unknown line. it might be a REM or something that doesn't matter.
+  end;
+
+end;
 
 { TDelphiCompilationSettings }
 
@@ -501,8 +521,8 @@ procedure TMSBuildCompiler.DoCompile(const ProjectFile: string;
   Settings: TMsBuildCompilationSettings);
 begin
   if DoCompileDirectly(ProjectFile, Settings) then exit;
-
-  DoCompileWithBat(ProjectFile, Settings);
+  raise Exception.Create('Can''t find msbuild.exe in "' + Settings.TargetPlatform.IDEInfo.RsvarsFile
+    + '". The file must exist, contain only @SET and @ECHO lines, and its PATH must include the folder where msbuild.exe is.');
 end;
 
 function TMSBuildCompiler.FindVariable(const VariableName: string; const Env: TArray<string>; out VariableValue: string; const Level: integer): boolean;
@@ -583,29 +603,6 @@ begin
       exit(FindMsBuildInPath(GetVarValue(entry), Env));
     end;
   end;
-end;
-
-function TMSBuildCompiler.ParseRSVars(const RSVars: string): TArray<string>;
-begin
-  Result := nil;
-  if not TFile.Exists(RSVars) then exit;
-  var Lines := TFile.ReadAllLines(RSVars);
-  SetLength(Result, Length(Lines));
-  var ResultCount := 0;
-  for var i := 0 to High(Lines) do
-  begin
-    var line := Trim(Lines[i]);
-    if line = '' then continue;
-    if line.StartsWith('@ECHO ', true) then continue;
-    if line.StartsWith('@SET ', true) then
-    begin
-      Result[ResultCount] := line.Substring(5).Trim;
-      inc (ResultCount);
-      continue;
-    end;
-    exit(nil);
-  end;
-
 end;
 
 function TMSBuildCompiler.GetVarName(const s: string): string;
@@ -733,60 +730,6 @@ begin
   Result := true;
 end;
 
-function TMSBuildCompiler.GetEnvVarsForBat(const Settings: TMsBuildCompilationSettings): string;
-begin
-  //This method is not needed when debugging since Delphi will set those variables
-  //and the spawned CMD will inherit them. But when running in a standalone
-  //command window, if we don't add this fmxlinux will fail.
-
-  Result := '';
-  for var Env in GetMacroEnvVars(Settings) do
-  begin
-    Result := Result + 'set ' + Env.Name + '=' + Env.Value + #13#10;
-  end;
-
-  for var Platform in TDelphiIDEInfo.IDEPlatforms do
-  begin
-    var EnvOverrides := Settings.TargetPlatform.IDEInfo.GetEnvVarOverrides(Platform);
-    for var Env in EnvOverrides do
-    begin
-      Result := Result + 'set ' + Env.Name + '=' + Env.Value + #13#10;
-    end;
-  end;
-end;
-
-procedure TMSBuildCompiler.DoCompileWithBat(const ProjectFile: string;
-  Settings: TMsBuildCompilationSettings);
-var
-  Batch: string;
-  BatchFile: string;
-begin
-//  Logger.Note(Format('Compiling Delphi project using MSBuild: %s', [ProjectFile]));
-
-  // create batch file and compile
-  Batch := Format(
-    'call "%s" '#13#10 +
-    '%s'#13#10 +
-    'cd /D %%FrameworkDir%% '#13#10 +
-    'msbuild.exe %%*',
-    [Settings.TargetPlatform.IDEInfo.RsvarsFile, GetEnvVarsForBat(Settings)]
-  );
-//  Logger.Note('Batch file built');
-//  Logger.Note(Batch);
-  BatchFile := GetTempFileNameExt('.bat', TempFolder);
-  try
-    TDirectory_CreateDirectory(TPath.GetDirectoryName(BatchFile));
-    TFile.WriteAllText(BatchFile, Batch);
-    if not ExecuteCommand(Format('cmd /C call "%s" "%s" %s', [BatchFile, ProjectFile, BuildMsBuildParameters(ProjectFile, Settings)])) then
-      raise Exception.Create('Failed to compile ' + ProjectFile);
-  finally
-     DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, BatchFile);
-  end;
-
-//  if WarningsAsErrors and (Pos(' 0 Warning(s)', Output) = 0) then
-//    raise ETaskException.Create('Delphi project build failed. Warnings were raised.');
-end;
-
 { TDcc32Compiler }
 
 class procedure TDcc32Compiler.Build(const ProjectFile: string;
@@ -889,8 +832,7 @@ begin
       end;
   end;
 
-  // expand variables. No need for Delphi 2007 and up because we will use rsvars.bat
-  // that already sets the environment variables
+  // expand variables. Only Delphi 7 uses $(DELPHI) in its paths.
   if Settings.TargetPlatform.IDEInfo.IDEName = delphi7 then
     LocalSearchPath := StringReplace(LocalSearchPath, '$(DELPHI)',
       ExcludeTrailingPathDelimiter(Settings.TargetPlatform.IDEInfo.RootDir), [rfReplaceAll, rfIgnoreCase]);
@@ -950,28 +892,11 @@ end;
 procedure TDcc32Compiler.DoCompile(ProjectFile: string;
   Settings: TDcc32CompilationSettings);
 var
-  Batch: string;
-  BatchFile: string;
   WorkingDir: string;
 begin
 //  Logger.Note(Format('Compiling Delphi project using DCC32: %s', [ProjectFile]));
 
   WorkingDir := TPath.GetDirectoryName(ProjectFile);
-  // create batch file and compile
-  // This batch file is used to call rsvars.bat so that we are sure that environment variables like $BDSLIB
-  // and others are available in the environment thus we don't need to expand
-  // those variables to pass to command line
-  // Note: in Delphi 7 we don't have rsvars.bat but we will use the same approach to unify the code
-  Batch := Format(
-    '"%s" %%*',
-    [Settings.TargetPlatform.IDEInfo.Dcc32File]
-  );
-
-  // call rsvars.bat
-  if Settings.TargetPlatform.IDEInfo.IDEName > delphi7 then
-    Batch := Format('call "%s" '#13#10,
-      [Settings.TargetPlatform.IDEInfo.RsvarsFile])
-      + Batch;
 
   // Force output directories - dcc32 won't create them...!
   if Settings.BplOutputDir.HasValue then
@@ -988,26 +913,19 @@ begin
     TDirectory_CreateDirectory(TPath.Combine(WorkingDir, Settings.ObjOutputDir));
 
   // Now effectively run the compiler
-//  Logger.Note('Batch file built');
-//  Logger.Note(Batch);
-  BatchFile := GetTempFileNameExt('.bat', TempFolder);
-  try
-    TDirectory_CreateDirectory(TPath.GetDirectoryName(BatchFile));
-    TFile.WriteAllText(BatchFile, Batch);
-    var PkgExt := '.dpk';
-    if Settings.IsDpr then PkgExt := '.dpr';
+  var PkgExt := '.dpk';
+  if Settings.IsDpr then PkgExt := '.dpr';
 
-    if SameText(TPath.GetExtension(ProjectFile), '.dproj') then
-      ProjectFile := TPath.ChangeExtension(ProjectFile, PkgExt);
+  if SameText(TPath.GetExtension(ProjectFile), '.dproj') then
+    ProjectFile := TPath.ChangeExtension(ProjectFile, PkgExt);
 
-    if not ExecuteCommand(
-      Format('cmd /C call "%s" "%s" %s', [BatchFile, ProjectFile, BuildDcc32Parameters(Settings)]),
-      WorkingDir) then
-      raise Exception.Create('Failed to compile ' + ProjectFile);
+  var Env := ParseRSVars(Settings.TargetPlatform.IDEInfo.RsvarsFile);
 
-  finally
-    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, BatchFile);
-  end;
+  var Output := '';
+  if not ExecuteCommand(
+    QuoteCmd(Settings.TargetPlatform.IDEInfo.Dcc32File) + ' ' + Quote(ProjectFile) + ' ' + BuildDcc32Parameters(Settings),
+    WorkingDir, Output, Env) then
+    raise Exception.Create('Failed to compile ' + ProjectFile);
 
 end;
 

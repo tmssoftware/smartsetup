@@ -1,9 +1,10 @@
 $Global:BaseDelphiVersion = "37.0" #Delphi 13. Update someday for Delphi 14.
 $Global:PreviousDelphiVersionId = "delphi12"
+$Global:CurrentDelphiVersionId = "delphi13"
 
 $Global:AllDelphiVersionIDs = @(
-    "delphi12",
-    "delphi13"
+    $Global:PreviousDelphiVersionId,
+    $Global:CurrentDelphiVersionId
 )
 $Global:AllDelphiVersions = @(
     "23.0",
