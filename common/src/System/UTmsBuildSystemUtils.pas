@@ -9,7 +9,10 @@ uses SysUtils, Classes,
 
 const
   TempExtension = '.~tmp'; //make it unique so we don't remove it by mistake. We will search for *.TempExtension and delete files.
-
+  // faSymLink is marked as platform, but it works in all the platforms we support.
+  {$WARN SYMBOL_PLATFORM OFF}
+  faSymLinkNoPlat     = SysUtils.faSymLink;
+  {$WARN SYMBOL_PLATFORM DEFAULT}
 procedure TryDeleteFileAndRemoveParentFolderIfEmpty(const LockFolder, FileName: string);
 procedure TryToDeleteAllFilesInFolderIgnoringLocked(const Folder: string; const Recursive: boolean = false; const RemoveFolders: boolean = false; const Pattern: string = '*');
 procedure DeleteFolderMovingToLocked(const LockFolder, Folder: string; const Recursive: boolean; const KeepRootFolder: boolean = false);

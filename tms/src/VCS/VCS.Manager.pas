@@ -145,7 +145,7 @@ begin
     repeat
       if (SearchRec.Name = '.') or (SearchRec.Name = '..') then continue;
       var FullName := TPath.Combine(Folder, SearchRec.Name);
-      if (SearchRec.Attr and SysUtils.faSymLink) <> 0 then
+      if (SearchRec.Attr and faSymLinkNoPlat) <> 0 then
       begin
         var Removed: boolean;
         {$IFDEF MSWINDOWS}
