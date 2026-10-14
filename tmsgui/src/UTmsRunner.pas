@@ -245,8 +245,10 @@ end;
 constructor TTmsRunner.Create;
 begin
   FExeFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'tms.exe');
+  {$IFDEF DEBUG}
   if not TFile.Exists(FExeFileName) then
     FExeFileName := 'tms.exe';
+  {$ENDIF}
 
   FWorkingDir := GetCurrentDir;
   FOutput := TStringList.Create;
