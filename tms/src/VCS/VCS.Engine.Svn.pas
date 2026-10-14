@@ -145,7 +145,7 @@ function TSvnEngine.RunSvn(const aFolder, Parameters: string): string;
 begin
   var FullCommand := QuoteCmd(SvnCommandLine) + ' ' + Parameters;
   if not ExecuteCommand(FullCommand, aFolder, Result)
-    then raise Exception.Create('Error in svn command: ' + FullCommand + ' Working folder: "' + aFolder + '"');
+    then raise Exception.Create('Error in svn command: ' + RedactUrlCredentials(FullCommand) + ' Working folder: "' + aFolder + '"');
 
 end;
 

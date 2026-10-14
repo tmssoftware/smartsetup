@@ -125,7 +125,7 @@ begin
   var ExtraMsg := ExtraErrorMsg;
   if ExtraMsg <> '' then ExtraMsg := '. ' + ExtraMsg;
   if not TryRunGit(aFolder, Parameters, Result)
-    then raise Exception.Create('Error in git command: ' + GetFullCommand(Parameters) + ' Working folder: "' + aFolder + '"' + ExtraMsg);
+    then raise Exception.Create('Error in git command: ' + RedactUrlCredentials(GetFullCommand(Parameters)) + ' Working folder: "' + aFolder + '"' + ExtraMsg);
 end;
 
 function TGitEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
