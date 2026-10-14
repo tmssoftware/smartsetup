@@ -136,7 +136,7 @@ begin
     VerifySelfUpdateFile(ParamStr(0), tms);
 
     var JsonOutputString: string;
-    ExecuteCommand('"' + tms + '" info -json', '', JsonOutputString);
+    ExecuteCommand(QuoteCmd(tms) + ' info -json', '', JsonOutputString);
 
     var JsonOutputParsed := TJSONValue.ParseJSONValue(JsonOutputString);
     try

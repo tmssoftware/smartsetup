@@ -28,6 +28,9 @@ type
     function GetBestTag(const Tags: string): string;
     function LooksLikeVersion(Tag: string): boolean;
     function GetGitCommandLine: string;
+    function RunGit(const aFolder, Parameters: string; const ExtraErrorMsg: string = ''): string;
+    function TryRunGit(const aFolder, Parameters: string; out Message: string; const FailureIsOk: boolean = false): boolean;
+    function GetFullCommand(const Parameters: string): string;
   public
     constructor Create(const aGitCommandLine, aCloneCommand, aPullCommand: string; const aSkipSubModules: boolean);
 
@@ -69,11 +72,7 @@ end;
 function TGitEngine.FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
 begin
   ValidateVCSFilePath(aFileName);
-  var Output := '';
-  //'--' terminates option parsing so that a path starting with '-' cannot be interpreted as a git option.
-  var FullCommand := '"' + GitCommandLine + '" ls-files -- "' + aFileName + '"';
-  if not ExecuteCommand(FullCommand, TPath.GetFullPath(aWorkingFolder), Output, ['GIT_TERMINAL_PROMPT=0'])
-    then raise Exception.Create('Error in git command: ' + FullCommand);
+  var Output := RunGit(TPath.GetFullPath(aWorkingFolder), 'ls-files -- "' + aFileName + '"');
 
   Result := Output <> '';
 end;
@@ -103,14 +102,38 @@ begin
   Result := FGitCommandLine;
 end;
 
+function TGitEngine.GetFullCommand(const Parameters: string): string;
+begin
+  //core.symlinks=false doesn't allow links.
+  //We pass core.symlinks as an env variable, but also as a command line param for plats other than windows where env vars are ignored.
+  var Cmd := QuoteCmd(GitCommandLine) + ' -c core.symlinks=false ';
+  Result := Cmd + Parameters;
+end;
+
+function TGitEngine.TryRunGit(const aFolder, Parameters: string; out Message: String; const FailureIsOk: boolean = false): boolean;
+begin
+  Message := '';
+  Result := ExecuteCommand(GetFullCommand(Parameters), aFolder, Message,
+      ['GIT_TERMINAL_PROMPT=0','GIT_CONFIG_COUNT=1',
+       'GIT_CONFIG_KEY_0=core.symlinks',
+       'GIT_CONFIG_VALUE_0=false'],  FailureIsOk);
+end;
+
+function TGitEngine.RunGit(const aFolder, Parameters: string; const ExtraErrorMsg: string = ''): string;
+begin
+  Result := '';
+  var ExtraMsg := ExtraErrorMsg;
+  if ExtraMsg <> '' then ExtraMsg := '. ' + ExtraMsg;
+  if not TryRunGit(aFolder, Parameters, Result)
+    then raise Exception.Create('Error in git command: ' + GetFullCommand(Parameters) + ' Working folder: "' + aFolder + '"' + ExtraMsg);
+end;
+
 function TGitEngine.GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
 begin
   Result := false;
 end;
 
 function TGitEngine.GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
-var
-  FullCommand: string;
 begin
 {$IFDEF DEBUG}
   TestParameters.CheckOffline('TGitEngine.GetVersionNames');
@@ -120,8 +143,7 @@ begin
   var WorkingFolder := '';
   if TDirectory.Exists(aExistingRepoFolder) then
   begin
-    FullCommand := '"' + GitCommandLine + '" fetch --all';
-    if ExecuteCommand(FullCommand, aExistingRepoFolder, Output, ['GIT_TERMINAL_PROMPT=0'], true)
+    if TryRunGit(aExistingRepoFolder, 'fetch --all', Output, true)
       then WorkingFolder := aExistingRepoFolder;
   end;
 
@@ -133,15 +155,11 @@ begin
 
     ValidateVCSUrl(aURL);
     //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as a git option.
-    FullCommand := '"' + GitCommandLine + '" clone --bare --filter=tree:0 -- "' + aURL + '" "' + WorkingFolder + '"';
-    if not ExecuteCommand(FullCommand, WorkingFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-      then raise Exception.Create('Error in git command: ' + FullCommand);
+    RunGit(WorkingFolder, 'clone --bare --filter=tree:0 -- "' + aURL + '" "' + WorkingFolder + '"');
   end;
 
   //See https://stackoverflow.com/a/57901182
-  FullCommand := '"' + GitCommandLine + '" tag -l --format="%(refname:short)%09%(if)%(committerdate:iso-strict)%(then)%(committerdate:iso-strict)%(else)%(*committerdate:iso-strict)%(end)"';
-  if not ExecuteCommand(FullCommand, WorkingFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then raise Exception.Create('Error in git command: ' + FullCommand);
+  Output := RunGit(WorkingFolder, 'tag -l --format="%(refname:short)%09%(if)%(committerdate:iso-strict)%(then)%(committerdate:iso-strict)%(else)%(*committerdate:iso-strict)%(end)"');
 
   var Lines := Output.Split([#10]);
   var LineCount := Length(Lines);
@@ -214,17 +232,14 @@ function TGitEngine.GetCommitId(const aWorkingFolder: string; const allowTags: b
 begin
   if allowTags then
   begin
-    var FullCommand := '"' + GitCommandLine + '" tag --points-at HEAD';
-    if ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0'], true) then
+    if TryRunGit(aWorkingFolder, 'tag --points-at HEAD', Result, true) then
     begin
       Result := GetBestTag(Result.Trim);
       if Result <> '' then exit;
-
     end;
   end;
 
-  var FullCommand := '"' + GitCommandLine + '" rev-parse HEAD';
-  if not ExecuteCommand(FullCommand, aWorkingFolder, Result, ['GIT_TERMINAL_PROMPT=0'], true)
+  if not TryRunGit(aWorkingFolder, 'rev-parse HEAD', Result, true)
     then exit('');
 
   Result := Result.Trim;
@@ -232,10 +247,7 @@ end;
 
 function TGitEngine.GetCurrentBranch(const aFolder: string): string;
 begin
-  Result := '';
-  var FullCommand := '"' + GitCommandLine + '" branch --show-current';
-  if not ExecuteCommand(FullCommand, aFolder, Result, ['GIT_TERMINAL_PROMPT=0'])
-    then raise Exception.Create('Error in git command: ' + FullCommand);
+  Result := RunGit(aFolder, 'branch --show-current');
 end;
 
 procedure TGitEngine.SaveCurrentBranch(const aRootFolder, aRepoFolder: string);
@@ -261,12 +273,12 @@ end;
 function TGitEngine.GetBranchKind(const aCloneFolder, aVersion: string): TBranchKind;
 begin
   var Output := '';
-  var FullCommand := '"' + GitCommandLine + '" show-ref --verify --quiet -- "refs/heads/' + aVersion + '"';
-  if ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'], true) then exit(TBranchKind.LocalBranch);
+  if TryRunGit(aCloneFolder, 'show-ref --verify --quiet -- "refs/heads/' + aVersion + '"', Output, true)
+    then exit(TBranchKind.LocalBranch);
 
   //We always clone the repos ourselves, so the remote is always named origin.
-  FullCommand := '"' + GitCommandLine + '" show-ref --verify --quiet -- "refs/remotes/origin/' + aVersion + '"';
-  if ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'], true) then exit(TBranchKind.RemoteOnlyBranch);
+  if TryRunGit(aCloneFolder, 'show-ref --verify --quiet -- "refs/remotes/origin/' + aVersion + '"', Output, true)
+    then exit(TBranchKind.RemoteOnlyBranch);
 
   Result := TBranchKind.NotABranch;
 end;
@@ -276,21 +288,8 @@ begin
   //git clean removes untracked files. It removes tmsbuild.yaml too if not in the repo, and tmsfetch.info.
   //git reset --hard removes tracked files, leaves untracked.
 
-  var Output := '';
-  var FullCommand := '"' + GitCommandLine + '" clean -fdx';
-  if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then
-    begin
-      raise Exception.Create('Can''t clean existing repository. You might need to remove the folders and re-install.');
-    end;
-
-  Output := '';
-  FullCommand := '"' + GitCommandLine + '" reset --hard';
-  if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then
-    begin
-      raise Exception.Create('Can''t reset existing repository. You might need to remove the folders and re-install.');
-    end;
+  RunGit(aCloneFolder, 'clean -fdx', 'Can''t clean existing repository. You might need to remove the folders and re-install.');
+  RunGit(aCloneFolder, 'reset --hard', 'Can''t reset existing repository. You might need to remove the folders and re-install.');
 end;
 
 procedure TGitEngine.CheckoutVersion(const aCloneFolder, aVersion: string; const Detach, Clean: boolean);
@@ -307,19 +306,16 @@ begin
   var DetachStr := '';
   if Detach and (BranchKind = TBranchKind.NotABranch) then DetachStr :=  ' --detach';
 
-  var Output := '';
-  var FullCommand := '';
+  var FullParameters := '';
   if BranchKind = TBranchKind.RemoteOnlyBranch then
     //Create the local branch tracking origin's. ValidateVCSVersion guarantees aVersion doesn't start with '-'.
-    FullCommand := '"' + GitCommandLine + '" switch --create "' + aVersion + '" "origin/' + aVersion + '"'
+    FullParameters := 'switch --create "' + aVersion + '" "origin/' + aVersion + '"'
   else
     //'--' terminates option parsing so that a version starting with '-' cannot be interpreted as a git option.
-    FullCommand := '"' + GitCommandLine + '" switch' + DetachStr + ' -- "' + aVersion + '"'; //add a --force to wipe local changes if we prefer it that way.
-  if not ExecuteCommand(FullCommand, aCloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then
-    begin
-      raise Exception.Create('Can''t find the version "' + aVersion + '" in product ' + TPath.GetFileName(aCloneFolder) + '. Verify it is a valid tag, branch name or commit id.');
-    end;
+    FullParameters := 'switch' + DetachStr + ' -- "' + aVersion + '"'; //add a --force to wipe local changes if we prefer it that way.
+
+  RunGit(aCloneFolder, FullParameters,
+    'Can''t find the version "' + aVersion + '" in product ' + TPath.GetFileName(aCloneFolder) + '. Verify it is a valid tag, branch name or commit id.');
 end;
 
 
@@ -336,11 +332,9 @@ begin
   if SkipSubModules then SubModules := '';
 
   //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as a git option.
-  var FullCommand := '"' + GitCommandLine + '" ' + CloneCommand + SubModules + ' -- "' + aURL + '" "' + CloneFolder + '"';
   if DirectoryExists(CloneFolder) then raise Exception.Create('Can''t git clone into an existing folder: "' + CloneFolder + '"');
   TDirectory_CreateDirectory(CloneFolder);
-  if not ExecuteCommand(FullCommand, CloneFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then raise Exception.Create('Error cloning "' + aUrl + '" into ' + CloneFolder);
+  RunGit(CloneFolder, CloneCommand + SubModules + ' -- "' + aURL + '" "' + CloneFolder + '"');
 
   SaveCurrentBranch(aCloneFolder, aCloneFolder);
   CheckoutVersion(CloneFolder, aVersion, true, false);
@@ -361,8 +355,7 @@ begin
   Result := true;
 
   var CurrentCommit := '';
-  var FullCommand := '"' + GitCommandLine + '" rev-parse HEAD';
-  if not ExecuteCommand(FullCommand, aGitFolder, CurrentCommit, ['GIT_TERMINAL_PROMPT=0'], true) then exit;
+  if not TryRunGit(aGitFolder, 'rev-parse HEAD', CurrentCommit, true) then exit;
   CurrentCommit := CurrentCommit.Trim;
   if CurrentCommit = '' then exit;
 
@@ -377,8 +370,7 @@ begin
   if GetBranchKind(aGitFolder, Version) <> TBranchKind.NotABranch then TargetRef := 'origin/' + Version;
 
   var TargetCommit := '';
-  FullCommand := '"' + GitCommandLine + '" rev-parse "' + TargetRef + '"';
-  if not ExecuteCommand(FullCommand, aGitFolder, TargetCommit, ['GIT_TERMINAL_PROMPT=0'], true) then exit;
+  if not TryRungit(aGitFolder, 'rev-parse "' + TargetRef + '"', TargetCommit, true) then exit;
   TargetCommit := TargetCommit.Trim;
   if TargetCommit = '' then exit;
 
@@ -390,15 +382,12 @@ begin
 {$IFDEF DEBUG}
   TestParameters.CheckOffline('TGitEngine.Pull');
 {$ENDIF}
-  var Output := '';
   var GitFolder := TPath.GetFullPath(aGitFolder);
   var RootFolder := TPath.GetFullPath(aRootFolder);
 
   //Fetch first so we can tell whether the remote actually has changes. Fetch only updates the
   //remote-tracking refs, it doesn't touch the working tree, so the compiled output is preserved.
-  var FullCommand := '"' + GitCommandLine + '" fetch --all';
-  if not ExecuteCommand(FullCommand, GitFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then raise Exception.Create('Error in git fetch "' +  GitFolder + '"');
+  RunGit(GitFolder, 'fetch --all');
 
   //If there are no updates, skip the attach-head/pull/checkout dance. That dance cleans the working
   //tree (CleanAndReset), which would erase the compiled files and force a rebuild even with no changes.
@@ -408,9 +397,7 @@ begin
   var SubModules := ' --recurse-submodules';
   if SkipSubModules then SubModules := '';
 
-  FullCommand := '"' + GitCommandLine + '" ' + PullCommand + SubModules;
-  if not ExecuteCommand(FullCommand, GitFolder, Output, ['GIT_TERMINAL_PROMPT=0'])
-    then raise Exception.Create('Error in git pull "' +  GitFolder + '"');
+  RunGit(GitFolder, PullCommand + SubModules);
   CheckoutVersion(GitFolder, aVersion, true, false); //already cleaned in AttachHead above.
 end;
 

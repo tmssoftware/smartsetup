@@ -39,6 +39,8 @@ procedure CheckFolderInside(const Folder: string; const RootFolders: TArray<stri
 function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;
 
 function TPath_IsPathRooted(const s: string): boolean;
+function IsLinkedFolder(const Folder: string): boolean;
+
 
 
 type
@@ -122,6 +124,18 @@ begin
 
 end;
 
+procedure TryDeleteFolderWithoutFollowingSymlinks(Folder: string);
+begin
+  if IsLinkedFolder(Folder) then
+  begin
+    SysUtils.DeleteFile(Folder);
+  end
+  else
+  begin
+    SysUtils.RemoveDir(Folder);
+  end;
+end;
+
 procedure TryDeleteFileAndRemoveParentFolderIfEmpty(const LockFolder, FileName: string);
 begin
   // This is not atomic, so someone could delete the file
@@ -143,27 +157,35 @@ begin
 var
   F: SysUtils.TSearchRec;
 begin
-  if SysUtils.FindFirst(TPath.Combine(Folder, '*'), faAnyFile, F) = 0 then
+  if not IsLinkedFolder(Folder) then
   begin
-    try
-      repeat
-        if (F.Attr and faDirectory <> 0) and not IsLinkedFolder(TPath.Combine(Folder, F.Name)) then
-        begin
-          if Recursive and (F.Name <> '.') and (F.Name <> '..') then
+    if SysUtils.FindFirst(TPath.Combine(Folder, '*'), faAnyFile, F) = 0 then
+    begin
+      try
+        repeat
+          var FolderDelete := false;
+          if (F.Attr and faDirectory <> 0) then
           begin
-            DeleteFolderMovingToLocked(LockFolder, TPath.Combine(Folder, F.Name), Recursive);
+            FolderDelete := true;
+            if Recursive and (F.Name <> '.') and (F.Name <> '..') then
+            begin
+              FolderDelete := not IsLinkedFolder(TPath.Combine(Folder, F.Name));
+              if FolderDelete then DeleteFolderMovingToLocked(LockFolder, TPath.Combine(Folder, F.Name), Recursive);
+            end;
           end;
-        end else
-        begin //we don't care about errors here. If the file is locked, we leave it.
-          var FileName := TPath.Combine(Folder, F.Name);
-          DeleteFileOrMoveToLocked(LockFolder, FileName);
-        end;
-      until SysUtils.FindNext(F) <> 0;
-    finally
-      SysUtils.FindClose(F);
+          if not FolderDelete then
+          begin //we don't care about errors here. If the file is locked, we leave it.
+            var FileName := TPath.Combine(Folder, F.Name);
+            DeleteFileOrMoveToLocked(LockFolder, FileName);
+          end;
+        until SysUtils.FindNext(F) <> 0;
+      finally
+        SysUtils.FindClose(F);
+      end;
+    end;
     end;
   end;
-  end;
+
   if Folder <> RootFolder then
   begin
     DeleteFolderWithoutFollowingSymlinks(LockFolder, Folder);
@@ -181,42 +203,50 @@ procedure TryToDeleteAllFilesInFolderIgnoringLocked(const Folder: string; const 
 var
   F: SysUtils.TSearchRec;
 begin
-  if SysUtils.FindFirst(TPath.Combine(Folder, '*'), faAnyFile, F) = 0 then
+  if not IsLinkedFolder(Folder) then
   begin
-    try
-      repeat
-        if (F.Attr and faDirectory <> 0) then
-        begin
-          if Recursive and (F.Name <> '.') and (F.Name <> '..') then
+    if SysUtils.FindFirst(TPath.Combine(Folder, '*'), faAnyFile, F) = 0 then
+    begin
+      try
+        repeat
+          var FolderDelete := false;
+          if (F.Attr and faDirectory <> 0) then
           begin
-            TryToDeleteAllFilesInFolderIgnoringLocked(TPath.Combine(Folder, F.Name), Recursive, RemoveFolders, Pattern);
-          end;
-        end else
-        begin //we don't care about errors here. If the file is locked, we leave it.
-          if (Pattern = '*') or (TPath.MatchesPattern(F.Name, Pattern, true)) then
-          begin
-            var FileName := TPath.Combine(Folder, F.Name);
-            try
-              if not SysUtils.DeleteFile(FileName) then
-              begin
-              {$IFDEF MSWINDOWS}
-              {$WARN SYMBOL_PLATFORM OFF}
-                TFile.SetAttributes(FileName, [TFileAttribute.faNormal]);
-              {$WARN SYMBOL_PLATFORM ON}
-                SysUtils.DeleteFile(FileName);
-              {$ENDIF}
-              end;
-            except
-              //ignore it.
+            FolderDelete := true;
+            if Recursive and (F.Name <> '.') and (F.Name <> '..') then
+            begin
+              FolderDelete := not IsLinkedFolder(TPath.Combine(Folder, F.Name));
+              if FolderDelete then TryToDeleteAllFilesInFolderIgnoringLocked(TPath.Combine(Folder, F.Name), Recursive, RemoveFolders, Pattern);
             end;
           end;
-        end;
-      until SysUtils.FindNext(F) <> 0;
-    finally
-      SysUtils.FindClose(F);
+          if not FolderDelete then
+          begin //we don't care about errors here. If the file is locked, we leave it.
+            if (Pattern = '*') or (TPath.MatchesPattern(F.Name, Pattern, true)) then
+            begin
+              var FileName := TPath.Combine(Folder, F.Name);
+              try
+                if not SysUtils.DeleteFile(FileName) then
+                begin
+                {$IFDEF MSWINDOWS}
+                {$WARN SYMBOL_PLATFORM OFF}
+                  TFile.SetAttributes(FileName, [TFileAttribute.faNormal]);
+                {$WARN SYMBOL_PLATFORM ON}
+                  SysUtils.DeleteFile(FileName);
+                {$ENDIF}
+                end;
+              except
+                //ignore it.
+              end;
+            end;
+          end;
+        until SysUtils.FindNext(F) <> 0;
+      finally
+        SysUtils.FindClose(F);
+      end;
     end;
   end;
-  if (RemoveFolders) then SysUtils.RemoveDir(Folder);
+
+  if (RemoveFolders) then TryDeleteFolderWithoutFollowingSymlinks(Folder);
 end;
 
 function CombinePath(const RootPath, RelPath: string): string;

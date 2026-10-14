@@ -30,6 +30,7 @@ uses
   Commands.Snapshot,
   Commands.Restore,
   Commands.InternalTesting,
+  Commands.TestDeleteFolders,
   Commands.SBOMGenerate;
 
 procedure Run;
@@ -71,6 +72,7 @@ procedure Start;
 begin
 {$IFDEF DEBUG}
   RegisterInternalTesting;
+  RegisterTestDeleteFolders;
 {$ENDIF}
   // Register common command-line stuff (help command, for example)
   RegisterCommonOptions;

@@ -272,7 +272,7 @@ begin
   var LastOutputIndex := 0;
   var FullOutput := '';
 
-  var CommandLine := Format('"%s" %s', [ExeFileName, Params]);
+  var CommandLine := QuoteCmd(ExeFileName) + '  ' + Params;
   var LocalCallback: TStringProc :=
     procedure(const S: string)
     begin

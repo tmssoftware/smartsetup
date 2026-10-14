@@ -723,7 +723,7 @@ begin
   try
 
     var Output := '';
-    if not ExecuteCommand(MsBuild + ' "' + ProjectFile + '" ' + BuildMsBuildParameters(ProjectFile, Settings), '', Output, Env) then
+    if not ExecuteCommand(QuoteCmd(MsBuild) + ' "' + ProjectFile + '" ' + BuildMsBuildParameters(ProjectFile, Settings), '', Output, Env) then
       raise Exception.Create('Failed to compile ' + ProjectFile);
 
   finally
@@ -1178,7 +1178,7 @@ begin
       var RegEntry := RegEntryRoot + '\' + GuidToStringN(TGUID.NewGuid);
       try
         if not ExecuteCommand(
-           BdsBuild + ' ' + BuildBdsParameters(Settings, ErrFile, RegEntry) + ' "' + ProjectFile + '"',
+           QuoteCmd(BdsBuild) + ' ' + BuildBdsParameters(Settings, ErrFile, RegEntry) + ' "' + ProjectFile + '"',
            '', DummyOutput, Env) then HasErrors :=true;
       finally
         var RootReg := TPath.GetDirectoryName(TPath.GetDirectoryName(Settings.TargetPlatform.IDEInfo.BaseKey));
@@ -1221,7 +1221,7 @@ begin
       TDirectory_CreateDirectory(TempPath);
       TFile.WriteAllText(TPath.Combine(TempPath, 'resource_empty.rc'), '');
       try
-        var ResinatorCommand := '"' + ResinatorPath + '" -v -fo resource_empty.res resource_empty.rc ';
+        var ResinatorCommand := QuoteCmd(ResinatorPath) + ' -v -fo resource_empty.res resource_empty.rc ';
         ExecuteCommand(ResinatorCommand, TempPath);
       finally
         TryDeleteFileAndRemoveParentFolderIfEmpty(Config.Folders.LockedFilesFolder, TPath.Combine(TempPath, 'resource_empty.rc'));

@@ -231,7 +231,9 @@ uses
   BBError in '..\common\src\BBYaml\BBError.pas',
   Testing.InternalTests in 'src\Testing\Testing.InternalTests.pas',
   Commands.InternalTesting in 'src\Commands\Commands.InternalTesting.pas',
-  BBFlow in '..\common\src\BBYaml\BBFlow.pas';
+  BBFlow in '..\common\src\BBYaml\BBFlow.pas',
+  Testing.TestDeleteFolders in 'src\Testing\Testing.TestDeleteFolders.pas',
+  Commands.TestDeleteFolders in 'src\Commands\Commands.TestDeleteFolders.pas';
 
 begin
   try

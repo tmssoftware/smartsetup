@@ -32,10 +32,22 @@ function ExecuteCommand(const CommandLine, WorkingDirectory: string; var Output:
 function ExecuteCommand(const CommandLine, WorkingDirectory: string): Boolean; overload;
 function ExecuteCommand(const CommandLine: string): Boolean; overload;
 
+function QuoteCmd(const Command: string): string;
+
 implementation
 
 uses
   ULogger, UMultiLogger, UAppTerminated;
+
+function QuoteCmd(const Command: string): string;
+begin
+  if Command = '' then raise Exception.Create('Error: Empty command to execute.');
+
+  Result := Command;
+  if not Result.StartsWith('"') then Result := '"' + Result;
+  if not Result.EndsWith('"') then Result := Result + '"';
+  if (Result.Length < 2) or Result.Substring(1, Result.Length - 2).Contains('"') then raise Exception.Create('Error: The command ' + Result + ' includes a double quote inside.');
+end;
 
 function ExecuteCommand(const CommandLine, WorkingDirectory: string): Boolean;
 var

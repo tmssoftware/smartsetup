@@ -310,7 +310,7 @@ begin
           ManagedPackages.Free;
         end;
 
-        if not ExecuteCommand(LazBuild + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
+        if not ExecuteCommand(QuoteCmd(LazBuild) + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
           then raise Exception.Create('Failed to compile ' + PackageFileName);
       finally
         if TFile.Exists(PackageFileName)
@@ -320,7 +320,7 @@ begin
     end
     else
     begin
-      if not ExecuteCommand(LazBuild + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
+      if not ExecuteCommand(QuoteCmd(LazBuild) + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
         then raise Exception.Create('Failed to compile ' + PackageFileName);
     end;
   end;
@@ -348,7 +348,7 @@ begin
 
   if not BuildInfo.Project.DryRun then
   begin
-    if not ExecuteCommand(LazBuild  + ' ' + CompilerParameters + ' --build-ide= ')
+    if not ExecuteCommand(QuoteCmd(LazBuild) + ' ' + CompilerParameters + ' --build-ide= ')
     then raise Exception.Create('Failed to rebuild lazarus IDE');
   end;
 end;
@@ -363,7 +363,7 @@ begin
   begin
     if not BuildPackage.Package.IsDesign then continue;
 
-    if not ExecuteCommand(LazBuild + ' ' + CompilerParameters + ' --add-package "' + BuildPackage.PackageFileName + '"')
+    if not ExecuteCommand(QuoteCmd(LazBuild) + ' ' + CompilerParameters + ' --add-package "' + BuildPackage.PackageFileName + '"')
     then raise Exception.Create('Failed to register package: ' + BuildPackage.PackageFileName);
   end;
   Logger.Progress(Format('%s registered successfully on platform "%s.%s".',

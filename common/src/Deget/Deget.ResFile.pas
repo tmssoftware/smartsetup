@@ -62,6 +62,6 @@ begin
     Writer.Free;
   end;
 
-  if not ExecuteCommand(BRCC32Path + ' "' + RCFileName + '"') then raise Exception.Create('Cannot create res file ' + RCFileName);
+  if not ExecuteCommand(QuoteCmd(BRCC32Path) + ' "' + RCFileName + '"') then raise Exception.Create('Cannot create res file ' + RCFileName);
 end;
 end.
