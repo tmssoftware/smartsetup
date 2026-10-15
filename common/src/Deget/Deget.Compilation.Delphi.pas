@@ -94,10 +94,7 @@ type
   TMSBuildCompiler = class
   strict private
     FTempFolder: string;
-    function FindVariable(const VariableName: string; const Env: TArray<string>;
-      out VariableValue: string; const Level: integer): boolean;
-    function ExpandPath(const aPath: string; const Env: TArray<string>; const Level: integer): string;
-    function FindMsBuildInPath(const Path: string; const Env: TArray<string>): string;
+    function FindMsBuildInPath(const Path: string): string;
     function FindMsBuild(const Env: TArray<string>): string;
     function AddEnvVars(const EnvVars: TArray<TEnvVar>; const ExistingEnv: TArray<string>): TArray<string>;
     function AddEnvironmentOverrides(const IDEInfo: IDelphiIDEInfo; const Platform: TPlatform;
@@ -152,7 +149,7 @@ uses
   SyncObjs,
   Windows,
   System.SysUtils, System.IOUtils,
-  System.StrUtils, Generics.Collections,
+  System.StrUtils, Generics.Defaults, Generics.Collections,
   Deget.FileUtils,
   Deget.IDEUtils,
   Deget.DelphiInfo,
@@ -167,25 +164,98 @@ uses
   Deget.Registry,
   UMultiLogger;
 
+procedure SplitEnvEntry(const EnvEntry: string; out VarName, VarValue: string);
+begin
+  VarName := '';
+  VarValue := '';
+  var idx := EnvEntry.IndexOf('=');
+  if idx <= 0 then exit;
+  VarName := EnvEntry.Substring(0, idx).Trim;
+  VarValue := EnvEntry.Substring(idx + 1).Trim;
+end;
+
+function ReplaceVariables(const VarValue: string; const Variables: TOrderedDictionary<string, string>): string;
+begin
+  var VarValueTrimmed := VarValue.Trim;
+  Result := '';
+  var LastIdx := 0;
+  while(true) do
+  begin
+    var idxStart := VarValueTrimmed.IndexOf('%', LastIdx);
+    if idxStart < 0 then exit(Result + VarValueTrimmed.Substring(LastIdx));
+    var idxEnd := VarValueTrimmed.IndexOf('%', IdxStart + 1);
+    if idxEnd < 0 then exit(Result + VarValueTrimmed.Substring(LastIdx)); //missing closing %, we will just ignore this entry.
+
+    var VariableName := VarValueTrimmed.Substring(idxStart + 1, idxEnd - idxStart - 1);
+    var ExpandedValue: string;
+    if Variables.TryGetValue(VariableName, ExpandedValue) then
+    begin
+      Result := Result + VarValueTrimmed.Substring(LastIdx, idxStart - LastIdx) + ExpandedValue;
+      LastIdx := idxEnd + 1;
+    end
+    else if SameText(VariableName, 'PATH') then
+    begin
+      //We won't search in the user's path, or pass it as env variable. msbuild must be in the paths inside rsvars.
+      //This isolates more the build of whatever stuff could be in the user's path.
+      Result := Result + VarValueTrimmed.Substring(LastIdx, idxStart - LastIdx);
+      LastIdx := idxEnd + 1;
+    end
+    else if Windows.GetEnvironmentVariable(PChar(VariableName), nil, 0) > 0 then
+    begin
+      Result := Result + VarValueTrimmed.Substring(LastIdx, idxStart - LastIdx) + GetEnvironmentVariable(VariableName);
+      LastIdx := idxEnd + 1;
+    end
+    else
+    begin
+      //Not a variable (like a literal % in a folder name). Keep the text and let the closing % start a new variable,
+      //so "50%off;bin;%PATH%" doesn't swallow "bin".
+      Result := Result + VarValueTrimmed.Substring(LastIdx, idxEnd - LastIdx);
+      LastIdx := idxEnd;
+    end;
+  end;
+end;
+
+function IsFullyQualifiedPath(const Path: string): boolean;
+begin
+  //Either C:\... or \\server\... Paths like \bin or C:bin depend on the current drive or folder.
+  if Path.StartsWith('\\') then exit(Length(Path) > 2);
+  Result := (Length(Path) >= 3) and CharInSet(Path[1], ['A'..'Z', 'a'..'z']) and (Path[2] = ':') and CharInSet(Path[3], ['\', '/']);
+end;
+
 function ParseRSVars(const RSVars: string): TArray<string>;
 begin
   Result := nil;
   if not TFile.Exists(RSVars) then exit;
-  var Lines := TFile.ReadAllLines(RSVars);
-  SetLength(Result, Length(Lines));
-  var ResultCount := 0;
-  for var i := 0 to High(Lines) do
-  begin
-    var line := Trim(Lines[i]);
-    if line = '' then continue;
-    if line.StartsWith('@ECHO ', true) then continue;
-    if line.StartsWith('@SET ', true) then
+
+  var Variables := TOrderedDictionary<string, string>.Create(TIStringComparer.Ordinal);
+  try
+    var Lines := TFile.ReadAllLines(RSVars);
+    for var i := 0 to High(Lines) do
     begin
-      Result[ResultCount] := line.Substring(5).Trim;
-      inc (ResultCount);
-      continue;
+      var line := Trim(Lines[i]);
+      if line = '' then continue;
+      if line.StartsWith('@ECHO ', true) then continue;
+      if line.StartsWith('@SET ', true) then
+      begin
+        var VarName, VarValue: string;
+        SplitEnvEntry(line.Substring(5).Trim, VarName, VarValue);
+        if VarName <> '' then
+        begin
+          var ExpandedVarValue := ReplaceVariables(VarValue, Variables);
+          if Variables.ContainsKey(VarName) then Variables.Remove(VarName);
+          Variables.Add(VarName, ExpandedVarValue);
+        end;
+        continue;
+      end;
+      continue; //do not complain in an unknown line. it might be a REM or something that doesn't matter.
     end;
-    continue; //do not complain in an unknown line. it might be a REM or something that doesn't matter.
+    SetLength(Result, Variables.Count);
+    for var i := 0 to High(Result) do
+    begin
+      Result[i] := Variables.KeyList[i] + '=' + Variables.ValueList[i];
+    end;
+  finally
+    Variables.Free;
   end;
 
 end;
@@ -525,66 +595,18 @@ begin
     + '". The file must exist, contain only @SET and @ECHO lines, and its PATH must include the folder where msbuild.exe is.');
 end;
 
-function TMSBuildCompiler.FindVariable(const VariableName: string; const Env: TArray<string>; out VariableValue: string; const Level: integer): boolean;
-begin
-  //Probably not worth to use a hashtable here, as entries should be little.
-  Result := false;
-  VariableValue := '';
-
-  if Level > 10 then exit; //avoid infinite recursion, like a variable referencing itself.
-
-  for var EnvEntry in Env do
-  begin
-    var idx := EnvEntry.IndexOf('=');
-    if idx <= 0 then continue;
-    var Name := EnvEntry.Substring(0, idx).Trim;
-    if SameText(VariableName, Name) then
-    begin
-      VariableValue := ExpandPath(EnvEntry.Substring(idx + 1).Trim, Env, Level + 1);
-      Result := true;
-      exit;
-    end;
-  end;
-end;
-
-function TMSBuildCompiler.ExpandPath(const aPath: string; const Env: TArray<string>; const Level: integer): string;
-begin
- var Path := aPath.Trim;
- if SameText(Path, '%PATH%') then exit('');  //We won't search in the user's path. msbuild must be in the paths inside rsvars.
-
- Result := '';
- var LastIdx := 0;
- while(true) do
- begin
-   var idxStart := aPath.IndexOf('%', LastIdx);
-   if idxStart < 0 then exit(Result + aPath.Substring(LastIdx));
-   var idxEnd := aPath.IndexOf('%', IdxStart + 1);
-   if idxEnd < 0 then exit(''); //missing closing %, we will just ignore this entry.
-
-   Result := Result + aPath.Substring(LastIdx, idxStart - LastIdx);
-   var VariableName := aPath.Substring(idxStart + 1, idxEnd - idxStart - 1);
-   var VariableValue: string;
-   if FindVariable(VariableName, Env, VariableValue, Level) then Result := Result + VariableValue
-   else Result := Result +  GetEnvironmentVariable(VariableName);
-
-   LastIdx := idxEnd + 1;
-
- end;
-
-end;
-
-function TMSBuildCompiler.FindMsBuildInPath(const Path: string; const Env: TArray<string>): string;
+function TMSBuildCompiler.FindMsBuildInPath(const Path: string): string;
 begin
   Result := '';
   if Path.Trim = '' then exit;
-  var Entries := Path.Split([';']);
+  var Entries := Path.Split([';'], TStringSplitOptions.ExcludeEmpty);
   if Length(Entries) = 0 then exit;
 
-  for var p in Entries do
+  for var pUntrimmed in Entries do
   begin
-    var ExpandedPath := ExpandPath(p, Env, 0);
-    if ExpandedPath.Trim = '' then continue;
-    var MsBuildLocation := TPath.Combine(ExpandedPath, 'msbuild.exe');
+    var p := pUntrimmed.Trim;
+    if not IsFullyQualifiedPath(p) then continue; //relative entries (like from an undefined variable) would resolve against the current folder.
+    var MsBuildLocation := TPath.Combine(p, 'msbuild.exe');
     if TFile.Exists(MsBuildLocation) then exit(MsBuildLocation);
 
 
@@ -596,11 +618,11 @@ end;
 function TMSBuildCompiler.FindMsBuild(const Env: TArray<string>): string;
 begin
   Result := '';
-  for var entry in Env do
+  for var i := High(Env) downto Low(Env) do
   begin
-    if SameText(GetVarName(entry), 'PATH') then
+    if SameText(GetVarName(Env[i]), 'PATH') then
     begin
-      exit(FindMsBuildInPath(GetVarValue(entry), Env));
+      exit(FindMsBuildInPath(GetVarValue(Env[i])));
     end;
   end;
 end;
