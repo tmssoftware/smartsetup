@@ -57,7 +57,7 @@ end;
 
 procedure StoreDelphiEnviromnentOverrides(const IDEName: TIDEName; const RegistryKey: string; const LinkedFolder: string; const Platform: TPlatform);
 begin
-  var Lock := TMutex.Create(nil, false, EnvMutex);
+  var Lock := GetEnvironmentOptionsLock;
   try
     Lock.Acquire;
     try
@@ -85,7 +85,7 @@ end;
 
 procedure RemoveFromEnviromnentOverrides;
 begin
-  var Lock := TMutex.Create(nil, false, EnvMutex);
+  var Lock := GetEnvironmentOptionsLock;
   try
     Lock.Acquire;
     try

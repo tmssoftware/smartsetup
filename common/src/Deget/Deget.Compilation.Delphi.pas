@@ -215,13 +215,6 @@ begin
   end;
 end;
 
-function IsFullyQualifiedPath(const Path: string): boolean;
-begin
-  //Either C:\... or \\server\... Paths like \bin or C:bin depend on the current drive or folder.
-  if Path.StartsWith('\\') then exit(Length(Path) > 2);
-  Result := (Length(Path) >= 3) and CharInSet(Path[1], ['A'..'Z', 'a'..'z']) and (Path[2] = ':') and CharInSet(Path[3], ['\', '/']);
-end;
-
 function ParseRSVars(const RSVars: string): TArray<string>;
 begin
   Result := nil;
@@ -605,7 +598,7 @@ begin
   for var pUntrimmed in Entries do
   begin
     var p := pUntrimmed.Trim;
-    if not IsFullyQualifiedPath(p) then continue; //relative entries (like from an undefined variable) would resolve against the current folder.
+    if not TPath_IsPathRootedNoValidation(p) then continue; //relative entries (like from an undefined variable) would resolve against the current folder.
     var MsBuildLocation := TPath.Combine(p, 'msbuild.exe');
     if TFile.Exists(MsBuildLocation) then exit(MsBuildLocation);
 

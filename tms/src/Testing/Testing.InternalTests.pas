@@ -8,7 +8,7 @@ procedure RunInternalTests;
 implementation
 
 {$IFDEF DEBUG}
-uses Commands.Logging, BBStrings, BBFlow, Deget.Version, Deget.CommandLine, SysUtils;
+uses Commands.Logging, BBStrings, BBFlow, Deget.Version, Deget.CommandLine, SysUtils, UWindowsPath;
 
 procedure RunInternalTests;
 begin
@@ -17,6 +17,7 @@ begin
   DegetVersion_InternalTests;
   BBStrings_InternalTests;
   DegetCommandLine_TestUrlCredentialRedaction;
+  WindowsPath_InternalTests;
 end;
 {$ENDIF}
 end.

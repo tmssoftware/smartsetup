@@ -42,6 +42,7 @@ procedure CheckFolderInside(const Folder: string; const RootFolders: TArray<stri
 function CreateUUIDv5(const Namespace: TGUID; const Name: string): TGUID;
 
 function TPath_IsPathRooted(const s: string): boolean;
+function TPath_IsPathRootedNoValidation(const Path: string): boolean;
 function IsLinkedFolder(const Folder: string): boolean;
 
 
@@ -104,9 +105,19 @@ end;
 
 function TPath_IsPathRooted(const s: string): boolean;
 begin
-  //IsPathRooted complains if there are wildcards.
+  //IsPathRooted complains if there are wildcards, also.
   Result := TPath.IsPathRooted(RemoveWildcards(s));
 end;
+
+function TPath_IsPathRootedNoValidation(const Path: string): boolean;
+begin
+  //We don't use TPath.IsPathRooted because it allows paths like \bin
+  //Here we accept either C:\... or \\server\... Paths like \bin or C:bin depend on the current drive or folder.
+  //This method also won't raise exceptions.
+  if Path.StartsWith('\\') then exit(Length(Path) > 2);
+  Result := (Length(Path) >= 3) and CharInSet(Path[1], ['A'..'Z', 'a'..'z']) and (Path[2] = ':') and CharInSet(Path[3], ['\', '/']);
+end;
+
 
 function IsLinkedFolder(const Folder: string): boolean;
 begin
