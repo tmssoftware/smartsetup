@@ -170,6 +170,22 @@ uses
 
 {$R *.dfm}
 
+const
+  // Column indexes in lvProducts. Must match the column order in Forms.Main.dfm.
+  // Column 0 is the item Caption; column N > 0 is SubItems[N - 1] (see SubItemIndex).
+  ColIcons = 0;
+  ColId = 1;
+  ColName = 2;
+  ColLocalVersion = 3;
+  ColRemoteVersion = 4;
+  ColStatus = 5;
+  ColLast = ColStatus;
+
+function SubItemIndex(const Column: Integer): Integer;
+begin
+  Result := Column - 1;
+end;
+
 procedure TMainForm.acFullBuildExecute(Sender: TObject);
 begin
   GUI.ExecuteFullBuild(ProductProgressEvent);
@@ -460,7 +476,7 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  SortColumn := 4;  // sort by status by default
+  SortColumn := ColStatus;  // sort by status by default
 
   WorkingTimer := TTimer.Create(Self);
   WorkingTimer.Enabled := false;
@@ -681,12 +697,12 @@ begin
   begin
     // Review this in case we allow columns to be moved
     case SortColumn of
-      0: Compare := CompareIcons(Product1, Product2);
-      1: Compare := CompareText(Product1.Id, Product2.Id);
-      2: Compare := CompareText(Product1.Name, Product2.Name);
-      3: Compare := CompareVersion(Product1.LocalVersion, Product2.LocalVersion);
-      4: Compare := CompareVersion(Product1.RemoteVersion, Product2.RemoteVersion);
-      5: Compare := CompareStatus(Product1.Status, Product2.Status);
+      ColIcons: Compare := CompareIcons(Product1, Product2);
+      ColId: Compare := CompareText(Product1.Id, Product2.Id);
+      ColName: Compare := CompareText(Product1.Name, Product2.Name);
+      ColLocalVersion: Compare := CompareVersion(Product1.LocalVersion, Product2.LocalVersion);
+      ColRemoteVersion: Compare := CompareVersion(Product1.RemoteVersion, Product2.RemoteVersion);
+      ColStatus: Compare := CompareStatus(Product1.Status, Product2.Status);
     end;
 
     // add produt id as secondary comparison
@@ -907,8 +923,8 @@ begin
         TThread.Queue(nil, procedure
           begin
             var ListItem := FindProductItem(Info.ProductId);
-            if (ListItem <> nil) and (ListItem.SubItems.Count > 3) then
-              ListItem.Subitems[3] := Format('%d%%', [Info.ProductPercent])
+            if (ListItem <> nil) and (ListItem.SubItems.Count > SubItemIndex(ColStatus)) then
+              ListItem.SubItems[SubItemIndex(ColStatus)] := Format('%d%%', [Info.ProductPercent])
           end);
       end;
     end);
@@ -932,13 +948,15 @@ begin
         Icons := Icons + OutdatedChar;
       if Product.IsPinned then
         Icons := Icons + PinnedChar;
-      Item.Caption := Icons;
+      Item.Caption := Icons;  // ColIcons
 
-      Item.SubItems.Add(Product.Id);
-      Item.SubItems.Add(Product.Name);
-      Item.SubItems.Add(Product.LocalVersion.ToString);
-      Item.SubItems.Add(Product.RemoteVersion.ToString);
-      Item.SubItems.Add(StatusToStr[Product.Status]);
+      for var i := 1 to ColLast do
+        Item.SubItems.Add('');
+      Item.SubItems[SubItemIndex(ColId)] := Product.Id;
+      Item.SubItems[SubItemIndex(ColName)] := Product.Name;
+      Item.SubItems[SubItemIndex(ColLocalVersion)] := Product.LocalVersion.ToString;
+      Item.SubItems[SubItemIndex(ColRemoteVersion)] := Product.RemoteVersion.ToString;
+      Item.SubItems[SubItemIndex(ColStatus)] := StatusToStr[Product.Status];
       Item.Data := Product;
     end;
     SortProducts;
