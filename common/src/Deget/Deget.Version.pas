@@ -412,10 +412,20 @@ begin
   while  (l < Left.Length) and CharInSet(Left.Chars[l], ['0'..'9']) do inc(l);
   while  (r < Right.Length) and CharInSet(Right.Chars[r], ['0'..'9']) do inc(r);
 
-  var lNumber := StrToInt(Left.Substring(lStart, l - lStart));
-  var rNumber := StrToInt(Right.Substring(rStart, r - rStart));
-  Result := TComparer<Integer>.Default.Compare(lNumber, rNumber);
+  var lNumberStr := Left.Substring(lStart, l - lStart);
+  var rNumberStr := Right.Substring(rStart, r - rStart);
+
+  var lNumber: Int64;
+  var rNumber: Int64;
+  if TryStrToInt64(lNumberStr, lNumber) and TryStrToInt64(rNumberStr, rNumber) then
+  begin
+    Result := TComparer<Int64>.Default.Compare(lNumber, rNumber);
+  end else
+  begin
+    Result := CompareText(lNumberStr, rNumberStr);
+  end;
   if Result <> 0 then exit;
+
 
   if (l = Left.Length) then
   begin
@@ -617,8 +627,11 @@ begin
   Assert((TLenientVersion.Create('0..1', TVersionType.FreeForm) < TLenientVersion.Create('0..2', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) < TLenientVersion.Create('1.2.1', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) > TLenientVersion.Create('1.2-rc.6', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) > TLenientVersion.Create('1.2-rc.6', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-20250101120000', TVersionType.FreeForm) > TLenientVersion.Create('build-20240101120000', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-99918446744073709551615', TVersionType.FreeForm) > TLenientVersion.Create('build-20240101120000', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-99918446744073709551615', TVersionType.FreeForm) > TLenientVersion.Create('build-89918446744073709551615', TVersionType.FreeForm)));
 end;
 
 {$ENDIF}
-
 end.
