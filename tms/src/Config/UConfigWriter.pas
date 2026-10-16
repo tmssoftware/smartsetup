@@ -550,14 +550,15 @@ end;
 
 procedure TConfigWriter.Save(const FileName: string);
 begin
-  var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
-  try
-    SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
-      'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
-      'TMS Smart Setup configuration file'#10'Modify settings as needed.');
-  finally
-    TextWriter.Free;
-  end;
+  //Atomically: writing straight into the file truncated it first, so any exception while writing
+  //(e.g. an unknown variable) left the user's tms.config.yaml empty.
+  SaveTextFileAtomically(FileName, TUTF8NoBOMEncoding.Instance,
+    procedure(TextWriter: TStreamWriter)
+    begin
+      SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
+        'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
+        'TMS Smart Setup configuration file'#10'Modify settings as needed.');
+    end);
 end;
 
 procedure TConfigWriter.SaveToStream(const TextWriter: TTextWriter; const Filter: string;
