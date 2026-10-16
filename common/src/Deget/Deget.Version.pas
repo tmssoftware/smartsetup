@@ -469,7 +469,9 @@ begin
   end;
   if High(RightParts) > High(LeftParts) then exit(-1); //right bigger
 
-  Result := 0;
+  //Sections are numerically equal, but this is free text: '1.01' and '1.1' are different strings, so they must not be equal.
+  //We still need a consistent order between them, or '1.01' would be neither <, > nor = '1.1'. Which one wins is arbitrary.
+  Result := CompareText(Left, Right);
 end;
 
 class operator TLenientVersion.Equal(Left, Right: TLenientVersion): Boolean;
@@ -479,7 +481,7 @@ begin
   if IsSemanticVersion(Left, LeftVersion) and IsSemanticVersion(Right, RightVersion) then
     Result := LeftVersion = RightVersion
   else
-    Result := CompareTextEx(Left.FValue, Right.FValue) = 0; //must match what > and >= use, or 1.01 would be >= and <= 1.1 but not =
+    Result := CompareTextEx(Left.FValue, Right.FValue) = 0; //must match what > and >= use, so the operators stay consistent
 end;
 
 class operator TLenientVersion.GreaterThan(Left, Right: TLenientVersion): Boolean;
@@ -635,6 +637,18 @@ begin
   Assert(TVersion.TryFromString('1.2.3', Tmp));
 end;
 
+procedure AssertFreeFormDifferent(const A, B: string);
+begin
+  var LA := TLenientVersion.Create(A, TVersionType.FreeForm);
+  var LB := TLenientVersion.Create(B, TVersionType.FreeForm);
+  Assert(LA <> LB);
+  Assert(not (LA = LB));
+  Assert((LA < LB) <> (LA > LB));
+  Assert((LA < LB) = (LB > LA));
+  Assert((LA <= LB) = (LA < LB));
+  Assert((LA >= LB) = (LA > LB));
+end;
+
 procedure DegetVersion_InternalTests;
 begin
   AssertSemverOrder;
@@ -660,14 +674,15 @@ begin
   Assert((TLenientVersion.Create('build-99918446744073709551615', TVersionType.FreeForm) > TLenientVersion.Create('build-89918446744073709551615', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('build-100000000000000000000', TVersionType.FreeForm) > TLenientVersion.Create('build-9', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('build-9', TVersionType.FreeForm) < TLenientVersion.Create('build-100000000000000000000', TVersionType.FreeForm)));
-  Assert(not (TLenientVersion.Create('x-0099999999999999999999', TVersionType.FreeForm) > TLenientVersion.Create('x-99999999999999999999', TVersionType.FreeForm)));
-  Assert(not (TLenientVersion.Create('x-0099999999999999999999', TVersionType.FreeForm) < TLenientVersion.Create('x-99999999999999999999', TVersionType.FreeForm)));
-  Assert(not (TLenientVersion.Create('x-01', TVersionType.FreeForm) < TLenientVersion.Create('x-1', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('x-0', TVersionType.FreeForm) < TLenientVersion.Create('x-00001', TVersionType.FreeForm)));
-  Assert(not (TLenientVersion.Create('x-000', TVersionType.FreeForm) > TLenientVersion.Create('x-0', TVersionType.FreeForm)));
-  Assert(TLenientVersion.Create('1.01', TVersionType.FreeForm) = TLenientVersion.Create('1.1', TVersionType.FreeForm));
-  Assert(not (TLenientVersion.Create('1.01', TVersionType.FreeForm) <> TLenientVersion.Create('1.1', TVersionType.FreeForm)));
-  Assert(TLenientVersion.Create('x-0099999999999999999999', TVersionType.FreeForm) = TLenientVersion.Create('x-99999999999999999999', TVersionType.FreeForm));
+  Assert((TLenientVersion.Create('x-00002', TVersionType.FreeForm) > TLenientVersion.Create('x-1', TVersionType.FreeForm)));
+
+  //Free text: numerically equal but different strings are not equal, and exactly one of < or > holds.
+  AssertFreeFormDifferent('1.01', '1.1');
+  AssertFreeFormDifferent('x-01', 'x-1');
+  AssertFreeFormDifferent('x-000', 'x-0');
+  AssertFreeFormDifferent('x-0099999999999999999999', 'x-99999999999999999999');
+  Assert(TLenientVersion.Create('1.01', TVersionType.FreeForm) = TLenientVersion.Create('1.01', TVersionType.FreeForm));
   Assert(TLenientVersion.Create('V1.2', TVersionType.FreeForm) = TLenientVersion.Create('v1.2', TVersionType.FreeForm));
   Assert(TLenientVersion.Create('1.2', TVersionType.FreeForm) <> TLenientVersion.Create('1.2.0', TVersionType.FreeForm));
 end;
