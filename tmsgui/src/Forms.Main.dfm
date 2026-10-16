@@ -11,6 +11,7 @@ object MainForm: TMainForm
   Font.Name = 'Segoe UI'
   Font.Style = []
   Position = poScreenCenter
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow

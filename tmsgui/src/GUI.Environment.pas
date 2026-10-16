@@ -110,7 +110,8 @@ type
     FSelected: TGUIProductList;
     FSearchFilter: string;
     FOnProductsUpdated: TProductsProc;
-    FCurrentRunner: TTmsRunner;
+    FActiveRunners: TList<TTmsRunner>; //every runner currently executing, on any thread. Guarded by TMonitor on itself.
+    FDestroying: Boolean;
     FInfo: TTmsInfo;
     FServer: string;
     FServers: TServerConfigItems;
@@ -133,7 +134,7 @@ type
     function GetInfo: TTmsInfo;
     procedure GenerateLogItem(Item: TGUILogItem);
     procedure RunnerOutputEvent(const S: string);
-    procedure CheckRunning;
+    function TryBeginExclusive: Boolean;
     function SelectedProductIds: TArray<string>;
     procedure ExecuteBuild(FullBuild: Boolean; ProgressCallback: TProductProgressProc);
     procedure DoRunStart;
@@ -141,10 +142,12 @@ type
     procedure DoNotifyNewVersion;
     procedure DoRunnerCreated(Runner: TTmsRunner);
     procedure RefreshFetchedProducts(Filter: TProductFilter);
+    procedure ReplaceFetchedProducts(NewProducts: TGUIProductList; Filter: TProductFilter);
     procedure ApplyProductFilters;
     procedure BeginRunning;
     procedure EndRunning;
-    procedure ValidateSessionIds;
+    procedure AddActiveRunner(Runner: TTmsRunner);
+    procedure RemoveActiveRunner(Runner: TTmsRunner);
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
@@ -381,8 +384,33 @@ end;
 
 procedure TGUIEnvironment.CancelRun;
 begin
-  if Assigned(FCurrentRunner) then
-    FCurrentRunner.Cancel;
+  TMonitor.Enter(FActiveRunners);
+  try
+    for var Runner in FActiveRunners do
+      Runner.Cancel;
+  finally
+    TMonitor.Exit(FActiveRunners);
+  end;
+end;
+
+procedure TGUIEnvironment.AddActiveRunner(Runner: TTmsRunner);
+begin
+  TMonitor.Enter(FActiveRunners);
+  try
+    FActiveRunners.Add(Runner);
+  finally
+    TMonitor.Exit(FActiveRunners);
+  end;
+end;
+
+procedure TGUIEnvironment.RemoveActiveRunner(Runner: TTmsRunner);
+begin
+  TMonitor.Enter(FActiveRunners);
+  try
+    FActiveRunners.Remove(Runner);
+  finally
+    TMonitor.Exit(FActiveRunners);
+  end;
 end;
 
 function TGUIEnvironment.CanConfigure: Boolean;
@@ -545,6 +573,7 @@ begin
   FSelected := TGUIProductList.Create(False);
   FLogItems := TObjectList<TGUILogItem>.Create;
   FServers := TServerConfigItems.Create;
+  FActiveRunners := TList<TTmsRunner>.Create;
 
   // Init logging
   var GUILogger := TGUILogger.Create;
@@ -564,14 +593,17 @@ end;
 destructor TGUIEnvironment.Destroy;
 begin
   // Wait a little bit for the runner to finish. We could use TEvent here, but let's make it simple for now
+  FDestroying := True;
   CancelRun;
-  for var I := 1 to 10 do
+  for var I := 1 to 100 do
   begin
-    if IsRunning then
-      Sleep(1000)
-    else
+    if not IsRunning then
       break;
+    // Not Sleep: a worker waiting in TThread.Synchronize would never finish and we would always wait the full time.
+    CheckSynchronize(100);
   end;
+  // Run what the workers queued, so nothing queued refers to this object after it is freed.
+  while CheckSynchronize do ;
 
   FProducts.Free;
   FFetchedProducts.Free;
@@ -579,6 +611,7 @@ begin
   FLogItems.Free;
   FInfo.Free;
   FServers.Free;
+  FActiveRunners.Free;
   Logger.Free;
   inherited;
 end;
@@ -613,18 +646,27 @@ end;
 
 procedure TGUIEnvironment.RunAsync<T>(Proc: TProc<T>);
 begin
-  CheckRunning;
-  TThread.CreateAnonymousThread(
-    procedure
-    begin
-      BeginRunning;
-      try
-        RunSync<T>(Proc);
-      finally
-        EndRunning;
-      end;
-    end)
-    .Start;
+  // Claimed here, on the calling thread, so a second click can't start a second job before the thread runs.
+  if not TryBeginExclusive then
+  begin
+    Logger.Error('tms.exe is already running');
+    Exit;
+  end;
+  try
+    TThread.CreateAnonymousThread(
+      procedure
+      begin
+        try
+          RunSync<T>(Proc);
+        finally
+          EndRunning;
+        end;
+      end)
+      .Start;
+  except
+    EndRunning;
+    raise;
+  end;
 end;
 
 procedure TGUIEnvironment.RunBackground(Proc: TProc);
@@ -632,19 +674,19 @@ begin
   TThread.CreateAnonymousThread(
     procedure
     begin
-      repeat
-        if not IsRunning then
+      while not FDestroying do
+      begin
+        if TryBeginExclusive then
         begin
-          BeginRunning;
           try
             Proc;
-            Exit;
           finally
             EndRunning;
           end;
+          Exit;
         end;
         Sleep(1000); // try a new check after a while
-      until False;
+      end;
     end).Start;
 end;
 
@@ -682,6 +724,9 @@ end;
 
 procedure TGUIEnvironment.ExecuteBuild(FullBuild: Boolean; ProgressCallback: TProductProgressProc);
 begin
+  // Read the selection here, on the main thread. Inside the worker it read the list view from a
+  // background thread, and got the selection as it was then, not when the user clicked.
+  var ProductIds := SelectedProductIds;
   RunAsync<TTmsBuildRunner>(
     procedure(Runner: TTmsBuildRunner)
     begin
@@ -693,7 +738,7 @@ begin
 
       Runner.OnOutputLine := RunnerOutputEvent;
       Runner.FullBuild := FullBuild;
-      Runner.ProductIds.AddStrings(SelectedProductIds);
+      Runner.ProductIds.AddStrings(ProductIds);
       Runner.OnProgress :=
         procedure(const Info: TProgressInfo)
         begin
@@ -816,6 +861,7 @@ end;
 
 procedure TGUIEnvironment.ExecuteUninstall(ProgressCallback: TProgressProc);
 begin
+  var ProductIds := SelectedProductIds; // on the main thread, see ExecuteBuild
   RunAsync<TTmsUninstallRunner>(
     procedure(Runner: TTmsUninstallRunner)
     begin
@@ -823,7 +869,7 @@ begin
         ProgressCallback(0);
 
       Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.ProductIds.AddStrings(SelectedProductIds);
+      Runner.ProductIds.AddStrings(ProductIds);
       Runner.OnProgress :=
         procedure(const Info: TProgressInfo)
         begin
@@ -867,9 +913,10 @@ begin
   try
     DoRunnerCreated(LocalRunner);
     try
-      var OldRunner := FCurrentRunner;
+      // A list, not a single "current runner" field: runners nest and run on several threads, and
+      // saving/restoring one field across threads could leave it pointing at a freed runner.
+      AddActiveRunner(LocalRunner);
       try
-        FCurrentRunner := LocalRunner;
         BeginRunning;
         try
           if Assigned(StartWorking) then StartWorking;
@@ -882,7 +929,7 @@ begin
           EndRunning;
         end;
       finally
-        FCurrentRunner := OldRunner;
+        RemoveActiveRunner(LocalRunner);
       end;
 
       if LocalRunner.NewVersionDetected then
@@ -936,32 +983,24 @@ begin
     end);
 end;
 
-procedure TGUIEnvironment.ValidateSessionIds;
-begin
-  //Cleanup IDs that don't exist anymore. Not the ideal place to check it, but
-  //better than on the OnDrawItem.
-
-  for var i := 0 to FLogItems.Count - 1 do
-  begin
-    var SessionId := FLogItems[i].SessionId;
-    if SessionId = '' then exit;
-    
-    RunSync<TTmsLogViewRunner>(
-      procedure(Runner: TTmsLogViewRunner)
-      begin
-        var LogFileName := Runner.RunLogView(SessionId, true);
-        if not TFile.Exists(LogFileName) then FLogItems[i].SessionId := '';
-      end);
-
-  end;
-end;
-
 procedure TGUIEnvironment.GenerateLogItem(Item: TGUILogItem);
 begin
-  FLogItems.Add(Item);
-  ValidateSessionIds;
-  if Assigned(OnLogItemGenerated) then
-    FOnLogItemGenerated(Item);
+  // Log items arrive from worker threads, but FLogItems is read by the log list on the main thread,
+  // so it is only changed there. (From the main thread, Queue runs the procedure immediately.)
+  // Deleted log files no longer need checking here: acViewHtmlLogExecute clears the session id
+  // when the file is gone. The old check started one "tms log-view" per log item for every new item.
+  TThread.Queue(nil,
+    procedure
+    begin
+      if FDestroying then
+      begin
+        Item.Free;
+        Exit;
+      end;
+      FLogItems.Add(Item);
+      if Assigned(FOnLogItemGenerated) then
+        FOnLogItemGenerated(Item);
+    end);
 end;
 
 function TGUIEnvironment.GetInfo: TTmsInfo;
@@ -1030,6 +1069,7 @@ end;
 
 procedure TGUIEnvironment.RefreshFetchedProducts(Filter: TProductFilter);
 begin
+  var Server := FServer;
   RunSync<TTmsListRunner>(
     procedure(ListRunner: TTmsListRunner)
     begin
@@ -1040,32 +1080,62 @@ begin
         begin
           if Info.FolderInitialized then
           begin
-            RemoteRunner.Server := FServer;
+            RemoteRunner.Server := Server;
             RemoteRunner.RunListRemote;
           end;
-          ConsolidateGUIProductList(Self.FFetchedProducts, ListRunner.Products, RemoteRunner.Products);
-          FProductFilter := Filter;
 
-          // Filter products
-          var Predicate :=
-            function(Product: TGUIProduct): Boolean
+          // Build a new list here; FFetchedProducts itself is only replaced on the main thread.
+          // Clearing it from this thread freed the TGUIProduct objects the list view still pointed at.
+          var NewProducts := TGUIProductList.Create;
+          try
+            ConsolidateGUIProductList(NewProducts, ListRunner.Products, RemoteRunner.Products);
+
+            // Filter products
+            var Predicate :=
+              function(Product: TGUIProduct): Boolean
+              begin
+                if (Filter = TProductFilter.Installed) and (Product.Status <> TProductStatus.Installed) then
+                  Exit(False);
+
+                if (Server <> '') and not SameText(Server, Product.Server) then
+                  Exit(False);
+
+                Result := True;
+              end;
+            for var I := NewProducts.Count - 1 downto 0 do
+              if not Predicate(NewProducts[I]) then
+                NewProducts.Delete(I);
+          except
+            NewProducts.Free;
+            raise;
+          end;
+
+          // fire event to refresh producs. Synchronize runs it directly when we already are in the main thread.
+          TThread.Synchronize(nil,
+            procedure
             begin
-              if (FProductFilter = TProductFilter.Installed) and (Product.Status <> TProductStatus.Installed) then
-                Exit(False);
-
-              if (FServer <> '') and not SameText(FServer, Product.Server) then
-                Exit(False);
-
-              Result := True;
-            end;
-          for var I := Self.FFetchedProducts.Count - 1 downto 0 do
-            if not Predicate(Self.FFetchedProducts[I]) then
-              Self.FFetchedProducts.Delete(I);
-
-          // fire event to refresh producs
-          ApplyProductFilters;
+              ReplaceFetchedProducts(NewProducts, Filter);
+            end);
         end)
     end)
+end;
+
+procedure TGUIEnvironment.ReplaceFetchedProducts(NewProducts: TGUIProductList; Filter: TProductFilter);
+begin
+  if FDestroying then
+  begin
+    NewProducts.Free;
+    Exit;
+  end;
+
+  var OldProducts := FFetchedProducts;
+  FFetchedProducts := NewProducts;
+  FProductFilter := Filter;
+  try
+    ApplyProductFilters; // the list view now points at the new objects...
+  finally
+    OldProducts.Free;   // ...so the old ones can go.
+  end;
 end;
 
 procedure TGUIEnvironment.RefreshServers;
@@ -1111,33 +1181,49 @@ end;
 
 procedure TGUIEnvironment.ChangeProductFilter(Filter: TProductFilter);
 begin
-  CheckRunning;
-  BeginRunning;
-  TThread.CreateAnonymousThread(
-    procedure
-    begin
-      try
-        RefreshFetchedProducts(Filter);
-      finally
-        EndRunning;
-      end;
-    end)
-    .Start;
-end;
-
-procedure TGUIEnvironment.CheckRunning;
-begin
-  if IsRunning then
+  if not TryBeginExclusive then
   begin
     Logger.Error('tms.exe is already running');
     Exit;
   end;
+  try
+    TThread.CreateAnonymousThread(
+      procedure
+      begin
+        try
+          RefreshFetchedProducts(Filter);
+        finally
+          EndRunning;
+        end;
+      end)
+      .Start;
+  except
+    EndRunning;
+    raise;
+  end;
+end;
+
+function TGUIEnvironment.TryBeginExclusive: Boolean;
+begin
+  // Check and claim in one atomic step. The previous CheckRunning only logged an error and
+  // returned, so its callers went on and started a second tms.exe anyway.
+  Result := AtomicCmpExchange(FRunningCount, 1, 0) = 0;
+  if Result then
+    DoRunStart;
 end;
 
 procedure TGUIEnvironment.ApplyProductFilters;
 begin
   var Filter := FSearchFilter.ToLower;
-  var Mask := TMask.Create(Filter);
+  // The search text is free text typed by the user, so it may not be a valid mask (e.g. "[").
+  // TMask.Create raises EMaskException for those; then we just search without the mask.
+  var Mask: TMask := nil;
+  try
+    Mask := TMask.Create(Filter);
+  except
+    on EMaskException do
+      Mask := nil;
+  end;
   try
     var Predicate :=
       function(Product: TGUIProduct): Boolean
@@ -1147,7 +1233,7 @@ begin
         begin
           var IdLower := Product.Id.ToLower;
           var NameLower := Product.Name.ToLower;
-          Result := IdLower.Contains(Filter) or NameLower.Contains(Filter) or Mask.Matches(IdLower);
+          Result := IdLower.Contains(Filter) or NameLower.Contains(Filter) or ((Mask <> nil) and Mask.Matches(IdLower));
         end;
       end;
 
@@ -1176,7 +1262,9 @@ begin
   if FServer <> Value then
   begin
     FServer := Value;
-    RefreshFetchedProducts(FProductFilter);
+    // Asynchronous and guarded like any other job: it used to run list and list-remote on the main
+    // thread, freezing the window, and could start while an install was running.
+    ChangeProductFilter(FProductFilter);
   end;
 end;
 
