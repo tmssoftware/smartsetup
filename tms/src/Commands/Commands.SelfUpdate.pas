@@ -17,7 +17,8 @@ uses
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
   Commands.GlobalConfig, System.Zip, Downloads.VersionManager, JSON,
   UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character,
-  UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
+  UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager,
+  System.Generics.Collections;
 
 
 const
@@ -63,12 +64,46 @@ end;
 procedure MoveUpdatedFiles(const Source, Dest: string);
 begin
   //We won't bother adding with files not at the top.
-  var Files := TDirectory.GetFiles(Source, '*.*', TSearchOption.soTopDirectoryOnly);
-  for var f in Files do
-  begin
-    var DestFile := TPath.Combine(Dest, TPath.GetFileName(f));
-    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, DestFile);
-    RenameAndCheck(f, DestFile);
+  //All or nothing: every file being replaced is first renamed into Dest\.locked (the same disk as Dest, so even
+  //the running tms.exe can be renamed). If any step fails, the originals are put back. Before, the old file was
+  //deleted (or moved away) before the new one was renamed in, so a failed rename left no tms.exe at all.
+  //UMain.Cleanup removes the *.~tmp files left in Dest\.locked on the next run.
+  var BackupFolder := TPath.Combine(Dest, '.locked');
+  TDirectory_CreateDirectory(BackupFolder);
+  var Replaced := TList<TPair<string, string>>.Create; //Key: file in Dest. Value: its backup, or '' if it is new.
+  try
+    try
+      var Files := TDirectory.GetFiles(Source, '*.*', TSearchOption.soTopDirectoryOnly);
+      for var f in Files do
+      begin
+        var DestFile := TPath.Combine(Dest, TPath.GetFileName(f));
+        var BackupFile := '';
+        if TFile.Exists(DestFile) then
+        begin
+          BackupFile := TPath.Combine(BackupFolder, TPath.GetFileName(DestFile)) + '.' + GuidToStringN(TGUID.NewGuid) + TempExtension;
+          RenameAndCheck(DestFile, BackupFile);
+        end;
+        Replaced.Add(TPair<string, string>.Create(DestFile, BackupFile));
+        RenameAndCheck(f, DestFile);
+      end;
+    except
+      for var i := Replaced.Count - 1 downto 0 do
+      begin
+        try
+          var DestFile := Replaced[i].Key;
+          var BackupFile := Replaced[i].Value;
+          if TFile.Exists(DestFile) then //the new file got in place: take it out again.
+            RenameAndCheck(DestFile, TPath.Combine(BackupFolder, TPath.GetFileName(DestFile)) + '.' + GuidToStringN(TGUID.NewGuid) + TempExtension);
+          if BackupFile <> '' then
+            RenameAndCheck(BackupFile, DestFile);
+        except on ex: Exception do
+          Logger.Error('Could not restore "' + Replaced[i].Key + '" after a failed update: ' + ex.Message);
+        end;
+      end;
+      raise;
+    end;
+  finally
+    Replaced.Free;
   end;
 end;
 
@@ -220,9 +255,8 @@ begin
 
   if not GotUpdate then FetchSmartSetupFromGithub;
 
-  RotateDownloads(Config.MaxVersionsPerProduct);
-
-
+  //No RotateDownloads here: with "max versions per product: 0" it deleted the bundle we just downloaded, and
+  //AutoUpdate then said "You are using the latest version". AutoUpdate rotates once it is done with the bundle.
 end;
 
 var
