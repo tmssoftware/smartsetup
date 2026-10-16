@@ -67,7 +67,7 @@ TConfigWriter = class
 end;
 
 implementation
-uses UTmsBuildSystemUtils, Deget.IDETypes, UConfigLoaderStateMachine;
+uses UTmsBuildSystemUtils, Deget.IDETypes, UConfigLoaderStateMachine, SmartSetup.Locks;
 
 const
   GlobalPrefixedProperties: array[TGlobalPrefixedProperties] of string= ('excluded products', 'included products', 'additional products folders',
@@ -550,13 +550,22 @@ end;
 
 procedure TConfigWriter.Save(const FileName: string);
 begin
-  var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
+  var Protector := LockConfig(FileName);
   try
-    SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
-      'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
-      'TMS Smart Setup configuration file'#10'Modify settings as needed.');
+    //Avoid lost updates: if 2 commands loaded the config and both modify it, the second would overwrite the changes of the first.
+    Cfg.CheckLoadedFileNotModified(FileName);
+    var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
+    try
+      SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
+        'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
+        'TMS Smart Setup configuration file'#10'Modify settings as needed.');
+    finally
+      TextWriter.Free;
+    end;
+    //What is on disk is now what we have in memory. If we save again, compare against this.
+    Cfg.SetLoadedFile(FileName);
   finally
-    TextWriter.Free;
+    Protector.Free;
   end;
 end;
 

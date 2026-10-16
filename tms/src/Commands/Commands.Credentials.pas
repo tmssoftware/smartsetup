@@ -149,6 +149,7 @@ end;
 
 procedure RunCredentialsCommand;
 begin
+  InitNotFolderBasedCommand;
   CheckAppAlreadyRunning;
 
   var Folders: IBuildFolders := ConfigNoCheck.Folders;

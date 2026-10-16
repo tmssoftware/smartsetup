@@ -16,17 +16,39 @@ type
     destructor Destroy; override;
   end;
 
+const
+  ConfigProtector = 'A9BA222B-54F8-4100-AAA8-240C1D6AC5A6';
+  CredentialsProtector = '0A55F773-A396-4F72-89B2-5E28F2711312';
+  FolderInitProtector = '3A6A634A-C79D-4F00-B40B-D6DE46E0C930';
+  RegistryProtector = '189CE014-5E80-4D85-B7BA-B1094798D5F2';
+
 function AppIsAlreadyRunning(const Folder: string): boolean;
 function IsAppOnlyInstance(const Folder: string): boolean;
+
+//Locks shared by more than one place. Use these so all places compute the same key.
+function LockConfig(const ConfigFile: string): TAppProtector;
+function LockCredentials: TAppProtector;
 
 implementation
 uses
 {$IFDEF MSWINDOWS}
   Windows,
 {$ELSE}
-  Posix.Base, Posix.Fcntl, Posix.Unistd, Posix.Errno, IOUtils,
+  Posix.Base, Posix.Fcntl, Posix.Unistd, Posix.Errno,
 {$ENDIF}
-   Hash;
+   IOUtils, Hash;
+
+function LockConfig(const ConfigFile: string): TAppProtector;
+begin
+  Result := TAppProtector.Create(TPath.GetFullPath(ConfigFile), ConfigProtector);
+end;
+
+function LockCredentials: TAppProtector;
+begin
+  //Credential manager is per user, not per folder. So lock per user.
+  //Using a Local\ mutex wouldn't work because that's per session, not per user.
+  Result := TAppProtector.Create(TPath.GetHomePath, CredentialsProtector);
+end;
 
 const
   AppIsRunningGUID = '7E07C55C-D558-40B8-96F7-364B036CAE74';

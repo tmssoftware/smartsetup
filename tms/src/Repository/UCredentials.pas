@@ -33,6 +33,9 @@ type
     FDefaultProfile: string;
     FServerName: string;
     procedure LoadCredentials(Credentials: TCredentials);
+    //Do* versions don't lock, so they can call each other. Locks aren't reentrant in posix.
+    procedure DoLoadCredentials(Credentials: TCredentials);
+    procedure DoSaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
     function AuthCredName(Profile: string): string;
     function TokensCredName(Profile: string): string;
     function CredName(Profile, Name: string): string;
@@ -55,7 +58,7 @@ function CreateCredentialsManager(const CredentialsFile: string; Options: TFetch
 implementation
 
 uses
-  System.Classes, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals, ZSTD;
+  System.Classes, UMultiLogger, REST.Authenticator.OAuth, Testing.Globals, ZSTD, SmartSetup.Locks;
 
 const
   ZstdPrefix = 'zstd:';
@@ -195,7 +198,7 @@ begin
   Result := CredName(Profile, '.tokens');
 end;
 
-procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials);
+procedure TCredentialsManager.DoLoadCredentials(Credentials: TCredentials);
 begin
 {$IFDEF MSWINDOWS}
   var Email, Code: string;
@@ -248,9 +251,23 @@ begin
 
 {$IFDEF MSWINDOWS}
   //found the legacy credentials. Delete them, and save them in the new place.
-  SaveCredentials(Credentials, false);
-  if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
+  //If we didn't find any, don't save: with an empty email it would delete the credentials another process might have just saved.
+  if Credentials.Email <> '' then
+  begin
+    DoSaveCredentials(Credentials, false);
+    if TFile.Exists(FCredentialsFile) then TFile.Delete(FCredentialsFile);
+  end;
 {$ENDIF}
+end;
+
+procedure TCredentialsManager.LoadCredentials(Credentials: TCredentials);
+begin
+  var Protector := LockCredentials;
+  try
+    DoLoadCredentials(Credentials);
+  finally
+    Protector.Free;
+  end;
 end;
 
 function TCredentialsManager.ReadCredentials: TCredentials;
@@ -264,7 +281,7 @@ begin
   end;
 end;
 
-procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
+procedure TCredentialsManager.DoSaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
 begin
 {$IFDEF MSWINDOWS}
   if not OnlyToken then
@@ -306,6 +323,16 @@ begin
     IniFile.Free;
   end;
 {$ENDIF}
+end;
+
+procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
+begin
+  var Protector := LockCredentials;
+  try
+    DoSaveCredentials(Credentials, OnlyToken);
+  finally
+    Protector.Free;
+  end;
 end;
 
 procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials; const AuthUrl: string);

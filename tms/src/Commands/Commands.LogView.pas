@@ -10,7 +10,7 @@ procedure RegisterLogViewCommand;
 implementation
 
 uses
-  UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes, System.Types;
+  UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes, System.Types, Commands.Logging;
 
 var
   AsText,
@@ -19,6 +19,7 @@ var
 
 procedure RunLogViewCommand;
 begin
+  InitFolderBasedCommand(false);
   var LogFileName := Config.Folders.LogFile;
   if SessionId <> '' then
   begin

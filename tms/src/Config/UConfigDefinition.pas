@@ -213,6 +213,8 @@ type
     FDcuMegafolders: TMegafolderList;
     FUnregistering: boolean;
     FForceSkipRegistering: boolean;
+    FLoadedFileName: string;
+    FLoadedFileHash: string;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -249,6 +251,11 @@ type
     function GetAllRootFolders: TArray<string>;
 
     function ReadBoolProperty(const ProductId: string; const PropKey: string; const DefaultValue: boolean): boolean;
+
+    //Remembers the contents of the main config file when loading, so we can detect if another process modified it before we save.
+    //Must be called while holding the ConfigProtector lock.
+    procedure SetLoadedFile(const FileName: string);
+    procedure CheckLoadedFileNotModified(const FileName: string);
 
     property BuildCores: integer read FBuildCores write FBuildCores;
     property PreventSleep: boolean read FPreventSleep write FPreventSleep;
@@ -311,7 +318,16 @@ type
   end;
 
 implementation
-uses IOUtils, UTmsBuildSystemUtils;
+uses IOUtils, UTmsBuildSystemUtils, UHasher;
+
+const
+  MissingFileHash = 'missing';
+
+function ConfigFileHash(const FileName: string): string;
+begin
+  if not TFile.Exists(FileName) then exit(MissingFileHash);
+  Result := HashFile(FileName);
+end;
 
 { TConfigDefinition }
 
@@ -354,6 +370,21 @@ procedure TConfigDefinition.EnsureAllProducts;
 begin
   if Products.ContainsKey(GlobalProductId) then exit;
   Products.Add(GlobalProductId, TProductConfigDefinition.Create(GlobalProductId));
+end;
+
+procedure TConfigDefinition.SetLoadedFile(const FileName: string);
+begin
+  FLoadedFileName := TPath.GetFullPath(FileName);
+  FLoadedFileHash := ConfigFileHash(FLoadedFileName);
+end;
+
+procedure TConfigDefinition.CheckLoadedFileNotModified(const FileName: string);
+begin
+  //If the config wasn't loaded from this file (like when creating a new default config), there is nothing to check.
+  if (FLoadedFileName = '') or not SameFileName(FLoadedFileName, TPath.GetFullPath(FileName)) then exit;
+
+  if ConfigFileHash(FLoadedFileName) <> FLoadedFileHash then
+    raise Exception.CreateFmt('The file "%s" was modified by another process while this command was running. Run the command again.', [FLoadedFileName]);
 end;
 
 function TConfigDefinition.Folders: IBuildFolders;

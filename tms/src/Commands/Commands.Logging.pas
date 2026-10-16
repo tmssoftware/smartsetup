@@ -16,6 +16,7 @@ procedure FinishLogging(const JsonMode: boolean);
 procedure AlertAboutNewVersions(const NewSmartSetupVersion: string);
 procedure AlertAboutDiskSpace;
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
+procedure InitNotFolderBasedCommand;
 
 implementation
 uses Commands.GlobalConfig, Commands.SelfUpdate, Commands.CleanUp,
@@ -140,19 +141,20 @@ begin
   end;
 end;
 
+procedure InitNotFolderBasedCommand;
+begin
+  //Currently nothing. But for consistency in the future, every command must go through this or InitFolderBasedCommand.
+end;
+
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
 begin
   CheckValidTMSSetupFolder;
-  var Protector := TAppProtector.Create(TPath.GetFullPath(ConfigFileName), '3A6A634A-C79D-4F00-B40B-D6DE46E0C930');
+  var FullConfigFileName := TPath.GetFullPath(ConfigFileName);
+  var Protector := TAppProtector.Create(FullConfigFileName, FolderInitProtector);
   try
-    if EnableLog then
-    begin
-      CheckAppAlreadyRunning;
-      if IsAppOnlyInstance(TPath.GetFullPath(ConfigFileName)) then Cleanup;
-    end else
-    begin
-      IsAppOnlyInstance(TPath.GetFullPath(ConfigFileName));
-    end;
+    if EnableLog then CheckAppAlreadyRunning;
+    //Always call IsAppOnlyInstance, even if we won't clean up: it registers this instance so others don't clean up while we run.
+    if IsAppOnlyInstance(FullConfigFileName) and EnableLog then Cleanup;
   finally
     Protector.Free;
   end;

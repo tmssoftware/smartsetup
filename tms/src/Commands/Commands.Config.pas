@@ -12,7 +12,7 @@ implementation
 uses
   UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes,
   System.Types, UConfigWriter, UConfigDefinition, UConfigKeys,
-  Deget.CoreTypes;
+  Deget.CoreTypes, Commands.Logging;
 
 var
   Print,
@@ -41,6 +41,7 @@ end;
 
 procedure RunConfigCommand;
 begin
+  InitNotFolderBasedCommand;
   if Reset or not TFile.Exists(ConfigFileName) then
   begin
     CreateNewConfigFile;

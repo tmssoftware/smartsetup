@@ -8,13 +8,14 @@ procedure RegisterServerRemoveCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions,
-     UConfigWriter, Types, Commands.GlobalConfig, UConfigDefinition;
+     UConfigWriter, Types, Commands.GlobalConfig, UConfigDefinition, Commands.Logging;
 
 var
   ServerName: string;
 
 procedure RunServerRemoveCommand;
 begin
+  InitFolderBasedCommand(false);
   var ConfigWriter := TConfigWriter.Create(Config, false);
   try
    Config.EnsureAllProducts;
