@@ -3,6 +3,7 @@ unit ULazarusInstaller;
 
 interface
 uses Deget.CoreTypes, UInstaller, UUninstallInfo, UFullBuildInfo, Megafolders.Definition, Generics.Collections,
+  {$IFDEF POSIX}Posix.Stdio,{$ENDIF}
      UProjectBuildInfo;
 
 type

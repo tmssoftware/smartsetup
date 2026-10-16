@@ -32,7 +32,7 @@ implementation
 
 uses
   Commands.Logging, Commands.GlobalConfig, UMultiLogger, IOUTils,
-  UTmsBuildSystemUtils, Testing.CommandLineOptions;
+  UTmsBuildSystemUtils, Testing.CommandLineOptions, SmartSetup.Locks;
 
 procedure CheckAppAlreadyRunning;
 begin

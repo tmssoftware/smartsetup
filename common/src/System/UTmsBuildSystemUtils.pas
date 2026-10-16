@@ -29,8 +29,6 @@ procedure TDirectory_CreateDirectory(const Path: string);
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string; const DryRun: boolean; const Log: TProc<string>; var NeedsToRestartIDE: boolean); overload;
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string); overload;
 
-function AppIsAlreadyRunning(const Folder: string): boolean;
-
 procedure AddPathsWithWildcards(const Result: TList<string>; const Folder: string; const ErrorInfo: string; const OnAdd: TProc<string, string, string>);
 
 procedure RenameAndCheck(const SourceFile, DestFile: string);
@@ -56,8 +54,10 @@ type
   //uninitializing the wrong thread is not.
   TComInitializer = class
   private
+{$IFDEF MSWINDOWS}
     FInitialized: boolean;
     FThreadId: TThreadID;
+{$ENDIF}
   public
     constructor Create;
     destructor Destroy; override;
@@ -601,25 +601,6 @@ begin
   end;
 end;
 
-function AppIsAlreadyRunning(const Folder: string): boolean;
-begin
-  Result := false;
-
-  {$IFDEF MSWINDOWS}
-  // Name of the mutext must be at most 260 characters. So we use a hash, not the folder as name.
-  // We also use Folder.ToUpper so c:\test is the same as C:\TEST. We are inside a IFDEF MSWINDOWS. For linux/mac we shouldn't do it.
-  var FolderHash := THashSHA2.GetHashString(Folder.ToUpper);
-
-  //We'll add a guid to the hash so we identify even better our app...
-  //Global\ is to look into all users.
-  if CreateMutex(nil, True, PChar('Global\tms-smart-setup-7E07C55C-D558-40B8-96F7-364B036CAE74-' + FolderHash)) = 0 then
-    RaiseLastOSError;
-
-  var LastError := GetLastError;
-  if LastError = ERROR_ALREADY_EXISTS then
-    Exit(true);
-  {$ENDIF}
-end;
 
 procedure AddOnePath(const Result: TList<string>; const Folder: string; const ErrorInfo: string; const OnAdd: TProc<string, string, string>);
 begin

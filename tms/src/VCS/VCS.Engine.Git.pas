@@ -54,6 +54,7 @@ type
 
 implementation
 uses UWindowsPath, Deget.CommandLine, UMultiLogger, UTmsBuildSystemUtils, IOUtils,
+     {$IFDEF POSIX}Posix.Unistd,{$ENDIF}
      DateUtils, Testing.Globals, Character, VCS.Sanitizer;
 
 { TGitEngine }

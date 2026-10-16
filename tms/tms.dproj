@@ -453,6 +453,8 @@
         <DCCReference Include="..\common\src\BBYaml\BBFlow.pas"/>
         <DCCReference Include="src\Testing\Testing.TestDeleteFolders.pas"/>
         <DCCReference Include="src\Commands\Commands.TestDeleteFolders.pas"/>
+        <DCCReference Include="src\Commands\Commands.CleanUp.pas"/>
+        <DCCReference Include="src\System\SmartSetup.Locks.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

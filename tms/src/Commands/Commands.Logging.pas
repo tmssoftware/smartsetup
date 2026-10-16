@@ -18,12 +18,12 @@ procedure AlertAboutDiskSpace;
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
 
 implementation
-uses Commands.GlobalConfig, Commands.SelfUpdate,
+uses Commands.GlobalConfig, Commands.SelfUpdate, Commands.CleanUp,
      UTmsBuildSystemUtils, Deget.Version, Commands.CommonOptions, Threading,
 {$IFDEF DEBUG}
      Testing.Globals,
 {$ENDIF}
-     BBYaml.Writer, UConfigWriter;
+     SmartSetup.Locks, BBYaml.Writer, UConfigWriter;
 const
   {$i ../../../Version.inc}
 
@@ -142,8 +142,21 @@ end;
 
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
 begin
-  if EnableLog then CheckAppAlreadyRunning;
   CheckValidTMSSetupFolder;
+  var Protector := TAppProtector.Create(TPath.GetFullPath(ConfigFileName), '3A6A634A-C79D-4F00-B40B-D6DE46E0C930');
+  try
+    if EnableLog then
+    begin
+      CheckAppAlreadyRunning;
+      if IsAppOnlyInstance(TPath.GetFullPath(ConfigFileName)) then Cleanup;
+    end else
+    begin
+      IsAppOnlyInstance(TPath.GetFullPath(ConfigFileName));
+    end;
+  finally
+    Protector.Free;
+  end;
+
   if EnableLog then
     StartLogging;
 end;
