@@ -355,11 +355,18 @@ function Test-tmsgui {
         $suffix = "." + $suffix
     }
     $tmsguiexe = Get-Alias tmsgui | Select-Object -ExpandProperty Definition
-    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation:automate.script$($suffix).txt" -Wait -PassThru
+
+    $CallingScriptFolderName = Split-Path -Path (Split-Path -Path $MyInvocation.ScriptName -Parent) -Leaf
+    $CallingScriptFolder = Join-Path -Path $tmsTestRootDir -ChildPath "tmp-run\$CallingScriptFolderName"
+
+
+    $automationScriptFileName = "$CallingScriptFolder\auto-scripts\automate.script$($suffix).txt" 
+    $automationLogFileName = "$CallingScriptFolder\auto-scripts-result\tmsgui.automation$($suffix).log" 
+    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation-script:$automationScriptFileName", "-automation-log:$automationLogFileName" -Wait -PassThru
     if ($process.ExitCode -ne 0) {
         throw "tmsgui exited with error code $($process.ExitCode)"
     }
-    Compare-Files .\reference\tmsgui.automation$($suffix).log .\tmsgui.automation.log
+    Compare-Files $CallingScriptFolder\reference\tmsgui.automation$($suffix).log $automationLogFileName
 }
 
 

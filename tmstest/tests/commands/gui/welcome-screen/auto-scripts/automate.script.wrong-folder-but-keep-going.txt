@@ -1,0 +1,10 @@
+wait 1000
+assert self.Name = DialogForm
+click btnYes
+wait 1000
+assert self.Name = StartForm
+set cbTMS.Checked False
+#No server enabled, exit
+click btOk
+wait 1000
+assert self.Name <> MainForm

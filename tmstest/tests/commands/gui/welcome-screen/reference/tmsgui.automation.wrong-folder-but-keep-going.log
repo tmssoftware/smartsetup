@@ -1,0 +1,8 @@
+Starting Automation
+wait: 1000 milliseconds
+assert: "self.Name = DialogForm" is true
+click: "DialogForm.btnYes"
+wait: 1000 milliseconds
+assert: "self.Name = StartForm" is true
+set: "StartForm.cbTMS.Checked" to "False"
+click: "StartForm.btOk"

@@ -169,6 +169,10 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="src\GUI.Automation.pas"/>
+        <DCCReference Include="src\Forms.Dialogs.pas">
+            <Form>DialogForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>

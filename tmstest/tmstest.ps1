@@ -25,7 +25,7 @@ function Get-TestFromGUIAutomation {
 
     if ($testsToRunFileName -like "automate.script*.txt") {
         #return any ps1 file in the same folder as $testsToRunParam
-        $testsToRun = Get-ChildItem -Path (Split-Path -Path $testsToRunParam -Parent) -Filter "*.ps1"
+        $testsToRun = Get-ChildItem -Path (Split-Path -Path (Split-Path -Path $testsToRunParam -Parent) -Parent) -Filter "*.ps1"
         if (@($testsToRun).Count -ne 1) {
            throw "No test or multiple tests found in the same folder as the automation script."
         }

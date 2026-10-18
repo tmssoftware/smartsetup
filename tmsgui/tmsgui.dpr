@@ -25,7 +25,8 @@ uses
   Vcl.Styles,
   UTheming in 'src\UTheming.pas',
   Forms.LogDetails in 'src\Forms.LogDetails.pas' {LogDetailsForm},
-  GUI.Automation in 'src\GUI.Automation.pas';
+  GUI.Automation in 'src\GUI.Automation.pas',
+  Forms.Dialogs in 'src\Forms.Dialogs.pas' {DialogForm};
 
 {$R *.res}
 

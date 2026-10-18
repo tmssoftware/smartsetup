@@ -40,7 +40,7 @@ type
 
   TGUIAutomator = class
   private
-    const LogFile = 'tmsgui.automation.log';
+    const DefaultLogFile = 'tmsgui.automation.log';
     class var Instance: TGUIAutomator;
   private
     ApplicationEvents: TApplicationEvents;
@@ -49,12 +49,13 @@ type
     MaxExecutionDate: TDateTime;
     SleepingUntilTime: TDateTime;
     SleepingUntilCondition: TAutomationData;
+    FLogFile: string;
     procedure MainLoop(Sender: TObject; var Done: Boolean);
     procedure RunAction(const Action: TAutomationData);
 
     class constructor Create;
     class destructor Destroy;
-    procedure Load(const aFileName: string; const TimeOutInMs: integer);
+    procedure Load(const aScriptFile, aLogFile: string; const TimeOutInMs: integer);
     procedure ParseActions(const aActions: TArray<string>);
 
     procedure Log(const Message: string);
@@ -72,12 +73,15 @@ type
     function ConditionIsTrue(const Action: TAutomationData): boolean;
     function GetObj(const ComponentAndOrProperty: string): string;
     function GetProp(const ComponentAndProperty: string): string;
+
+    function LogFile: string;
+    function IsAvailable(const Control: TControl; const Msg: string): boolean;
   public
     constructor Create;
     destructor Destroy; override;
 
-    class procedure LoadActions(const aFileName: string; const TimeOutInMs: integer = 5000 * 60); static;
-
+    class procedure LoadActions(const aScriptFile, aLogFile: string; const TimeOutInMs: integer = 5000 * 60); static;
+    class function IsAutomating: boolean; static;
   end;
 
 implementation
@@ -209,21 +213,30 @@ begin
   inherited;
 end;
 
-procedure TGUIAutomator.Load(const aFileName: string; const TimeOutInMs: integer);
+function TGUIAutomator.LogFile: string;
+begin
+  if FLogFile.Trim <> '' then exit(TPath.GetFullPath(FLogFile));
+  exit(TPath.GetFullPath(DefaultLogFile));
+end;
+
+
+procedure TGUIAutomator.Load(const aScriptFile, aLogFile: string; const TimeOutInMs: integer);
 begin
   MaxExecutionDate := TDateTime.NowUTC.IncMilliSecond(TimeOutInMs);
+  FLogFile := aLogFile;
   Actions.Clear;
 
-  DeleteFile(LogFile);
+  TDirectory.CreateDirectory(TPath.GetDirectoryName(LogFile));
+  SysUtils.DeleteFile(LogFile);
   Log('Starting Automation');
 
   ActionCounter := 0;
   try
-    ParseActions(TFile.ReadAllLines(aFileName));
+    ParseActions(TFile.ReadAllLines(aScriptFile));
   except on ex: Exception do
     begin
       //This runs from FormCreate. If we let the exception escape, the GUI shows an error dialog and the test hangs.
-      Log('ERROR: Cannot load automation script "' + aFileName + '": ' + ex.Message);
+      Log('ERROR: Cannot load automation script "' + aScriptFile + '": ' + ex.Message);
       ExitProcess(10);
     end;
   end;
@@ -264,9 +277,9 @@ begin
   end;
 end;
 
-class procedure TGUIAutomator.LoadActions(const aFileName: string; const TimeOutInMs: integer = 5000 * 60);
+class procedure TGUIAutomator.LoadActions(const aScriptFile, aLogFile: string; const TimeOutInMs: integer = 5000 * 60);
 begin
-  Instance.Load(aFileName, TimeOutInMs);
+  Instance.Load(aScriptFile, aLogFile, TimeOutInMs);
 end;
 
 class constructor TGUIAutomator.Create;
@@ -287,6 +300,13 @@ end;
 function TGUIAutomator.GetName(const Action: TAutomationData): string;
 begin
   Result := '"' + Screen.ActiveForm.Name +'.' + Action.Target + '"';
+end;
+
+function TGUIAutomator.IsAvailable(const Control: TControl; const Msg: string): boolean;
+begin
+  if not Control.Enabled then begin Log(Msg + ' because it is disabled'); exit(false); end;
+  if not Control.Visible then begin Log(Msg + ' because it is not visible'); exit(false); end;
+  Result := true;
 end;
 
 function TGUIAutomator.GetObj(const ComponentAndOrProperty: string): string;
@@ -364,6 +384,11 @@ begin
   end;
 end;
 
+class function TGUIAutomator.IsAutomating: boolean;
+begin
+  Result := Assigned(Instance.ApplicationEvents.OnIdle);
+end;
+
 function TGUIAutomator.ConditionIsTrue(const Action: TAutomationData): boolean;
 begin
   if Action.Target = '' then exit(true);
@@ -409,26 +434,20 @@ end;
 procedure TGUIAutomator.DoClick(const Action: TAutomationData);
 begin
   var Button := GetComponent<TButton>(Action.Target, 'button');
-  if Button.Enabled then
+  if IsAvailable(Button, 'click: cannot click button ' + GetName(Action)) then
   begin
     Log('click: ' + GetName(Action));
     Button.Click;
-  end else
-  begin
-    Log('click: cannot click button ' + GetName(Action) + ' because it is disabled');
   end;
 end;
 
 procedure TGUIAutomator.DoCall(const Action: TAutomationData);
 begin
   var Control := GetComponent<TControl>(Action.Target, 'control');
-  if Control.Enabled then
+  if IsAvailable(Control, 'call: cannot call action in component ' + GetName(Action)) then
   begin
     Log('call: ' + GetName(Action));
     CallDynamicMethod(Control, GetProp(Action.Target));
-  end else
-  begin
-    Log('call: cannot call action in component ' + GetName(Action) + ' because it is disabled');
   end;
 end;
 
@@ -460,13 +479,10 @@ procedure TGUIAutomator.DoSetText(const Action: TAutomationData);
 begin
   var Edit := GetComponent<TCustomEdit>(Action.Target, 'edit box/memo');
 
-  if Edit.Enabled then
+  if IsAvailable(Edit, 'set-text: Cannot set text of ' + GetName(Action) + ' to "' + Action.Data) then
   begin
     Edit.Text := Action.Data;
     Log('set-text: ' + GetName(Action) + ' to "' + Action.Data +'"');
-  end else
-  begin
-    Log('set-text: Cannot set text of ' + GetName(Action) + ' to "' + Action.Data +'" because the control is disabled.');
   end;
 end;
 
@@ -474,13 +490,10 @@ procedure TGUIAutomator.DoSet(const Action: TAutomationData);
 begin
   var Control := GetComponent<TControl>(Action.Target, 'control');
 
-  if Control.Enabled then
+  if IsAvailable(Control, 'set: Cannot set property ' + GetName(Action) + ' to "' + Action.Data) then
   begin
     SetDynamicPropValue(Control, GetProp(Action.Target), Action.Data);
     Log('set: ' + GetName(Action) + ' to "' + Action.Data +'"');
-  end else
-  begin
-    Log('set: Cannot set property ' + GetName(Action) + ' to "' + Action.Data +'" because the control is disabled.');
   end;
 end;
 

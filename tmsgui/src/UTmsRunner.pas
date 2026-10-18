@@ -118,7 +118,7 @@ type
     FVersion: TVersion;
     FLocation: string;
     FWorkingFolder: string;
-    FFolderInitialized: Boolean;
+    FIsValidTMSSetupFolder: Boolean;
     FHasCredentials: Boolean;
     FConfigFile: string;
     function GetWorkingFolder: string;
@@ -127,7 +127,7 @@ type
     property Version: TVersion read FVersion write FVersion;
     property Location: string read FLocation write FLocation;
     property WorkingFolder: string read GetWorkingFolder write FWorkingFolder;
-    property FolderInitialized: Boolean read FFolderInitialized write FFolderInitialized;
+    property IsValidTMSSetupFolder: Boolean read FIsValidTMSSetupFolder write FIsValidTMSSetupFolder;
     property HasCredentials: Boolean read FHasCredentials write FHasCredentials;
     property ConfigFile: string read FConfigFile write FConfigFile;
   end;
@@ -575,7 +575,7 @@ begin
   Info.Version := Json.GetValue('tms version', '');
   Info.Location := Json.GetValue('tms location', '');
   Info.WorkingFolder := Json.GetValue('working folder', '');
-  Info.FolderInitialized := Json.GetValue('folder initialized', False);
+  Info.IsValidTMSSetupFolder := Json.GetValue('folder initialized', False);
   Info.HasCredentials := Json.GetValue('has credentials', False);
   Info.ConfigFile := Json.GetValue('config file', '');
   Info.Initialized := true;

@@ -137,7 +137,8 @@ type
     function GetCmdLineParameter(const Prefix: string): string;
     function Repository: string;
 {$IFDEF DEBUG}
-    function GetAutomationFile: string;
+    function GetAutomationScript: string;
+    function GetAutomationLog: string;
 {$ENDIF}
     function GetLogIco(const Item: TGUILogItem): string;
 
@@ -171,7 +172,7 @@ uses
   Winapi.ShellAPI, Winapi.CommCtrl,
   UTheming, IOUtils,
   GUI.Automation,
-  Forms.VersionPicker;
+  Forms.VersionPicker, Forms.Dialogs;
 
 {$R *.dfm}
 
@@ -376,14 +377,6 @@ begin
   var SessionId := GUI.LogItems[RevIndex].SessionId;
   if SessionId = '' then exit;
 
-  // "tms log-view" is a tms.exe run like any other, and every tms.exe start cleans the shared temp
-  // folders, so it must not run while an install or build is using them.
-  if GUI.IsRunning then
-  begin
-    ShowMessage('Please wait until the current operation finishes to open the log.');
-    exit;
-  end;
-
   var LogFile := GUI.ExecuteLogView(SessionId, true);
   if not TFile.Exists(LogFile) then
   begin
@@ -506,10 +499,10 @@ begin
   ActiveControl := lvProducts;
 
 {$IFDEF DEBUG}
-  var ActionFile := GetAutomationFile;
-  if ActionFile <> '' then
+  var ActionScript := GetAutomationScript;
+  if ActionScript <> '' then
   begin
-    TGUIAutomator.LoadActions(ActionFile);
+    TGUIAutomator.LoadActions(ActionScript, GetAutomationLog);
   end;
 {$ENDIF}
 end;
@@ -531,7 +524,7 @@ begin
   // Closing cancels the running job, which kills tms.exe wherever it is, so ask first.
   // Not when relaunching after a self-update: that job is the one closing us.
   if Relaunch or not GUI.IsRunning then exit;
-  CanClose := MessageDlg('An operation is still running. Closing will cancel it.' + sLineBreak + sLineBreak +
+  CanClose := TDialogForm.MessageDlg('An operation is still running. Closing will cancel it.' + sLineBreak + sLineBreak +
     'Close anyway?', TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], 0, TMsgDlgBtn.mbNo) = mrYes;
 end;
 
@@ -545,16 +538,32 @@ procedure TMainForm.FormShow(Sender: TObject);
 begin
   if not GUI.Info.Initialized then
   begin
-    ShowMessage('Error initializing SmartSetup: ' + GetLastError);
+    TDialogForm.ShowMessage('Error initializing SmartSetup: ' + GetLastError);
    // Application.Terminate;
     Gui.Start;
     exit;
   end;
 
   //Show the message only if there is no config file yet.
-  //If we used FolderInitialized here, it will be true in an empty folder. But we want to show the welcome in an empty folder.
   if not TFile.Exists(GUI.Info.ConfigFile) then
   begin
+    if not GUI.Info.IsValidTMSSetupFolder then
+    begin
+      var Response := TDialogForm.MessageDlg('The folder "' + GUI.Info.WorkingFolder + '" isn''t empty or recognized as a valid smartsetup folder. Are you sure you want to use this folder for installing components?',
+                         mtInformation,
+                         [mbYes, mbNo],
+                         0,
+                         mbNo,
+                         ['&Use anyway', 'E&xit application']);
+
+      if Response <> mrYes then
+      begin
+        Application.Terminate;
+        exit;
+      end;
+    end;
+
+
     var TMS, Community: Boolean;
     if TStartForm.Execute(TMS, Community) then
     begin
@@ -766,7 +775,7 @@ begin
   begin
     TThread.Queue(nil, procedure
       begin
-        ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
+        TDialogForm.ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
         GUI.ExecuteSelfUpdate(ProgressEvent,
           procedure
           begin
@@ -794,9 +803,14 @@ begin
 end;
 
 {$IFDEF DEBUG}
-function TMainForm.GetAutomationFile: string;
+function TMainForm.GetAutomationScript: string;
 begin
-  Result := GetCmdLineParameter('-automation:');
+  Result := GetCmdLineParameter('-automation-script:');
+end;
+
+function TMainForm.GetAutomationLog: string;
+begin
+  Result := GetCmdLineParameter('-automation-log:');
 end;
 {$ENDIF}
 
@@ -805,7 +819,7 @@ procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm
 begin
   Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid, DisableServer);
   if DisableServer and not Confirm then
-    ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
+    TDialogForm.ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
 end;
 
 procedure TMainForm.RunFinishEvent;

@@ -1,0 +1,10 @@
+Starting Automation
+wait: 1000 milliseconds
+assert: "self.Name = DialogForm" is true
+click: "DialogForm.btnYes"
+wait: 1000 milliseconds
+assert: "self.Name = StartForm" is true
+click: "StartForm.btOk"
+wait: 1000 milliseconds
+assert: "self.Name = MainForm" is true
+Completed successfully

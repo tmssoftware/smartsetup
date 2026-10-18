@@ -1115,12 +1115,12 @@ begin
   RunSync<TTmsListRunner>(
     procedure(ListRunner: TTmsListRunner)
     begin
-      if Info.FolderInitialized then
+      if Info.IsValidTMSSetupFolder then
         ListRunner.RunList;
       RunSync<TTmsListRemoteRunner>(
         procedure(RemoteRunner: TTmsListRemoteRunner)
         begin
-          if Info.FolderInitialized then
+          if Info.IsValidTMSSetupFolder then
           begin
             RemoteRunner.Server := Server;
             RemoteRunner.RunListRemote;
