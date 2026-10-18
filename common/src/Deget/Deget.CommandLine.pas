@@ -187,6 +187,31 @@ begin
    Result := Result + #0;
 end;
 
+function SetKillOnJobClose(const Job: THandle; const Value: Boolean): Boolean;
+var
+  Info: TJobObjectExtendedLimitInformation;
+begin
+  FillChar(Info, SizeOf(Info), 0);
+  if Value then Info.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+  Result := SetInformationJobObject(Job, JobObjectExtendedLimitInformation, @Info, SizeOf(Info));
+end;
+
+function CreateKillOnCloseJob: THandle;
+begin
+  Result := CreateJobObject(nil, nil);
+  if (Result <> 0) and not SetKillOnJobClose(Result, true) then
+  begin
+    CloseHandle(Result);
+    Result := 0;
+  end;
+end;
+
+function KillProcessTree(const Job, Process: THandle): Boolean;
+begin
+  Result := (Job <> 0) and TerminateJobObject(Job, ERROR_CANCELLED);
+  if not Result then Result := TerminateProcess(Process, ERROR_CANCELLED);
+end;
+
 class function TCommandLine.InternalExecute(const CommandLine: string;
   const WorkingDirectory: string; CallbackProc: TStringProc; const Env: TArray<string> = nil; IsCanceledFunc: TFunc<Boolean> = nil): Integer;
 var
@@ -194,16 +219,35 @@ var
   SI: TStartupInfo;
   PI: TProcessInformation;
   StdOutPipeRead, StdOutPipeWrite: THandle;
-  Buffer: array[0..255] of AnsiChar;
-//  WBuffer: array[0..255] of Char;
-  BytesRead, TotalBytesAvail: Cardinal;
   Handle: Boolean;
   ExitCode: Cardinal;
   LocalCommandLine: string;
   LocalWorkingDir: PChar;
-  WaitResult, OldWaitResult :DWord;
   Environment: string;
   PEnvironment: PChar;
+  Job: THandle;
+  Canceled, FinishedNormally: Boolean;
+
+  //Read one chunk so continuous output cannot prevent cancellation checks.
+  function PumpOutput: Boolean;
+  var
+    Buffer: array[0..4095] of AnsiChar;
+    BytesRead, TotalBytesAvail: Cardinal;
+  begin
+    Result := false;
+    if not PeekNamedPipe(StdOutPipeRead, nil, 0, nil, @TotalBytesAvail, nil) then exit;
+    if TotalBytesAvail = 0 then exit;
+    if not ReadFile(StdOutPipeRead, Buffer, SizeOf(Buffer) - 1, BytesRead, nil) then exit;
+    if BytesRead = 0 then exit;
+    if Assigned(CallbackProc) then
+    begin
+      Buffer[BytesRead] := #0;
+      OemToCharBuffA(Buffer, Buffer, BytesRead);
+      CallbackProc(String(Buffer));
+    end;
+    Result := true;
+  end;
+
 begin
    if Env <> nil then
    begin
@@ -240,50 +284,63 @@ begin
     SI.hStdOutput := StdOutPipeWrite;
     SI.hStdError := StdOutPipeWrite;
 
-    Handle := CreateProcess(nil, PChar(LocalCommandLine), nil, nil, True, NORMAL_PRIORITY_CLASS or CREATE_UNICODE_ENVIRONMENT,     //CREATE_NEW_PROCESS_GROUP is needed so ctrl-c is not passed to this proceess.
-      PEnvironment, PChar(LocalWorkingDir), SI, PI);
-    CloseHandle(StdOutPipeWrite);
-    if not Handle then
-      RaiseLastOSError;
-
-    OldWaitResult := WAIT_TIMEOUT;
+    //Everything the child launches goes into this job, so a cancel can kill the whole tree and not only the direct child.
+    //If we die without cleaning up, closing the job kills the tree too.
+    Job := CreateKillOnCloseJob;
+    FinishedNormally := false;
     try
-      WaitResult := WAIT_TIMEOUT;
-      repeat
-        if AppIsTerminated or (Assigned(IsCanceledFunc) and IsCanceledFunc()) then
+      //No CREATE_NEW_PROCESS_GROUP: in the cli, the child gets the user's Ctrl-C too, and can start stopping by itself before we kill it.
+      //CREATE_SUSPENDED: the child can't launch anything before it is in the job.
+      Handle := CreateProcess(nil, PChar(LocalCommandLine), nil, nil, True,
+        NORMAL_PRIORITY_CLASS or CREATE_UNICODE_ENVIRONMENT or CREATE_SUSPENDED,
+        PEnvironment, PChar(LocalWorkingDir), SI, PI);
+      CloseHandle(StdOutPipeWrite);
+      if not Handle then
+        RaiseLastOSError;
+
+      try
+        if (Job <> 0) and not AssignProcessToJobObject(Job, PI.hProcess) then
         begin
-          TerminateProcess(PI.hProcess, ERROR_CANCELLED); //not 0, or a canceled run reads as a success.
-          CheckAppTerminated;
+          //Can happen on Windows 7 if we are already inside a job. We can still kill the direct child.
+          CloseHandle(Job);
+          Job := 0;
         end;
+        ResumeThread(PI.hThread);
 
-        var WasOk := PeekNamedPipe(StdOutPipeRead, nil, 0, nil, @TotalBytesAvail, nil);
-        if WasOk and (TotalBytesAvail > 0) then
-        begin
-          BytesRead := 0;
-          WasOk := ReadFile(StdOutPipeRead, Buffer, 255, BytesRead, nil);
-          if WasOk and (BytesRead > 0) then
-          begin
-            if Assigned(CallbackProc) then
-            begin
-              Buffer[BytesRead] := #0;
-              OemToCharBuffA(Buffer, Buffer, BytesRead);
-              CallbackProc(String(Buffer));
-            end;
-          end;
-          continue;
-        end;
+        repeat
+          Canceled := AppIsTerminated or (Assigned(IsCanceledFunc) and IsCanceledFunc());
+          if Canceled then break;
+          if not PumpOutput then
+            if WaitForSingleObject(PI.hProcess, 50) = WAIT_OBJECT_0 then break;
+        until false;
 
-        OldWaitResult := WaitResult;
-        WaitResult := WaitForSingleObject(PI.hProcess, 500);
-      until (OldWaitResult <> WAIT_TIMEOUT); //We do an extra loop after PI finished to collect any remaining output.
+        //Kill the whole tree, not only the direct child. If even that fails, don't wait for a process that may never exit.
+        if Canceled and KillProcessTree(Job, PI.hProcess) then
+          WaitForSingleObject(PI.hProcess, 5000);
 
-      GetExitCodeProcess(PI.hProcess, ExitCode);
-      {$R-}
-      Result := ExitCode;
-      {$R+}
+        //Before draining: if the output callback raises, we still keep what the child detached on purpose.
+        FinishedNormally := not Canceled;
+        while PumpOutput do begin end;
+
+        GetExitCodeProcess(PI.hProcess, ExitCode);
+        //The child might have exited with 0 just before we killed it. Not 0, or a canceled run reads as a success.
+        if Canceled and (ExitCode = 0) then ExitCode := ERROR_CANCELLED;
+        {$R-}
+        Result := ExitCode;
+        {$R+}
+        CheckAppTerminated;
+      finally
+        CloseHandle(PI.hThread);
+        CloseHandle(PI.hProcess);
+      end;
     finally
-      CloseHandle(PI.hThread);
-      CloseHandle(PI.hProcess);
+      if Job <> 0 then
+      begin
+        //After a normal run, keep anything the child detached on purpose (like git's background gc), same as before we used a job.
+        //Canceled or failed: closing the job kills whatever is still running in it.
+        if FinishedNormally then SetKillOnJobClose(Job, false);
+        CloseHandle(Job);
+      end;
     end;
   finally
     CloseHandle(StdOutPipeRead);
@@ -350,7 +407,6 @@ begin
   raise Exception.Create('Command line execution not implemented in this platform.');
 end;
 {$IFEND}
-
 
 end.
 

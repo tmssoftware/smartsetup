@@ -112,6 +112,7 @@ type
     FOnProductsUpdated: TProductsProc;
     FActiveRunners: TList<TTmsRunner>; //every runner currently executing, on any thread. Guarded by TMonitor on itself.
     FDestroying: Boolean;
+    FCancelRequested: Boolean; //the running job was canceled, so its later steps must not start new runners. Guarded like FActiveRunners.
     FInfo: TTmsInfo;
     FServer: string;
     FServers: TServerConfigItems;
@@ -141,12 +142,15 @@ type
     procedure DoRunFinish;
     procedure DoNotifyNewVersion;
     procedure DoRunnerCreated(Runner: TTmsRunner);
-    procedure RefreshFetchedProducts(Filter: TProductFilter);
+    procedure RefreshFetchedProducts(Filter: TProductFilter; const Server: string);
+    procedure RefreshFetchedProductsAfterJob;
+    function StartExclusive(const Proc: TProc): Boolean;
+    procedure ClearCancelRequested;
     procedure ReplaceFetchedProducts(NewProducts: TGUIProductList; Filter: TProductFilter);
     procedure ApplyProductFilters;
     procedure BeginRunning;
     procedure EndRunning;
-    procedure AddActiveRunner(Runner: TTmsRunner);
+    function AddActiveRunner(Runner: TTmsRunner): Boolean;
     procedure RemoveActiveRunner(Runner: TTmsRunner);
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
@@ -226,8 +230,10 @@ type
 
     /// <summary>
     ///   Specifies a server from which the products will be retrieved. If empty, all servers will be used.
+    ///   False if the product list could not be refreshed because another job is running; the server is then not changed.
     /// </summary>
-    procedure SetServer(const Value: string);
+    function SetServer(const Value: string): Boolean;
+    property Server: string read FServer;
 
     /// <summary>
     ///   Retrieves general information about Smart Setup folder
@@ -264,7 +270,7 @@ type
 implementation
 
 uses
-  Masks, IOUtils;
+  Masks;
 
 { TGUILogger }
 
@@ -386,6 +392,8 @@ procedure TGUIEnvironment.CancelRun;
 begin
   TMonitor.Enter(FActiveRunners);
   try
+    // Only while something runs: a stale flag would silently skip the next job.
+    if FRunningCount > 0 then FCancelRequested := True;
     for var Runner in FActiveRunners do
       Runner.Cancel;
   finally
@@ -393,11 +401,13 @@ begin
   end;
 end;
 
-procedure TGUIEnvironment.AddActiveRunner(Runner: TTmsRunner);
+function TGUIEnvironment.AddActiveRunner(Runner: TTmsRunner): Boolean;
 begin
   TMonitor.Enter(FActiveRunners);
   try
-    FActiveRunners.Add(Runner);
+    // Checked under the same lock CancelRun takes, so a runner is either canceled or never starts.
+    Result := not (FDestroying or FCancelRequested);
+    if Result then FActiveRunners.Add(Runner);
   finally
     TMonitor.Exit(FActiveRunners);
   end;
@@ -592,7 +602,7 @@ end;
 
 destructor TGUIEnvironment.Destroy;
 begin
-  // Wait a little bit for the runner to finish. We could use TEvent here, but let's make it simple for now
+  // Cancel the runners and wait (up to about 10 seconds) for them to finish.
   FDestroying := True;
   CancelRun;
   for var I := 1 to 100 do
@@ -644,10 +654,11 @@ begin
     FOnRunStart();
 end;
 
-procedure TGUIEnvironment.RunAsync<T>(Proc: TProc<T>);
+function TGUIEnvironment.StartExclusive(const Proc: TProc): Boolean;
 begin
   // Claimed here, on the calling thread, so a second click can't start a second job before the thread runs.
-  if not TryBeginExclusive then
+  Result := TryBeginExclusive;
+  if not Result then
   begin
     Logger.Error('tms.exe is already running');
     Exit;
@@ -657,7 +668,7 @@ begin
       procedure
       begin
         try
-          RunSync<T>(Proc);
+          Proc;
         finally
           EndRunning;
         end;
@@ -667,6 +678,15 @@ begin
     EndRunning;
     raise;
   end;
+end;
+
+procedure TGUIEnvironment.RunAsync<T>(Proc: TProc<T>);
+begin
+  StartExclusive(
+    procedure
+    begin
+      RunSync<T>(Proc);
+    end);
 end;
 
 procedure TGUIEnvironment.RunBackground(Proc: TProc);
@@ -719,7 +739,20 @@ end;
 procedure TGUIEnvironment.EndRunning;
 begin
   if AtomicDecrement(FRunningCount) = 0 then
+  begin
+    ClearCancelRequested; // the canceled job is over
     DoRunFinish;
+  end;
+end;
+
+procedure TGUIEnvironment.ClearCancelRequested;
+begin
+  TMonitor.Enter(FActiveRunners);
+  try
+    FCancelRequested := False;
+  finally
+    TMonitor.Exit(FActiveRunners);
+  end;
 end;
 
 procedure TGUIEnvironment.ExecuteBuild(FullBuild: Boolean; ProgressCallback: TProductProgressProc);
@@ -764,7 +797,7 @@ begin
         ProgressCallback(ProgressInfo);
       end;
 
-      RefreshFetchedProducts(FProductFilter);
+      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -840,7 +873,7 @@ begin
         ProgressCallback(ProgressInfo);
       end;
 
-      RefreshFetchedProducts(FProductFilter);
+      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -856,7 +889,7 @@ begin
     begin
       Runner.RunPin(SelectedProductIds)
     end);
-  RefreshFetchedProducts(FProductFilter);
+  RefreshFetchedProductsAfterJob;
 end;
 
 procedure TGUIEnvironment.ExecuteUninstall(ProgressCallback: TProgressProc);
@@ -887,7 +920,7 @@ begin
           ProgressCallback(100);
       end;
 
-      RefreshFetchedProducts(FProductFilter);
+      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -898,7 +931,7 @@ begin
     begin
       Runner.RunUnpin(SelectedProductIds)
     end);
-  RefreshFetchedProducts(FProductFilter);
+  RefreshFetchedProductsAfterJob;
 end;
 
 procedure TGUIEnvironment.RunnerOutputEvent(const S: string);
@@ -915,7 +948,8 @@ begin
     try
       // A list, not a single "current runner" field: runners nest and run on several threads, and
       // saving/restoring one field across threads could leave it pointing at a freed runner.
-      AddActiveRunner(LocalRunner);
+      // Not added when the job was canceled or we are closing: then the remaining steps don't start a new tms.exe.
+      if not AddActiveRunner(LocalRunner) then Exit;
       try
         BeginRunning;
         try
@@ -974,12 +1008,13 @@ begin
   if FServers.IsEnabled('tms') and not Info.HasCredentials then
     ExecuteRequestCredentials;
 
+  var Server := FServer;
   RunBackground(procedure
     begin
       if FServers.RemotesEnabled then
-        RefreshFetchedProducts(TProductFilter.All)
+        RefreshFetchedProducts(TProductFilter.All, Server)
       else
-        RefreshFetchedProducts(TProductFilter.Installed);
+        RefreshFetchedProducts(TProductFilter.Installed, Server);
     end);
 end;
 
@@ -1067,9 +1102,16 @@ begin
   FreeAndNil(FInfo);
 end;
 
-procedure TGUIEnvironment.RefreshFetchedProducts(Filter: TProductFilter);
+procedure TGUIEnvironment.RefreshFetchedProductsAfterJob;
 begin
-  var Server := FServer;
+  // Refresh even if the job was canceled: a canceled install may have finished some products.
+  // The refresh itself can still be canceled, and it does not run when we are closing.
+  ClearCancelRequested;
+  RefreshFetchedProducts(FProductFilter, FServer);
+end;
+
+procedure TGUIEnvironment.RefreshFetchedProducts(Filter: TProductFilter; const Server: string);
+begin
   RunSync<TTmsListRunner>(
     procedure(ListRunner: TTmsListRunner)
     begin
@@ -1181,26 +1223,12 @@ end;
 
 procedure TGUIEnvironment.ChangeProductFilter(Filter: TProductFilter);
 begin
-  if not TryBeginExclusive then
-  begin
-    Logger.Error('tms.exe is already running');
-    Exit;
-  end;
-  try
-    TThread.CreateAnonymousThread(
-      procedure
-      begin
-        try
-          RefreshFetchedProducts(Filter);
-        finally
-          EndRunning;
-        end;
-      end)
-      .Start;
-  except
-    EndRunning;
-    raise;
-  end;
+  var Server := FServer;
+  StartExclusive(
+    procedure
+    begin
+      RefreshFetchedProducts(Filter, Server);
+    end);
 end;
 
 function TGUIEnvironment.TryBeginExclusive: Boolean;
@@ -1221,8 +1249,7 @@ begin
   try
     Mask := TMask.Create(Filter);
   except
-    on EMaskException do
-      Mask := nil;
+    on EMaskException do ; // Mask stays nil
   end;
   try
     var Predicate :=
@@ -1257,15 +1284,21 @@ begin
   end;
 end;
 
-procedure TGUIEnvironment.SetServer(const Value: string);
+function TGUIEnvironment.SetServer(const Value: string): Boolean;
 begin
-  if FServer <> Value then
-  begin
-    FServer := Value;
-    // Asynchronous and guarded like any other job: it used to run list and list-remote on the main
-    // thread, freezing the window, and could start while an install was running.
-    ChangeProductFilter(FProductFilter);
-  end;
+  if FServer = Value then Exit(True);
+
+  // Asynchronous and guarded like any other job: it used to run list and list-remote on the main
+  // thread, freezing the window, and could start while an install was running.
+  // Only keep the new server if the refresh started, or it would not match the products shown.
+  var Filter := FProductFilter;
+  var Server := Value;
+  Result := StartExclusive(
+    procedure
+    begin
+      RefreshFetchedProducts(Filter, Server);
+    end);
+  if Result then FServer := Value;
 end;
 
 function TGUIEnvironment.UpdateSelectedProducts: boolean;

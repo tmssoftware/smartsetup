@@ -394,7 +394,14 @@ begin
   var Server := '';
   if cbServer.ItemIndex > 0 then // ignore "all"
     Server := cbServer.Items[cbServer.ItemIndex];
-  GUI.SetServer(Server);
+  if not GUI.SetServer(Server) then
+  begin
+    // Another job is running and the list was not refreshed: show the server the list is really for.
+    var Index := cbServer.Items.IndexOf(GUI.Server);
+    if Index = -1 then
+      Index := 0; // "all"
+    cbServer.ItemIndex := Index;
+  end;
 end;
 
 procedure TMainForm.CommandOutputEvent(const Text: string);
