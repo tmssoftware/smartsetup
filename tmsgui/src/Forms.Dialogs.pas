@@ -109,8 +109,8 @@ begin
 {$ENDIF}
 
   if CustomButtonCaptions = nil
-    then Vcl.Dialogs.MessageDlg(Msg, DlgType, Buttons, HelpCtx, DefaultButton)
-    else Vcl.Dialogs.MessageDlg(Msg, DlgType, Buttons, HelpCtx, DefaultButton, CustomButtonCaptions);
+    then Result := Vcl.Dialogs.MessageDlg(Msg, DlgType, Buttons, HelpCtx, DefaultButton)
+    else Result := Vcl.Dialogs.MessageDlg(Msg, DlgType, Buttons, HelpCtx, DefaultButton, CustomButtonCaptions);
 end;
 
 class procedure TDialogForm.ShowMessage(const Message: string);

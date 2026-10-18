@@ -161,6 +161,10 @@ type
     procedure RunStartEvent;
     procedure RunFinishEvent;
     procedure NewVersionDetectedEvent;
+
+    {$IFDEF DEBUG}
+    function ProductCount: integer;
+    {$ENDIF}
   end;
 
 var
@@ -1015,5 +1019,14 @@ begin
       ProgressBar.Position := Percent;
     end);
 end;
+
+{$IFDEF DEBUG}
+//for testing
+function TMainForm.ProductCount: integer;
+begin
+  Result := lvProducts.Items.Count;
+end;
+{$ENDIF}
+
 
 end.

@@ -5,19 +5,23 @@ unit GUI.Automation;
   self as component name -> refers to the active form.
   // or # mark a comment. Note: it should be a full line comment.
   ~ means contain. !~ means not contains. For example memo.text ~success means memo.text contains "success"
+  = <> < > <= >= compare as integers if both sides are integers, else as case-insensitive text.
+  $name in the right side of a comparison is replaced by the value of variable $name.
   Commands:
-  assert <component.text> [=/<>/~/!~value] | assert self.name = form1 -> crashes the app if the form name is not "form1"
+  assert <component.text> [=/<>/</>/<=/>=/~/!~value] | assert self.name = form1 -> crashes the app if the form name is not "form1"
   log <component.value>  | log memo1.text -> logs the value of memo1.text
   wait <ms>  | wait 5000 -> waits for 5 seconds
-  wait <component.property> [=/<>/~/!~value] -> wait button1.enabled -> waits until button is enabled
+  wait <component.property> [=/<>/</>/<=/>=/~/!~value] -> wait button1.enabled -> waits until button is enabled
   click <button> | click button2 -> clicks button2
   call <component.method> | call listview1.SelectAll -> Selects all items
   set-text <edit> text |  set-text memo1 hello today  -> sets the memo value to "hello today"
   set <component.property> text |  set cb.checked true  -> sets the checkbox to checked.
+  var <$name> <component.property> | var $count self.ProductCount -> stores the current value of self.ProductCount in $count
 *)
 
 interface
-uses SysUtils, Classes, Vcl.Forms, Vcl.Controls, Vcl.StdCtrls, Vcl.AppEvnts, Generics.Collections;
+uses SysUtils, Classes, Vcl.Forms, Vcl.Controls, Vcl.StdCtrls,
+     Vcl.AppEvnts, Generics.Defaults, Generics.Collections, TypInfo, RTTI;
 
 type
   TAutomationActionType = (
@@ -27,7 +31,8 @@ type
     Click,
     Call,
     SetText,
-    &Set
+    &Set,
+    &Var
   );
 
   TAutomationData = record
@@ -50,6 +55,8 @@ type
     SleepingUntilTime: TDateTime;
     SleepingUntilCondition: TAutomationData;
     FLogFile: string;
+    Variables: TDictionary<string, string>;
+
     procedure MainLoop(Sender: TObject; var Done: Boolean);
     procedure RunAction(const Action: TAutomationData);
 
@@ -68,6 +75,7 @@ type
     procedure DoCall(const Action: TAutomationData);
     procedure DoSetText(const Action: TAutomationData);
     procedure DoSet(const Action: TAutomationData);
+    procedure DoVar(const Action: TAutomationData);
     function GetName(const Action: TAutomationData): string;
     function WaitingForCondition: boolean;
     function ConditionIsTrue(const Action: TAutomationData): boolean;
@@ -76,6 +84,9 @@ type
 
     function LogFile: string;
     function IsAvailable(const Control: TControl; const Msg: string): boolean;
+    function Compare(const a, b: string): integer;
+    function ReplaceVar(const s: string): string;
+    function GetPropValue(const ComponentAndProperty: string): TValue;
   public
     constructor Create;
     destructor Destroy; override;
@@ -85,7 +96,7 @@ type
   end;
 
 implementation
-uses Windows, IOUtils, TypInfo, RTTI, DateUtils;
+uses Windows, IOUtils, DateUtils;
 
 function GetDynamicPropValue(const aComponent: TObject; const aPropertyName: string): TValue;
 begin
@@ -202,7 +213,7 @@ end;
 constructor TGUIAutomator.Create;
 begin
   Actions := TList<TAutomationData>.Create;
-
+  Variables := TDictionary<string, string>.Create(TIStringComparer.Ordinal);
   ApplicationEvents := TApplicationEvents.Create(nil);
 end;
 
@@ -210,6 +221,7 @@ destructor TGUIAutomator.Destroy;
 begin
   ApplicationEvents.Free;
   Actions.Free;
+  Variables.Free;
   inherited;
 end;
 
@@ -225,6 +237,7 @@ begin
   MaxExecutionDate := TDateTime.NowUTC.IncMilliSecond(TimeOutInMs);
   FLogFile := aLogFile;
   Actions.Clear;
+  Variables.Clear;
 
   TDirectory.CreateDirectory(TPath.GetDirectoryName(LogFile));
   SysUtils.DeleteFile(LogFile);
@@ -255,7 +268,7 @@ begin
     var Command := EntryTrimmed.Substring(0, IdxEndCommand);
 
     var Rest := EntryTrimmed.Substring(IdxEndCommand + 1).Trim;
-    var IdxEndTarget := Rest.IndexOfAny([' ', '=', '<']);
+    var IdxEndTarget := Rest.IndexOfAny([' ', '=', '<', '>', '~', '!']);
     if IdxEndTarget <= 0 then IdxEndTarget := Rest.Length;
     var Target := Rest.Substring(0, IdxEndTarget).Trim;
     if Target = '' then raise Exception.Create('Invalid line: "' + EntryTrimmed + '". It must have a command and a target.' );
@@ -271,6 +284,7 @@ begin
     else if SameText(Command, 'call') then Action.Action := TAutomationActionType.Call
     else if SameText(Command, 'set-text') then Action.Action := TAutomationActionType.SetText
     else if SameText(Command, 'set') then Action.Action := TAutomationActionType.Set
+    else if SameText(Command, 'var') then Action.Action := TAutomationActionType.Var
     else raise Exception.Create('Unknown action: "' + Command + '". In Line "' + EntryTrimmed + '".');
 
     Actions.Add(Action);
@@ -370,6 +384,13 @@ begin
 
 end;
 
+function TGUIAutomator.Compare(const a, b: string): integer;
+begin
+  var aInt, bInt: Int64;
+  if TryStrToInt64(a, aInt) and TryStrToInt64(b, bInt) then exit(TComparer<Int64>.Default.Compare(aInt, bInt));
+  Result := CompareText(a, b);
+end;
+
 procedure TGUIAutomator.RunAction(const Action: TAutomationData);
 begin
   case Action.Action of
@@ -380,6 +401,7 @@ begin
     TAutomationActionType.Call: DoCall(Action);
     TAutomationActionType.SetText: DoSetText(Action);
     TAutomationActionType.Set: DoSet(Action);
+    TAutomationActionType.Var: DoVar(Action);
     else raise Exception.Create('Unknown action.');
   end;
 end;
@@ -389,12 +411,26 @@ begin
   Result := Assigned(Instance.ApplicationEvents.OnIdle);
 end;
 
+function TGUIAutomator.ReplaceVar(const s: string): string;
+begin
+  Result := s.Trim;
+  if not Result.StartsWith('$') then exit;
+  var VarValue: string;
+  if not Variables.TryGetValue(Result, VarValue) then raise Exception.Create('Variable "' + Result + '" is not defined.');
+  Result := VarValue.Trim;
+end;
+
+function TGUIAutomator.GetPropValue(const ComponentAndProperty: string): TValue;
+begin
+  var Component := GetComponent<TComponent>(ComponentAndProperty, 'component');
+  Result := GetDynamicPropValue(Component, GetProp(ComponentAndProperty));
+end;
+
 function TGUIAutomator.ConditionIsTrue(const Action: TAutomationData): boolean;
 begin
   if Action.Target = '' then exit(true);
 
-  var Component := GetComponent<TComponent>(Action.Target, 'component');
-  var Value := GetDynamicPropValue(Component, GetProp(Action.Target));
+  var Value := GetPropValue(Action.Target);
 
   if Action.Data = '' then
   begin
@@ -402,11 +438,15 @@ begin
    raise Exception.Create('Property ' + GetName(Action) + ' should be a boolean, or you should specify the expected property value');
    end;
 
-  if Action.Data.StartsWith('=') then exit(SameText(Value.ToString, Action.Data.Substring(1).Trim));
-  if Action.Data.StartsWith('<>') then exit(not SameText(Value.ToString, Action.Data.Substring(2).Trim));
-  if Action.Data.StartsWith('~') then exit(Value.ToString.ToLowerInvariant.Contains(Action.Data.Substring(1).Trim.ToLowerInvariant));
-  if Action.Data.StartsWith('!~') then exit(not Value.ToString.ToLowerInvariant.Contains(Action.Data.Substring(2).Trim.ToLowerInvariant));
-  raise Exception.Create('Comparison must start with "=", "<>", "~" or "!~": "' + Action.Data + '"');
+  if Action.Data.StartsWith('=') then exit(Compare(Value.ToString, ReplaceVar(Action.Data.Substring(1))) = 0);
+  if Action.Data.StartsWith('<>') then exit(Compare(Value.ToString, ReplaceVar(Action.Data.Substring(2))) <> 0);
+  if Action.Data.StartsWith('<=') then exit(Compare(Value.ToString, ReplaceVar(Action.Data.Substring(2))) <= 0);
+  if Action.Data.StartsWith('>=') then exit(Compare(Value.ToString, ReplaceVar(Action.Data.Substring(2))) >= 0);
+  if Action.Data.StartsWith('<') then exit(Compare(Value.ToString, ReplaceVar(Action.Data.Substring(1))) < 0);
+  if Action.Data.StartsWith('>') then exit(Compare(Value.ToString, ReplaceVar(Action.Data.Substring(1))) > 0);
+  if Action.Data.StartsWith('~') then exit(Value.ToString.ToLowerInvariant.Contains(ReplaceVar(Action.Data.Substring(1)).ToLowerInvariant));
+  if Action.Data.StartsWith('!~') then exit(not Value.ToString.ToLowerInvariant.Contains(ReplaceVar(Action.Data.Substring(2)).ToLowerInvariant));
+  raise Exception.Create('Comparison must start with "=", "<>", "<", ">", "<=", ">=", "~" or "!~": "' + Action.Data + '"');
 end;
 
 function TGUIAutomator.WaitingForCondition: boolean;
@@ -453,8 +493,7 @@ end;
 
 procedure TGUIAutomator.DoLog(const Action: TAutomationData);
 begin
-  var Component := GetComponent<TComponent>(Action.Target, 'component');
-  var Value := GetDynamicPropValue(Component, GetProp(Action.Target));
+  var Value := GetPropValue(Action.Target);
 
   Log('log: property ' + GetName(Action) + ' has the value ' + Value.ToString.QuotedString);
 end;
@@ -495,6 +534,13 @@ begin
     SetDynamicPropValue(Control, GetProp(Action.Target), Action.Data);
     Log('set: ' + GetName(Action) + ' to "' + Action.Data +'"');
   end;
+end;
+
+procedure TGUIAutomator.DoVar(const Action: TAutomationData);
+begin
+  if (not Action.Target.StartsWith('$')) or (Action.Target.Length < 2) then raise Exception.Create('Invalid variable name: "' + Action.Target + '". Variable names must start with "$".');
+  Variables.AddOrSetValue(Action.Target, GetPropValue(Action.Data).ToString);
+  Log('var: "' + Action.Target + '"');
 end;
 
 { TAutomationData }
