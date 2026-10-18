@@ -134,7 +134,11 @@ type
     function GetVersionHistoryUrl(Product: TGUIProduct): string;
     procedure SortProducts;
     procedure UpdateSortArrows;
+    function GetCmdLineParameter(const Prefix: string): string;
     function Repository: string;
+{$IFDEF DEBUG}
+    function GetAutomationFile: string;
+{$ENDIF}
     function GetLogIco(const Item: TGUILogItem): string;
 
     procedure StartWorking;
@@ -166,6 +170,7 @@ implementation
 uses
   Winapi.ShellAPI, Winapi.CommCtrl,
   UTheming, IOUtils,
+  GUI.Automation,
   Forms.VersionPicker;
 
 {$R *.dfm}
@@ -499,6 +504,14 @@ begin
 
   PageControl1.ActivePage := tsProducts;
   ActiveControl := lvProducts;
+
+{$IFDEF DEBUG}
+  var ActionFile := GetAutomationFile;
+  if ActionFile <> '' then
+  begin
+    TGUIAutomator.LoadActions(ActionFile);
+  end;
+{$ENDIF}
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -764,17 +777,28 @@ begin
   end;
 end;
 
-function TMainForm.Repository: string;
-const
-  RepoPrefix = '-repo:';
+function TMainForm.GetCmdLineParameter(const Prefix: string): string;
 begin
-  // Quick and dirty parsing of -repo parameter. If we add more parameters later, we can improve the parsing, not needed now.
+  Result := '';
+  // Quick and dirty parsing of a cmd line parameter. If we add more parameters later, we can improve the parsing, not needed now.
   for var I := 1 to ParamCount do
-    if ParamStr(I).StartsWith(RepoPrefix, True) then
+    if ParamStr(I).StartsWith(Prefix, True) then
     begin
-      Result := Copy(ParamStr(I), Length(RepoPrefix) + 1);
+      exit(ParamStr(I).Substring(Length(Prefix)).Trim);
     end;
 end;
+
+function TMainForm.Repository: string;
+begin
+  Result := GetCmdLineParameter('-repo:');
+end;
+
+{$IFDEF DEBUG}
+function TMainForm.GetAutomationFile: string;
+begin
+  Result := GetCmdLineParameter('-automation:');
+end;
+{$ENDIF}
 
 procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean;
   LastWasInvalid: Boolean; var DisableServer: Boolean);

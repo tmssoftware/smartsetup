@@ -346,4 +346,20 @@ function Set-AlternateRegistryKey {
 }
 
 
+function Test-tmsgui {
+    param(
+        [string]$suffixParam = ""
+    )
+    $suffix = $suffixParam
+    if ($suffix -ne "") {
+        $suffix = "." + $suffix
+    }
+    $tmsguiexe = Get-Alias tmsgui | Select-Object -ExpandProperty Definition
+    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation:automate.script$($suffix).txt" -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "tmsgui exited with error code $($process.ExitCode)"
+    }
+    Compare-Files .\reference\tmsgui.automation$($suffix).log .\tmsgui.automation.log
+}
+
 

@@ -1,0 +1,2 @@
+wait 2000
+assert self.Name = MainForm

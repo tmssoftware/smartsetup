@@ -168,6 +168,7 @@
             <Form>LogDetailsForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="src\GUI.Automation.pas"/>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>

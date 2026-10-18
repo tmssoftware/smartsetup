@@ -1,0 +1,4 @@
+Starting Automation
+wait: 2000 milliseconds
+assert: "self.Name = MainForm" is true
+Completed successfully
