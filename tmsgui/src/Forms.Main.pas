@@ -33,8 +33,8 @@ type
     lvProducts: TListView;
     RightPanel: TPanel;
     Button1: TButton;
-    Button2: TButton;
-    Button3: TButton;
+    btnInstall: TButton;
+    btnUninstall: TButton;
     Button4: TButton;
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
@@ -66,7 +66,7 @@ type
     btnOpenHTMLLog: TControlListButton;
     WorkingFolderDialog: TFileOpenDialog;
     ProgressPanel: TPanel;
-    SpeedButton1: TSpeedButton;
+    btnCancel: TSpeedButton;
     ProgressBar: TProgressBar;
     acLogDetails: TAction;
     acViewHtmlLog: TAction;

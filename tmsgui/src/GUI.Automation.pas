@@ -12,7 +12,7 @@ unit GUI.Automation;
   log <component.value>  | log memo1.text -> logs the value of memo1.text
   wait <ms>  | wait 5000 -> waits for 5 seconds
   wait <component.property> [=/<>/</>/<=/>=/~/!~value] -> wait button1.enabled -> waits until button is enabled
-  click <button> | click button2 -> clicks button2
+  click <button> | click button2 -> clicks button2  Can also click an action
   call <component.method> | call listview1.SelectAll -> Selects all items
   set-text <edit> text |  set-text memo1 hello today  -> sets the memo value to "hello today"
   set <component.property> text |  set cb.checked true  -> sets the checkbox to checked.
@@ -34,6 +34,14 @@ type
     &Set,
     &Var
   );
+
+type
+  TVarOperation = (
+    None,
+    Add,
+    Subtract
+  );
+
 
   TAutomationData = record
     Action: TAutomationActionType;
@@ -67,7 +75,7 @@ type
 
     procedure Log(const Message: string);
 
-    function GetComponent<T: TComponent>(const ComponentAndOrProperty, ComponentType: string): T;
+    function GetComponent<T: TComponent>(const ComponentAndOrProperty, ComponentType: string; const MustBeType: boolean = true): T;
     procedure DoAssert(const Action: TAutomationData);
     procedure DoLog(const Action: TAutomationData);
     procedure DoWait(const Action: TAutomationData);
@@ -87,6 +95,10 @@ type
     function Compare(const a, b: string): integer;
     function ReplaceVar(const s: string): string;
     function GetPropValue(const ComponentAndProperty: string): TValue;
+    procedure SplitVar(const s: string; out VarName: string;
+      out Operation: TVarOperation; out VarExtra: string);
+    function DoMath(const Value: string; const Operation: TVarOperation;
+      const Extra: string): string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -96,7 +108,7 @@ type
   end;
 
 implementation
-uses Windows, IOUtils, DateUtils;
+uses Windows, IOUtils, DateUtils, Vcl.Buttons, Vcl.ActnList, Messages;
 
 function GetDynamicPropValue(const aComponent: TObject; const aPropertyName: string): TValue;
 begin
@@ -339,7 +351,7 @@ begin
   if Result = '' then raise Exception.Create('Invalid property value for "' + ComponentAndProperty + '". It must be in the form <component.property>');
 end;
 
-function TGUIAutomator.GetComponent<T>(const ComponentAndOrProperty, ComponentType: string): T;
+function TGUIAutomator.GetComponent<T>(const ComponentAndOrProperty, ComponentType: string; const MustBeType: boolean = true): T;
 begin
   var ComponentName := GetObj(ComponentAndOrProperty);
   var Component: TComponent;
@@ -347,7 +359,9 @@ begin
     else Component := Screen.ActiveForm.FindComponent(ComponentName);
 
   if not Assigned(Component) then raise Exception.Create('Cannot find ' + ComponentType + ': "' + ComponentName + '"');
-  if not (Component is T) then raise Exception.Create('Component: "' + ComponentName + '" is not a ' + ComponentType +'. It is a ' + Component.ClassName);
+  if not (Component is T)
+    then if not MustBeType then exit(nil)
+         else raise Exception.Create('Component: "' + ComponentName + '" is not a ' + ComponentType +'. It is a ' + Component.ClassName);
   Result := T(Component);
 end;
 
@@ -360,7 +374,13 @@ begin
     exit;
   end;
 
-  Done := false;
+  //done = true refreshes the actions between calls, but hangs if zero messages are arriving to the window (no mouse moving, etc)
+  //this is because TApplication.Idle has a line: if Done then WaitMessage;
+  //If we set it false, then TApplication.Idle skips refreshing TActions (It doesn't call DoActionIdle)
+  Done := true;
+  if (Screen.ActiveForm <> nil) then PostMessage(Screen.ActiveForm.Handle, WM_NULL, 0, 0); //sends a message so the loop doesn't keep waiting for a message.
+
+
   if (Screen.ActiveForm = nil) or (TDateTime.NowUTC < SleepingUntilTime) or WaitingForCondition then
   begin
     exit;
@@ -411,17 +431,66 @@ begin
   Result := Assigned(Instance.ApplicationEvents.OnIdle);
 end;
 
+procedure TGUIAutomator.SplitVar(const s: string; out VarName: string; out Operation: TVarOperation; out VarExtra: string);
+begin
+  VarName := s;
+  Operation := TVarOperation.None;
+  VarExtra := '';
+
+  var Idx := s.IndexOfAny(['+', '-']);
+  if Idx < 0 then exit;
+
+  VarName := s.Substring(Idx);
+  case s.Chars[Idx] of
+    '+': Operation := TVarOperation.Add;
+    '-': Operation := TVarOperation.Subtract;
+    else raise Exception.Create('Internal error: Operation not supported ' + s.Chars[Idx]);
+  end;
+
+  VarName := s.Substring(0, Idx).Trim;
+  VarExtra := s.Substring(Idx + 1).Trim;
+end;
+
+function TGUIAutomator.DoMath(const Value: string; const Operation: TVarOperation; const Extra: string): string;
+begin
+  if Operation = TVarOperation.None then exit(Value);
+
+  var v64: Int64;
+  if not TryStrToInt64(Value, v64) then raise Exception.Create('To do operation with variables, the value must be integer: ' + Value);
+  var x64: Int64;
+  if not TryStrToInt64(Extra, x64) then raise Exception.Create('To do operation with variables, the extra part must be integer: ' + Extra);
+
+  case Operation of
+    Add: exit((v64 + x64).ToString);
+    Subtract: exit((v64 - x64).ToString);
+    else raise Exception.Create('Internal error. Unknown operation.');
+  end;
+end;
+
 function TGUIAutomator.ReplaceVar(const s: string): string;
 begin
   Result := s.Trim;
   if not Result.StartsWith('$') then exit;
+  var VarName, VarExtra: string;
+  var VarOperation: TVarOperation;
+  SplitVar(Result, VarName, VarOperation, VarExtra);
+
+  if SameText(VarName, '$nowUTC') then
+  begin
+    exit(DoMath(TDateTime.NowUTC.ToMilliseconds.ToString, VarOperation, VarExtra));
+  end;
+
   var VarValue: string;
-  if not Variables.TryGetValue(Result, VarValue) then raise Exception.Create('Variable "' + Result + '" is not defined.');
-  Result := VarValue.Trim;
+  if not Variables.TryGetValue(VarName, VarValue) then raise Exception.Create('Variable "' + Result + '" is not defined.');
+  Result := DoMath(VarValue.Trim, VarOperation, VarExtra);
 end;
 
 function TGUIAutomator.GetPropValue(const ComponentAndProperty: string): TValue;
 begin
+  var VarValue: string;
+  if ComponentAndProperty.StartsWith('$')
+    then exit(ReplaceVar(ComponentAndProperty));
+
   var Component := GetComponent<TComponent>(ComponentAndProperty, 'component');
   Result := GetDynamicPropValue(Component, GetProp(ComponentAndProperty));
 end;
@@ -473,12 +542,39 @@ end;
 
 procedure TGUIAutomator.DoClick(const Action: TAutomationData);
 begin
-  var Button := GetComponent<TButton>(Action.Target, 'button');
-  if IsAvailable(Button, 'click: cannot click button ' + GetName(Action)) then
+  var Button := GetComponent<TCustomButton>(Action.Target, 'button', false);
+  if Button <> nil then
   begin
-    Log('click: ' + GetName(Action));
-    Button.Click;
+    if IsAvailable(Button, 'click: cannot click button ' + GetName(Action)) then
+    begin
+      Log('click: ' + GetName(Action));
+      Button.Click;
+    end;
+    exit;
   end;
+
+  var SpeedButton := GetComponent<TCustomSpeedButton>(Action.Target, 'speed button', false);
+  if SpeedButton <> nil then
+  begin
+    if IsAvailable(SpeedButton, 'click: cannot click speed button ' + GetName(Action)) then
+    begin
+      Log('click: ' + GetName(Action));
+      SpeedButton.Click;
+    end;
+    exit;
+  end;
+
+  var VCLAction := GetComponent<TCustomAction>(Action.Target, 'button, speedbutton or action');
+  if SpeedButton <> nil then
+  begin
+    if VCLAction.Enabled and VCLAction.Visible then
+    begin
+      Log('click: ' + GetName(Action));
+      if not VCLAction.Execute then raise Exception.Create('click: cannot execute action ' + GetName(Action));
+    end
+    else Log('click: cannot click action ' + GetName(Action) + ' because it is disabled or not visible.');
+  end;
+
 end;
 
 procedure TGUIAutomator.DoCall(const Action: TAutomationData);
@@ -539,6 +635,7 @@ end;
 procedure TGUIAutomator.DoVar(const Action: TAutomationData);
 begin
   if (not Action.Target.StartsWith('$')) or (Action.Target.Length < 2) then raise Exception.Create('Invalid variable name: "' + Action.Target + '". Variable names must start with "$".');
+
   Variables.AddOrSetValue(Action.Target, GetPropValue(Action.Data).ToString);
   Log('var: "' + Action.Target + '"');
 end;

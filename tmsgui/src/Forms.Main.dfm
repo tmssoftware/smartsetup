@@ -149,7 +149,7 @@ object MainForm: TMainForm
             Style = bsSplitButton
             TabOrder = 0
           end
-          object Button2: TButton
+          object btnInstall: TButton
             Left = 8
             Top = 3
             Width = 89
@@ -157,7 +157,7 @@ object MainForm: TMainForm
             Action = acInstall
             TabOrder = 1
           end
-          object Button3: TButton
+          object btnUninstall: TButton
             Left = 8
             Top = 34
             Width = 89
@@ -414,7 +414,7 @@ object MainForm: TMainForm
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 2
-    object SpeedButton1: TSpeedButton
+    object btnCancel: TSpeedButton
       Left = 914
       Top = 0
       Width = 57
