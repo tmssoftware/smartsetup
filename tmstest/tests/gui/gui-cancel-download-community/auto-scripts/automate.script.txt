@@ -1,0 +1,22 @@
+assert self.Name = MainForm
+wait Self.ProductCount <> 0
+set-text edSearch sglienke.spring4d
+assert Self.ProductCount = 1
+
+call lvproducts.SelectAll
+click btnInstall
+
+wait 1500
+
+var $before $nowUTC + 1000
+click btnCancel
+##see that we don't take long to cancel
+assert $before > $nowUTC
+assert ProgressBar.Position < 100
+
+## it needs to refresh the list, which will unselect the products
+wait 5000
+call lvproducts.SelectAll
+click btnInstall
+wait OutputMemo.Text ~ Build finished. Elapsed time
+wait 1000
