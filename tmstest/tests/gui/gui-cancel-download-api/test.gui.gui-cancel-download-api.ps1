@@ -6,6 +6,6 @@ Test-tmsgui
 
 $installed = tms list -json -detailed | ConvertFrom-Json -AsHashtable
 $installedIdes = $installed["tms.webcore"].Contains("ides")
-if ($installedIdes) {
+if (-not $installedIdes) {
     throw "there should be products installed, but there are not: $installed"
 }   
