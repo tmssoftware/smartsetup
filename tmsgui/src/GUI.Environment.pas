@@ -70,13 +70,15 @@ type
     FText: string;
     FDateTime: TDateTime;
     FLevel: TLogLevel;
+    FIsCanceled: boolean;
     FOutput: string;
     FSessionId: string;
   public
-    constructor Create(const AText: string; const ALevel: TLogLevel = TLogLevel.Info; const AOutput: string = '');
+    constructor Create(const AText: string; const ALevel: TLogLevel = TLogLevel.Info; const AOutput: string = ''; const AIsCanceled: boolean = false);
     property Text: string read FText write FText;
     property DateTime: TDateTime read FDateTime;
     property Level: TLogLevel read FLevel write FLevel;
+    property IsCanceled: boolean read FIsCanceled write FIsCanceled;
     property Output: string read FOutput write FOutput;
     property SessionId: string read FSessionId write FSessionId;
   end;
@@ -344,12 +346,13 @@ end;
 
 { TGUILogItem }
 
-constructor TGUILogItem.Create(const AText: string; const ALevel: TLogLevel; const AOutput: string);
+constructor TGUILogItem.Create(const AText: string; const ALevel: TLogLevel; const AOutput: string; const AIsCanceled: boolean);
 begin
   inherited Create;
   FText := AText;
   FLevel := ALevel;
   FOutput := AOutput;
+  FIsCanceled := AIsCanceled;
   FSessionId := GetSessionId(AOutput);
   FDateTime := now;
 end;
@@ -974,17 +977,29 @@ begin
         GenerateLogItem(TGUILogItem.Create(
             LocalRunner.ExeFileName,
             TLogLevel.Info,
-            LocalRunner.Output.Text
+            LocalRunner.Output.Text,
+            LocalRunner.IsCanceled
         ));
       end;
 
     except
+      on E: ETmsRunnerCanceled do
+      begin
+        // The user asked for this, so it is logged as canceled, not as an error.
+        GenerateLogItem(TGUILogItem.Create(
+          E.Message,
+          TLogLevel.Info,
+          LocalRunner.Output.Text,
+          True
+        ));
+      end;
       on E: Exception do
       begin
         GenerateLogItem(TGUILogItem.Create(
           E.Message,
           TLogLevel.Error,
-          LocalRunner.Output.Text
+          LocalRunner.Output.Text,
+          LocalRunner.IsCanceled
         ));
       end;
     end;

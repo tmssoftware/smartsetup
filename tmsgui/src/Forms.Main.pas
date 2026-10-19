@@ -644,6 +644,8 @@ end;
 
 function TMainForm.GetLogIco(const Item: TGUILogItem): string;
 begin
+  if Item.IsCanceled then exit('🚫');
+
   case Item.Level of
     TLogLevel.Error: exit('❌');
     TLogLevel.Info: exit('✔');

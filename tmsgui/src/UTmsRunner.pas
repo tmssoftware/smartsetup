@@ -216,6 +216,10 @@ type
   ETmsRunner = class(Exception)
   end;
 
+  // The run was canceled by the user, so there is no result to use. Not an error.
+  ETmsRunnerCanceled = class(ETmsRunner)
+  end;
+
 implementation
 
 uses
@@ -323,6 +327,11 @@ end;
 
 function TTmsRunner.JsonOutput: TJSONValue;
 begin
+  // A killed run has cut-off output (and the **CANCELED** marker). Stop here, so we don't report it as invalid JSON
+  // or use a partial result.
+  if FIsCanceled then
+    raise ETmsRunnerCanceled.Create('Canceled by the user.');
+
   if FJsonOutput = nil then
     FJsonOutput := TJSONValue.ParseJSONValue(Output.Text);
   Result := FJsonOutput;
@@ -392,7 +401,7 @@ begin
 
   // parse response
   if not (JsonOutput is TJSONObject) then
-    raise ETmsRunner.Create('Could not parse list result as JSON object');
+    raise ETmsRunner.Create('Invalid result for `tms list -detailed -json` command. Cannot parse "' + Output.Text + '" as JSON.');
 
   var Json := TJSONObject(JsonOutput);
   for var Pair in Json do
@@ -524,7 +533,7 @@ begin
 
   // parse response
   if not (JsonOutput is TJSONObject) then
-    raise ETmsRunner.Create('Could not parse list result as JSON object');
+    raise ETmsRunner.Create('Invalid result for `tms list-remote -json` command. Cannot parse "' + Output.Text + '" as JSON.');
 
   var Json := TJSONObject(JsonOutput);
   for var Pair in Json do
