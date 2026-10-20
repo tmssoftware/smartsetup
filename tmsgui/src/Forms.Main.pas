@@ -7,7 +7,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
-  Vcl.VirtualImage;
+  Vcl.VirtualImage, Util.Animator;
 
 type
   TMainForm = class(TForm)
@@ -120,10 +120,8 @@ type
     SortColumn: Integer;
     SortDescending: Boolean;
     OverCaption: Boolean;
-    ProgressIndex: integer;
-    WorkingNestedLevel: integer;
-    WorkingTimer: TTimer;
     LogDetailsForm: TLogDetailsForm;
+    WorkingAnimator: TAnimator;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
@@ -142,9 +140,6 @@ type
 {$ENDIF}
     function GetLogIco(const Item: TGUILogItem): string;
 
-    procedure StartWorking;
-    procedure UpdateWorking(Sender: TObject);
-    procedure StopWorking;
     function GetLastError: string;
   public
     procedure InitiateAction; override;
@@ -473,13 +468,14 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := 4;  // sort by status by default
 
-  WorkingTimer := TTimer.Create(Self);
-  WorkingTimer.Enabled := false;
-  WorkingTimer.Interval := 500;
-  WorkingTimer.OnTimer := UpdateWorking;
-
   LogDetailsForm := TLogDetailsForm.Create(Self); //keep so it doesn't keep resizing when you reopen it.
   LogPanel.Height := 1; // 0 would not allow us to resize the box when closed.
+
+  WorkingAnimator := TAnimator.Create(500, true, 'Working...', '',
+    procedure (Value: string)
+    begin
+      StatusBar.Panels[3].Text := Value;
+    end);
 
   GUI := TGUIEnvironment.Create;
 
@@ -493,9 +489,8 @@ begin
   GUI.OnRunFinish := RunFinishEvent;
   GUI.OnNewVersionDetected := NewVersionDetectedEvent;
   GUI.OnRunnerCreated := RunnerCreatedEvent;
-
-  GUI.StartWorking := StartWorking;
-  GUI.StopWorking := StopWorking;
+  GUI.StartWorking := WorkingAnimator.Start;
+  GUI.StopWorking := WorkingAnimator.Stop;
 
   ShowInfo;
 
@@ -514,6 +509,7 @@ end;
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   GUI.Free;
+  WorkingAnimator.Free;
 
   // at this point no tms.exe should be running anymore
   if Relaunch then
@@ -886,16 +882,6 @@ begin
   UpdateSortArrows;
 end;
 
-procedure TMainForm.StartWorking;
-begin
-  TThread.Queue(nil, procedure
-    begin
-      Inc(WorkingNestedLevel);
-      if (WorkingNestedLevel = 1) then StatusBar.Panels[3].Text := 'Working... ';
-      WorkingTimer.Enabled := WorkingNestedLevel > 0;
-    end);
-end;
-
 procedure TMainForm.StatusBarClick(Sender: TObject);
 begin
   if GUI.IsRunning then exit;
@@ -907,24 +893,6 @@ begin
   GUI.RefreshInfo;
   GUI.Start;
   ShowInfo;
-end;
-
-procedure TMainForm.UpdateWorking(Sender: TObject);
-const
-  Blocks: Array[0.. 9] of string = ('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏');
-begin
-  StatusBar.Panels[3].Text := Blocks[(Length(Blocks) * 2 + 1 - ProgressIndex) mod Length(Blocks)] + Blocks[ProgressIndex] + ' Working... ';
-  if ProgressIndex < Length(Blocks) - 1 then Inc(ProgressIndex) else ProgressIndex := 0;
-end;
-
-procedure TMainForm.StopWorking;
-begin
-  TThread.Queue(nil, procedure
-    begin
-      if (WorkingNestedLevel > 0) then Dec(WorkingNestedLevel);
-      WorkingTimer.Enabled := WorkingNestedLevel > 0;
-      if (WorkingNestedLevel = 0) then StatusBar.Panels[3].Text := '';
-    end);
 end;
 
 procedure TMainForm.UpdateSortArrows;

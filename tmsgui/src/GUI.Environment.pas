@@ -125,6 +125,7 @@ type
     FOnCommandOutput: TCommandOutputProc;
     FProductFilter: TProductFilter;
     FRunningCount: Integer;
+    FWorkerThreads: Integer; //threads started by StartExclusive or RunBackground that haven't finished yet. The destructor waits for 0.
     FOnRunStart: TProc;
     FOnRunFinish: TProc;
     FOnNewVersionDetected: TProc;
@@ -272,7 +273,7 @@ type
 implementation
 
 uses
-  Masks;
+  Winapi.Windows, Masks;
 
 { TGUILogger }
 
@@ -605,14 +606,20 @@ end;
 
 destructor TGUIEnvironment.Destroy;
 begin
-  // Cancel the runners and wait (up to about 10 seconds) for them to finish.
+  // Cancel the runners and wait for every worker thread to finish. Canceling already killed the tms.exe
+  // processes, so what is left is our own code, and freeing this object under it would crash.
+  // Not IsRunning: a job running on the main thread would never finish while we wait here.
   FDestroying := True;
   CancelRun;
-  for var I := 1 to 100 do
+  var Deadline := GetTickCount64 + 10000;
+  while FWorkerThreads > 0 do
   begin
-    if not IsRunning then
-      break;
-    // Not Sleep: a worker waiting in TThread.Synchronize would never finish and we would always wait the full time.
+    // A worker still running after 10 seconds is stuck. We are closing, so end the process the way the
+    // task manager would; Windows cleans up, and closing our job handles kills any tms.exe left.
+    // Not ExitProcess: it runs the DLL shutdown code, which can block on the stuck thread.
+    if GetTickCount64 > Deadline then
+      TerminateProcess(GetCurrentProcess, 1);
+    // Not Sleep: a worker waiting in TThread.Synchronize would never finish.
     CheckSynchronize(100);
   end;
   // Run what the workers queued, so nothing queued refers to this object after it is freed.
@@ -666,18 +673,25 @@ begin
     Logger.Error('tms.exe is already running');
     Exit;
   end;
+  AtomicIncrement(FWorkerThreads);
   try
     TThread.CreateAnonymousThread(
       procedure
       begin
         try
-          Proc;
+          try
+            Proc;
+          finally
+            EndRunning;
+          end;
         finally
-          EndRunning;
+          // Last: once it reaches 0 the destructor can free this object.
+          AtomicDecrement(FWorkerThreads);
         end;
       end)
       .Start;
   except
+    AtomicDecrement(FWorkerThreads);
     EndRunning;
     raise;
   end;
@@ -694,23 +708,35 @@ end;
 
 procedure TGUIEnvironment.RunBackground(Proc: TProc);
 begin
-  TThread.CreateAnonymousThread(
-    procedure
-    begin
-      while not FDestroying do
+  // Counted from the start, not only while Proc runs: the waiting loop reads FDestroying too.
+  AtomicIncrement(FWorkerThreads);
+  try
+    TThread.CreateAnonymousThread(
+      procedure
       begin
-        if TryBeginExclusive then
-        begin
-          try
-            Proc;
-          finally
-            EndRunning;
+        try
+          while not FDestroying do
+          begin
+            if TryBeginExclusive then
+            begin
+              try
+                Proc;
+              finally
+                EndRunning;
+              end;
+              Exit;
+            end;
+            Sleep(1000); // try a new check after a while
           end;
-          Exit;
+        finally
+          // Last: once it reaches 0 the destructor can free this object.
+          AtomicDecrement(FWorkerThreads);
         end;
-        Sleep(1000); // try a new check after a while
-      end;
-    end).Start;
+      end).Start;
+  except
+    AtomicDecrement(FWorkerThreads);
+    raise;
+  end;
 end;
 
 procedure TGUIEnvironment.ExecuteSelfUpdate(ProgressCallback: TProgressProc; RelaunchCallback: TProc);

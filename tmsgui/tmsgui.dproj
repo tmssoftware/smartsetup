@@ -173,6 +173,7 @@
             <Form>DialogForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="src\Util.Animator.pas"/>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>
