@@ -91,7 +91,8 @@ type
 
 implementation
 uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJsonSerializer,
-     System.Types, Zip, ZipFile.Download, UProjectLoader, UMultiLogger, VCS.Summary;
+     System.Types, Zip, ZipFile.Download, UProjectLoader, UMultiLogger, VCS.Summary,
+     UProjectLoaderStateMachine, SmartSetup.Locks;
 
 { TRegisteredProduct }
 
@@ -232,7 +233,25 @@ procedure TProductRegistry.LoadOnePreregisteredProduct(const ZipFileName, YamlFi
 begin
   var Project := TProjectDefinition.Create(ZipFileName);
   try
-    TProjectLoader.LoadDataIntoProject(YamlFileName, Text, Project, 'root:supported frameworks', true);
+    try
+      //if we stop reading at 'root:supported frameworks' then we will miss fetch options.
+      //We could either ensure fetch options come before supported frameworks, or just read the full file.
+
+      TProjectLoader.LoadDataIntoProject(YamlFileName, Text, Project, '', true);
+    except
+      on ex: EUnsupportedTMSbuildVersion do
+      begin
+        //just ignore products that we don't support.
+        exit;
+      end;
+      on ex: Exception do
+      begin
+        Logger.Info('Error loading project: ' + ex.Message); //not Logger.Error so it doesn't show in json output. We will ignore this product.
+        exit;
+      end;
+
+
+    end;
     FProducts.AddOrSetValue(Project.Application.Id, GetProductFromProject(Project, Server, Text, ZipFileName, YamlFileName));
   finally
     Project.Free;
@@ -248,6 +267,29 @@ begin
   end;
 end;
 
+//Reads all tmsbuild.yaml files in the zip. We read them all at once so we can release the lock on the zip before parsing them.
+procedure ReadPredefinedZip(const ZipFileName: string; out YamlFileNames, Texts: TArray<string>);
+begin
+  YamlFileNames := nil;
+  Texts := nil;
+  var Zip := TZipFile.Create;
+  try
+    Zip.Open(ZipFileName, TZipMode.zmRead);
+    for var i := 0 to Zip.FileCount - 1 do
+    begin
+      if SameText(TPath.GetFileName(Zip.FileNames[i]), TProjectLoader.TMSBuildDefinitionFile) then
+      begin
+        var Bytes: TBytes;
+        Zip.Read(i, Bytes);
+        YamlFileNames := YamlFileNames + [Zip.FileNames[i]];
+        Texts := Texts + [TEncoding.UTF8.GetString(Bytes)];
+      end;
+    end;
+  finally
+    Zip.Free;
+  end;
+end;
+
 procedure TProductRegistry.LoadPreregisteredProductsFromServer(const Server: TServerConfig; const ServerName: string);
 const
   PredefinedZip = 'predefined.repos.zip';
@@ -257,25 +299,20 @@ begin
 
   try
     var PredefinedRepositories := TPath.Combine(Config.Folders.VCSMetaFolder, Server.Name + '.' + PredefinedZip);
-    ZipDownloader.GetRepo(Server.Url, PredefinedRepositories, Server.Name, AddToVCSFetchLogSummary);
+    var YamlFileNames, Texts: TArray<string>;
 
-    var Zip := TZipFile.Create;
+    //2 list-remote commands could be running at the same time and break each other while downloading and reading the zip.
+    //We lock per zip file (so per folder and server), so a slow server doesn't block the others.
+    var Protector := TAppProtector.Create(TPath.GetFullPath(PredefinedRepositories), RegistryProtector);
     try
-      Zip.Open(PredefinedRepositories, TZipMode.zmRead);
-      for var i := 0 to Zip.FileCount - 1 do
-      begin
-        if SameText(TPath.GetFileName(Zip.FileNames[i]), TProjectLoader.TMSBuildDefinitionFile) then
-        begin
-          var YamlFilename := Zip.FileNames[i];
-          var Bytes: TBytes;
-          Zip.Read(i, Bytes);
-          var Text := TEncoding.UTF8.GetString(Bytes);
-          LoadOnePreregisteredProduct(PredefinedRepositories, YamlFileName, Text, Server.Name);
-        end;
-      end;
+      ZipDownloader.GetRepo(Server.Url, PredefinedRepositories, Server.Name, AddToVCSFetchLogSummary);
+      ReadPredefinedZip(PredefinedRepositories, YamlFileNames, Texts);
     finally
-      Zip.Free;
+      Protector.Free;
     end;
+
+    for var i := 0 to High(Texts) do
+      LoadOnePreregisteredProduct(PredefinedRepositories, YamlFileNames[i], Texts[i], Server.Name);
   except on ex: Exception do
   begin
     raise Exception.Create('Error loading server ' + Server.Name + ': "' + ex.Message + '"');

@@ -76,8 +76,11 @@ var
 begin
   MainSection := TMainSectionDef.Create(Project);
   try
-    MainSection.CreatedBy := 'Main: ' + Filename;
-    TBBYamlReader.ProcessFile(Filename, MainSection, aStopAt, aIgnoreOtherFiles);
+    if FileName <> '' then
+    begin
+      MainSection.CreatedBy := 'Main: ' + Filename;
+      TBBYamlReader.ProcessFile(Filename, MainSection, aStopAt, aIgnoreOtherFiles);
+    end;
 
     MainSection.CreatedBy := 'Command line';
     TBBCmdReader.ProcessCommandLine(CmdParameters, MainSection, ':', false);

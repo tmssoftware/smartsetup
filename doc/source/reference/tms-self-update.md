@@ -14,7 +14,11 @@ tms self-update [<options>] [<global-options>]
 
 ## Description
 
-Fetches the latest version of the tms tool from the configured remote repository and installs it in place of the current executable. If a newer version has already been downloaded, the command extracts and applies it without fetching again.
+Fetches the latest version of the tms tool and installs it in place of the current executable. If a newer version has already been downloaded, the command extracts and applies it without fetching again.
+
+The update is fetched from the TMS server, even if the `tms` server is disabled in `tms.config.yaml`. If that fails for any reason, for example because there are no credentials for the TMS server, the command downloads the latest release from the [Smart Setup GitHub repository](https://github.com/tmssoftware/smartsetup/releases) instead.
+
+On Windows, before running or installing a downloaded executable, the command checks that it is signed by the same publisher as the running `tms.exe`. If the check fails, the update is not installed. This check is not available on Linux and macOS.
 
 When no newer version is available, the command reports that the current installation is up to date.
 

@@ -292,8 +292,10 @@ end;
 constructor TTmsRunner.Create;
 begin
   FExeFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'tms.exe');
+  {$IFDEF DEBUG}
   if not TFile.Exists(FExeFileName) then
     FExeFileName := 'tms.exe';
+  {$ENDIF}
 
   FWorkingDir := GetCurrentDir;
   FOutput := TStringList.Create;
@@ -317,7 +319,7 @@ begin
   var FullOutput := '';
 
   FParams := Params;
-  var CommandLine := Format('"%s" %s', [ExeFileName, Params]);
+  var CommandLine := QuoteCmd(ExeFileName) + '  ' + Params;
   var LocalCallback: TStringProc :=
     procedure(const S: string)
     begin

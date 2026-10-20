@@ -29,6 +29,7 @@ type
       const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>); static;
     class function GetCurrentCommitInternal(const ProductId, ProductFolder: string): string; static;
     class procedure ExtractExtraFiles(const ProductFolder, ZipFileName, YamlFileName: string); static;
+    class procedure RemoveLinks(const Folder: string); static;
   public
     class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
     class function GetProductFolder(const ProductId: string): string; static;
@@ -131,6 +132,39 @@ begin
 end;
 
 
+//A repo could contain symlinks or junctions pointing outside the product folder (like ..\..\secrets).
+//We could read or write through them when building, or delete what they point to when uninstalling, so we never keep them.
+//We remove the link itself, never what it points to. Git checks them out as plain files (core.symlinks=false), but the user
+//could override that in the clone or pull commands, and svn creates them in linux and macOS.
+class procedure TVCSManager.RemoveLinks(const Folder: string);
+var
+  SearchRec: SysUtils.TSearchRec;
+begin
+  if SysUtils.FindFirst(TPath.Combine(Folder, '*'), faAnyFile, SearchRec) <> 0 then exit;
+  try
+    repeat
+      if (SearchRec.Name = '.') or (SearchRec.Name = '..') then continue;
+      var FullName := TPath.Combine(Folder, SearchRec.Name);
+      if (SearchRec.Attr and faSymLinkNoPlat) <> 0 then
+      begin
+        var Removed: boolean;
+        {$IFDEF MSWINDOWS}
+        //Windows directory links require RemoveDir, which removes only the link.
+        if (SearchRec.Attr and faDirectory) <> 0 then Removed := SysUtils.RemoveDir(FullName)
+        else
+        {$ENDIF}
+        //On POSIX, DeleteFile unlinks both file and directory symlinks.
+        Removed := SysUtils.DeleteFile(FullName);
+        if not Removed then raise Exception.Create('Cannot remove the link "' + FullName + '". ' + SysErrorMessage(GetLastError));
+        Logger.Info('Removed the link "' + FullName + '". Links are not allowed inside products.');
+      end
+      else if (SearchRec.Attr and faDirectory) <> 0 then RemoveLinks(FullName);
+    until SysUtils.FindNext(SearchRec) <> 0;
+  finally
+    SysUtils.FindClose(SearchRec);
+  end;
+end;
+
 class procedure TVCSManager.AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct);
 begin
   if Product.PredefinedData.Tmsbuild_Yaml.Trim <> '' then
@@ -173,6 +207,7 @@ begin
     var ProductFolder := TPath.Combine(ProductFolderRoot, 'src');
 
     DoFetchProduct(ProductFolderRoot, ProductFolder, Product);
+    RemoveLinks(ProductFolderRoot);
     //Order here is important. Technically, we would have to first save tmsfetch.info before DoFetchProduct, so we can uninstall.
     //If something fails in DoFetchProduct, then `tms uninstall` will never get rid of it, since tmsfetch.info is missing.
     //But, if we do it in that order, and DoFetchProduct fails, you will end up with an empty folder with just tmsfetch.info inside.

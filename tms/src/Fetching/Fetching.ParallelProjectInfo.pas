@@ -148,8 +148,8 @@ begin
         for var task in Tasks.Tasks do
           task.Cancel;
         TTask.WaitForAll(Tasks.Tasks);
-        exit;
       end;
+      exit; //also when nothing is running yet: TTask.WaitForAny returns at once for an empty array, so we spun forever.
     end
     else
     begin

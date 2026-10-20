@@ -83,10 +83,40 @@ type
     procedure Clear;
   end;
 
+{$IFDEF DEBUG}
+  procedure DegetVersion_InternalTests;
+{$ENDIF}
+
+
 implementation
 
 uses
-  System.SysUtils, System.StrUtils, Generics.Defaults;
+  System.SysUtils, System.StrUtils;
+
+function IsDigits(const s: string): boolean;
+begin
+  //We don't use TryStrToInt to check, because it accepts things like $1A, 0x1A or +1.
+  if s = '' then exit(false);
+  for var c in s do
+    if not CharInSet(c, ['0'..'9']) then exit(false);
+  Result := true;
+end;
+
+function CompareDigits(const Left, Right: string): integer;
+begin
+  //Both strings are only digits. We compare them without converting to a number, so there is no overflow.
+  var l := 0;
+  while (l < Left.Length - 1) and (Left.Chars[l] = '0') do inc(l);
+  var r := 0;
+  while (r < Right.Length - 1) and (Right.Chars[r] = '0') do inc(r);
+
+  var lLength := Left.Length - l;
+  var rLength := Right.Length - r;
+  if lLength < rLength then exit(-1);
+  if lLength > rLength then exit(1);
+
+  Result := CompareStr(Left.Substring(l), Right.Substring(r));
+end;
 
 { TVersion }
 
@@ -118,7 +148,6 @@ class function TVersion.ComparePreRelease(const Left, Right: string): integer;
 var
   LeftParts, RightParts: TArray<string>;
   LeftId, RightId: string;
-  LeftNum, RightNum: integer;
   LeftIsNum, RightIsNum: Boolean;
   I, Count: integer;
 begin
@@ -136,12 +165,12 @@ begin
   begin
     LeftId := LeftParts[I];
     RightId := RightParts[I];
-    LeftIsNum := TryStrToInt(LeftId, LeftNum);
-    RightIsNum := TryStrToInt(RightId, RightNum);
+    LeftIsNum := IsDigits(LeftId);
+    RightIsNum := IsDigits(RightId);
     if LeftIsNum and RightIsNum then
     begin
-      if LeftNum < RightNum then Exit(-1);
-      if LeftNum > RightNum then Exit(1);
+      Result := CompareDigits(LeftId, RightId);
+      if Result <> 0 then Exit;
     end
     else if LeftIsNum then
       Exit(-1) // numeric identifiers always rank lower than alphanumeric
@@ -350,7 +379,7 @@ begin
   I := 0;
   for StrNumber in SplitString(NumericPart, '.') do
   begin
-    if not TryStrToInt(StrNumber, Digit) or (I > 3) then
+    if not IsDigits(StrNumber) or not TryStrToInt(StrNumber, Digit) or (I > 3) then
       Exit(False);
     Temp[I] := Digit;
     Inc(I);
@@ -407,9 +436,10 @@ begin
   while  (l < Left.Length) and CharInSet(Left.Chars[l], ['0'..'9']) do inc(l);
   while  (r < Right.Length) and CharInSet(Right.Chars[r], ['0'..'9']) do inc(r);
 
-  var lNumber := StrToInt(Left.Substring(lStart, l - lStart));
-  var rNumber := StrToInt(Right.Substring(rStart, r - rStart));
-  Result := TComparer<Integer>.Default.Compare(lNumber, rNumber);
+  var lNumberStr := Left.Substring(lStart, l - lStart);
+  var rNumberStr := Right.Substring(rStart, r - rStart);
+
+  Result := CompareDigits(lNumberStr, rNumberStr);
   if Result <> 0 then exit;
 
   if (l = Left.Length) then
@@ -439,7 +469,9 @@ begin
   end;
   if High(RightParts) > High(LeftParts) then exit(-1); //right bigger
 
-  Result := 0;
+  //Sections are numerically equal, but this is free text: '1.01' and '1.1' are different strings, so they must not be equal.
+  //We still need a consistent order between them, or '1.01' would be neither <, > nor = '1.1'. Which one wins is arbitrary.
+  Result := CompareText(Left, Right);
 end;
 
 class operator TLenientVersion.Equal(Left, Right: TLenientVersion): Boolean;
@@ -449,7 +481,7 @@ begin
   if IsSemanticVersion(Left, LeftVersion) and IsSemanticVersion(Right, RightVersion) then
     Result := LeftVersion = RightVersion
   else
-    Result := CompareText(Left.FValue, Right.FValue) = 0;
+    Result := CompareTextEx(Left.FValue, Right.FValue) = 0; //must match what > and >= use, so the operators stay consistent
 end;
 
 class operator TLenientVersion.GreaterThan(Left, Right: TLenientVersion): Boolean;
@@ -582,6 +614,14 @@ begin
 
   // Numeric identifier is always lower than alphanumeric.
   Assert(TVersion.Make(1, 0, 0, 0, '1') < TVersion.Make(1, 0, 0, 0, 'alpha'));
+  Assert(TVersion.Make(1, 0, 0, 0, '20250101120000') < TVersion.Make(1, 0, 0, 0, 'alpha'));
+
+  // Numeric identifiers bigger than an integer are still compared as numbers.
+  Assert(TVersion.Make(1, 0, 0, 0, '30000000000') < TVersion.Make(1, 0, 0, 0, '200000000000'));
+  Assert(TVersion.Make(1, 0, 0, 0, '9') < TVersion.Make(1, 0, 0, 0, '20250101120000'));
+
+  // Hex-looking identifiers are alphanumeric, not numbers.
+  Assert(TVersion.Make(1, 0, 0, 0, '99') < TVersion.Make(1, 0, 0, 0, '0x10'));
 
   // Validation: leading zeros in numeric identifiers, empty identifiers and invalid chars are rejected.
   Assert(not TVersion.IsValidPreRelease('01'));
@@ -591,9 +631,26 @@ begin
   Assert(TVersion.IsValidPreRelease('x-y-z'));
   Assert(not TVersion.TryFromString('1.2.3-01', Tmp));
   Assert(not TVersion.TryFromString('1.2.3+meta', Tmp));
+  Assert(not TVersion.TryFromString('0x1.2.3', Tmp));
+  Assert(not TVersion.TryFromString('$1.2.3', Tmp));
+  Assert(not TVersion.TryFromString('1. 2.3', Tmp));
+  Assert(TVersion.TryFromString('1.2.3', Tmp));
 end;
 
-initialization
+procedure AssertFreeFormDifferent(const A, B: string);
+begin
+  var LA := TLenientVersion.Create(A, TVersionType.FreeForm);
+  var LB := TLenientVersion.Create(B, TVersionType.FreeForm);
+  Assert(LA <> LB);
+  Assert(not (LA = LB));
+  Assert((LA < LB) <> (LA > LB));
+  Assert((LA < LB) = (LB > LA));
+  Assert((LA <= LB) = (LA < LB));
+  Assert((LA >= LB) = (LA > LB));
+end;
+
+procedure DegetVersion_InternalTests;
+begin
   AssertSemverOrder;
   Assert(TLenientVersion.Create('v2.0-rc3', TVersionType.FreeForm) < TLenientVersion.Create('v2.0', TVersionType.FreeForm));
   Assert(TLenientVersion.Create('v12.0-rc3', TVersionType.FreeForm) > TLenientVersion.Create('v2.0', TVersionType.FreeForm));
@@ -611,8 +668,24 @@ initialization
   Assert((TLenientVersion.Create('0..1', TVersionType.FreeForm) < TLenientVersion.Create('0..2', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) < TLenientVersion.Create('1.2.1', TVersionType.FreeForm)));
   Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) > TLenientVersion.Create('1.2-rc.6', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('1.2', TVersionType.FreeForm) > TLenientVersion.Create('1.2-rc.6', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-20250101120000', TVersionType.FreeForm) > TLenientVersion.Create('build-20240101120000', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-99918446744073709551615', TVersionType.FreeForm) > TLenientVersion.Create('build-20240101120000', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-99918446744073709551615', TVersionType.FreeForm) > TLenientVersion.Create('build-89918446744073709551615', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-100000000000000000000', TVersionType.FreeForm) > TLenientVersion.Create('build-9', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('build-9', TVersionType.FreeForm) < TLenientVersion.Create('build-100000000000000000000', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('x-0', TVersionType.FreeForm) < TLenientVersion.Create('x-00001', TVersionType.FreeForm)));
+  Assert((TLenientVersion.Create('x-00002', TVersionType.FreeForm) > TLenientVersion.Create('x-1', TVersionType.FreeForm)));
 
+  //Free text: numerically equal but different strings are not equal, and exactly one of < or > holds.
+  AssertFreeFormDifferent('1.01', '1.1');
+  AssertFreeFormDifferent('x-01', 'x-1');
+  AssertFreeFormDifferent('x-000', 'x-0');
+  AssertFreeFormDifferent('x-0099999999999999999999', 'x-99999999999999999999');
+  Assert(TLenientVersion.Create('1.01', TVersionType.FreeForm) = TLenientVersion.Create('1.01', TVersionType.FreeForm));
+  Assert(TLenientVersion.Create('V1.2', TVersionType.FreeForm) = TLenientVersion.Create('v1.2', TVersionType.FreeForm));
+  Assert(TLenientVersion.Create('1.2', TVersionType.FreeForm) <> TLenientVersion.Create('1.2.0', TVersionType.FreeForm));
+end;
 
 {$ENDIF}
-
 end.

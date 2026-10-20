@@ -15,6 +15,7 @@ implementation
 uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
+  {$IFDEF POSIX}Posix.Unistd,{$ENDIF}
   Commands.GlobalConfig, System.Zip, Downloads.VersionManager, JSON,
   UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character,
   UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
@@ -136,7 +137,7 @@ begin
     VerifySelfUpdateFile(ParamStr(0), tms);
 
     var JsonOutputString: string;
-    ExecuteCommand('"' + tms + '" info -json', '', JsonOutputString);
+    ExecuteCommand(QuoteCmd(tms) + ' info -json', '', JsonOutputString);
 
     var JsonOutputParsed := TJSONValue.ParseJSONValue(JsonOutputString);
     try

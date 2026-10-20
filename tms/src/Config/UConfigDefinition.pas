@@ -63,7 +63,7 @@ type
     FPlatformsModified: Boolean;
     FIdeNames: TIDENameSet;
     FIdeNamesModified: Boolean;
-    FDefines: TOrderedDictionary<string, boolean>;
+    FCfgDefines: TOrderedDictionary<string, boolean>;
     FCreatedBy: String;
     FPrefixedProperties: TProductPrefixedPropertiesArray;
     function GetPrefixedProperties(
@@ -99,12 +99,12 @@ type
     function GetIDENames: TIDENameSet;
     function GetPlatforms: TPlatformSet;
 
-    procedure AddDefine(const def: string; const LineInfo: string);
-    procedure RemoveDefine(const def: string; const LineInfo: string);
-    procedure ClearDefines;
+    procedure AddCfgDefine(const def: string; const LineInfo: string);
+    procedure RemoveCfgDefine(const def: string; const LineInfo: string);
+    procedure ClearCfgDefines;
     property ProductId: string read FProductId;
 
-    property Defines: TOrderedDictionary<string, boolean> read FDefines;
+    property CfgDefines: TOrderedDictionary<string, boolean> read FCfgDefines;
 
     function ListDefines: string;
     property CreatedBy: string read FCreatedBy write FCreatedBy;
@@ -213,6 +213,8 @@ type
     FDcuMegafolders: TMegafolderList;
     FUnregistering: boolean;
     FForceSkipRegistering: boolean;
+    FLoadedFileName: string;
+    FLoadedFileHash: string;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -249,6 +251,11 @@ type
     function GetAllRootFolders: TArray<string>;
 
     function ReadBoolProperty(const ProductId: string; const PropKey: string; const DefaultValue: boolean): boolean;
+
+    //Remembers the contents of the main config file when loading, so we can detect if another process modified it before we save.
+    //Must be called while holding the ConfigProtector lock.
+    procedure SetLoadedFile(const FileName: string);
+    procedure CheckLoadedFileNotModified(const FileName: string);
 
     property BuildCores: integer read FBuildCores write FBuildCores;
     property PreventSleep: boolean read FPreventSleep write FPreventSleep;
@@ -287,7 +294,7 @@ type
     function IsExcluded(const ProductId: String): boolean;
     function IsIncluded(const ProductId: String): boolean; overload;
     function IsIncluded(const ProductId, Mask: String): boolean; overload;
-    function GetAllDefines(const ProductId: string): TArray<string>;
+    procedure GetAllCfgDefines(const ProductId: string; out AddDefines, RemoveDefines: TArray<string>);
     function GetDefinesOnlyForProject(const ProductId: string): TArray<string>;
 
     function GetIDENames(const ProductId: string): TIDENameSet;
@@ -311,7 +318,16 @@ type
   end;
 
 implementation
-uses IOUtils, UTmsBuildSystemUtils;
+uses IOUtils, UTmsBuildSystemUtils, UHasher;
+
+const
+  MissingFileHash = 'missing';
+
+function ConfigFileHash(const FileName: string): string;
+begin
+  if not TFile.Exists(FileName) then exit(MissingFileHash);
+  Result := HashFile(FileName);
+end;
 
 { TConfigDefinition }
 
@@ -354,6 +370,21 @@ procedure TConfigDefinition.EnsureAllProducts;
 begin
   if Products.ContainsKey(GlobalProductId) then exit;
   Products.Add(GlobalProductId, TProductConfigDefinition.Create(GlobalProductId));
+end;
+
+procedure TConfigDefinition.SetLoadedFile(const FileName: string);
+begin
+  FLoadedFileName := TPath.GetFullPath(FileName);
+  FLoadedFileHash := ConfigFileHash(FLoadedFileName);
+end;
+
+procedure TConfigDefinition.CheckLoadedFileNotModified(const FileName: string);
+begin
+  //If the config wasn't loaded from this file (like when creating a new default config), there is nothing to check.
+  if (FLoadedFileName = '') or not SameFileName(FLoadedFileName, TPath.GetFullPath(FileName)) then exit;
+
+  if ConfigFileHash(FLoadedFileName) <> FLoadedFileHash then
+    raise Exception.CreateFmt('The file "%s" was modified by another process while this command was running. Run the command again.', [FLoadedFileName]);
 end;
 
 function TConfigDefinition.Folders: IBuildFolders;
@@ -426,22 +457,34 @@ begin
   Result := ResultValue;
 end;
 
-function TConfigDefinition.GetAllDefines(
-  const ProductId: string): TArray<string>;
+procedure TConfigDefinition.GetAllCfgDefines(
+  const ProductId: string; out AddDefines, RemoveDefines: TArray<string>);
 begin
-  var Defines := THashSet<string>.Create;
+  //Defines are case-insensitive in Delphi, so "Foo" and "FOO" are the same define. The last value set wins.
+  var Defines := TDictionary<string, boolean>.Create(TIStringComparer.Ordinal);
   try
     Products.LoopOverAllMatches(ProductId, procedure(Product: TProductConfigDefinition)
       begin
-        for var s in Product.Defines.Keys do
-        begin
-          if Product.Defines[s] then Defines.Add(s) else Defines.Remove(s);
-        end;
+        for var s in Product.CfgDefines.Keys do Defines.AddOrSetValue(s, Product.CfgDefines[s]);
       end);
 
-    Result := Defines.ToArray;
-    //We'll sort them to avoid returning always different values as this is a dictionary.
-    TArray.Sort<string>(Result);
+    var AddList := TList<string>.Create;
+    var RemoveList := TList<string>.Create;
+    try
+      for var Def in Defines do
+      begin
+        if Def.Value then AddList.Add(Def.Key) else RemoveList.Add(Def.Key);
+      end;
+
+      //We'll sort them to avoid returning always different values as this is a dictionary.
+      AddList.Sort;
+      RemoveList.Sort;
+      AddDefines := AddList.ToArray;
+      RemoveDefines := RemoveList.ToArray;
+    finally
+      RemoveList.Free;
+      AddList.Free;
+    end;
   finally
     Defines.Free;
   end;
@@ -455,18 +498,8 @@ begin
   var Product: TProductConfigDefinition;
   if Products.TryGetValue(ProductId, Product) then
   begin
-    SetLength(Result, Product.Defines.Count);
-    var i := 0;
-    for var s in Product.Defines.Keys do
-    begin
-      if (Product.Defines[s]) then
-      begin
-        Result[i] := s;
-        inc(i);
-      end;
-    end;
-    if i < Length(Result) then SetLength(Result, i);
-
+    //Both added and removed defines, so we can warn about typos in either.
+    Result := Product.CfgDefines.Keys.ToArray;
   end;
 
   //We'll sort them to avoid returning always different values as this is a dictionary.
@@ -1000,9 +1033,9 @@ begin
   FPrefixedProperties[index] := value;
 end;
 
-procedure TProductConfigDefinition.ClearDefines;
+procedure TProductConfigDefinition.ClearCfgDefines;
 begin
-  FDefines.Clear;
+  FCfgDefines.Clear;
 end;
 
 procedure TProductConfigDefinition.ClearIDENames;
@@ -1034,14 +1067,14 @@ begin
   Result := FPrefixedProperties[index];
 end;
 
-procedure TProductConfigDefinition.AddDefine(const def, LineInfo: string);
+procedure TProductConfigDefinition.AddCfgDefine(const def, LineInfo: string);
 begin
-  Defines.Add(def, true);
+  CfgDefines.Add(def, true);
 end;
 
-procedure TProductConfigDefinition.RemoveDefine(const def, LineInfo: string);
+procedure TProductConfigDefinition.RemoveCfgDefine(const def, LineInfo: string);
 begin
-  Defines.Add(def, false);
+  CfgDefines.Add(def, false);
 end;
 
 constructor TProductConfigDefinition.Create(const aProductId: string);
@@ -1051,7 +1084,7 @@ begin
   StringProperties := TDictionary<string, string>.Create;
   BoolProperties := TDictionary<string, boolean>.Create;
   IntProperties := TDictionary<string, integer>.Create;
-  FDefines := TOrderedDictionary<string, boolean>.Create;
+  FCfgDefines := TOrderedDictionary<string, boolean>.Create;
 end;
 
 destructor TProductConfigDefinition.Destroy;
@@ -1059,14 +1092,19 @@ begin
   BoolProperties.Free;
   StringProperties.Free;
   IntProperties.Free;
-  FDefines.Free;
+  FCfgDefines.Free;
   inherited;
 end;
 
 function TProductConfigDefinition.ListDefines: string;
 begin
-  var Defs := Defines.Keys.ToArray;
+  var Defs := CfgDefines.Keys.ToArray;
   TArray.Sort<string>(Defs);
+  //Removed defines get a "-" prefix, so switching a define from true to false changes the result and forces a rebuild.
+  for var i := 0 to High(Defs) do
+  begin
+    if not CfgDefines[Defs[i]] then Defs[i] := '-' + Defs[i];
+  end;
   Result := String.Join(', ', Defs);
 end;
 

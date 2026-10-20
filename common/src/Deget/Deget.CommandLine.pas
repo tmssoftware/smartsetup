@@ -32,10 +32,59 @@ function ExecuteCommand(const CommandLine, WorkingDirectory: string; var Output:
 function ExecuteCommand(const CommandLine, WorkingDirectory: string): Boolean; overload;
 function ExecuteCommand(const CommandLine: string): Boolean; overload;
 
+function QuoteCmd(const Command: string): string;
+
+/// <summary>
+/// Replaces the userinfo (user:password) of any URL inside s with "***", so it can be safely logged.
+/// "git clone https://user:token@host/repo" becomes "git clone https://***@host/repo".
+/// </summary>
+function RedactUrlCredentials(const s: string): string;
+
+{$IFDEF DEBUG}
+procedure DegetCommandLine_TestUrlCredentialRedaction;
+{$ENDIF}
+
 implementation
 
 uses
   ULogger, UMultiLogger, UAppTerminated;
+
+function QuoteCmd(const Command: string): string;
+begin
+  if Command = '' then raise Exception.Create('Error: Empty command to execute.');
+
+  Result := Command;
+  if not Result.StartsWith('"') then Result := '"' + Result;
+  if not Result.EndsWith('"') then Result := Result + '"';
+  if (Result.Length < 2) or Result.Substring(1, Result.Length - 2).Contains('"') then raise Exception.Create('Error: The command ' + Result + ' includes a double quote inside.');
+end;
+
+function RedactUrlCredentials(const s: string): string;
+const
+  SchemeSep = '://';
+begin
+  Result := s;
+  var SchemeIdx := Result.IndexOf(SchemeSep);
+  while SchemeIdx >= 0 do
+  begin
+    var AuthorityStart := SchemeIdx + Length(SchemeSep);
+    var AuthorityEnd := AuthorityStart;
+    //Apostrophes can be part of credentials, even when URL validation rejects them.
+    while (AuthorityEnd < Result.Length)
+      and not CharInSet(Result.Chars[AuthorityEnd], ['/', '\', '?', '#', '"', ' ', #9, #10, #13]) do inc(AuthorityEnd);
+
+    //The password might contain an '@', so we use the last one in the authority.
+    var AtIdx := AuthorityEnd - 1;
+    while (AtIdx >= AuthorityStart) and (Result.Chars[AtIdx] <> '@') do dec(AtIdx);
+    if AtIdx >= AuthorityStart then
+    begin
+      Result := Result.Remove(AuthorityStart, AtIdx - AuthorityStart).Insert(AuthorityStart, '***');
+      AuthorityEnd := AuthorityStart + Length('***') + (AuthorityEnd - AtIdx);
+    end;
+
+    SchemeIdx := Result.IndexOf(SchemeSep, AuthorityEnd);
+  end;
+end;
 
 function ExecuteCommand(const CommandLine, WorkingDirectory: string): Boolean;
 var
@@ -49,12 +98,13 @@ var
   LOutput: string;
 begin
   Result := false;
-  Logger.StartSection(TMessageType.Command, CommandLine);
+  //The command line or its output might include urls with credentials (like https://user:token@host). Don't log those.
+  Logger.StartSection(TMessageType.Command, RedactUrlCredentials(CommandLine));
   try
     var ErrorMessage := '';
     Output := '';
     LOutput := '';
-    Logger.Trace('Execute command: ' + CommandLine);
+    Logger.Trace('Execute command: ' + RedactUrlCredentials(CommandLine));
     Logger.Trace('Working directory: ' + WorkingDirectory);
     try
       TCommandLine.Execute(CommandLine, WorkingDirectory,
@@ -74,11 +124,11 @@ begin
     end;
 
     Logger.Trace('--- Output start ---');
-    Logger.Trace(LOutput);
+    Logger.Trace(RedactUrlCredentials(LOutput));
     Logger.Trace('--- Output end ---');
     Output := LOutput;
 
-    if ErrorMessage <> '' then Logger.Trace(ErrorMessage);
+    if ErrorMessage <> '' then Logger.Trace(RedactUrlCredentials(ErrorMessage));
   finally
     Logger.FinishSection(TMessageType.Command, (not ErrorsAreOk) and (not Result));
   end;
@@ -408,5 +458,22 @@ begin
 end;
 {$IFEND}
 
+{$IFDEF DEBUG}
+procedure DegetCommandLine_TestUrlCredentialRedaction;
+  procedure Check(const Input, Expected: string);
+  begin
+    if RedactUrlCredentials(Input) <> Expected then
+      raise Exception.Create('URL credential redaction test failed. Expected "' + Expected + '" but got "' + RedactUrlCredentials(Input) + '"');
+  end;
+begin
+  Check('https://user:pa''ss@host/repo', 'https://***@host/repo');
+  Check('Invalid URL: "https://us''er:pa''ss@host/repo"', 'Invalid URL: "https://***@host/repo"');
+  Check('''https://user:pa''ss@host/repo''', '''https://***@host/repo''');
+  Check('https://user:pa''ss@word@host/repo', 'https://***@host/repo');
+  Check('https://user:token@one/repo file://user:pa''ss@two/repo',
+    'https://***@one/repo file://***@two/repo');
+  Check('https://host/pa''th@name', 'https://host/pa''th@name');
+end;
+{$ENDIF}
 end.
 

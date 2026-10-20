@@ -7,11 +7,12 @@ uses Classes, SysUtils;
 procedure RegisterConfigWriteCommand;
 
 implementation
-uses UCommandLine, Commands.CommonOptions,
+uses UCommandLine, Commands.CommonOptions, Commands.Logging,
      UConfigWriter, Types, Commands.GlobalConfig;
 
 procedure RunConfigWriteCommand;
 begin
+  InitFolderBasedCommand(false);
   var ConfigWriter := TConfigWriter.Create(Config, false);
   try
    Config.EnsureAllProducts;

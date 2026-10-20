@@ -8,7 +8,7 @@ procedure RegisterServerAddCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions,
-     UConfigWriter, Types, Commands.GlobalConfig, UConfigDefinition;
+     UConfigWriter, Types, Commands.GlobalConfig, UConfigDefinition, Commands.Logging;
 
 var
   ServerName: string;
@@ -18,6 +18,7 @@ var
 
 procedure RunServerAddCommand;
 begin
+  InitFolderBasedCommand(false);
   //Reject http:// (and any other non-https/file scheme) at add time.
   //The opt-in for http:// is "allow insecure connections: true" in tms.config.yaml,
   //which can only be set by editing the YAML manually (no CLI flag).

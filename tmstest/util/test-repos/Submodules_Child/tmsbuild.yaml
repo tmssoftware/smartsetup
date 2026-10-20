@@ -1,0 +1,20 @@
+minimum required tmsbuild version: 1.0
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+application:
+  id: tmstest.submodules_child
+  name: "Submodules Child"
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+
+  
+packages:
+  - tmstest_submodules_child: [runtime, rtl]
+
+
+
+
+

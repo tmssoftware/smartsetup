@@ -61,7 +61,11 @@ type
   end;
 
 implementation
-uses Types, JSON, UTmsBuildSystemUtils;
+uses Types, JSON,
+{$IFDEF DEBUG}
+     Testing.Globals,
+{$endif}
+     UTmsBuildSystemUtils;
 
 
 
@@ -511,13 +515,13 @@ begin
 
 end;
 
-function GetRequires(const Requires: TArray<string>): string;
+function GetRequires(const Requires: TUniqueFileList): string;
 begin
   Result := '';
   for var r in Requires do
   begin
     if Result <> '' then Result := Result + ';';
-    if r.EndsWith('.dcp') then Result := Result + r.Substring(0, r.Length - Length('.dcp'));
+    Result := Result + r;
   end;
 
 end;
@@ -541,20 +545,19 @@ begin
   if idx = PropName.Length - 1 then exit(TYamlValue.MakeObject);
   var NewPropName := PropName.Substring(idx + 1);
   var Pkg := GetPackage(PropName.Substring(0, idx));
-  if not Pkg.AutoGenerate then exit(TYamlValue.MakeNull);
 
   if NewPropName = 'generate from:' then exit(Nullable(Pkg.GenerateFrom));
-  if NewPropName = 'framework type:' then exit(Pkg.DelphiFrameworkType);
+  if NewPropName = 'framework type:' then exit(Nullable(Pkg.DelphiFrameworkType));
   if NewPropName = 'description:' then exit(Nullable(Pkg.Description));
   if NewPropName = 'requires:' then exit(Nullable(GetRequires(Pkg.Requires)));
   if NewPropName = 'files:' then if Pkg.FileMasks.Empty then exit(TYamlValue.MakeNull) else exit(TYamlValue.MakeArray(GetFileMasks(Pkg.FileMasks), false));
   if NewPropName = 'files:source:' then exit(TYamlValue.MakeObject);
-  if NewPropName = 'files:source:folder:' then exit(Pkg.FileMasks.FileMasks[ArrIndex].BaseFolder);
+  if NewPropName = 'files:source:folder:' then exit(Nullable(Pkg.FileMasks.FileMasks[ArrIndex].BaseFolder));
   if NewPropName = 'files:source:include folder mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].IncludeFolders));
   if NewPropName = 'files:source:exclude folder mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].ExcludeFolders));
   if NewPropName = 'files:source:include file mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].IncludeFiles));
   if NewPropName = 'files:source:exclude file mask:' then exit(GetMask(Pkg.FileMasks.FileMasks[ArrIndex].ExcludeFiles));
-  if NewPropName = 'files:source:recursive:' then exit(Pkg.FileMasks.FileMasks[ArrIndex].Recursive);
+  if NewPropName = 'files:source:recursive:' then exit(Nullable(Pkg.FileMasks.FileMasks[ArrIndex].Recursive));
 
   raise Exception.Create('Unknown property: ' + PropName);
 end;
@@ -574,6 +577,13 @@ function TSpecWriter.OnMember(const Sender: TBBYamlWriter;
 const
   {$i ../../../Version.inc}
 begin
+  {$IFDEF DEBUG}
+    if TestParameters.FixedVersion then
+    begin
+      if FullName = 'minimum required tmsbuild version:' then exit('3.5');
+    end;
+  {$ENDIF}
+
   if FullName = 'minimum required tmsbuild version:' then exit(TMSVersion);
 
   //application
@@ -644,7 +654,7 @@ begin
   //defines:
   if FullName = 'defines:' then exit(TYamlValue.MakeObject);
   if FullName = 'defines:defines filename:' then exit(FProduct.DefinesFilename);
-  if FullName = 'defines:available defines:' then exit(TYamlValue.MakeArray(FProduct.Defines.Keys.ToArray, false));
+  if FullName = 'defines:available defines:' then exit(TYamlValue.MakeArray(FProduct.AllowedDefines.Keys.ToArray, false));
 
   //registry keys:
   if FullName = 'registry keys:' then exit(TYamlValue.MakeArray(GetRegistryKeys, false));

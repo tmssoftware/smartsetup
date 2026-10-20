@@ -197,7 +197,7 @@ registry keys:
 
 #      - value: 
 #          name: WebServerWait
-#          type: Dword
+#          type: dword
 #          data: '2'
           
 #  - Software\tmssoftware\TMS WEB Core\Components:

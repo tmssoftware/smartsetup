@@ -1,0 +1,15 @@
+# =====================================================================================================
+# TMS Smart Setup configuration file for product HashLib4Pascal
+# See https://doc.tmssoftware.com/smartsetup/guide/creating-bundles.html#creating-a-tmsbuildyaml-file
+# =====================================================================================================
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+
+minimum required tmsbuild version: 3500.0
+
+# General information about the product.
+applications from the future:
+  id: test.from.the.future
+  name: reading from the future
+  description: this library will never be available. we should ignore it.
+   
+

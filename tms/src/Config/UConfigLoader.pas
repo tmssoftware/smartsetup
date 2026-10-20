@@ -15,7 +15,7 @@ type
     class function LoadConfig(const ConfigFile: string; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TConfigDefinition;
   end;
 implementation
-uses Classes, SysUtils, UMultiLogger, System.Threading;
+uses Classes, SysUtils, UMultiLogger, System.Threading, SmartSetup.Locks;
 
 { TProjectLoader }
 
@@ -44,49 +44,54 @@ end;
 class procedure TConfigLoader.LoadIntoConfig(const Filename: string; const Config: TConfigDefinition;
    const ExtraConfigFiles: TArray<string>;
    const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
-var
-  MainSection: TMainSectionConf;
+
 begin
   var FullFilename := TPath.GetFullPath(Filename);
-  MainSection := TMainSectionConf.Create(Config);
+  var Protector := LockConfig(FullFileName);
   try
-    var GlobalFilename := GetGlobalConfigFilename;
-    if (GlobalFilename <> '') and (TFile.Exists(GlobalFilename)) then
-    begin
-      MainSection.CreatedBy := 'Global: ' + GlobalFilename;
-      Logger.Trace('Loading global configuration from ' + GlobalFilename);
-      TBBYamlReader.ProcessFile(GlobalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
+    Config.SetLoadedFile(FullFilename);
+    var MainSection := TMainSectionConf.Create(Config);
+    try
+      var GlobalFilename := GetGlobalConfigFilename;
+      if (GlobalFilename <> '') and (TFile.Exists(GlobalFilename)) then
+      begin
+        MainSection.CreatedBy := 'Global: ' + GlobalFilename;
+        Logger.Trace('Loading global configuration from ' + GlobalFilename);
+        TBBYamlReader.ProcessFile(GlobalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
+      end;
+
+      if (TFile.Exists(FullFilename)) then
+      begin
+        MainSection.CreatedBy := 'Main: ' + Filename;
+        TBBYamlReader.ProcessFile(FullFilename, MainSection, aStopAt, aIgnoreOtherFiles);
+      end;
+
+      var LocalFilename := TPath.Combine(TPath.GetDirectoryName(FullFilename), TPath.GetFileNameWithoutExtension(FullFilename) + '.local.yaml');
+      if (TFile.Exists(LocalFilename)) then
+      begin
+        MainSection.CreatedBy := 'Local: ' + LocalFilename;
+        Logger.Trace('Loading local configuration from ' + LocalFilename);
+        TBBYamlReader.ProcessFile(LocalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
+      end;
+
+
+      for var ExtraConfig in ExtraConfigFiles do
+      begin
+        MainSection.CreatedBy := 'Extra: ' + ExtraConfig;
+        if (not TFile.Exists(ExtraConfig)) then raise Exception.Create('Cannot find extra configuration file: ' + ExtraConfig);
+        Logger.Trace('Loading extra configuration from ' + ExtraConfig);
+        TBBYamlReader.ProcessFile(ExtraConfig, MainSection, aStopAt, aIgnoreOtherFiles);
+
+      end;
+
+      MainSection.CreatedBy := 'Command line';
+      TBBCmdReader.ProcessCommandLine(CmdParameters, MainSection, ':', false);
+
+    finally
+      MainSection.Free;
     end;
-
-    if (TFile.Exists(FullFilename)) then
-    begin
-      MainSection.CreatedBy := 'Main: ' + Filename;
-      TBBYamlReader.ProcessFile(FullFilename, MainSection, aStopAt, aIgnoreOtherFiles);
-    end;
-
-    var LocalFilename := TPath.Combine(TPath.GetDirectoryName(FullFilename), TPath.GetFileNameWithoutExtension(FullFilename) + '.local.yaml');
-    if (TFile.Exists(LocalFilename)) then
-    begin
-      MainSection.CreatedBy := 'Local: ' + LocalFilename;
-      Logger.Trace('Loading local configuration from ' + LocalFilename);
-      TBBYamlReader.ProcessFile(LocalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
-    end;
-
-
-    for var ExtraConfig in ExtraConfigFiles do
-    begin
-      MainSection.CreatedBy := 'Extra: ' + ExtraConfig;
-      if (not TFile.Exists(ExtraConfig)) then raise Exception.Create('Cannot find extra configuration file: ' + ExtraConfig);
-      Logger.Trace('Loading extra configuration from ' + ExtraConfig);
-      TBBYamlReader.ProcessFile(ExtraConfig, MainSection, aStopAt, aIgnoreOtherFiles);
-
-    end;
-
-    MainSection.CreatedBy := 'Command line';
-    TBBCmdReader.ProcessCommandLine(CmdParameters, MainSection, ':', false);
-
   finally
-    MainSection.Free;
+    Protector.Free;
   end;
 
   SetMaxCores(Config);
