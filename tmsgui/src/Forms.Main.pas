@@ -296,7 +296,7 @@ procedure TMainForm.acLogDetailsExecute(Sender: TObject);
 begin
   var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
   if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
-  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Output);
+  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Text, GUI.LogItems[RevIndex].Output);
   LogDetailsForm.ShowModal;
 end;
 

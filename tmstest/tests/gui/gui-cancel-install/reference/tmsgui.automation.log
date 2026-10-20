@@ -12,4 +12,6 @@ var: "$before"
 click: "MainForm.btnCancel"
 assert: "$before > $nowUTC" is true
 assert: "ProgressBar.Position < 100" is true
+wait: 2000 milliseconds
+assert: "OutputMemo.Text ~ **CANCELED**" is true
 Completed successfully

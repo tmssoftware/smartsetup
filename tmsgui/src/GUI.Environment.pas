@@ -1026,7 +1026,7 @@ begin
         GenerateLogItem(TGUILogItem.Create(
             Format('%s: tms %s', [TmsCommandName(T.Command), LocalRunner.Params]),
             TLogLevel.Info,
-            LocalRunner.Output.Text,
+            LocalRunner.CmdAndOutput,
             LocalRunner.IsCanceled
         ));
       end;
@@ -1036,18 +1036,18 @@ begin
       begin
         // The user asked for this, so it is logged as canceled, not as an error.
         GenerateLogItem(TGUILogItem.Create(
-          E.Message,
+          TmsCommandName(T.Command) + ': ' + E.Message,
           TLogLevel.Info,
-          LocalRunner.Output.Text,
+          LocalRunner.CmdAndOutput,
           True
         ));
       end;
       on E: Exception do
       begin
         GenerateLogItem(TGUILogItem.Create(
-          E.Message,
+          TmsCommandName(T.Command) + ': ' + E.Message,
           TLogLevel.Error,
-          LocalRunner.Output.Text,
+          LocalRunner.CmdAndOutput,
           LocalRunner.IsCanceled
         ));
       end;

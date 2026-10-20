@@ -64,6 +64,7 @@ type
     property IsCanceled: Boolean read FIsCanceled;
     function NewVersionDetected: Boolean;
     property Output: TStrings read FOutput;
+    function CmdAndOutput: string;
     property OnOutputLine: TOutputLineProc read FOnOutputLine write FOnOutputLine;
   end;
 
@@ -287,6 +288,11 @@ procedure TTmsRunner.CheckLastExitCode(const Msg: string);
 begin
   if LastExitCode <> 0 then
     raise ETmsRunner.CreateFmt('Running failed: %s', [Msg]);
+end;
+
+function TTmsRunner.CmdAndOutput: string;
+begin
+  Result := 'tms ' + Params + #13#10 + #13#10 + Output.Text;
 end;
 
 constructor TTmsRunner.Create;

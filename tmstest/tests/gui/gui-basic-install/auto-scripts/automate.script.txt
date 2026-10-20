@@ -1,0 +1,21 @@
+assert self.Name = MainForm
+wait Self.ProductCount <> 0
+set-text edSearch jedi.jcl
+assert Self.ProductCount = 1
+
+call lvproducts.SelectAll
+click btnInstall
+
+wait OutputMemo.Text ~ Build finished. Elapsed time
+wait 1000
+
+click acViewHtmlLog
+wait 60000
+set-text edSearch tms.biz.bcl
+assert Self.ProductCount = 1
+
+call lvproducts.SelectAll
+click btnInstall
+
+wait OutputMemo.Text ~ Build finished. Elapsed time
+wait 1000

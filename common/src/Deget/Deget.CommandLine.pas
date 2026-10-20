@@ -375,6 +375,7 @@ begin
         GetExitCodeProcess(PI.hProcess, ExitCode);
         //The child might have exited with 0 just before we killed it. Not 0, or a canceled run reads as a success.
         if Canceled and (ExitCode = 0) then ExitCode := ERROR_CANCELLED;
+        if Canceled and Assigned(CallBackProc) then CallBackProc(#10 + #10 + '**CANCELED**');
         {$R-}
         Result := ExitCode;
         {$R+}

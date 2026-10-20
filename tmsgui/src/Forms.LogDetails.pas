@@ -14,7 +14,7 @@ type
   private
     { Private declarations }
   public
-    procedure SetLogText(const Text: string);
+    procedure SetLogText(const aCaption, Text: string);
   end;
 
 
@@ -24,8 +24,9 @@ implementation
 
 { TLogDetails }
 
-procedure TLogDetailsForm.SetLogText(const Text: string);
+procedure TLogDetailsForm.SetLogText(const aCaption, Text: string);
 begin
+  Caption := aCaption;
   Data.Text := Text;
 end;
 
