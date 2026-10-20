@@ -144,6 +144,7 @@ type
     function GetLogIco(const Item: TGUILogItem): string;
 
     function GetLastError: string;
+    function EnsureValidFolder(const RejectCaption: string): Boolean;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -585,6 +586,15 @@ begin
     exit;
   end;
 
+  if EnsureValidFolder('E&xit application') then
+    GUI.Start
+  else
+    Application.Terminate;
+end;
+
+function TMainForm.EnsureValidFolder(const RejectCaption: string): Boolean;
+begin
+  // We can't work in a folder without a tms config, so either the user lets us create one, or we return false.
   //Show the message only if there is no config file yet.
   if not TFile.Exists(GUI.Info.ConfigFile) then
   begin
@@ -595,13 +605,9 @@ begin
                          [mbYes, mbNo],
                          0,
                          mbNo,
-                         ['&Use anyway', 'E&xit application']);
+                         ['&Use anyway', RejectCaption]);
 
-      if Response <> mrYes then
-      begin
-        Application.Terminate;
-        exit;
-      end;
+      if Response <> mrYes then exit(False);
     end;
 
 
@@ -618,10 +624,7 @@ begin
     end;
   end;
 
-  if TFile.Exists(GUI.Info.ConfigFile) then
-    GUI.Start
-  else
-    Application.Terminate;
+  Result := TFile.Exists(GUI.Info.ConfigFile);
 end;
 
 procedure TMainForm.GetSelectedProductsEvent(Products: TGUIProductList);
@@ -945,8 +948,23 @@ begin
   WorkingFolderDialog.DefaultFolder := GetCurrentDir;
   if not WorkingFolderDialog.Execute then exit;
 
+  var OldFolder := GetCurrentDir;
   SetCurrentDir(WorkingFolderDialog.FileName);
   GUI.RefreshInfo;
+
+  // Same checks as at startup, but a folder we can't use takes us back to the old one, not out of the app.
+  var Valid := GUI.Info.Initialized;
+  if not Valid then
+    TDialogForm.ShowMessage('Error reading the folder "' + WorkingFolderDialog.FileName + '": ' + GetLastError)
+  else
+    Valid := EnsureValidFolder('&Cancel');
+  if not Valid then
+  begin
+    SetCurrentDir(OldFolder);
+    GUI.RefreshInfo;
+    exit;
+  end;
+
   GUI.Start;
   ShowInfo;
 end;

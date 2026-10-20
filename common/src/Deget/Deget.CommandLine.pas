@@ -242,7 +242,11 @@ var
   Info: TJobObjectExtendedLimitInformation;
 begin
   FillChar(Info, SizeOf(Info), 0);
-  if Value then Info.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+  //This sets all the limits, so keep BREAKAWAY_OK in both cases.
+  //BREAKAWAY_OK: a process that asks for CREATE_BREAKAWAY_FROM_JOB gets it, as it did before we used a job.
+  //Without it, that CreateProcess fails with access denied. Children that don't ask stay in the job.
+  Info.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_BREAKAWAY_OK;
+  if Value then Info.BasicLimitInformation.LimitFlags := Info.BasicLimitInformation.LimitFlags or JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
   Result := SetInformationJobObject(Job, JobObjectExtendedLimitInformation, @Info, SizeOf(Info));
 end;
 

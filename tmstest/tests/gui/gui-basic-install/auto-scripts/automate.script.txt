@@ -15,6 +15,7 @@ wait 500
 set lbLog.ItemIndex 0
 wait 500
 click acLogDetails
+wait 500
 assert Self.Name = LogDetailsForm
 assert Data.Text ~ - JEDI JCL -> OK.
 click btOk

@@ -130,7 +130,8 @@ type
     procedure RunUninstall;
   end;
 
-  TTmsInfo = class
+  // A record, so each caller gets its own copy: it is read from several threads and refreshed while they do.
+  TTmsInfo = record
   private
     FInitialized: boolean;
     FVersion: TVersion;
@@ -151,15 +152,9 @@ type
   end;
 
   TTmsInfoRunner = class(TTmsRunner)
-  strict private
-    FInfo: TTmsInfo;
   public
     class function Command: TTmsCommand; override;
-    constructor Create;
-    destructor Destroy; override;
-    procedure RunInfo; overload;
-    procedure RunInfo(Info: TTmsInfo); overload;
-    property Info: TTmsInfo read FInfo;
+    procedure RunInfo(var Info: TTmsInfo);
   end;
 
   TTmsCredentialsRunner = class(TTmsRunner)
@@ -619,24 +614,7 @@ begin
   Result := TTmsCommand.Info;
 end;
 
-constructor TTmsInfoRunner.Create;
-begin
-  inherited Create;
-  FInfo := TTmsInfo.Create;
-end;
-
-destructor TTmsInfoRunner.Destroy;
-begin
-  FInfo.Free;
-  inherited;
-end;
-
-procedure TTmsInfoRunner.RunInfo;
-begin
-  RunInfo(Info);
-end;
-
-procedure TTmsInfoRunner.RunInfo(Info: TTmsInfo);
+procedure TTmsInfoRunner.RunInfo(var Info: TTmsInfo);
 begin
   Run(AddRepo('info -json'));
 

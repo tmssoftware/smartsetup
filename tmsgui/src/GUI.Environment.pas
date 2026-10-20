@@ -116,7 +116,8 @@ type
     FOnProductsUpdated: TProductsProc;
     FActiveRunners: TList<TTmsRunner>; //every runner currently executing, on any thread. Guarded by TMonitor on itself.
     FDestroying: Boolean;
-    FInfo: TTmsInfo;
+    FInfo: TTmsInfo; //read from workers too, so only read or written under FInfoLock. Callers get a copy.
+    FInfoLock: TObject;
     FServer: string;
     FServers: TServerConfigItems;
     FOnRequestCredentials: TRequestCredentialsEvent;
@@ -600,6 +601,7 @@ begin
   FLogItems := TObjectList<TGUILogItem>.Create;
   FServers := TServerConfigItems.Create;
   FActiveRunners := TList<TTmsRunner>.Create;
+  FInfoLock := TObject.Create;
 
   // Init logging
   var GUILogger := TGUILogger.Create;
@@ -641,7 +643,7 @@ begin
   FFetchedProducts.Free;
   FSelected.Free;
   FLogItems.Free;
-  FInfo.Free;
+  FInfoLock.Free;
   FServers.Free;
   FActiveRunners.Free;
   Logger.Free;
@@ -1069,10 +1071,6 @@ end;
 
 procedure TGUIEnvironment.GenerateLogItem(Item: TGUILogItem);
 begin
-  // Log items arrive from worker threads, but FLogItems is read by the log list on the main thread,
-  // so it is only changed there. (From the main thread, Queue runs the procedure immediately.)
-  // Deleted log files no longer need checking here: acViewHtmlLogExecute clears the session id
-  // when the file is gone. The old check started one "tms log-view" per log item for every new item.
   TThread.Queue(nil,
     procedure
     begin
@@ -1089,23 +1087,25 @@ end;
 
 function TGUIEnvironment.GetInfo: TTmsInfo;
 begin
-  if (FInfo <> nil) and not (FInfo.Initialized) then FreeAndNil(FInfo);
-
-  if FInfo = nil then
-  begin
-    FInfo := TTmsInfo.Create;
-    try
+  // Workers call this too (RefreshFetchedProducts) while the main thread may call RefreshInfo, so under a lock.
+  // Held while "tms info" runs, so a second caller waits for that result instead of starting its own.
+  TMonitor.Enter(FInfoLock);
+  try
+    // Not initialized: never loaded, refreshed, or the last "tms info" failed. Then (re)load it.
+    if not FInfo.Initialized then
+    begin
+      var NewInfo := Default(TTmsInfo);
       RunSync<TTmsInfoRunner>(
         procedure(Runner: TTmsInfoRunner)
         begin
-          Runner.RunInfo(FInfo);
+          Runner.RunInfo(NewInfo);
         end);
-    except
-      FreeAndNil(FInfo);
-      raise;
+      FInfo := NewInfo;
     end;
+    Result := FInfo; // a copy: the caller can use it after we release the lock
+  finally
+    TMonitor.Exit(FInfoLock);
   end;
-  Result := FInfo;
 end;
 
 procedure TGUIEnvironment.GetProductVersions(const ProductId: string; Versions: TVersionInfoList);
@@ -1148,7 +1148,13 @@ end;
 
 procedure TGUIEnvironment.RefreshInfo;
 begin
-  FreeAndNil(FInfo);
+  // The next GetInfo loads it again.
+  TMonitor.Enter(FInfoLock);
+  try
+    FInfo.Initialized := False;
+  finally
+    TMonitor.Exit(FInfoLock);
+  end;
 end;
 
 procedure TGUIEnvironment.RefreshFetchedProductsAfterJob;
@@ -1163,16 +1169,13 @@ begin
   RunSync<TTmsListRunner>(
     procedure(ListRunner: TTmsListRunner)
     begin
-      if Info.IsValidTMSSetupFolder then
-        ListRunner.RunList;
+      // No check for a valid folder: the form only lets us work in one (TMainForm.EnsureValidFolder).
+      ListRunner.RunList;
       RunSync<TTmsListRemoteRunner>(
         procedure(RemoteRunner: TTmsListRemoteRunner)
         begin
-          if Info.IsValidTMSSetupFolder then
-          begin
-            RemoteRunner.Server := Server;
-            RemoteRunner.RunListRemote;
-          end;
+          RemoteRunner.Server := Server;
+          RemoteRunner.RunListRemote;
 
           // Build a new list here; FFetchedProducts itself is only replaced on the main thread.
           // Clearing it from this thread freed the TGUIProduct objects the list view still pointed at.
