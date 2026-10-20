@@ -122,6 +122,9 @@ type
     OverCaption: Boolean;
     LogDetailsForm: TLogDetailsForm;
     WorkingAnimator: TAnimator;
+    InstallAnimator: TAnimator;
+    UninstallAnimator: TAnimator;
+    BuildAnimator: TAnimator;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
@@ -153,8 +156,9 @@ type
     procedure ProgressEvent(const Percent: Integer);
     procedure ProductProgressEvent(const Info: TProductProgressInfo);
     procedure RunnerCreatedEvent(Runner: TTmsRunner);
-    procedure RunStartEvent;
-    procedure RunFinishEvent;
+    function AnimatorFor(const Command: TTmsCommand): TAnimator;
+    procedure RunStartEvent(const Command: TTmsCommand);
+    procedure RunFinishEvent(const Command: TTmsCommand);
     procedure NewVersionDetectedEvent;
 
     {$IFDEF DEBUG}
@@ -477,6 +481,24 @@ begin
       StatusBar.Panels[3].Text := Value;
     end);
 
+  InstallAnimator := TAnimator.Create(50, false, 'Installing', acInstall.Caption,
+    procedure (Value: string)
+    begin
+      acInstall.Caption := Value;
+    end);
+
+  UninstallAnimator := TAnimator.Create(50, false, 'Uninstalling', acUninstall.Caption,
+    procedure (Value: string)
+    begin
+      acUninstall.Caption := Value;
+    end);
+
+  BuildAnimator := TAnimator.Create(50, false, 'Building', acFullBuild.Caption,
+    procedure (Value: string)
+    begin
+      acFullBuild.Caption := Value;
+    end);
+
   GUI := TGUIEnvironment.Create;
 
   GUI.OnProductsUpdated := ProductsUpdatedEvent;
@@ -510,6 +532,9 @@ procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   GUI.Free;
   WorkingAnimator.Free;
+  InstallAnimator.Free;
+  UninstallAnimator.Free;
+  BuildAnimator.Free;
 
   // at this point no tms.exe should be running anymore
   if Relaunch then
@@ -824,13 +849,25 @@ begin
     TDialogForm.ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
 end;
 
-procedure TMainForm.RunFinishEvent;
+function TMainForm.AnimatorFor(const Command: TTmsCommand): TAnimator;
+begin
+  case Command of
+    TTmsCommand.Build: Result := BuildAnimator; // full and partial: the partial build menu item wouldn't show it
+    TTmsCommand.Install: Result := InstallAnimator;
+    TTmsCommand.Uninstall: Result := UninstallAnimator;
+    else Result := nil;
+  end;
+end;
+
+procedure TMainForm.RunFinishEvent(const Command: TTmsCommand);
 begin
   // Fired by the last job to finish, usually on a worker thread.
   TThread.Queue(nil, procedure
     begin
       ProgressBar.Position := 0;
     end);
+  var Animator := AnimatorFor(Command);
+  if Animator <> nil then Animator.Stop; // thread safe, it queues itself
 end;
 
 procedure TMainForm.RunnerCreatedEvent(Runner: TTmsRunner);
@@ -838,8 +875,11 @@ begin
   Runner.Repository := Repository;
 end;
 
-procedure TMainForm.RunStartEvent;
+procedure TMainForm.RunStartEvent(const Command: TTmsCommand);
 begin
+  // Can be on a worker thread, see RunFinishEvent.
+  var Animator := AnimatorFor(Command);
+  if Animator <> nil then Animator.Start;
 end;
 
 procedure TMainForm.ServersUpdatedEvent(Servers: TServerConfigItems);

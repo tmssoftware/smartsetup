@@ -15,6 +15,7 @@ type
   TLogMessageProc = reference to procedure(const Level: TLogLevel; const Message: string);
 
   TTmsRunner = UTmsRunner.TTmsRunner;
+  TTmsCommand = UTmsRunner.TTmsCommand;
 
   TGUILogger = class(TLogger)
   strict private
@@ -101,6 +102,7 @@ type
   TProductProgressProc = reference to procedure(const Info: TProductProgressInfo);
   TLogItemEvent = reference to procedure(const LogItem: TGUILogItem);
   TRunnerProc = reference to procedure(Runner: TTmsRunner);
+  TRunEventProc = reference to procedure(const Command: TTmsCommand);
 
   TGUIEnvironment = class
   private
@@ -124,10 +126,11 @@ type
     FLogItems: TObjectList<TGUILogItem>;
     FOnCommandOutput: TCommandOutputProc;
     FProductFilter: TProductFilter;
-    FRunningCount: Integer;
+    FRunningCount: Integer; //changed only under the FActiveRunners lock, see EndRunning.
+    FRunningCommand: TTmsCommand; //the command that started the running job. Guarded like FRunningCount.
     FWorkerThreads: Integer; //threads started by StartExclusive or RunBackground that haven't finished yet. The destructor waits for 0.
-    FOnRunStart: TProc;
-    FOnRunFinish: TProc;
+    FOnRunStart: TRunEventProc;
+    FOnRunFinish: TRunEventProc;
     FOnNewVersionDetected: TProc;
     FNewVersionNotified: Boolean;
     FOnRunnerCreated: TRunnerProc;
@@ -138,27 +141,27 @@ type
     function GetInfo: TTmsInfo;
     procedure GenerateLogItem(Item: TGUILogItem);
     procedure RunnerOutputEvent(const S: string);
-    function TryBeginExclusive: Boolean;
+    function TryBeginExclusive(const Command: TTmsCommand): Boolean;
     function SelectedProductIds: TArray<string>;
     procedure ExecuteBuild(FullBuild: Boolean; ProgressCallback: TProductProgressProc);
-    procedure DoRunStart;
-    procedure DoRunFinish;
+    procedure DoRunStart(const Command: TTmsCommand);
+    procedure DoRunFinish(const Command: TTmsCommand);
     procedure DoNotifyNewVersion;
     procedure DoRunnerCreated(Runner: TTmsRunner);
     procedure RefreshFetchedProducts(Filter: TProductFilter; const Server: string);
     procedure RefreshFetchedProductsAfterJob;
-    function StartExclusive(const Proc: TProc): Boolean;
+    function StartExclusive(const Command: TTmsCommand; const Proc: TProc): Boolean;
     procedure ClearCancelRequested;
     procedure ReplaceFetchedProducts(NewProducts: TGUIProductList; Filter: TProductFilter);
     procedure ApplyProductFilters;
-    procedure BeginRunning;
+    procedure BeginRunning(const Command: TTmsCommand);
     procedure EndRunning;
     function AddActiveRunner(Runner: TTmsRunner): Boolean;
     procedure RemoveActiveRunner(Runner: TTmsRunner);
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
-    procedure RunBackground(Proc: TProc);
+    procedure RunBackground(const Command: TTmsCommand; Proc: TProc);
   public
     constructor Create;
     destructor Destroy; override;
@@ -256,8 +259,10 @@ type
     // The objects must be the instances previously provided in the OnProductsUpdated
     property OnGetSelectedProducts: TGetSelectedProductsProc read FOnGetSelectedProducts write FOnGetSelectedProducts;
 
-    property OnRunStart: TProc read FOnRunStart write FOnRunStart;
-    property OnRunFinish: TProc read FOnRunFinish write FOnRunFinish;
+    // Fired once per job, with the command that started it: when the first runner starts and when the last one ends.
+    // Can fire on any thread, while we hold a lock, so the handlers must not block (queue to the main thread instead).
+    property OnRunStart: TRunEventProc read FOnRunStart write FOnRunStart;
+    property OnRunFinish: TRunEventProc read FOnRunFinish write FOnRunFinish;
 
     property OnLogItemGenerated: TLogItemEvent read FOnLogItemGenerated write FOnLogItemGenerated;
     property OnCommandOutput: TCommandOutputProc read FOnCommandOutput write FOnCommandOutput;
@@ -369,10 +374,19 @@ begin
     end);
 end;
 
-procedure TGUIEnvironment.BeginRunning;
+procedure TGUIEnvironment.BeginRunning(const Command: TTmsCommand);
 begin
-  if AtomicIncrement(FRunningCount) = 1 then
-    DoRunStart;
+  TMonitor.Enter(FActiveRunners);
+  try
+    Inc(FRunningCount);
+    if FRunningCount = 1 then
+    begin
+      FRunningCommand := Command;
+      DoRunStart(Command);
+    end;
+  finally
+    TMonitor.Exit(FActiveRunners);
+  end;
 end;
 
 function TGUIEnvironment.CanApplyFilter: Boolean;
@@ -646,10 +660,10 @@ begin
   end;
 end;
 
-procedure TGUIEnvironment.DoRunFinish;
+procedure TGUIEnvironment.DoRunFinish(const Command: TTmsCommand);
 begin
   if Assigned(FOnRunFinish) then
-    FOnRunFinish();
+    FOnRunFinish(Command);
 end;
 
 procedure TGUIEnvironment.DoRunnerCreated(Runner: TTmsRunner);
@@ -658,16 +672,16 @@ begin
     FOnRunnerCreated(Runner);
 end;
 
-procedure TGUIEnvironment.DoRunStart;
+procedure TGUIEnvironment.DoRunStart(const Command: TTmsCommand);
 begin
   if Assigned(FOnRunStart) then
-    FOnRunStart();
+    FOnRunStart(Command);
 end;
 
-function TGUIEnvironment.StartExclusive(const Proc: TProc): Boolean;
+function TGUIEnvironment.StartExclusive(const Command: TTmsCommand; const Proc: TProc): Boolean;
 begin
   // Claimed here, on the calling thread, so a second click can't start a second job before the thread runs.
-  Result := TryBeginExclusive;
+  Result := TryBeginExclusive(Command);
   if not Result then
   begin
     Logger.Error('tms.exe is already running');
@@ -699,14 +713,14 @@ end;
 
 procedure TGUIEnvironment.RunAsync<T>(Proc: TProc<T>);
 begin
-  StartExclusive(
+  StartExclusive(T.Command,
     procedure
     begin
       RunSync<T>(Proc);
     end);
 end;
 
-procedure TGUIEnvironment.RunBackground(Proc: TProc);
+procedure TGUIEnvironment.RunBackground(const Command: TTmsCommand; Proc: TProc);
 begin
   // Counted from the start, not only while Proc runs: the waiting loop reads FDestroying too.
   AtomicIncrement(FWorkerThreads);
@@ -717,7 +731,7 @@ begin
         try
           while not FDestroying do
           begin
-            if TryBeginExclusive then
+            if TryBeginExclusive(Command) then
             begin
               try
                 Proc;
@@ -741,7 +755,7 @@ end;
 
 procedure TGUIEnvironment.ExecuteSelfUpdate(ProgressCallback: TProgressProc; RelaunchCallback: TProc);
 begin
-  RunBackground(
+  RunBackground(TTmsCommand.SelfUpdate,
     procedure
     begin
       RunSync<TTmsSelfUpdateRunner>(
@@ -767,10 +781,18 @@ end;
 
 procedure TGUIEnvironment.EndRunning;
 begin
-  if AtomicDecrement(FRunningCount) = 0 then
-  begin
-    ClearCancelRequested; // the canceled job is over
-    DoRunFinish;
+  // All under the lock, and the count drops last: until it does no new job can start, so a new job can't
+  // lose its cancel to our ClearCancelRequested, and its OnRunStart can't arrive before our OnRunFinish.
+  TMonitor.Enter(FActiveRunners);
+  try
+    if FRunningCount = 1 then
+    begin
+      FCancelRequested := False; // the canceled job is over
+      DoRunFinish(FRunningCommand);
+    end;
+    Dec(FRunningCount);
+  finally
+    TMonitor.Exit(FActiveRunners);
   end;
 end;
 
@@ -980,7 +1002,7 @@ begin
       // Not added when the job was canceled or we are closing: then the remaining steps don't start a new tms.exe.
       if not AddActiveRunner(LocalRunner) then Exit;
       try
-        BeginRunning;
+        BeginRunning(T.Command);
         try
           if Assigned(StartWorking) then StartWorking;
           try
@@ -1000,8 +1022,9 @@ begin
 
       if LocalRunner is TAbstractTmsBuildRunner then
       begin
+        // Only build runners get here, so Params has no credentials in it.
         GenerateLogItem(TGUILogItem.Create(
-            LocalRunner.ExeFileName,
+            Format('%s: tms %s', [TmsCommandName(T.Command), LocalRunner.Params]),
             TLogLevel.Info,
             LocalRunner.Output.Text,
             LocalRunner.IsCanceled
@@ -1050,7 +1073,7 @@ begin
     ExecuteRequestCredentials;
 
   var Server := FServer;
-  RunBackground(procedure
+  RunBackground(TTmsCommand.List, procedure
     begin
       if FServers.RemotesEnabled then
         RefreshFetchedProducts(TProductFilter.All, Server)
@@ -1265,20 +1288,29 @@ end;
 procedure TGUIEnvironment.ChangeProductFilter(Filter: TProductFilter);
 begin
   var Server := FServer;
-  StartExclusive(
+  StartExclusive(TTmsCommand.List,
     procedure
     begin
       RefreshFetchedProducts(Filter, Server);
     end);
 end;
 
-function TGUIEnvironment.TryBeginExclusive: Boolean;
+function TGUIEnvironment.TryBeginExclusive(const Command: TTmsCommand): Boolean;
 begin
-  // Check and claim in one atomic step. The previous CheckRunning only logged an error and
+  // Check and claim in one step, under the lock. The previous CheckRunning only logged an error and
   // returned, so its callers went on and started a second tms.exe anyway.
-  Result := AtomicCmpExchange(FRunningCount, 1, 0) = 0;
-  if Result then
-    DoRunStart;
+  TMonitor.Enter(FActiveRunners);
+  try
+    Result := FRunningCount = 0;
+    if Result then
+    begin
+      FRunningCount := 1;
+      FRunningCommand := Command;
+      DoRunStart(Command);
+    end;
+  finally
+    TMonitor.Exit(FActiveRunners);
+  end;
 end;
 
 procedure TGUIEnvironment.ApplyProductFilters;
@@ -1334,7 +1366,7 @@ begin
   // Only keep the new server if the refresh started, or it would not match the products shown.
   var Filter := FProductFilter;
   var Server := Value;
-  Result := StartExclusive(
+  Result := StartExclusive(TTmsCommand.List,
     procedure
     begin
       RefreshFetchedProducts(Filter, Server);

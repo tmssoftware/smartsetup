@@ -123,8 +123,8 @@ begin
     var Form := TDialogForm.Create(nil);
     try
       Form.btnOk.Visible := true;
-      Form.btnCancel.Visible := true;
       Form.btnOk.Default := true;
+      Form.btnOk.Cancel := true;
       Form.MemoMessage.Text := Message;
       Form.FitToContent;
       Form.ShowModal;

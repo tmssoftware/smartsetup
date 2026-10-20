@@ -565,7 +565,7 @@ begin
   end;
 
   var VCLAction := GetComponent<TCustomAction>(Action.Target, 'button, speedbutton or action');
-  if SpeedButton <> nil then
+  if VCLAction <> nil then
   begin
     if VCLAction.Enabled and VCLAction.Visible then
     begin
