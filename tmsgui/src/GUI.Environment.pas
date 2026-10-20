@@ -116,7 +116,6 @@ type
     FOnProductsUpdated: TProductsProc;
     FActiveRunners: TList<TTmsRunner>; //every runner currently executing, on any thread. Guarded by TMonitor on itself.
     FDestroying: Boolean;
-    FCancelRequested: Boolean; //the running job was canceled, so its later steps must not start new runners. Guarded like FActiveRunners.
     FInfo: TTmsInfo;
     FServer: string;
     FServers: TServerConfigItems;
@@ -151,7 +150,6 @@ type
     procedure RefreshFetchedProducts(Filter: TProductFilter; const Server: string);
     procedure RefreshFetchedProductsAfterJob;
     function StartExclusive(const Command: TTmsCommand; const Proc: TProc): Boolean;
-    procedure ClearCancelRequested;
     procedure ReplaceFetchedProducts(NewProducts: TGUIProductList; Filter: TProductFilter);
     procedure ApplyProductFilters;
     procedure BeginRunning(const Command: TTmsCommand);
@@ -410,8 +408,8 @@ procedure TGUIEnvironment.CancelRun;
 begin
   TMonitor.Enter(FActiveRunners);
   try
-    // Only while something runs: a stale flag would silently skip the next job.
-    if FRunningCount > 0 then FCancelRequested := True;
+    // Only the runners active now. A later step that needs a canceled one's result stops on ETmsRunnerCanceled,
+    // and the refresh after a job is meant to run anyway, to show what a canceled install did finish.
     for var Runner in FActiveRunners do
       Runner.Cancel;
   finally
@@ -424,7 +422,7 @@ begin
   TMonitor.Enter(FActiveRunners);
   try
     // Checked under the same lock CancelRun takes, so a runner is either canceled or never starts.
-    Result := not (FDestroying or FCancelRequested);
+    Result := not FDestroying;
     if Result then FActiveRunners.Add(Runner);
   finally
     TMonitor.Exit(FActiveRunners);
@@ -781,26 +779,13 @@ end;
 
 procedure TGUIEnvironment.EndRunning;
 begin
-  // All under the lock, and the count drops last: until it does no new job can start, so a new job can't
-  // lose its cancel to our ClearCancelRequested, and its OnRunStart can't arrive before our OnRunFinish.
+  // All under the lock, and the count drops last: until it does no new job can start, so its OnRunStart
+  // can't arrive before our OnRunFinish.
   TMonitor.Enter(FActiveRunners);
   try
     if FRunningCount = 1 then
-    begin
-      FCancelRequested := False; // the canceled job is over
       DoRunFinish(FRunningCommand);
-    end;
     Dec(FRunningCount);
-  finally
-    TMonitor.Exit(FActiveRunners);
-  end;
-end;
-
-procedure TGUIEnvironment.ClearCancelRequested;
-begin
-  TMonitor.Enter(FActiveRunners);
-  try
-    FCancelRequested := False;
   finally
     TMonitor.Exit(FActiveRunners);
   end;
@@ -999,7 +984,7 @@ begin
     try
       // A list, not a single "current runner" field: runners nest and run on several threads, and
       // saving/restoring one field across threads could leave it pointing at a freed runner.
-      // Not added when the job was canceled or we are closing: then the remaining steps don't start a new tms.exe.
+      // Not added when we are closing: then the remaining steps don't start a new tms.exe.
       if not AddActiveRunner(LocalRunner) then Exit;
       try
         BeginRunning(T.Command);
@@ -1168,9 +1153,8 @@ end;
 
 procedure TGUIEnvironment.RefreshFetchedProductsAfterJob;
 begin
-  // Refresh even if the job was canceled: a canceled install may have finished some products.
+  // Runs even if the job was canceled: a canceled install may have finished some products.
   // The refresh itself can still be canceled, and it does not run when we are closing.
-  ClearCancelRequested;
   RefreshFetchedProducts(FProductFilter, FServer);
 end;
 

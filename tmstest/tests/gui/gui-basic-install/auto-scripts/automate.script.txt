@@ -7,10 +7,18 @@ call lvproducts.SelectAll
 click btnInstall
 
 wait OutputMemo.Text ~ Build finished. Elapsed time
+assert OutputMemo.Text ~ - JEDI JCL -> OK.
 wait 1000
 
-click acViewHtmlLog
-wait 60000
+set LogPanel.Height 300
+wait 500
+set lbLog.ItemIndex 0
+wait 500
+click acLogDetails
+assert Self.Name = LogDetailsForm
+assert Data.Text ~ - JEDI JCL -> OK.
+click btOk
+
 set-text edSearch tms.biz.bcl
 assert Self.ProductCount = 1
 
