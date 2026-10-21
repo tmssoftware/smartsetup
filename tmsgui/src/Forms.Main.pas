@@ -161,6 +161,7 @@ type
     procedure RunStartEvent(const Command: TTmsCommand);
     procedure RunFinishEvent(const Command: TTmsCommand);
     procedure NewVersionDetectedEvent;
+    procedure ChangeWorkingFolder(const NewFolder: string);
 
     {$IFDEF DEBUG}
     function ProductCount: integer;
@@ -949,19 +950,35 @@ end;
 
 procedure TMainForm.StatusBarClick(Sender: TObject);
 begin
+  // Only the panel showing the working folder (Panels[1]) changes it.
+  var ClickPos := StatusBar.ScreenToClient(Mouse.CursorPos);
+  var FolderStart := StatusBar.Panels[0].Width;
+  if (ClickPos.X < FolderStart) or (ClickPos.X >= FolderStart + StatusBar.Panels[1].Width) then exit;
+
   if GUI.IsRunning then exit;
-  
+
   WorkingFolderDialog.DefaultFolder := GetCurrentDir;
   if not WorkingFolderDialog.Execute then exit;
 
+  ChangeWorkingFolder(WorkingFolderDialog.FileName);
+end;
+
+procedure TMainForm.ChangeWorkingFolder(const NewFolder: string);
+begin
+  if GUI.IsRunning then exit;
+
   var OldFolder := GetCurrentDir;
-  SetCurrentDir(WorkingFolderDialog.FileName);
+  if not SetCurrentDir(NewFolder) then
+  begin
+    TDialogForm.ShowMessage('Cannot change to the folder "' + NewFolder + '".');
+    exit;
+  end;
   GUI.RefreshInfo;
 
   // Same checks as at startup, but a folder we can't use takes us back to the old one, not out of the app.
   var Valid := GUI.Info.Initialized;
   if not Valid then
-    TDialogForm.ShowMessage('Error reading the folder "' + WorkingFolderDialog.FileName + '": ' + GetLastError)
+    TDialogForm.ShowMessage('Error reading the folder "' + NewFolder + '": ' + GetLastError)
   else
     Valid := EnsureValidFolder('&Cancel');
   if not Valid then

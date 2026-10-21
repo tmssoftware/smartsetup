@@ -13,7 +13,8 @@ unit GUI.Automation;
   wait <ms>  | wait 5000 -> waits for 5 seconds
   wait <component.property> [=/<>/</>/<=/>=/~/!~value] -> wait button1.enabled -> waits until button is enabled
   click <button> | click button2 -> clicks button2  Can also click an action
-  call <component.method> | call listview1.SelectAll -> Selects all items
+  call <component.method> [argument] | call listview1.SelectAll -> Selects all items
+    call self.ChangeWorkingFolder c:	emp -> calls a method with a single string parameter. The argument is the rest of the line.
   set-text <edit> text |  set-text memo1 hello today  -> sets the memo value to "hello today"
   set <component.property> text |  set cb.checked true  -> sets the checkbox to checked.
   var <$name> <component.property> | var $count self.ProductCount -> stores the current value of self.ProductCount in $count
@@ -200,7 +201,7 @@ begin
   end;
 end;
 
-procedure CallDynamicMethod(const aComponent: TObject; const aMethodName: string);
+procedure CallDynamicMethod(const aComponent: TObject; const aMethodName, Argument: string);
 begin
   var RttiContext := TRttiContext.Create;
   try
@@ -209,7 +210,20 @@ begin
     var RttiMethod := RttiType.GetMethod(aMethodName);
     if Assigned(RttiMethod) then
     begin
-      RttiMethod.Invoke(aComponent, []);
+      var Params := RttiMethod.GetParameters;
+      case Length(Params) of
+        0:
+          begin
+            if Argument <> '' then raise Exception.CreateFmt('Method "%s" has no parameters, but it was called with the argument "%s".', [aMethodName, Argument]);
+            RttiMethod.Invoke(aComponent, []);
+          end;
+        1:
+          begin
+            if not (Params[0].ParamType.TypeKind in [tkUString, tkString, tkLString, tkWString]) then raise Exception.CreateFmt('Method "%s" has a parameter that is not a string.', [aMethodName]);
+            RttiMethod.Invoke(aComponent, [Argument]);
+          end;
+        else raise Exception.CreateFmt('Method "%s" has more than one parameter. Only methods with zero or one string parameter can be called.', [aMethodName]);
+      end;
       exit;
     end;
 
@@ -582,8 +596,9 @@ begin
   var Control := GetComponent<TControl>(Action.Target, 'control');
   if IsAvailable(Control, 'call: cannot call action in component ' + GetName(Action)) then
   begin
-    Log('call: ' + GetName(Action));
-    CallDynamicMethod(Control, GetProp(Action.Target));
+    if Action.Data = '' then Log('call: ' + GetName(Action))
+    else Log('call: ' + GetName(Action) + ' with "' + Action.Data + '"');
+    CallDynamicMethod(Control, GetProp(Action.Target), Action.Data);
   end;
 end;
 
