@@ -320,7 +320,7 @@ end;
 
 procedure TGUIAutomator.Log(const Message: string);
 begin
-  TFile.AppendAllText(LogFile, Message + #10, TEncoding.UTF8);
+  TFile.AppendAllText(LogFile, Message + #10#13, TEncoding.UTF8);
 end;
 
 function TGUIAutomator.GetName(const Action: TAutomationData): string;

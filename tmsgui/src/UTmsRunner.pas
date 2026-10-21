@@ -5,7 +5,7 @@ interface
 uses
 //  WinApi.Windows,
   System.SysUtils, System.Classes, System.IOUtils, System.JSON, Deget.CommandLine, UProductInfo, UMultiLogger, Deget.Version,
-  UCommonTypes;
+  UCommonTypes, Generics.Collections;
 
 type
   TProgressInfo = record
@@ -29,7 +29,7 @@ type
   private
     FExeFileName: string;
     FWorkingDir: string;
-    FOutput: TStrings;
+    FOutput: TList<string>;
     FJsonOutput: TJSONValue;
     FOnOutputLine: TOutputLineProc;
     FIsCanceled: Boolean;
@@ -43,6 +43,7 @@ type
     function JsonOutput: TJSONValue;
     procedure ProcessAlerts;
   protected
+    function GetParams: string; virtual;
     function RemoveLogMetadata(const S: string): string;
     procedure CheckLastExitCode(const Msg: string);
     function AddRepo(const Command: string): string;
@@ -59,11 +60,12 @@ type
     property Repository: string read FRepository write FRepository;
     property IgnoreExitCode: Boolean read FIgnoreExitCode write FIgnoreExitCode;
     property LastExitCode: Integer read FLastExitCode;
-    // What the last run passed to tms.exe, for the log. It can include secrets (credentials -code), so check before showing it.
-    property Params: string read FParams;
+    // What the last run passed to tms.exe, for the log. Runners whose params shouldn't be shown (credentials) override GetParams.
+    property Params: string read GetParams;
     property IsCanceled: Boolean read FIsCanceled;
     function NewVersionDetected: Boolean;
-    property Output: TStrings read FOutput;
+    property Output: TList<String> read FOutput;
+    function OutputText: string;
     function CmdAndOutput: string;
     property OnOutputLine: TOutputLineProc read FOnOutputLine write FOnOutputLine;
   end;
@@ -158,6 +160,8 @@ type
   end;
 
   TTmsCredentialsRunner = class(TTmsRunner)
+  protected
+    function GetParams: string; override;
   public
     class function Command: TTmsCommand; override;
     procedure RunGetCredentials(out Email, Code: string);
@@ -287,7 +291,7 @@ end;
 
 function TTmsRunner.CmdAndOutput: string;
 begin
-  Result := 'tms ' + Params + #13#10 + #13#10 + Output.Text;
+  Result := 'tms ' + Params + #13#10 + #13#10 + OutputText;
 end;
 
 constructor TTmsRunner.Create;
@@ -299,7 +303,7 @@ begin
   {$ENDIF}
 
   FWorkingDir := GetCurrentDir;
-  FOutput := TStringList.Create;
+  FOutput := TList<String>.Create;
 
   FAlertNewVersion := TStringList.Create;
   FAlertDiskSpace := TStringList.Create;
@@ -314,18 +318,26 @@ begin
   inherited;
 end;
 
+function TTmsRunner.GetParams: string;
+begin
+  Result := FParams;
+end;
+
 procedure TTmsRunner.Run(const Params: string; Callback: TStringProc);
 begin
   var LastOutputIndex := 0;
-  var FullOutput := '';
 
   FParams := Params;
   var CommandLine := QuoteCmd(ExeFileName) + '  ' + Params;
   var LocalCallback: TStringProc :=
     procedure(const S: string)
     begin
-      FullOutput := FullOutput + S;
-      FOutput.Text := FullOutput;
+      var S2 := S.Replace(#13, '', [TReplaceFlag.rfReplaceAll]).Split([#10]);
+      if Length(S2) > 0 then
+      begin
+        if FOutput.Count = 0 then FOutput.Add(S2[0]) else FOutput[FOutput.Count - 1] := FOutput.Last + S2[0];
+        for var i:= 1 to Length(S2) - 1 do FOutput.Add(S2[i]);
+      end;
 
 //      if Assigned(Callback) then
 //        Callback(S);
@@ -377,13 +389,29 @@ begin
     raise ETmsRunnerCanceled.Create('Canceled by the user.');
 
   if FJsonOutput = nil then
-    FJsonOutput := TJSONValue.ParseJSONValue(Output.Text);
+    FJsonOutput := TJSONValue.ParseJSONValue(OutputText);
   Result := FJsonOutput;
 end;
 
 function TTmsRunner.NewVersionDetected: Boolean;
 begin
   Result := FAlertNewVersion.Count > 0;
+end;
+
+function TTmsRunner.OutputText: string;
+begin
+  if FOutput.Count = 0 then Exit('');
+
+  var SB := TStringBuilder.Create(FOutput[0]);
+  try
+    for var i := 1 to FOutput.Count - 1 do
+    begin
+      SB.Append(sLineBreak).Append(FOutput[i]);
+    end;
+    Result := SB.ToString;
+  finally
+    SB.Free;
+  end;
 end;
 
 procedure TTmsRunner.ProcessAlerts;
@@ -450,7 +478,7 @@ begin
 
   // parse response
   if not (JsonOutput is TJSONObject) then
-    raise ETmsRunner.Create('Invalid result for `tms list -detailed -json` command. Cannot parse "' + Output.Text + '" as JSON.');
+    raise ETmsRunner.Create('Invalid result for `tms list -detailed -json` command. Cannot parse "' + OutputText + '" as JSON.');
 
   var Json := TJSONObject(JsonOutput);
   for var Pair in Json do
@@ -587,7 +615,7 @@ begin
 
   // parse response
   if not (JsonOutput is TJSONObject) then
-    raise ETmsRunner.Create('Invalid result for `tms list-remote -json` command. Cannot parse "' + Output.Text + '" as JSON.');
+    raise ETmsRunner.Create('Invalid result for `tms list-remote -json` command. Cannot parse "' + OutputText + '" as JSON.');
 
   var Json := TJSONObject(JsonOutput);
   for var Pair in Json do
@@ -639,6 +667,11 @@ begin
   Result := TTmsCommand.Credentials;
 end;
 
+function TTmsCredentialsRunner.GetParams: string;
+begin
+  exit('credentials'); //do not log them.
+end;
+
 procedure TTmsCredentialsRunner.RunGetCredentials(out Email, Code: string);
 begin
   IgnoreExitCode := False;
@@ -661,9 +694,9 @@ begin
   Run(AddRepo(Command));
 
   if LastExitCode = 0 then Exit(True);
-  if Output.Text.ToLower.Contains('error: oauth2:') then
+  if OutputText.ToLower.Contains('error: oauth2:') then
     Exit(False);
-  CheckLastExitCode(Command);
+  CheckLastExitCode('credentials');
 end;
 
 { TTmsBuildRunner }
@@ -734,7 +767,7 @@ begin
   Run(AddRepo('self-update'));
 
   // Quick and dirty, but what better option do we have?
-  Result := Pos('TMS Smart Setup has been updated from version', Output.Text) > 0;
+  Result := Pos('TMS Smart Setup has been updated from version', OutputText) > 0;
 end;
 
 { TTmsConfigureRunner }
@@ -764,7 +797,7 @@ begin
   var Command := 'config-read';
   Command := Command + ' ' + ParamName.QuotedString('"');
   Run(Command);
-  FValue := Output.Text;
+  FValue := OutputText;
   Result := FValue;
 end;
 
@@ -933,7 +966,7 @@ begin
 
   var Command := 'log-view ' + SessionId + PrintString;
   Run(Command);
-  Result := Output.Text.Trim;
+  Result := OutputText.Trim;
 end;
 
 { TTmsInfo }

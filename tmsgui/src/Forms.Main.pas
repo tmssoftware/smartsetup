@@ -898,7 +898,13 @@ procedure TMainForm.RunStartEvent(const Command: TTmsCommand);
 begin
   // Can be on a worker thread, see RunFinishEvent.
   var Animator := AnimatorFor(Command);
-  if Animator <> nil then Animator.Start;
+  if Animator <> nil then Animator.Start; // thread safe, it queues itself
+  // ForceQueue, so the clear goes in order with the queued lines from CommandOutputEvent,
+  // and we don't touch the memo from a worker thread.
+  TThread.ForceQueue(nil, procedure
+    begin
+      OutputMemo.Lines.Clear;
+    end);
 end;
 
 procedure TMainForm.ServersUpdatedEvent(Servers: TServerConfigItems);

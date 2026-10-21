@@ -281,6 +281,7 @@ var
   PEnvironment: PChar;
   Job: THandle;
   Canceled, FinishedNormally: Boolean;
+  DrainDeadline: UInt64;
 
   //Read one chunk so continuous output cannot prevent cancellation checks.
   function PumpOutput: Boolean;
@@ -374,7 +375,11 @@ begin
 
         //Before draining: if the output callback raises, we still keep what the child detached on purpose.
         FinishedNormally := not Canceled;
-        while PumpOutput do begin end;
+        //The child already exited, so what is left is at most a pipe buffer. Bound it anyway: a grandchild that inherited
+        //the pipe (and that we keep alive on a normal finish) could keep writing forever.
+        DrainDeadline := GetTickCount64 + 2000;
+        while (GetTickCount64 < DrainDeadline) and PumpOutput do
+          if not Canceled and (AppIsTerminated or (Assigned(IsCanceledFunc) and IsCanceledFunc())) then break;
 
         GetExitCodeProcess(PI.hProcess, ExitCode);
         //The child might have exited with 0 just before we killed it. Not 0, or a canceled run reads as a success.

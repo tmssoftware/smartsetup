@@ -19,7 +19,7 @@ wait 500
 assert Self.Name = LogDetailsForm
 assert Data.Text ~ - JEDI JCL -> OK.
 click btOk
-
+wait 1000
 set-text edSearch tms.biz.bcl
 assert Self.ProductCount = 1
 
@@ -27,4 +27,13 @@ call lvproducts.SelectAll
 click btnInstall
 
 wait OutputMemo.Text ~ Build finished. Elapsed time
+wait 2000
+set lbLog.ItemIndex 1
+set lbLog.ItemIndex 0
+wait 500
+click acLogDetails
+wait 500
+assert Self.Name = LogDetailsForm
+assert Data.Text ~ - TMS BIZ Core Library
+click btOk
 wait 1000

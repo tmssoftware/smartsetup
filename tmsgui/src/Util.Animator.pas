@@ -46,7 +46,7 @@ end;
 
 procedure TAnimator.Start;
 begin
-  TThread.Queue(nil, procedure
+  TThread.ForceQueue(nil, procedure
     begin
       Inc(NestedLevel);
       if (NestedLevel = 1) then SetText(Text + ' ');
@@ -67,7 +67,7 @@ end;
 
 procedure TAnimator.Stop;
 begin
-  TThread.Queue(nil, procedure
+  TThread.ForceQueue(nil, procedure
     begin
       if (NestedLevel > 0) then Dec(NestedLevel);
       Timer.Enabled := NestedLevel > 0;
