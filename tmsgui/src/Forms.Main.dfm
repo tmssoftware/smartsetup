@@ -405,6 +405,7 @@ object MainForm: TMainForm
         Width = 200
       end>
     OnClick = StatusBarClick
+    OnResize = StatusBarResize
   end
   object ProgressPanel: TPanel
     Left = 0

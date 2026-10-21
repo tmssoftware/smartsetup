@@ -1,0 +1,12 @@
+wait 2000
+assert self.Name = MainForm
+call self.ChangeWorkingFolder wrong-folder-cancel
+wait 2000
+assert self.Name = DialogForm
+assert MemoMessage.Text ~  isn't empty or recognized as a valid smartsetup folder
+click btnCancel
+click btnNo
+wait 1000
+assert self.Name = MainForm
+assert self.GetWorkingFolder ~ gui-change-working-folder
+assert self.GetWorkingFolder !~ gui-change-working-folder\

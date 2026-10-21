@@ -112,6 +112,7 @@ type
     procedure lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure StatusBarClick(Sender: TObject);
+    procedure StatusBarResize(Sender: TObject);
     procedure acLogDetailsExecute(Sender: TObject);
     procedure acViewHtmlLogExecute(Sender: TObject);
   private
@@ -161,6 +162,7 @@ type
     procedure RunStartEvent(const Command: TTmsCommand);
     procedure RunFinishEvent(const Command: TTmsCommand);
     procedure NewVersionDetectedEvent;
+    function GetWorkingFolder: string;
     procedure ChangeWorkingFolder(const NewFolder: string);
 
     {$IFDEF DEBUG}
@@ -191,6 +193,12 @@ const
   ColRemoteVersion = 4;
   ColStatus = 5;
   ColLast = ColStatus;
+
+  // Panel indexes in StatusBar. Must match the panel order in Forms.Main.dfm.
+  StatusVersion = 0;
+  StatusWorkingFolder = 1;
+  StatusRepository = 2;
+  StatusActivity = 3;
 
 function SubItemIndex(const Column: Integer): Integer;
 begin
@@ -496,7 +504,7 @@ begin
   WorkingAnimator := TAnimator.Create(500, true, 'Working...', '',
     procedure (Value: string)
     begin
-      StatusBar.Panels[3].Text := Value;
+      StatusBar.Panels[StatusActivity].Text := Value;
     end);
 
   InstallAnimator := TAnimator.Create(50, false, 'Installing', acInstall.Caption,
@@ -936,10 +944,10 @@ procedure TMainForm.ShowInfo;
 const
   {$I ..\..\version.inc}
 begin
-  StatusBar.Panels[0].Text := TMSVersion;
-  StatusBar.Panels[2].Text := Repository;
+  StatusBar.Panels[StatusVersion].Text := TMSVersion;
+  StatusBar.Panels[StatusRepository].Text := Repository;
 
-  StatusBar.Panels[1].Text := GUI.Info.WorkingFolder;
+  StatusBar.Panels[StatusWorkingFolder].Text := GUI.Info.WorkingFolder;
 end;
 
 procedure TMainForm.SortProducts;
@@ -950,24 +958,42 @@ end;
 
 procedure TMainForm.StatusBarClick(Sender: TObject);
 begin
-  // Only the panel showing the working folder (Panels[1]) changes it.
+  // Only the panel showing the working folder changes it.
   var ClickPos := StatusBar.ScreenToClient(Mouse.CursorPos);
-  var FolderStart := StatusBar.Panels[0].Width;
-  if (ClickPos.X < FolderStart) or (ClickPos.X >= FolderStart + StatusBar.Panels[1].Width) then exit;
+  var FolderStart := 0;
+  for var i := 0 to StatusWorkingFolder - 1 do Inc(FolderStart, StatusBar.Panels[i].Width);
+  if (ClickPos.X < FolderStart) or (ClickPos.X >= FolderStart + StatusBar.Panels[StatusWorkingFolder].Width) then exit;
 
   if GUI.IsRunning then exit;
 
-  WorkingFolderDialog.DefaultFolder := GetCurrentDir;
+  WorkingFolderDialog.DefaultFolder := GetWorkingFolder;
   if not WorkingFolderDialog.Execute then exit;
 
   ChangeWorkingFolder(WorkingFolderDialog.FileName);
+end;
+
+function TMainForm.GetWorkingFolder: string;
+begin
+  Result := GetCurrentDir;
+end;
+
+procedure TMainForm.StatusBarResize(Sender: TObject);
+begin
+  // The working folder panel takes whatever space the other panels don't use.
+  var OthersWidth := 0;
+  for var i := 0 to StatusBar.Panels.Count - 1 do
+    if i <> StatusWorkingFolder then Inc(OthersWidth, StatusBar.Panels[i].Width);
+
+  var FolderWidth := StatusBar.ClientWidth - OthersWidth;
+  if FolderWidth < 0 then FolderWidth := 0;
+  StatusBar.Panels[StatusWorkingFolder].Width := FolderWidth;
 end;
 
 procedure TMainForm.ChangeWorkingFolder(const NewFolder: string);
 begin
   if GUI.IsRunning then exit;
 
-  var OldFolder := GetCurrentDir;
+  var OldFolder := GetWorkingFolder;
   if not SetCurrentDir(NewFolder) then
   begin
     TDialogForm.ShowMessage('Cannot change to the folder "' + NewFolder + '".');
