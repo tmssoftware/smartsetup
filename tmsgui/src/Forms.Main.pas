@@ -167,6 +167,7 @@ type
 
     {$IFDEF DEBUG}
     function ProductCount: integer;
+    function IsGuiRunning: boolean;
     {$ENDIF}
   end;
 
@@ -590,8 +591,7 @@ begin
   if not GUI.Info.Initialized then
   begin
     TDialogForm.ShowMessage('Error initializing SmartSetup: ' + GetLastError);
-   // Application.Terminate;
-    Gui.Start;
+    Application.Terminate;
     exit;
   end;
 
@@ -988,6 +988,13 @@ begin
   if FolderWidth < 0 then FolderWidth := 0;
   StatusBar.Panels[StatusWorkingFolder].Width := FolderWidth;
 end;
+
+{$IFDEF DEBUG}
+function TMainForm.IsGuiRunning: boolean;
+begin
+  Result := GUI.IsRunning;
+end;
+{$ENDIF}
 
 procedure TMainForm.ChangeWorkingFolder(const NewFolder: string);
 begin

@@ -979,6 +979,8 @@ begin
 end;
 
 procedure TGUIEnvironment.RunSync<T>(Proc: TProc<T>);
+const
+  NewLine = #13#10;
 begin
   var LocalRunner := T.Create;
   try
@@ -1023,18 +1025,18 @@ begin
       begin
         // The user asked for this, so it is logged as canceled, not as an error.
         GenerateLogItem(TGUILogItem.Create(
-          TmsCommandName(T.Command) + ': ' + E.Message,
+          TmsCommandName(T.Command) + ': ' + E.Message.Replace(#10, ' ').Replace(#13, ''),
           TLogLevel.Info,
-          LocalRunner.CmdAndOutput,
+          LocalRunner.CmdAndOutput  + NewLine + E.Message,
           True
         ));
       end;
       on E: Exception do
       begin
         GenerateLogItem(TGUILogItem.Create(
-          TmsCommandName(T.Command) + ': ' + E.Message,
+          TmsCommandName(T.Command) + ': ' + E.Message.Replace(#10, ' ').Replace(#13, ''),
           TLogLevel.Error,
-          LocalRunner.CmdAndOutput,
+          LocalRunner.CmdAndOutput + NewLine + E.Message,
           LocalRunner.IsCanceled
         ));
       end;

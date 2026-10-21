@@ -1,14 +1,11 @@
-wait 2000
-assert self.Name = MainForm
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
 call self.ChangeWorkingFolder not-existing-folder
-wait 2000
-
-
-assert self.Name = DialogForm
+wait  self.Name = DialogForm
 assert MemoMessage.Text ~ Cannot change to the folder
 click btnNo
 click btnCancel
 click btnOk
 
 wait 1000
-assert self.Name = MainForm
+wait self.Name = MainForm

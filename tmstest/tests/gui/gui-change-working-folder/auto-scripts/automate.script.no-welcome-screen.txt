@@ -1,15 +1,17 @@
-wait 2000
-assert self.Name = MainForm
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
 call self.ChangeWorkingFolder initialized-folder
-wait 2000
-assert self.Name = MainForm
+wait self.Name = MainForm
 assert self.GetWorkingFolder ~ gui-change-working-folder\initialized-folder
 
 wait Self.ProductCount <> 0
 set-text edSearch tms.vcl.uipack
 wait Self.ProductCount = 1
 
+wait Self.IsGuiRunning = false
+wait 1000
 call lvproducts.SelectAll
+wait btnInstall.Enabled
 click btnInstall
 wait OutputMemo.Text ~ Install finished. Elapsed time
 wait 1000

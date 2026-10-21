@@ -1,16 +1,15 @@
-wait 2000
-assert self.Name = MainForm
+wait  self.Name = MainForm
+wait Self.IsGuiRunning = false
 call self.ChangeWorkingFolder not-initialized-folder
-wait 2000
-assert self.Name = StartForm
+wait self.Name = StartForm
 click btOk
-wait 1000
-assert self.Name = MainForm
+wait self.Name = MainForm
 assert self.GetWorkingFolder ~ gui-change-working-folder\not-initialized-folder
 
 wait Self.ProductCount <> 0
 set-text edSearch tms.graphql
 wait 1000
+wait Self.IsGuiRunning = false
 call lvproducts.SelectAll
 wait Self.ProductCount = 1
 

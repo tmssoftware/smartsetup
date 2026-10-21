@@ -348,13 +348,14 @@ function Set-AlternateRegistryKey {
 
 function Test-tmsgui {
     param(
-        [string]$suffixParam = ""
+        [string]$suffixParam = "",
+        [string]$tmsguiexe = ""
     )
     $suffix = $suffixParam
     if ($suffix -ne "") {
         $suffix = "." + $suffix
     }
-    $tmsguiexe = Get-Alias tmsgui | Select-Object -ExpandProperty Definition
+    if ("" -eq $tmsguiexe){ $tmsguiexe = Get-Alias tmsgui | Select-Object -ExpandProperty Definition }
 
     $CallingScriptFolderName = Split-Path -Path (Split-Path -Path $MyInvocation.ScriptName -Parent) -Leaf
     $CallingScriptFolder = Join-Path -Path $tmsTestRootDir -ChildPath "tmp-run\$CallingScriptFolderName"
