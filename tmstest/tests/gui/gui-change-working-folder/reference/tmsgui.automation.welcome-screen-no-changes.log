@@ -1,20 +1,20 @@
 Starting Automation
-wait: 2000 milliseconds
-assert: "self.Name = MainForm" is true
-call: "MainForm.self.ChangeWorkingFolder" with "not-initialized-folder"
-wait: 2000 milliseconds
-assert: "self.Name = StartForm" is true
-click: "StartForm.btOk"
-wait: 1000 milliseconds
-assert: "self.Name = MainForm" is true
-assert: "self.GetWorkingFolder ~ gui-change-working-folder\not-initialized-folder" is true
-wait: condition Self.ProductCount<> 0
-set-text: "MainForm.edSearch" to "tms.graphql"
-wait: condition Self.ProductCount= 1
-call: "MainForm.lvproducts.SelectAll"
-wait: condition btnInstall.Enabled
-click: "MainForm.btnInstall"
-wait: condition OutputMemo.Text~ Install finished. Elapsed time
-wait: 1000 milliseconds
-Completed successfully
-
+wait: 2000 milliseconds
+assert: "self.Name = MainForm" is true
+call: "MainForm.self.ChangeWorkingFolder" with "not-initialized-folder"
+wait: 2000 milliseconds
+assert: "self.Name = StartForm" is true
+click: "StartForm.btOk"
+wait: 1000 milliseconds
+assert: "self.Name = MainForm" is true
+assert: "self.GetWorkingFolder ~ gui-change-working-folder\not-initialized-folder" is true
+wait: condition Self.ProductCount<> 0
+set-text: "MainForm.edSearch" to "tms.graphql"
+wait: 1000 milliseconds
+call: "MainForm.lvproducts.SelectAll"
+wait: condition Self.ProductCount= 1
+wait: condition btnInstall.Enabled
+click: "MainForm.btnInstall"
+wait: condition OutputMemo.Text~ Install finished. Elapsed time
+wait: 1000 milliseconds
+Completed successfully
