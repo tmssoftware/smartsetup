@@ -7,7 +7,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
-  Vcl.VirtualImage, Util.Animator;
+  Vcl.VirtualImage, Util.Animator, Winapi.ShlObj;
 
 type
   TMainForm = class(TForm)
@@ -126,6 +126,9 @@ type
     InstallAnimator: TAnimator;
     UninstallAnimator: TAnimator;
     BuildAnimator: TAnimator;
+    TaskbarList: ITaskbarList3;
+    procedure SetProgress(const Percent: Integer);
+    procedure ClearProgress;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
@@ -177,7 +180,7 @@ var
 implementation
 
 uses
-  Winapi.ShellAPI, Winapi.CommCtrl,
+  Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
   UTheming, IOUtils,
   GUI.Automation,
   Forms.VersionPicker, Forms.Dialogs;
@@ -499,6 +502,10 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := ColStatus;  // sort by status by default
 
+  // Progress on the taskbar button. If it isn't available (old Windows, no shell), we just don't show it.
+  if Failed(CoCreateInstance(CLSID_TaskbarList, nil, CLSCTX_INPROC_SERVER, ITaskbarList3, TaskbarList))
+    or Failed(TaskbarList.HrInit) then TaskbarList := nil;
+
   LogDetailsForm := TLogDetailsForm.Create(Self); //keep so it doesn't keep resizing when you reopen it.
   LogPanel.Height := 1; // 0 would not allow us to resize the box when closed.
 
@@ -562,6 +569,7 @@ begin
   InstallAnimator.Free;
   UninstallAnimator.Free;
   BuildAnimator.Free;
+  TaskbarList := nil;
 
   // at this point no tms.exe should be running anymore
   if Relaunch then
@@ -892,7 +900,7 @@ begin
   // Fired by the last job to finish, usually on a worker thread.
   TThread.Queue(nil, procedure
     begin
-      ProgressBar.Position := 0;
+      ClearProgress;
     end);
   var Animator := AnimatorFor(Command);
   if Animator <> nil then Animator.Stop; // thread safe, it queues itself
@@ -1066,7 +1074,7 @@ procedure TMainForm.ProductProgressEvent(const Info: TProductProgressInfo);
 begin
   TThread.Queue(nil, procedure
     begin
-      ProgressBar.Position := Info.Percent;
+      SetProgress(Info.Percent);
       if Info.ProductId <> '' then
       begin
         TThread.Queue(nil, procedure
@@ -1118,8 +1126,26 @@ procedure TMainForm.ProgressEvent(const Percent: Integer);
 begin
   TThread.Queue(nil, procedure
     begin
-      ProgressBar.Position := Percent;
+      SetProgress(Percent);
     end);
+end;
+
+procedure TMainForm.SetProgress(const Percent: Integer);
+begin
+  // Main thread only.
+  ProgressBar.Position := Percent;
+  if TaskbarList = nil then exit;
+  // MainFormOnTaskbar is true, so the taskbar button belongs to our own Handle.
+  TaskbarList.SetProgressState(Handle, TBPF_NORMAL);
+  TaskbarList.SetProgressValue(Handle, Percent, ProgressBar.Max);
+end;
+
+procedure TMainForm.ClearProgress;
+begin
+  // Main thread only.
+  ProgressBar.Position := 0;
+  if TaskbarList = nil then exit;
+  TaskbarList.SetProgressState(Handle, TBPF_NOPROGRESS);
 end;
 
 {$IFDEF DEBUG}
