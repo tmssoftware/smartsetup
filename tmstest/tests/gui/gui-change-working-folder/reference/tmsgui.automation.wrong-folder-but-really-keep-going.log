@@ -12,12 +12,12 @@ set: "StartForm.cbCommunity.Checked" to "True"
 click: "StartForm.btOk"
 wait: condition self.Name = MainForm
 assert: "self.GetWorkingFolder ~ gui-change-working-folder\wrong-folder-but-really-keep-going" is true
-wait: condition Self.ProductCount<> 0
+wait: condition Self.ProductCount <> 0
 set-text: "MainForm.edSearch" to "turbopack.doscommand"
 wait: condition Self.ProductCount = 1
 wait: condition Self.IsGuiRunning = false
 call: "MainForm.lvproducts.SelectAll"
 click: "MainForm.btnInstall"
-wait: condition OutputMemo.Text~ Install finished. Elapsed time
+wait: condition OutputMemo.Text ~ Install finished. Elapsed time
 wait: 1000 milliseconds
 Completed successfully

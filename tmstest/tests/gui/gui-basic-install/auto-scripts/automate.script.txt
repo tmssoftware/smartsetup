@@ -20,10 +20,11 @@ click acLogDetails
 wait Self.Name = LogDetailsForm
 assert Data.Text ~ - JEDI JCL -> OK.
 click btOk
-wait 1000
+wait Self.Name = MainForm
 set-text edSearch tms.biz.bcl
-assert Self.ProductCount = 1
+wait Self.ProductCount = 1
 
+wait Self.IsGuiRunning = false
 call lvproducts.SelectAll
 click btnInstall
 

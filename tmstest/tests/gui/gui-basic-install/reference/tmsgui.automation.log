@@ -18,9 +18,10 @@ click: "MainForm.acLogDetails"
 wait: condition Self.Name = LogDetailsForm
 assert: "Data.Text ~ - JEDI JCL -> OK." is true
 click: "LogDetailsForm.btOk"
-wait: 1000 milliseconds
+wait: condition Self.Name = MainForm
 set-text: "MainForm.edSearch" to "tms.biz.bcl"
-assert: "Self.ProductCount = 1" is true
+wait: condition Self.ProductCount = 1
+wait: condition Self.IsGuiRunning = false
 call: "MainForm.lvproducts.SelectAll"
 click: "MainForm.btnInstall"
 wait: condition OutputMemo.Text ~ Build finished. Elapsed time
