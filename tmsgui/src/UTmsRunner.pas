@@ -39,7 +39,7 @@ type
     FLastExitCode: Integer;
     FRepository: string;
     FParams: string;
-    procedure Run(const Params: string; Callback: TStringProc = nil);
+    procedure Run(const aParams: string; Callback: TStringProc = nil);
     function JsonOutput: TJSONValue;
     procedure ProcessAlerts;
   protected
@@ -323,12 +323,21 @@ begin
   Result := FParams;
 end;
 
-procedure TTmsRunner.Run(const Params: string; Callback: TStringProc);
+procedure TTmsRunner.Run(const aParams: string; Callback: TStringProc);
 begin
   var LastOutputIndex := 0;
 
-  FParams := Params;
-  var CommandLine := QuoteCmd(ExeFileName) + '  ' + Params;
+  FParams := aParams;
+{$IFDEF DEBUG}
+    var TestValue: string;
+  if FindCmdLineSwitch('test-tms', TestValue, true) then
+  begin
+    FParams := FParams + ' ' + TestValue;
+  end;
+{$ENDIF}
+
+  var CommandLine := QuoteCmd(ExeFileName) + '  ' + FParams;
+
   var LocalCallback: TStringProc :=
     procedure(const S: string)
     begin
@@ -690,13 +699,15 @@ function TTmsCredentialsRunner.RunUpdateCredentials(const Email, Code: string): 
 begin
   Result := false;
   IgnoreExitCode := True;
-  var Command := Format('credentials -email:%s -code:%s -check', [Email, Code]);
+  var Command := Format('credentials -email:%s -code:%s -check', [Email.Trim.QuotedString('"'), Code.Trim.QuotedString('"')]);
   Run(AddRepo(Command));
 
+  if IsCanceled then
+    raise ETmsRunnerCanceled.Create('Canceled by the user.');
   if LastExitCode = 0 then Exit(True);
   if OutputText.ToLower.Contains('error: oauth2:') then
     Exit(False);
-  CheckLastExitCode('credentials');
+  CheckLastExitCode(OutputText);
 end;
 
 { TTmsBuildRunner }

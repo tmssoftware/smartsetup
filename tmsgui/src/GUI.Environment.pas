@@ -165,7 +165,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Start;
+    function Start(const Alert: TProc<string>): boolean;
     procedure RefreshInfo;
     procedure RefreshServers;
 
@@ -190,7 +190,7 @@ type
 
     // Updates the credentials
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
-    procedure ExecuteRequestCredentials;
+    function ExecuteRequestCredentials(const Alert: TProc<string>): boolean;
 
     procedure ExecuteConfigure(Silent: Boolean = False);
     function ExecuteLogView(const SessionId: string; const Print: Boolean): string;
@@ -1054,12 +1054,13 @@ begin
     Result := Result + [Product.Id];
 end;
 
-procedure TGUIEnvironment.Start;
+function TGUIEnvironment.Start(const Alert: TProc<string>): boolean;
 begin
+  // If an exception happens, we keep going. We only return false if the user clicked cancel.
   RefreshServers;
 
   if FServers.IsEnabled('tms') and not Info.HasCredentials then
-    ExecuteRequestCredentials;
+    if not ExecuteRequestCredentials(Alert) then exit(false);
 
   var Server := FServer;
   RunBackground(TTmsCommand.List, procedure
@@ -1069,6 +1070,8 @@ begin
       else
         RefreshFetchedProducts(TProductFilter.Installed, Server);
     end);
+
+  Result := true;
 end;
 
 procedure TGUIEnvironment.GenerateLogItem(Item: TGUILogItem);
@@ -1241,11 +1244,13 @@ begin
   FOnServersUpdated(FServers);
 end;
 
-procedure TGUIEnvironment.ExecuteRequestCredentials;
+function TGUIEnvironment.ExecuteRequestCredentials(const Alert: TProc<string>): boolean;
 begin
   if not Assigned(FOnRequestCredentials) then
-    Exit;
+    Exit(true);
 
+  var Confirm := true;
+  var Disable := false;
   RunSync<TTmsCredentialsRunner>(
     procedure(Runner: TTmsCredentialsRunner)
     begin
@@ -1254,24 +1259,39 @@ begin
       Runner.RunGetCredentials(Email, Code);
 
       var LastValid := True;
-      var Confirm: Boolean;
+      var Done := False;
       repeat
-        Confirm := False;
-        var Disable := False;
-        FOnRequestCredentials(Email, Code, Confirm, not LastValid, Disable);
-        if Confirm then
-        begin
-          LastValid := Runner.RunUpdateCredentials(Email, Code);
-          RefreshInfo;
-        end
-        else
-        if Disable then
-        begin
-          EnableServerConfigItem('tms', False);
-          RefreshServers;
+        try
+          Confirm := False;
+          Disable := False;
+          FOnRequestCredentials(Email, Code, Confirm, not LastValid, Disable);
+          if Confirm then
+          begin
+            LastValid := false;
+            if (Email.Trim <> '') and (Code.Trim <> '') and Runner.RunUpdateCredentials(Email, Code) then LastValid := true;
+            RefreshInfo;
+            Done := LastValid;
+          end
+          else
+          if Disable then
+          begin
+            EnableServerConfigItem('tms', False);
+            RefreshServers;
+            Done := True;
+          end
+          else Done := True;
+        except
+          on ex: ETmsRunnerCanceled do raise; //closing or canceled: don't show the dialog again.
+          on ex: Exception do
+          begin
+            if Runner.IsCanceled then raise;
+            Alert(ex.Message); //and show the dialog again.
+          end;
         end;
-      until not Confirm or LastValid;
+      until Done;
     end);
+
+    Result := Confirm or Disable;
 end;
 
 procedure TGUIEnvironment.ChangeProductFilter(Filter: TProductFilter);

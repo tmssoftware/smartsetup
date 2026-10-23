@@ -241,7 +241,7 @@ end;
 
 procedure TMainForm.acCredentialsExecute(Sender: TObject);
 begin
-  GUI.ExecuteRequestCredentials;
+  GUI.ExecuteRequestCredentials(procedure (s: string) begin TDialogForm.ShowMessage(s); end);
 end;
 
 procedure TMainForm.acCredentialsUpdate(Sender: TObject);
@@ -604,7 +604,13 @@ begin
   end;
 
   if EnsureValidFolder('E&xit application') then
-    GUI.Start
+  begin
+    if not GUI.Start((procedure (s: string) begin TDialogForm.ShowMessage(s); end)) then
+    begin
+      Application.Terminate;
+      exit;
+    end
+  end
   else
     Application.Terminate;
 end;
@@ -1029,7 +1035,7 @@ begin
     exit;
   end;
 
-  GUI.Start;
+  GUI.Start((procedure (s: string) begin TDialogForm.ShowMessage(s); end));
   ShowInfo;
 end;
 

@@ -349,7 +349,8 @@ function Set-AlternateRegistryKey {
 function Test-tmsgui {
     param(
         [string]$suffixParam = "",
-        [string]$tmsguiexe = ""
+        [string]$tmsguiexe = "",
+        [string]$extraArgs = ""
     )
     $suffix = $suffixParam
     if ($suffix -ne "") {
@@ -363,7 +364,7 @@ function Test-tmsgui {
 
     $automationScriptFileName = "$CallingScriptFolder\auto-scripts\automate.script$($suffix).txt" 
     $automationLogFileName = "$CallingScriptFolder\auto-scripts-result\tmsgui.automation$($suffix).log" 
-    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation-script:`"$automationScriptFileName`"", "-automation-log:`"$automationLogFileName`"" -Wait -PassThru
+    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation-script:`"$automationScriptFileName`"", "-automation-log:`"$automationLogFileName`"", $extraArgs -Wait -PassThru
     if ($process.ExitCode -ne 0) {
         throw "tmsgui exited with error code $($process.ExitCode)"
     }

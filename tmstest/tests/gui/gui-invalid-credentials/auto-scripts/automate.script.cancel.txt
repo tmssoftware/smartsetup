@@ -1,0 +1,6 @@
+wait self.Name = CredentialsForm
+click btCancel
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+wait Self.ProductCount > 1
+wait 6000

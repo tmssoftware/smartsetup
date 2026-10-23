@@ -7,6 +7,7 @@ unit GUI.Automation;
   ~ means contain. !~ means not contains. For example memo.text ~success means memo.text contains "success"
   = <> < > <= >= compare as integers if both sides are integers, else as case-insensitive text.
   $name in the right side of a comparison is replaced by the value of variable $name.
+  $env:name means an environment variable
   Commands:
   assert <component.text> [=/<>/</>/<=/>=/~/!~value] | assert self.name = form1 -> crashes the app if the form name is not "form1"
   log <component.value>  | log memo1.text -> logs the value of memo1.text
@@ -48,6 +49,7 @@ type
     Action: TAutomationActionType;
     Target: string;
     Data: string;
+    SkipLog: boolean;
 
     constructor Create(const aAction: TAutomationActionType; const aTarget, aData: string);
   end;
@@ -65,6 +67,7 @@ type
     SleepingUntilCondition: TAutomationData;
     FLogFile: string;
     Variables: TDictionary<string, string>;
+    SkipLog: boolean;
 
     procedure MainLoop(Sender: TObject; var Done: Boolean);
     procedure RunAction(const Action: TAutomationData);
@@ -74,7 +77,8 @@ type
     procedure Load(const aScriptFile, aLogFile: string; const TimeOutInMs: integer);
     procedure ParseActions(const aActions: TArray<string>);
 
-    procedure Log(const Message: string);
+    procedure Log(const Message: string); overload;
+    function Redact(const Message: string): string;
 
     function GetComponent<T: TComponent>(const ComponentAndOrProperty, ComponentType: string; const MustBeType: boolean = true): T;
     procedure DoAssert(const Action: TAutomationData);
@@ -92,7 +96,7 @@ type
     function GetProp(const ComponentAndProperty: string): string;
 
     function LogFile: string;
-    function IsAvailable(const Control: TControl; const Msg: string): boolean;
+    function IsAvailable(const Control: TControl; const RedactedMsg: string): boolean;
     function Compare(const a, b: string): integer;
     function ReplaceVar(const s: string): string;
     function GetPropValue(const ComponentAndProperty: string): TValue;
@@ -303,6 +307,11 @@ begin
 
     var Action := TAutomationData.Create(TAutomationActionType.Log, Target, Data);
 
+    if Command.StartsWith('*') then
+    begin
+      Action.SkipLog := true;
+      Command := Command.Substring(1).Trim;
+    end;
     if SameText(Command, 'assert') then Action.Action := TAutomationActionType.Assert
     else if SameText(Command, 'log') then Action.Action := TAutomationActionType.Log
     else if SameText(Command, 'wait') then Action.Action := TAutomationActionType.Wait
@@ -342,10 +351,10 @@ begin
   Result := '"' + Screen.ActiveForm.Name +'.' + Action.Target + '"';
 end;
 
-function TGUIAutomator.IsAvailable(const Control: TControl; const Msg: string): boolean;
+function TGUIAutomator.IsAvailable(const Control: TControl; const RedactedMsg: string): boolean;
 begin
-  if not Control.Enabled then begin Log(Msg + ' because it is disabled'); exit(false); end;
-  if not Control.Visible then begin Log(Msg + ' because it is not visible'); exit(false); end;
+  if not Control.Enabled then begin Log(RedactedMsg + ' because it is disabled'); exit(false); end;
+  if not Control.Visible then begin Log(RedactedMsg + ' because it is not visible'); exit(false); end;
   Result := true;
 end;
 
@@ -406,14 +415,21 @@ begin
     exit;
   end;
 
+  //SkipLog is saved and restored because this is reentrant: a nested action inside a ShowModal would change it for the outer one.
+  var SavedSkipLog := SkipLog;
   try
-    Inc(ActionCounter); //inc first, this is reentrant in showmodal.
-    RunAction(Actions[ActionCounter - 1]);
-  except on ex: Exception do
-    begin
-      Log('ERROR: ' + ex.Message);
-      ExitProcess(10);
+    try
+      Inc(ActionCounter); //inc first, this is reentrant in showmodal.
+      SkipLog := Actions[ActionCounter - 1].SkipLog;
+      RunAction(Actions[ActionCounter - 1]);
+    except on ex: Exception do
+      begin
+        Log('ERROR: ' + Redact(ex.Message));
+        ExitProcess(10);
+      end;
     end;
+  finally
+    SkipLog := SavedSkipLog;
   end;
 
 end;
@@ -481,13 +497,43 @@ begin
   end;
 end;
 
+//SysUtils.GetEnvironmentVariable returns '' both for a missing variable and for an empty one. We need to tell them apart.
+function TryGetEnvironmentVariable(const Name: string; out Value: string): boolean;
+begin
+  Value := '';
+  SetLastError(0);
+  var Len := Windows.GetEnvironmentVariable(PChar(Name), nil, 0); //Len includes the null terminator.
+  if Len = 0 then exit(GetLastError <> ERROR_ENVVAR_NOT_FOUND);
+
+  SetLength(Value, Len);
+  Len := Windows.GetEnvironmentVariable(PChar(Name), PChar(Value), Len); //Len doesn't include the null terminator now.
+  SetLength(Value, Len);
+  Result := true;
+end;
+
+function TGUIAutomator.Redact(const Message: string): string;
+begin
+  if SkipLog then exit('****') else exit(Message);
+
+end;
+
 function TGUIAutomator.ReplaceVar(const s: string): string;
+const
+  EnvId = '$env:';
 begin
   Result := s.Trim;
   if not Result.StartsWith('$') then exit;
   var VarName, VarExtra: string;
   var VarOperation: TVarOperation;
   SplitVar(Result, VarName, VarOperation, VarExtra);
+
+  if VarName.StartsWith(EnvId, true) then
+  begin
+    var EnvName := VarName.Substring(EnvId.Length).Trim;
+    var EnvValue: string;
+    if not TryGetEnvironmentVariable(EnvName, EnvValue) then raise Exception.Create('Environment variable "' + EnvName + '" is not defined.');
+    exit(DoMath(EnvValue, VarOperation, VarExtra));
+  end;
 
   if SameText(VarName, '$nowUTC') then
   begin
@@ -540,7 +586,7 @@ begin
   except
     on ex: Exception do
     begin
-      Log('ERROR: ' + ex.Message);
+      Log('ERROR: ' + Redact(ex.Message));
       ExitProcess(10);
       exit(true);
     end;
@@ -550,8 +596,8 @@ end;
 procedure TGUIAutomator.DoAssert(const Action: TAutomationData);
 begin
   var Assertion := Action.Target + ' ' + Action.Data;
-  if not ConditionIsTrue(Action) then raise Exception.Create('assertion "' + Assertion + '" is false');
-  Log('assert: "' + Assertion + '" is true');
+  if not ConditionIsTrue(Action) then raise Exception.Create('assertion "' + Redact(Assertion) + '" is false');
+  Log('assert: "' + Redact(Assertion) + '" is true');
 end;
 
 procedure TGUIAutomator.DoClick(const Action: TAutomationData);
@@ -597,7 +643,7 @@ begin
   if IsAvailable(Control, 'call: cannot call action in component ' + GetName(Action)) then
   begin
     if Action.Data = '' then Log('call: ' + GetName(Action))
-    else Log('call: ' + GetName(Action) + ' with "' + Action.Data + '"');
+    else Log('call: ' + GetName(Action) + ' with "' + Redact(Action.Data) + '"');
     CallDynamicMethod(Control, GetProp(Action.Target), Action.Data);
   end;
 end;
@@ -606,7 +652,7 @@ procedure TGUIAutomator.DoLog(const Action: TAutomationData);
 begin
   var Value := GetPropValue(Action.Target);
 
-  Log('log: property ' + GetName(Action) + ' has the value ' + Value.ToString.QuotedString);
+  Log('log: property ' + GetName(Action) + ' has the value ' + Redact(Value.ToString.QuotedString));
 end;
 
 procedure TGUIAutomator.DoWait(const Action: TAutomationData);
@@ -615,12 +661,12 @@ begin
   if TryStrToInt(Action.Target, WaitTime) then
   begin
     SleepingUntilTime := TDateTime.NowUTC.IncMilliSecond(WaitTime);
-    Log('wait: ' + Action.Target + ' milliseconds');
+    Log('wait: ' + Redact(Action.Target) + ' milliseconds');
     exit;
   end;
 
   SleepingUntilCondition := Action;
-  Log('wait: condition ' + Action.Target + Action.Data);
+  Log('wait: condition ' + Action.Target + ' ' + Redact(Action.Data));
 end;
 
 
@@ -629,10 +675,11 @@ procedure TGUIAutomator.DoSetText(const Action: TAutomationData);
 begin
   var Edit := GetComponent<TCustomEdit>(Action.Target, 'edit box/memo');
 
-  if IsAvailable(Edit, 'set-text: Cannot set text of ' + GetName(Action) + ' to "' + Action.Data) then
+  if IsAvailable(Edit, 'set-text: Cannot set text of ' + GetName(Action) + ' to "' + Redact(Action.Data)) then
   begin
-    Edit.Text := Action.Data;
-    Log('set-text: ' + GetName(Action) + ' to "' + Action.Data +'"');
+    var Value := ReplaceVar(Action.Data);
+    Edit.Text := Value;
+    Log('set-text: ' + GetName(Action) + ' to "' + Redact(Value) +'"');
   end;
 end;
 
@@ -640,10 +687,10 @@ procedure TGUIAutomator.DoSet(const Action: TAutomationData);
 begin
   var Control := GetComponent<TControl>(Action.Target, 'control');
 
-  if IsAvailable(Control, 'set: Cannot set property ' + GetName(Action) + ' to "' + Action.Data) then
+  if IsAvailable(Control, 'set: Cannot set property ' + GetName(Action) + ' to "' + Redact(Action.Data)) then
   begin
     SetDynamicPropValue(Control, GetProp(Action.Target), Action.Data);
-    Log('set: ' + GetName(Action) + ' to "' + Action.Data +'"');
+    Log('set: ' + GetName(Action) + ' to "' + Redact(Action.Data) +'"');
   end;
 end;
 
@@ -651,8 +698,9 @@ procedure TGUIAutomator.DoVar(const Action: TAutomationData);
 begin
   if (not Action.Target.StartsWith('$')) or (Action.Target.Length < 2) then raise Exception.Create('Invalid variable name: "' + Action.Target + '". Variable names must start with "$".');
 
-  Variables.AddOrSetValue(Action.Target, GetPropValue(Action.Data).ToString);
-  Log('var: "' + Action.Target + '"');
+  var VarValue := GetPropValue(Action.Data).ToString;
+  Variables.AddOrSetValue(Action.Target, VarValue);
+  Log('var: "' + Action.Target + '" = "' + Redact(VarValue) + '"');
 end;
 
 { TAutomationData }

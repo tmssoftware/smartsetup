@@ -10,7 +10,7 @@ wait OutputMemo.Text ~ Analyzing products...
 wait ProgressBar.Position < 50
 wait ProgressBar.Position > 50
 
-var $before $nowUTC + 1000
+*var $before $nowUTC + 1000
 click btnCancel
 ##see that we don't take long to cancel
 assert $before > $nowUTC

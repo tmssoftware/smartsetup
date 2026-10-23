@@ -1,7 +1,7 @@
 assert self.Name = MainForm
 wait Self.ProductCount <> 0
 assert Self.ProductCount <> 0
-var $allProducts Self.ProductCount
+*var $allProducts Self.ProductCount
 set-text edSearch x65x32x
 assert Self.ProductCount = 0
 set-text edSearch tms*[]/;:

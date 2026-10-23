@@ -1,8 +1,8 @@
 Starting Automation
 assert: "self.Name = MainForm" is true
-wait: condition Self.ProductCount<> 0
+wait: condition Self.ProductCount <> 0
 assert: "Self.ProductCount <> 0" is true
-var: "$allProducts"
+var: "$allProducts" = "****"
 set-text: "MainForm.edSearch" to "x65x32x"
 assert: "Self.ProductCount = 0" is true
 set-text: "MainForm.edSearch" to "tms*[]/;:"

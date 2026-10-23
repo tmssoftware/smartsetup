@@ -10,7 +10,7 @@ wait OutputMemo.Text ~ Found tms.webcore in repository
 wait ProgressBar.Position < 50
 wait ProgressBar.Position > 30
 
-var $before $nowUTC + 1000
+*var $before $nowUTC + 1000
 click btnCancel
 ##see that we don't take long to cancel
 assert $before > $nowUTC

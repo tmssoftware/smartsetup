@@ -1,20 +1,20 @@
 Starting Automation
 assert: "self.Name = MainForm" is true
-wait: condition Self.ProductCount<> 0
+wait: condition Self.ProductCount <> 0
 set-text: "MainForm.edSearch" to "tms.webcore"
 assert: "Self.ProductCount = 1" is true
 call: "MainForm.lvproducts.SelectAll"
 click: "MainForm.btnInstall"
-wait: condition OutputMemo.Text~ Found tms.webcore in repository
-wait: condition ProgressBar.Position< 50
-wait: condition ProgressBar.Position> 30
-var: "$before"
+wait: condition OutputMemo.Text ~ Found tms.webcore in repository
+wait: condition ProgressBar.Position < 50
+wait: condition ProgressBar.Position > 30
+var: "$before" = "****"
 click: "MainForm.btnCancel"
 assert: "$before > $nowUTC" is true
 assert: "ProgressBar.Position < 100" is true
 wait: 2000 milliseconds
 call: "MainForm.lvproducts.SelectAll"
 click: "MainForm.btnInstall"
-wait: condition OutputMemo.Text~ Build finished. Elapsed time
+wait: condition OutputMemo.Text ~ Build finished. Elapsed time
 wait: 1000 milliseconds
 Completed successfully
