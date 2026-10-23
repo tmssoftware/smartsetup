@@ -1,0 +1,11 @@
+Starting Automation
+assert: "self.Name = DialogForm" is true
+log: property "DialogForm.MemoMessage.Text" has the value 'Error initializing SmartSetup: tms info -json
+
+
+System Error.  Code: 2.
+The system cannot find the file specified'
+assert: "MemoMessage.Text ~ Error initializing SmartSetup: tms info -json" is true
+assert: "MemoMessage.Text ~ System Error.  Code: 2." is true
+assert: "MemoMessage.Text ~ The system cannot find the file specified" is true
+click: "DialogForm.btnOk"

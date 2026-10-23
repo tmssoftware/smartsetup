@@ -176,7 +176,11 @@ begin
       // check if $(PATH) is already in PATH system environment variable.
       // If it is, and we are in the main reg key, we don't touch it, as we modified the Windows Path anyway.
       // alternate reg keys don't change the path, so we need to add them there.
-      if (SystemPath <> AddPaths(SystemPath, '$(PATH)')) or (AlternateRegistryKey.Trim <> '') then
+      // we also shouldn't add ourselves to the path if it was empty, or it would add a override and break everything.
+      // see https://support.tmssoftware.com/t/problem-on-delphi7-after-running-smart-setup/27418/2
+      // This leaves a case not working: $(PATH) doesn't work in d7, so if you are in an alternate reg key... we can't just add the path to delphi7
+      // I guess it means: don't use alternate reg keys with delphi7.
+      if ((SystemPath <> AddPaths(SystemPath, '$(PATH)')) and (SystemPath.Trim <> '')) or (AlternateRegistryKey.Trim <> '') then
       begin
         if SystemPath <> AddPaths(SystemPath, Folder) then
         begin

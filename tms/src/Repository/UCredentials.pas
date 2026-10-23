@@ -339,6 +339,9 @@ procedure TCredentialsManager.UpdateAccessToken(Credentials: TCredentials; const
 begin
   var OAuth := TOAuth2Authenticator.Create(nil);
   try
+  {$IFDEF DEBUG}
+    TestParameters.CheckOffline('credentials');
+  {$ENDIF}
     OAuth.ClientID := Credentials.Email;
     OAuth.ClientSecret := Credentials.Code;
     OAuth.AccessTokenEndpoint := AuthUrl.TrimRight(['/']) + '/oauth/token';

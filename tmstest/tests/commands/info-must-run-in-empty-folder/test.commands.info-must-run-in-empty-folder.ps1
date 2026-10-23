@@ -6,7 +6,7 @@ Remove-Item ".\tms.config.yaml" -Force
 
 #Folder is not initialized, it has the logs. 
 tms info
-$info = tms info -json -test-credentials-profile:temstest.info-test | ConvertFrom-Json
+$info = tms info -json -test-credentials-profile:tmstest.info-test | ConvertFrom-Json
 
 if ($info."folder initialized") {
     Write-Error "Test failed: Folder should not be initialized."

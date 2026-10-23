@@ -1,0 +1,13 @@
+assert self.Name = DialogForm
+log MemoMessage.Text
+assert MemoMessage.Text ~ Error initializing SmartSetup: tms info -json
+assert MemoMessage.Text ~ System Error.  Code: 2.
+assert MemoMessage.Text ~ The system cannot find the file specified
+
+click btnOk
+
+#the app should finish, so the text below won't execute
+wait 10000
+assert self.Name <> MainForm
+
+

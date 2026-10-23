@@ -5,7 +5,7 @@ interface
 uses
 //  WinApi.Windows,
   System.SysUtils, System.Classes, System.IOUtils, System.JSON, Deget.CommandLine, UProductInfo, UMultiLogger, Deget.Version,
-  UCommonTypes;
+  UCommonTypes, Generics.Collections;
 
 type
   TProgressInfo = record
@@ -18,11 +18,18 @@ type
 
   TOutputLineProc = reference to procedure(const Line: string);
 
+  // One per tms.exe command we run; each runner says which one it is. Full and partial builds are both Build.
+  {$SCOPEDENUMS ON}
+  TTmsCommand = (List, ListRemote, Info, Credentials, Configure, LogView, SelfUpdate,
+    ConfigRead, ConfigWrite, ServerList, ServerAdd, ServerEnable, ServerRemove,
+    VersionsRemote, Build, Install, Uninstall, Pin, Unpin);
+  {$SCOPEDENUMS OFF}
+
   TTmsRunner = class
   private
     FExeFileName: string;
     FWorkingDir: string;
-    FOutput: TStrings;
+    FOutput: TList<string>;
     FJsonOutput: TJSONValue;
     FOnOutputLine: TOutputLineProc;
     FIsCanceled: Boolean;
@@ -31,10 +38,12 @@ type
     FIgnoreExitCode: Boolean;
     FLastExitCode: Integer;
     FRepository: string;
-    procedure Run(const Params: string; Callback: TStringProc = nil);
+    FParams: string;
+    procedure Run(const aParams: string; Callback: TStringProc = nil);
     function JsonOutput: TJSONValue;
     procedure ProcessAlerts;
   protected
+    function GetParams: string; virtual;
     function RemoveLogMetadata(const S: string): string;
     procedure CheckLastExitCode(const Msg: string);
     function AddRepo(const Command: string): string;
@@ -44,14 +53,20 @@ type
 
     procedure Cancel;
 
+    class function Command: TTmsCommand; virtual; abstract;
+
     property ExeFileName: string read FExeFileName write FExeFileName;
     property WorkingDir: string read FWorkingDir write FWorkingDir;
     property Repository: string read FRepository write FRepository;
     property IgnoreExitCode: Boolean read FIgnoreExitCode write FIgnoreExitCode;
     property LastExitCode: Integer read FLastExitCode;
+    // What the last run passed to tms.exe, for the log. Runners whose params shouldn't be shown (credentials) override GetParams.
+    property Params: string read GetParams;
     property IsCanceled: Boolean read FIsCanceled;
     function NewVersionDetected: Boolean;
-    property Output: TStrings read FOutput;
+    property Output: TList<String> read FOutput;
+    function OutputText: string;
+    function CmdAndOutput: string;
     property OnOutputLine: TOutputLineProc read FOnOutputLine write FOnOutputLine;
   end;
 
@@ -59,6 +74,7 @@ type
   strict private
     FProducts: TProductInfoList;
   public
+    class function Command: TTmsCommand; override;
     constructor Create;
     destructor Destroy; override;
     procedure RunList;
@@ -70,6 +86,7 @@ type
     FProducts: TProductInfoList;
     FServer: string;
   public
+    class function Command: TTmsCommand; override;
     constructor Create;
     destructor Destroy; override;
     procedure RunListRemote;
@@ -98,27 +115,31 @@ type
   private
     FFullBuild: Boolean;
   public
+    class function Command: TTmsCommand; override;
     procedure RunBuild;
     property FullBuild: Boolean read FFullBuild write FFullBuild;
   end;
 
   TTmsInstallRunner = class(TAbstractTmsBuildRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunInstall;
   end;
 
   TTmsUninstallRunner = class(TAbstractTmsBuildRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunUninstall;
   end;
 
-  TTmsInfo = class
+  // A record, so each caller gets its own copy: it is read from several threads and refreshed while they do.
+  TTmsInfo = record
   private
     FInitialized: boolean;
     FVersion: TVersion;
     FLocation: string;
     FWorkingFolder: string;
-    FFolderInitialized: Boolean;
+    FIsValidTMSSetupFolder: Boolean;
     FHasCredentials: Boolean;
     FConfigFile: string;
     function GetWorkingFolder: string;
@@ -127,24 +148,22 @@ type
     property Version: TVersion read FVersion write FVersion;
     property Location: string read FLocation write FLocation;
     property WorkingFolder: string read GetWorkingFolder write FWorkingFolder;
-    property FolderInitialized: Boolean read FFolderInitialized write FFolderInitialized;
+    property IsValidTMSSetupFolder: Boolean read FIsValidTMSSetupFolder write FIsValidTMSSetupFolder;
     property HasCredentials: Boolean read FHasCredentials write FHasCredentials;
     property ConfigFile: string read FConfigFile write FConfigFile;
   end;
 
   TTmsInfoRunner = class(TTmsRunner)
-  strict private
-    FInfo: TTmsInfo;
   public
-    constructor Create;
-    destructor Destroy; override;
-    procedure RunInfo; overload;
-    procedure RunInfo(Info: TTmsInfo); overload;
-    property Info: TTmsInfo read FInfo;
+    class function Command: TTmsCommand; override;
+    procedure RunInfo(var Info: TTmsInfo);
   end;
 
   TTmsCredentialsRunner = class(TTmsRunner)
+  protected
+    function GetParams: string; override;
   public
+    class function Command: TTmsCommand; override;
     procedure RunGetCredentials(out Email, Code: string);
 
     // Returns true if credentials updated correctly, false if they are invalid
@@ -153,16 +172,19 @@ type
 
   TTmsConfigureRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunConfigure(Silent: Boolean);
   end;
 
   TTmsLogViewRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     function RunLogView(const SessionId: string; const Print: boolean): string;
   end;
 
   TTmsSelfUpdateRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     function RunSelfUpdate: boolean;
   end;
 
@@ -170,57 +192,82 @@ type
   strict private
     FValue: string;
   public
+    class function Command: TTmsCommand; override;
     function RunConfigRead(const ParamName: string): string;
   end;
 
   TTmsConfigWriteRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunConfigWrite(const ParamName, ParamValue: string);
   end;
 
   TTmsServerListRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunServerList(Items: TServerConfigItems);
   end;
 
   TTmsServerAddRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunServerAdd(Item: TServerConfigItem);
   end;
 
   TTmsServerEnableRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunServerEnable(const Name: string; Enabled: Boolean);
   end;
 
   TTmsServerRemoveRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunServerRemove(const Name: string);
   end;
 
   TTmsVersionsRemoteRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunVersionsRemote(const ProductId: string; Items: TVersionInfoList);
   end;
 
   TTmsPinRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunPin(const ProductIds: TArray<string>);
   end;
 
   TTmsUnpinRunner = class(TTmsRunner)
   public
+    class function Command: TTmsCommand; override;
     procedure RunUnpin(const ProductIds: TArray<string>);
   end;
 
   ETmsRunner = class(Exception)
   end;
 
+  // The run was canceled by the user, so there is no result to use. Not an error.
+  ETmsRunnerCanceled = class(ETmsRunner)
+  end;
+
+// The tms.exe command name, like "list-remote".
+function TmsCommandName(const Command: TTmsCommand): string;
+
 implementation
 
 uses
   System.DateUtils,
   Deget.CoreTypes;
+
+function TmsCommandName(const Command: TTmsCommand): string;
+const
+  Names: array[TTmsCommand] of string = ('list', 'list-remote', 'info', 'credentials', 'config', 'log-view', 'self-update',
+    'config-read', 'config-write', 'server-list', 'server-add', 'server-enable', 'server-remove',
+    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin');
+begin
+  Result := Names[Command];
+end;
 
 { TTmsRunner }
 
@@ -242,6 +289,11 @@ begin
     raise ETmsRunner.CreateFmt('Running failed: %s', [Msg]);
 end;
 
+function TTmsRunner.CmdAndOutput: string;
+begin
+  Result := 'tms ' + Params + #13#10 + #13#10 + OutputText;
+end;
+
 constructor TTmsRunner.Create;
 begin
   FExeFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'tms.exe');
@@ -251,7 +303,7 @@ begin
   {$ENDIF}
 
   FWorkingDir := GetCurrentDir;
-  FOutput := TStringList.Create;
+  FOutput := TList<String>.Create;
 
   FAlertNewVersion := TStringList.Create;
   FAlertDiskSpace := TStringList.Create;
@@ -266,20 +318,35 @@ begin
   inherited;
 end;
 
-procedure TTmsRunner.Run(const Params: string; Callback: TStringProc);
+function TTmsRunner.GetParams: string;
 begin
-//  if not TFile.Exists(ExeFileName) then
-//    raise ETmsRunner.Create('tms.exe could not be found at ' + TPath.GetDirectoryName(ExeFileName));
+  Result := FParams;
+end;
 
+procedure TTmsRunner.Run(const aParams: string; Callback: TStringProc);
+begin
   var LastOutputIndex := 0;
-  var FullOutput := '';
 
-  var CommandLine := QuoteCmd(ExeFileName) + '  ' + Params;
+  FParams := aParams;
+{$IFDEF DEBUG}
+    var TestValue: string;
+  if FindCmdLineSwitch('test-tms', TestValue, true) then
+  begin
+    FParams := FParams + ' ' + TestValue;
+  end;
+{$ENDIF}
+
+  var CommandLine := QuoteCmd(ExeFileName) + '  ' + FParams;
+
   var LocalCallback: TStringProc :=
     procedure(const S: string)
     begin
-      FullOutput := FullOutput + S;
-      FOutput.Text := FullOutput;
+      var S2 := S.Replace(#13, '', [TReplaceFlag.rfReplaceAll]).Split([#10]);
+      if Length(S2) > 0 then
+      begin
+        if FOutput.Count = 0 then FOutput.Add(S2[0]) else FOutput[FOutput.Count - 1] := FOutput.Last + S2[0];
+        for var i:= 1 to Length(S2) - 1 do FOutput.Add(S2[i]);
+      end;
 
 //      if Assigned(Callback) then
 //        Callback(S);
@@ -317,22 +384,43 @@ begin
 
   ProcessAlerts;
 
-  // Handle bad execution
+  // Handle bad execution. A canceled run was killed, so its exit code says nothing; callers check IsCanceled.
   FLastExitcode := ExitCode;
-  if not IgnoreExitCode then
+  if not IgnoreExitCode and not FIsCanceled then
     CheckLastExitCode(Params);
 end;
 
 function TTmsRunner.JsonOutput: TJSONValue;
 begin
+  // A killed run has cut-off output (and the **CANCELED** marker). Stop here, so we don't report it as invalid JSON
+  // or use a partial result.
+  if FIsCanceled then
+    raise ETmsRunnerCanceled.Create('Canceled by the user.');
+
   if FJsonOutput = nil then
-    FJsonOutput := TJSONValue.ParseJSONValue(Output.Text);
+    FJsonOutput := TJSONValue.ParseJSONValue(OutputText);
   Result := FJsonOutput;
 end;
 
 function TTmsRunner.NewVersionDetected: Boolean;
 begin
   Result := FAlertNewVersion.Count > 0;
+end;
+
+function TTmsRunner.OutputText: string;
+begin
+  if FOutput.Count = 0 then Exit('');
+
+  var SB := TStringBuilder.Create(FOutput[0]);
+  try
+    for var i := 1 to FOutput.Count - 1 do
+    begin
+      SB.Append(sLineBreak).Append(FOutput[i]);
+    end;
+    Result := SB.ToString;
+  finally
+    SB.Free;
+  end;
 end;
 
 procedure TTmsRunner.ProcessAlerts;
@@ -376,6 +464,11 @@ end;
 
 { TTmsListRunner }
 
+class function TTmsListRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.List;
+end;
+
 constructor TTmsListRunner.Create;
 begin
   inherited Create;
@@ -394,7 +487,7 @@ begin
 
   // parse response
   if not (JsonOutput is TJSONObject) then
-    raise ETmsRunner.Create('Could not parse list result as JSON object');
+    raise ETmsRunner.Create('Invalid result for `tms list -detailed -json` command. Cannot parse "' + OutputText + '" as JSON.');
 
   var Json := TJSONObject(JsonOutput);
   for var Pair in Json do
@@ -505,6 +598,11 @@ end;
 
 { TTmsListRemoteRunner }
 
+class function TTmsListRemoteRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.ListRemote;
+end;
+
 constructor TTmsListRemoteRunner.Create;
 begin
   inherited Create;
@@ -526,7 +624,7 @@ begin
 
   // parse response
   if not (JsonOutput is TJSONObject) then
-    raise ETmsRunner.Create('Could not parse list result as JSON object');
+    raise ETmsRunner.Create('Invalid result for `tms list-remote -json` command. Cannot parse "' + OutputText + '" as JSON.');
 
   var Json := TJSONObject(JsonOutput);
   for var Pair in Json do
@@ -548,24 +646,12 @@ end;
 
 { TTmsInfoRunner }
 
-constructor TTmsInfoRunner.Create;
+class function TTmsInfoRunner.Command: TTmsCommand;
 begin
-  inherited Create;
-  FInfo := TTmsInfo.Create;
+  Result := TTmsCommand.Info;
 end;
 
-destructor TTmsInfoRunner.Destroy;
-begin
-  FInfo.Free;
-  inherited;
-end;
-
-procedure TTmsInfoRunner.RunInfo;
-begin
-  RunInfo(Info);
-end;
-
-procedure TTmsInfoRunner.RunInfo(Info: TTmsInfo);
+procedure TTmsInfoRunner.RunInfo(var Info: TTmsInfo);
 begin
   Run(AddRepo('info -json'));
 
@@ -577,13 +663,23 @@ begin
   Info.Version := Json.GetValue('tms version', '');
   Info.Location := Json.GetValue('tms location', '');
   Info.WorkingFolder := Json.GetValue('working folder', '');
-  Info.FolderInitialized := Json.GetValue('folder initialized', False);
+  Info.IsValidTMSSetupFolder := Json.GetValue('folder initialized', False);
   Info.HasCredentials := Json.GetValue('has credentials', False);
   Info.ConfigFile := Json.GetValue('config file', '');
   Info.Initialized := true;
 end;
 
 { TTmsCredentialsRunner }
+
+class function TTmsCredentialsRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Credentials;
+end;
+
+function TTmsCredentialsRunner.GetParams: string;
+begin
+  exit('credentials'); //do not log them.
+end;
 
 procedure TTmsCredentialsRunner.RunGetCredentials(out Email, Code: string);
 begin
@@ -603,16 +699,23 @@ function TTmsCredentialsRunner.RunUpdateCredentials(const Email, Code: string): 
 begin
   Result := false;
   IgnoreExitCode := True;
-  var Command := Format('credentials -email:%s -code:%s -check', [Email, Code]);
+  var Command := Format('credentials -email:%s -code:%s -check', [Email.Trim.QuotedString('"'), Code.Trim.QuotedString('"')]);
   Run(AddRepo(Command));
 
+  if IsCanceled then
+    raise ETmsRunnerCanceled.Create('Canceled by the user.');
   if LastExitCode = 0 then Exit(True);
-  if Output.Text.ToLower.Contains('error: oauth2:') then
+  if OutputText.ToLower.Contains('error: oauth2:') then
     Exit(False);
-  CheckLastExitCode(Command);
+  CheckLastExitCode(OutputText);
 end;
 
 { TTmsBuildRunner }
+
+class function TTmsBuildRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Build;
+end;
 
 procedure TTmsBuildRunner.RunBuild;
 begin
@@ -631,6 +734,11 @@ end;
 
 { TTmsInstallRunner }
 
+class function TTmsInstallRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Install;
+end;
+
 procedure TTmsInstallRunner.RunInstall;
 begin
   ProductProgress := True;
@@ -645,6 +753,11 @@ end;
 
 { TTmsUninstallRunner }
 
+class function TTmsUninstallRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Uninstall;
+end;
+
 procedure TTmsUninstallRunner.RunUninstall;
 begin
   var Command := 'uninstall';
@@ -655,15 +768,25 @@ end;
 
 { TTmsSelfUpdateRunner }
 
+class function TTmsSelfUpdateRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.SelfUpdate;
+end;
+
 function TTmsSelfUpdateRunner.RunSelfUpdate: boolean;
 begin
   Run(AddRepo('self-update'));
 
   // Quick and dirty, but what better option do we have?
-  Result := Pos('TMS Smart Setup has been updated from version', Output.Text) > 0;
+  Result := Pos('TMS Smart Setup has been updated from version', OutputText) > 0;
 end;
 
 { TTmsConfigureRunner }
+
+class function TTmsConfigureRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Configure;
+end;
 
 procedure TTmsConfigureRunner.RunConfigure(Silent: Boolean);
 begin
@@ -675,16 +798,26 @@ end;
 
 { TTmsConfigReadRunner }
 
+class function TTmsConfigReadRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.ConfigRead;
+end;
+
 function TTmsConfigReadRunner.RunConfigRead(const ParamName: string): string;
 begin
   var Command := 'config-read';
   Command := Command + ' ' + ParamName.QuotedString('"');
   Run(Command);
-  FValue := Output.Text;
+  FValue := OutputText;
   Result := FValue;
 end;
 
 { TTmsConfigWriteRunner }
+
+class function TTmsConfigWriteRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.ConfigWrite;
+end;
 
 procedure TTmsConfigWriteRunner.RunConfigWrite(const ParamName, ParamValue: string);
 begin
@@ -694,6 +827,11 @@ begin
 end;
 
 { TTmsServerListRunner }
+
+class function TTmsServerListRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.ServerList;
+end;
 
 procedure TTmsServerListRunner.RunServerList(Items: TServerConfigItems);
 begin
@@ -725,6 +863,11 @@ end;
 
 { TTmsServerAddRunner }
 
+class function TTmsServerAddRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.ServerAdd;
+end;
+
 procedure TTmsServerAddRunner.RunServerAdd(Item: TServerConfigItem);
 begin
   var Command := Format('server-add %s %s %s %s', [Item.Name, Item.ServerType, Item.Url, BoolToStr(Item.Enabled, True)]);
@@ -732,6 +875,11 @@ begin
 end;
 
 { TTmsServerEnableRunner }
+
+class function TTmsServerEnableRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.ServerEnable;
+end;
 
 procedure TTmsServerEnableRunner.RunServerEnable(const Name: string;
   Enabled: Boolean);
@@ -742,6 +890,11 @@ end;
 
 { TTmsServerRemoveRunner }
 
+class function TTmsServerRemoveRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.ServerRemove;
+end;
+
 procedure TTmsServerRemoveRunner.RunServerRemove(const Name: string);
 begin
   var Command := Format('server-remove %s', [Name]);
@@ -749,6 +902,11 @@ begin
 end;
 
 { TTmsVersionsRemoteRunner }
+
+class function TTmsVersionsRemoteRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.VersionsRemote;
+end;
 
 procedure TTmsVersionsRemoteRunner.RunVersionsRemote(const ProductId: string; Items: TVersionInfoList);
 begin
@@ -779,6 +937,11 @@ end;
 
 { TTmsPinRunner }
 
+class function TTmsPinRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Pin;
+end;
+
 procedure TTmsPinRunner.RunPin(const ProductIds: TArray<string>);
 begin
   var Command := 'pin';
@@ -787,6 +950,11 @@ begin
 end;
 
 { TTmsUnpinRunner }
+
+class function TTmsUnpinRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Unpin;
+end;
 
 procedure TTmsUnpinRunner.RunUnpin(const ProductIds: TArray<string>);
 begin
@@ -797,6 +965,11 @@ end;
 
 { TTmsLogViewRunner }
 
+class function TTmsLogViewRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.LogView;
+end;
+
 function TTmsLogViewRunner.RunLogView(const SessionId: string; const Print: Boolean): string;
 begin
   var PrintString := '';
@@ -804,7 +977,7 @@ begin
 
   var Command := 'log-view ' + SessionId + PrintString;
   Run(Command);
-  Result := Output.Text.Trim;
+  Result := OutputText.Trim;
 end;
 
 { TTmsInfo }

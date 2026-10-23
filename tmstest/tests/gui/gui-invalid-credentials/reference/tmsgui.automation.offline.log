@@ -1,0 +1,11 @@
+Starting Automation
+wait: condition self.Name = CredentialsForm
+set-text: "CredentialsForm.edEmail" to "****"
+set-text: "CredentialsForm.edCode" to "****"
+click: "CredentialsForm.btOk"
+wait: condition self.Name = DialogForm
+assert: "MemoMessage.Text ~ Error: credentials: Offline mode, no connection to internet." is true
+click: "DialogForm.btnOk"
+wait: condition self.Name = CredentialsForm
+wait: condition lbInvalidCredentials.Caption ~ invalid credentials
+Completed successfully

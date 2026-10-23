@@ -1,0 +1,18 @@
+Starting Automation
+assert: "self.Name = MainForm" is true
+wait: condition Self.ProductCount <> 0
+set-text: "MainForm.edSearch" to "sglienke.spring4d"
+assert: "Self.ProductCount = 1" is true
+call: "MainForm.lvproducts.SelectAll"
+click: "MainForm.btnInstall"
+wait: 1500 milliseconds
+var: "$before" = "****"
+click: "MainForm.btnCancel"
+assert: "$before > $nowUTC" is true
+assert: "ProgressBar.Position < 100" is true
+wait: 5000 milliseconds
+call: "MainForm.lvproducts.SelectAll"
+click: "MainForm.btnInstall"
+wait: condition OutputMemo.Text ~ Build finished. Elapsed time
+wait: 1000 milliseconds
+Completed successfully

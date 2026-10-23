@@ -12,6 +12,29 @@ param(
     [switch]$openEditor = $false # opens the tmstest workspace in Visual Studio Code.
 )
 
+function Get-TestFromGUIAutomation {
+    param(
+        [Parameter(Position=0)] [string] $testsToRunParam
+    )
+
+    if ([string]::IsNullOrWhiteSpace($testsToRunParam)) {
+        return $testsToRunParam
+    }
+    #extract the file name from the parameter
+    $testsToRunFileName = Split-Path -Path $testsToRunParam -Leaf
+
+    if ($testsToRunFileName -like "automate.script*.txt") {
+        #return any ps1 file in the same folder as $testsToRunParam
+        $testsToRun = Get-ChildItem -Path (Split-Path -Path (Split-Path -Path $testsToRunParam -Parent) -Parent) -Filter "*.ps1"
+        if (@($testsToRun).Count -ne 1) {
+           throw "No test or multiple tests found in the same folder as the automation script."
+        }
+        return $testsToRun.FullName
+        
+    }    
+    return $testsToRunParam
+}
+
 if ($openEditor) {
     code "$PSScriptRoot/tmstest.code-workspace"
     Exit 0
@@ -35,6 +58,7 @@ if (Test-Path -Path $workFolder) {
 
 
 $testsToRun = $testsToRunParam
+$testsToRun = Get-TestFromGUIAutomation $testsToRun
 
 # If the parameter is ourselves, Stop. This is likely because we are debugging from vscode.
 if ($testsToRun -eq $PSCommandPath) {

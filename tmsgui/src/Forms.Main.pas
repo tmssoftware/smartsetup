@@ -7,7 +7,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
-  Vcl.VirtualImage;
+  Vcl.VirtualImage, Util.Animator, Winapi.ShlObj;
 
 type
   TMainForm = class(TForm)
@@ -33,8 +33,8 @@ type
     lvProducts: TListView;
     RightPanel: TPanel;
     Button1: TButton;
-    Button2: TButton;
-    Button3: TButton;
+    btnInstall: TButton;
+    btnUninstall: TButton;
     Button4: TButton;
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
@@ -66,12 +66,13 @@ type
     btnOpenHTMLLog: TControlListButton;
     WorkingFolderDialog: TFileOpenDialog;
     ProgressPanel: TPanel;
-    SpeedButton1: TSpeedButton;
+    btnCancel: TSpeedButton;
     ProgressBar: TProgressBar;
     acLogDetails: TAction;
     acViewHtmlLog: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormShow(Sender: TObject);
     procedure acInstallUpdate(Sender: TObject);
     procedure acUninstallUpdate(Sender: TObject);
@@ -111,6 +112,7 @@ type
     procedure lbLogBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure StatusBarClick(Sender: TObject);
+    procedure StatusBarResize(Sender: TObject);
     procedure acLogDetailsExecute(Sender: TObject);
     procedure acViewHtmlLogExecute(Sender: TObject);
   private
@@ -119,28 +121,34 @@ type
     SortColumn: Integer;
     SortDescending: Boolean;
     OverCaption: Boolean;
-    ProgressIndex: integer;
-    WorkingNestedLevel: integer;
-    WorkingTimer: TTimer;
     LogDetailsForm: TLogDetailsForm;
+    WorkingAnimator: TAnimator;
+    InstallAnimator: TAnimator;
+    UninstallAnimator: TAnimator;
+    BuildAnimator: TAnimator;
+    TaskbarList: ITaskbarList3;
+    procedure SetProgress(const Percent: Integer);
+    procedure ClearProgress;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
     function CompareIcons(const Product1, Product2: TGUIProduct): Integer;
-    function FormatLogMessage(const Item: TGUILogItem): string;
     function FindProductItem(const ProductId: string): TListItem;
     procedure ShowInfo;
     function ProductFromItem(Item: TListItem): TGUIProduct;
     function GetVersionHistoryUrl(Product: TGUIProduct): string;
     procedure SortProducts;
     procedure UpdateSortArrows;
+    function GetCmdLineParameter(const Prefix: string): string;
     function Repository: string;
+{$IFDEF DEBUG}
+    function GetAutomationScript: string;
+    function GetAutomationLog: string;
+{$ENDIF}
     function GetLogIco(const Item: TGUILogItem): string;
 
-    procedure StartWorking;
-    procedure UpdateWorking(Sender: TObject);
-    procedure StopWorking;
     function GetLastError: string;
+    function EnsureValidFolder(const RejectCaption: string): Boolean;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -153,9 +161,17 @@ type
     procedure ProgressEvent(const Percent: Integer);
     procedure ProductProgressEvent(const Info: TProductProgressInfo);
     procedure RunnerCreatedEvent(Runner: TTmsRunner);
-    procedure RunStartEvent;
-    procedure RunFinishEvent;
+    function AnimatorFor(const Command: TTmsCommand): TAnimator;
+    procedure RunStartEvent(const Command: TTmsCommand);
+    procedure RunFinishEvent(const Command: TTmsCommand);
     procedure NewVersionDetectedEvent;
+    function GetWorkingFolder: string;
+    procedure ChangeWorkingFolder(const NewFolder: string);
+
+    {$IFDEF DEBUG}
+    function ProductCount: integer;
+    function IsGuiRunning: boolean;
+    {$ENDIF}
   end;
 
 var
@@ -164,9 +180,10 @@ var
 implementation
 
 uses
-  Winapi.ShellAPI, Winapi.CommCtrl,
+  Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
   UTheming, IOUtils,
-  Forms.VersionPicker;
+  GUI.Automation,
+  Forms.VersionPicker, Forms.Dialogs;
 
 {$R *.dfm}
 
@@ -180,6 +197,12 @@ const
   ColRemoteVersion = 4;
   ColStatus = 5;
   ColLast = ColStatus;
+
+  // Panel indexes in StatusBar. Must match the panel order in Forms.Main.dfm.
+  StatusVersion = 0;
+  StatusWorkingFolder = 1;
+  StatusRepository = 2;
+  StatusActivity = 3;
 
 function SubItemIndex(const Column: Integer): Integer;
 begin
@@ -218,7 +241,7 @@ end;
 
 procedure TMainForm.acCredentialsExecute(Sender: TObject);
 begin
-  GUI.ExecuteRequestCredentials;
+  GUI.ExecuteRequestCredentials(procedure (s: string) begin TDialogForm.ShowMessage(s); end);
 end;
 
 procedure TMainForm.acCredentialsUpdate(Sender: TObject);
@@ -261,6 +284,7 @@ end;
 procedure TMainForm.acInstallVersionExecute(Sender: TObject);
 begin
   var Product := ProductFromItem(lvProducts.Selected);
+  if Product = nil then exit;
 
   var Versions := TVersionInfoList.Create;
   try
@@ -286,7 +310,7 @@ procedure TMainForm.acLogDetailsExecute(Sender: TObject);
 begin
   var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
   if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
-  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Output);
+  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Text, GUI.LogItems[RevIndex].Output);
   LogDetailsForm.ShowModal;
 end;
 
@@ -401,7 +425,14 @@ begin
   var Server := '';
   if cbServer.ItemIndex > 0 then // ignore "all"
     Server := cbServer.Items[cbServer.ItemIndex];
-  GUI.SetServer(Server);
+  if not GUI.SetServer(Server) then
+  begin
+    // Another job is running and the list was not refreshed: show the server the list is really for.
+    var Index := cbServer.Items.IndexOf(GUI.Server);
+    if Index = -1 then
+      Index := 0; // "all"
+    cbServer.ItemIndex := Index;
+  end;
 end;
 
 procedure TMainForm.CommandOutputEvent(const Text: string);
@@ -467,24 +498,40 @@ begin
   Result := nil;
 end;
 
-function TMainForm.FormatLogMessage(const Item: TGUILogItem): string;
-const
-  LogLevelStr: array[TLogLevel] of string = ('TRACE', 'INFO ', 'ERROR');
-begin
-  Result := Format('[%s] %s', [LogLevelStr[Item.Level], Item.Text]);
-end;
-
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := ColStatus;  // sort by status by default
 
-  WorkingTimer := TTimer.Create(Self);
-  WorkingTimer.Enabled := false;
-  WorkingTimer.Interval := 500;
-  WorkingTimer.OnTimer := UpdateWorking;
+  // Progress on the taskbar button. If it isn't available (old Windows, no shell), we just don't show it.
+  if Failed(CoCreateInstance(CLSID_TaskbarList, nil, CLSCTX_INPROC_SERVER, ITaskbarList3, TaskbarList))
+    or Failed(TaskbarList.HrInit) then TaskbarList := nil;
 
   LogDetailsForm := TLogDetailsForm.Create(Self); //keep so it doesn't keep resizing when you reopen it.
   LogPanel.Height := 1; // 0 would not allow us to resize the box when closed.
+
+  WorkingAnimator := TAnimator.Create(500, true, 'Working...', '',
+    procedure (Value: string)
+    begin
+      StatusBar.Panels[StatusActivity].Text := Value;
+    end);
+
+  InstallAnimator := TAnimator.Create(50, false, 'Installing', acInstall.Caption,
+    procedure (Value: string)
+    begin
+      acInstall.Caption := Value;
+    end);
+
+  UninstallAnimator := TAnimator.Create(50, false, 'Uninstalling', acUninstall.Caption,
+    procedure (Value: string)
+    begin
+      acUninstall.Caption := Value;
+    end);
+
+  BuildAnimator := TAnimator.Create(50, false, 'Building', acFullBuild.Caption,
+    procedure (Value: string)
+    begin
+      acFullBuild.Caption := Value;
+    end);
 
   GUI := TGUIEnvironment.Create;
 
@@ -498,19 +545,31 @@ begin
   GUI.OnRunFinish := RunFinishEvent;
   GUI.OnNewVersionDetected := NewVersionDetectedEvent;
   GUI.OnRunnerCreated := RunnerCreatedEvent;
-
-  GUI.StartWorking := StartWorking;
-  GUI.StopWorking := StopWorking;
+  GUI.StartWorking := WorkingAnimator.Start;
+  GUI.StopWorking := WorkingAnimator.Stop;
 
   ShowInfo;
 
   PageControl1.ActivePage := tsProducts;
   ActiveControl := lvProducts;
+
+{$IFDEF DEBUG}
+  var ActionScript := GetAutomationScript;
+  if ActionScript <> '' then
+  begin
+    TGUIAutomator.LoadActions(ActionScript, GetAutomationLog);
+  end;
+{$ENDIF}
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   GUI.Free;
+  WorkingAnimator.Free;
+  InstallAnimator.Free;
+  UninstallAnimator.Free;
+  BuildAnimator.Free;
+  TaskbarList := nil;
 
   // at this point no tms.exe should be running anymore
   if Relaunch then
@@ -518,6 +577,15 @@ begin
     var tmsgui := ParamStr(0);
     ShellExecute(0, 'open', PWideChar(tmsgui), '-no-self-update', '', SW_SHOWNORMAL);
   end;
+end;
+
+procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  // Closing cancels the running job, which kills tms.exe wherever it is, so ask first.
+  // Not when relaunching after a self-update: that job is the one closing us.
+  if Relaunch or not GUI.IsRunning then exit;
+  CanClose := TDialogForm.MessageDlg('An operation is still running. Closing will cancel it.' + sLineBreak + sLineBreak +
+    'Close anyway?', TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], 0, TMsgDlgBtn.mbNo) = mrYes;
 end;
 
 function TMainForm.GetLastError: string;
@@ -530,16 +598,42 @@ procedure TMainForm.FormShow(Sender: TObject);
 begin
   if not GUI.Info.Initialized then
   begin
-    ShowMessage('Error initializing SmartSetup: ' + GetLastError);
-   // Application.Terminate;
-    Gui.Start;
+    TDialogForm.ShowMessage('Error initializing SmartSetup: ' + GetLastError);
+    Application.Terminate;
     exit;
   end;
 
+  if EnsureValidFolder('E&xit application') then
+  begin
+    if not GUI.Start((procedure (s: string) begin TDialogForm.ShowMessage(s); end)) then
+    begin
+      Application.Terminate;
+      exit;
+    end
+  end
+  else
+    Application.Terminate;
+end;
+
+function TMainForm.EnsureValidFolder(const RejectCaption: string): Boolean;
+begin
+  // We can't work in a folder without a tms config, so either the user lets us create one, or we return false.
   //Show the message only if there is no config file yet.
-  //If we used FolderInitialized here, it will be true in an empty folder. But we want to show the welcome in an empty folder.
   if not TFile.Exists(GUI.Info.ConfigFile) then
   begin
+    if not GUI.Info.IsValidTMSSetupFolder then
+    begin
+      var Response := TDialogForm.MessageDlg('The folder "' + GUI.Info.WorkingFolder + '" isn''t empty or recognized as a valid smartsetup folder. Are you sure you want to use this folder for installing components?',
+                         mtInformation,
+                         [mbYes, mbNo],
+                         0,
+                         mbNo,
+                         ['&Use anyway', RejectCaption]);
+
+      if Response <> mrYes then exit(False);
+    end;
+
+
     var TMS, Community: Boolean;
     if TStartForm.Execute(TMS, Community) then
     begin
@@ -553,10 +647,7 @@ begin
     end;
   end;
 
-  if TFile.Exists(GUI.Info.ConfigFile) then
-    GUI.Start
-  else
-    Application.Terminate;
+  Result := TFile.Exists(GUI.Info.ConfigFile);
 end;
 
 procedure TMainForm.GetSelectedProductsEvent(Products: TGUIProductList);
@@ -610,10 +701,14 @@ procedure TMainForm.InitiateAction;
 begin
   inherited;
   acCredentials.Visible := GUI.Servers.IsEnabled('tms');
+  // Changing the server reloads the product list, which can't run while another job is running.
+  cbServer.Enabled := not GUI.IsRunning;
 end;
 
 function TMainForm.GetLogIco(const Item: TGUILogItem): string;
 begin
+  if Item.IsCanceled then exit('🚫');
+
   case Item.Level of
     TLogLevel.Error: exit('❌');
     TLogLevel.Info: exit('✔');
@@ -655,7 +750,6 @@ end;
 
 procedure TMainForm.LogItemGeneratedEvent(const Item: TGUILogItem);
 begin
-  var Text := FormatLogMessage(Item);
   TThread.Queue(nil, procedure
     begin
       if (LogPanel.Height <= 5) and (Item.Level = TLogLevel.Error) then
@@ -750,7 +844,14 @@ begin
   begin
     TThread.Queue(nil, procedure
       begin
-        ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
+        var DialogResult := TDialogForm.MessageDlg('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.',
+          TMsgDlgType.mtInformation, [mbOk, mbCancel], 0, TMsgDlgBtn.mbOK);
+
+        if DialogResult <> mrOk then
+        begin
+          exit;
+        end;
+
         GUI.ExecuteSelfUpdate(ProgressEvent,
           procedure
           begin
@@ -761,29 +862,61 @@ begin
   end;
 end;
 
-function TMainForm.Repository: string;
-const
-  RepoPrefix = '-repo:';
+function TMainForm.GetCmdLineParameter(const Prefix: string): string;
 begin
-  // Quick and dirty parsing of -repo parameter. If we add more parameters later, we can improve the parsing, not needed now.
+  Result := '';
+  // Quick and dirty parsing of a cmd line parameter. If we add more parameters later, we can improve the parsing, not needed now.
   for var I := 1 to ParamCount do
-    if ParamStr(I).StartsWith(RepoPrefix, True) then
+    if ParamStr(I).StartsWith(Prefix, True) then
     begin
-      Result := Copy(ParamStr(I), Length(RepoPrefix) + 1);
+      exit(ParamStr(I).Substring(Length(Prefix)).Trim);
     end;
 end;
+
+function TMainForm.Repository: string;
+begin
+  Result := GetCmdLineParameter('-repo:');
+end;
+
+{$IFDEF DEBUG}
+function TMainForm.GetAutomationScript: string;
+begin
+  Result := GetCmdLineParameter('-automation-script:');
+end;
+
+function TMainForm.GetAutomationLog: string;
+begin
+  Result := GetCmdLineParameter('-automation-log:');
+end;
+{$ENDIF}
 
 procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm: Boolean;
   LastWasInvalid: Boolean; var DisableServer: Boolean);
 begin
   Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid, DisableServer);
   if DisableServer and not Confirm then
-    ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
+    TDialogForm.ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
 end;
 
-procedure TMainForm.RunFinishEvent;
+function TMainForm.AnimatorFor(const Command: TTmsCommand): TAnimator;
 begin
-  ProgressBar.Position := 0;
+  case Command of
+    TTmsCommand.Build: Result := BuildAnimator; // full and partial: the partial build menu item wouldn't show it
+    TTmsCommand.Install: Result := InstallAnimator;
+    TTmsCommand.Uninstall: Result := UninstallAnimator;
+    else Result := nil;
+  end;
+end;
+
+procedure TMainForm.RunFinishEvent(const Command: TTmsCommand);
+begin
+  // Fired by the last job to finish, usually on a worker thread.
+  TThread.Queue(nil, procedure
+    begin
+      ClearProgress;
+    end);
+  var Animator := AnimatorFor(Command);
+  if Animator <> nil then Animator.Stop; // thread safe, it queues itself
 end;
 
 procedure TMainForm.RunnerCreatedEvent(Runner: TTmsRunner);
@@ -791,8 +924,17 @@ begin
   Runner.Repository := Repository;
 end;
 
-procedure TMainForm.RunStartEvent;
+procedure TMainForm.RunStartEvent(const Command: TTmsCommand);
 begin
+  // Can be on a worker thread, see RunFinishEvent.
+  var Animator := AnimatorFor(Command);
+  if Animator <> nil then Animator.Start; // thread safe, it queues itself
+  // ForceQueue, so the clear goes in order with the queued lines from CommandOutputEvent,
+  // and we don't touch the memo from a worker thread.
+  TThread.ForceQueue(nil, procedure
+    begin
+      OutputMemo.Lines.Clear;
+    end);
 end;
 
 procedure TMainForm.ServersUpdatedEvent(Servers: TServerConfigItems);
@@ -823,10 +965,10 @@ procedure TMainForm.ShowInfo;
 const
   {$I ..\..\version.inc}
 begin
-  StatusBar.Panels[0].Text := TMSVersion;
-  StatusBar.Panels[2].Text := Repository;
+  StatusBar.Panels[StatusVersion].Text := TMSVersion;
+  StatusBar.Panels[StatusRepository].Text := Repository;
 
-  StatusBar.Panels[1].Text := GUI.Info.WorkingFolder;
+  StatusBar.Panels[StatusWorkingFolder].Text := GUI.Info.WorkingFolder;
 end;
 
 procedure TMainForm.SortProducts;
@@ -835,45 +977,73 @@ begin
   UpdateSortArrows;
 end;
 
-procedure TMainForm.StartWorking;
-begin
-  TThread.Queue(nil, procedure
-    begin
-      Inc(WorkingNestedLevel);
-      if (WorkingNestedLevel = 1) then StatusBar.Panels[3].Text := 'Working... ';
-      WorkingTimer.Enabled := WorkingNestedLevel > 0;
-    end);
-end;
-
 procedure TMainForm.StatusBarClick(Sender: TObject);
 begin
+  // Only the panel showing the working folder changes it.
+  var ClickPos := StatusBar.ScreenToClient(Mouse.CursorPos);
+  var FolderStart := 0;
+  for var i := 0 to StatusWorkingFolder - 1 do Inc(FolderStart, StatusBar.Panels[i].Width);
+  if (ClickPos.X < FolderStart) or (ClickPos.X >= FolderStart + StatusBar.Panels[StatusWorkingFolder].Width) then exit;
+
   if GUI.IsRunning then exit;
-  
-  WorkingFolderDialog.DefaultFolder := GetCurrentDir;
+
+  WorkingFolderDialog.DefaultFolder := GetWorkingFolder;
   if not WorkingFolderDialog.Execute then exit;
 
-  SetCurrentDir(WorkingFolderDialog.FileName);
+  ChangeWorkingFolder(WorkingFolderDialog.FileName);
+end;
+
+function TMainForm.GetWorkingFolder: string;
+begin
+  Result := GetCurrentDir;
+end;
+
+procedure TMainForm.StatusBarResize(Sender: TObject);
+begin
+  // The working folder panel takes whatever space the other panels don't use.
+  var OthersWidth := 0;
+  for var i := 0 to StatusBar.Panels.Count - 1 do
+    if i <> StatusWorkingFolder then Inc(OthersWidth, StatusBar.Panels[i].Width);
+
+  var FolderWidth := StatusBar.ClientWidth - OthersWidth;
+  if FolderWidth < 0 then FolderWidth := 0;
+  StatusBar.Panels[StatusWorkingFolder].Width := FolderWidth;
+end;
+
+{$IFDEF DEBUG}
+function TMainForm.IsGuiRunning: boolean;
+begin
+  Result := GUI.IsRunning;
+end;
+{$ENDIF}
+
+procedure TMainForm.ChangeWorkingFolder(const NewFolder: string);
+begin
+  if GUI.IsRunning then exit;
+
+  var OldFolder := GetWorkingFolder;
+  if not SetCurrentDir(NewFolder) then
+  begin
+    TDialogForm.ShowMessage('Cannot change to the folder "' + NewFolder + '".');
+    exit;
+  end;
   GUI.RefreshInfo;
-  GUI.Start;
+
+  // Same checks as at startup, but a folder we can't use takes us back to the old one, not out of the app.
+  var Valid := GUI.Info.Initialized;
+  if not Valid then
+    TDialogForm.ShowMessage('Error reading the folder "' + NewFolder + '": ' + GetLastError)
+  else
+    Valid := EnsureValidFolder('&Cancel');
+  if not Valid then
+  begin
+    SetCurrentDir(OldFolder);
+    GUI.RefreshInfo;
+    exit;
+  end;
+
+  GUI.Start((procedure (s: string) begin TDialogForm.ShowMessage(s); end));
   ShowInfo;
-end;
-
-procedure TMainForm.UpdateWorking(Sender: TObject);
-const
-  Blocks: Array[0.. 9] of string = ('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏');
-begin
-  StatusBar.Panels[3].Text := Blocks[(Length(Blocks) * 2 + 1 - ProgressIndex) mod Length(Blocks)] + Blocks[ProgressIndex] + ' Working... ';
-  if ProgressIndex < Length(Blocks) - 1 then Inc(ProgressIndex) else ProgressIndex := 0;
-end;
-
-procedure TMainForm.StopWorking;
-begin
-  TThread.Queue(nil, procedure
-    begin
-      if (WorkingNestedLevel > 0) then Dec(WorkingNestedLevel);
-      WorkingTimer.Enabled := WorkingNestedLevel > 0;
-      if (WorkingNestedLevel = 0) then StatusBar.Panels[3].Text := '';
-    end);
 end;
 
 procedure TMainForm.UpdateSortArrows;
@@ -917,7 +1087,7 @@ procedure TMainForm.ProductProgressEvent(const Info: TProductProgressInfo);
 begin
   TThread.Queue(nil, procedure
     begin
-      ProgressBar.Position := Info.Percent;
+      SetProgress(Info.Percent);
       if Info.ProductId <> '' then
       begin
         TThread.Queue(nil, procedure
@@ -969,8 +1139,35 @@ procedure TMainForm.ProgressEvent(const Percent: Integer);
 begin
   TThread.Queue(nil, procedure
     begin
-      ProgressBar.Position := Percent;
+      SetProgress(Percent);
     end);
 end;
+
+procedure TMainForm.SetProgress(const Percent: Integer);
+begin
+  // Main thread only.
+  ProgressBar.Position := Percent;
+  if TaskbarList = nil then exit;
+  // MainFormOnTaskbar is true, so the taskbar button belongs to our own Handle.
+  TaskbarList.SetProgressState(Handle, TBPF_NORMAL);
+  TaskbarList.SetProgressValue(Handle, Percent, ProgressBar.Max);
+end;
+
+procedure TMainForm.ClearProgress;
+begin
+  // Main thread only.
+  ProgressBar.Position := 0;
+  if TaskbarList = nil then exit;
+  TaskbarList.SetProgressState(Handle, TBPF_NOPROGRESS);
+end;
+
+{$IFDEF DEBUG}
+//for testing
+function TMainForm.ProductCount: integer;
+begin
+  Result := lvProducts.Items.Count;
+end;
+{$ENDIF}
+
 
 end.

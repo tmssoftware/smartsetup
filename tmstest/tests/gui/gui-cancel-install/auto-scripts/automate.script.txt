@@ -1,0 +1,21 @@
+assert self.Name = MainForm
+wait Self.ProductCount <> 0
+set-text edSearch tms.flexcel.vcl
+assert Self.ProductCount = 1
+
+call lvproducts.SelectAll
+click btnInstall
+
+wait OutputMemo.Text ~ Analyzing products...
+wait ProgressBar.Position < 50
+wait ProgressBar.Position > 50
+
+*var $before $nowUTC + 1000
+click btnCancel
+##see that we don't take long to cancel
+assert $before > $nowUTC
+assert ProgressBar.Position < 100
+wait 2000
+assert OutputMemo.Text ~ **CANCELED**
+
+

@@ -1,0 +1,12 @@
+Starting Automation
+wait: condition self.Name = MainForm
+wait: condition Self.IsGuiRunning = false
+call: "MainForm.self.ChangeWorkingFolder" with "wrong-folder-cancel"
+wait: condition self.Name = DialogForm
+assert: "MemoMessage.Text ~  isn't empty or recognized as a valid smartsetup folder" is true
+click: cannot click button "DialogForm.btnCancel" because it is not visible
+click: "DialogForm.btnNo"
+wait: condition self.Name = MainForm
+assert: "self.GetWorkingFolder ~ gui-change-working-folder" is true
+assert: "self.GetWorkingFolder !~ gui-change-working-folder\" is true
+Completed successfully

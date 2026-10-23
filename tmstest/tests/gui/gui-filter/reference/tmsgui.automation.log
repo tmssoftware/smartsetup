@@ -1,0 +1,17 @@
+Starting Automation
+assert: "self.Name = MainForm" is true
+wait: condition Self.ProductCount <> 0
+assert: "Self.ProductCount <> 0" is true
+var: "$allProducts" = "****"
+set-text: "MainForm.edSearch" to "x65x32x"
+assert: "Self.ProductCount = 0" is true
+set-text: "MainForm.edSearch" to "tms*[]/;:"
+assert: "Self.ProductCount = 0" is true
+set-text: "MainForm.edSearch" to "tms"
+assert: "Self.ProductCount > 40" is true
+assert: "Self.ProductCount < $allProducts" is true
+set-text: "MainForm.edSearch" to "tms.flexcel.vcl"
+assert: "Self.ProductCount = 1" is true
+set-text: "MainForm.edSearch" to ""
+assert: "Self.ProductCount = $allProducts" is true
+Completed successfully

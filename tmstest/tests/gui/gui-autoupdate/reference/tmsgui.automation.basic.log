@@ -1,0 +1,13 @@
+Starting Automation
+wait: condition self.Name = MainForm
+wait: condition Self.IsGuiRunning = false
+set-text: "MainForm.edSearch" to "tms.fmx.icl"
+wait: condition Self.ProductCount = 1
+wait: condition Self.IsGuiRunning = false
+call: "MainForm.lvproducts.SelectAll"
+wait: condition btnInstall.Enabled 
+click: "MainForm.btnInstall"
+wait: condition self.Name = DialogForm
+assert: "MemoMessage.Text ~ A new version of TMS Smart Setup is available and ready" is true
+click: "DialogForm.btnOk"
+wait: condition self.Name = DialogForm

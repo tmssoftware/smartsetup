@@ -1,0 +1,41 @@
+wait Self.IsGuiRunning = false
+wait Self.ProductCount <> 0
+assert self.Name = MainForm
+set-text edSearch jedi.jcl
+assert Self.ProductCount = 1
+
+call lvproducts.SelectAll
+click btnInstall
+
+wait OutputMemo.Text ~ Build finished. Elapsed time
+assert OutputMemo.Text ~ - JEDI JCL -> OK.
+wait Self.IsGuiRunning = false
+wait 1000
+
+set LogPanel.Height 300
+wait 500
+set lbLog.ItemIndex 0
+wait 500
+click acLogDetails
+wait Self.Name = LogDetailsForm
+assert Data.Text ~ - JEDI JCL -> OK.
+click btOk
+wait Self.Name = MainForm
+set-text edSearch tms.biz.bcl
+wait Self.ProductCount = 1
+
+wait Self.IsGuiRunning = false
+call lvproducts.SelectAll
+click btnInstall
+
+wait OutputMemo.Text ~ Build finished. Elapsed time
+wait Self.IsGuiRunning = false
+wait 1000
+set lbLog.ItemIndex 1
+set lbLog.ItemIndex 0
+wait 500
+click acLogDetails
+wait Self.Name = LogDetailsForm
+assert Data.Text ~ - TMS BIZ Core Library
+click btOk
+wait 1000

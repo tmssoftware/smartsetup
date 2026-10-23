@@ -4,7 +4,7 @@
 . $PSScriptRoot/util.errors.ps1
 
 if (-not $tmsTestRootDir) {
-    Write-Error "The variable `tmsTestRootDir` is not set. You need to setup the environment, see ../README.md."
+    Write-Error "The variable 'tmsTestRootDir' is not set. You need to setup the environment, see ../README.md."
 }
 $callerPath = $PSCmdlet.MyInvocation.PSScriptRoot
 if (-not $callerPath) { 

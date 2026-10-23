@@ -110,6 +110,8 @@
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_MinorVer>5</VerInfo_MinorVer>
         <VerInfo_MajorVer>3</VerInfo_MajorVer>
+        <DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
+        <DCC_RangeChecking>true</DCC_RangeChecking>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <DCC_UsePackage>FlexCel_Report;TMSLogging;fmx;DbxCommonDriver;bindengine;IndyIPCommon;emsclient;FireDACCommonDriver;aurelius;IndyProtocols;sparkle;sphinx;IndyIPClient;dbxcds;FmxTeeUI;bindcompfmx;FlexCel_Pdf;FireDACSqliteDriver;DbxClientDriver;soapmidas;TMSScripter;fmxFireDAC;dbexpress;inet;DataSnapCommon;fmxase;dbrtl;FireDACDBXDriver;FlexCel_XlsAdapter;CustomIPTransport;tmsbcl;DBXInterBaseDriver;IndySystem;FlexCel_Core;bindcomp;FireDACCommon;FlexCel_Render;IndyCore;RESTBackendComponents;bindcompdbx;rtl;remotedb;RESTComponents;DBXSqliteDriver;IndyIPServer;dsnapxml;DataSnapClient;DataSnapProviderClient;DataSnapFireDAC;emsclientfiredac;FireDAC;FireDACDSDriver;xmlrtl;tethering;dsnap;xdata;CloudService;DataSnapNativeClient;FMXTee;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>

@@ -1,0 +1,27 @@
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+call self.ChangeWorkingFolder wrong-folder-but-really-keep-going
+wait self.Name = DialogForm
+assert MemoMessage.Text ~  isn't empty or recognized as a valid smartsetup folder
+click btnCancel
+click btnYes
+wait self.Name = StartForm
+set cbTMS.Checked False
+set cbCommunity.Checked True
+click btOk
+
+wait self.Name = MainForm
+assert self.GetWorkingFolder ~ gui-change-working-folder\wrong-folder-but-really-keep-going
+
+wait Self.ProductCount <> 0
+set-text edSearch turbopack.doscommand
+wait Self.ProductCount = 1
+wait Self.IsGuiRunning = false
+
+call lvproducts.SelectAll
+click btnInstall
+wait OutputMemo.Text ~ Install finished. Elapsed time
+wait 1000
+
+
+ 

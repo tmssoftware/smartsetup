@@ -1,0 +1,9 @@
+wait self.Name = CredentialsForm
+*set-text edEmail $ENV:TMSTEST_EMAIL
+*set-text edCode $ENV:TMSTEST_CODE
+click btOk
+wait self.Name = DialogForm
+assert MemoMessage.Text ~ Error: credentials: Offline mode, no connection to internet.
+click btnOk
+wait self.Name = CredentialsForm
+wait lbInvalidCredentials.Caption ~ invalid credentials
