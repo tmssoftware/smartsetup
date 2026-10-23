@@ -364,7 +364,10 @@ function Test-tmsgui {
 
     $automationScriptFileName = "$CallingScriptFolder\auto-scripts\automate.script$($suffix).txt" 
     $automationLogFileName = "$CallingScriptFolder\auto-scripts-result\tmsgui.automation$($suffix).log" 
-    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation-script:`"$automationScriptFileName`"", "-automation-log:`"$automationLogFileName`"", $extraArgs -Wait -PassThru
+    # Don't use -Wait: it waits for child processes too, and tmsgui can relaunch itself after a self-update.
+    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation-script:`"$automationScriptFileName`"", "-automation-log:`"$automationLogFileName`"", $extraArgs -PassThru
+    $null = $process.Handle # cache the handle so ExitCode is available after the process exits.
+    $process.WaitForExit()
     if ($process.ExitCode -ne 0) {
         throw "tmsgui exited with error code $($process.ExitCode)"
     }

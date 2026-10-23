@@ -844,7 +844,14 @@ begin
   begin
     TThread.Queue(nil, procedure
       begin
-        TDialogForm.ShowMessage('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.');
+        var DialogResult := TDialogForm.MessageDlg('A new version of TMS Smart Setup is available and ready. We will process with update and relaunch.',
+          TMsgDlgType.mtInformation, [mbOk, mbCancel], 0, TMsgDlgBtn.mbOK);
+
+        if DialogResult <> mrOk then
+        begin
+          exit;
+        end;
+
         GUI.ExecuteSelfUpdate(ProgressEvent,
           procedure
           begin
