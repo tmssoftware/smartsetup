@@ -22,7 +22,7 @@ unit GUI.Automation;
 *)
 
 interface
-uses SysUtils, Classes, Vcl.Forms, Vcl.Controls, Vcl.StdCtrls,
+uses SysUtils, Classes, Vcl.Forms, Vcl.Controls, Vcl.StdCtrls, Vcl.ComCtrls,
      Vcl.AppEvnts, Generics.Defaults, Generics.Collections, TypInfo, RTTI;
 
 type
@@ -624,7 +624,18 @@ begin
     exit;
   end;
 
-  var VCLAction := GetComponent<TCustomAction>(Action.Target, 'button, speedbutton or action');
+  var ToolButton := GetComponent<TToolButton>(Action.Target, 'tool button', false);
+  if ToolButton <> nil then
+  begin
+    if IsAvailable(ToolButton, 'click: cannot click tool button ' + GetName(Action)) then
+    begin
+      Log('click: ' + GetName(Action));
+      ToolButton.Click;
+    end;
+    exit;
+  end;
+
+  var VCLAction := GetComponent<TCustomAction>(Action.Target, 'button, speedbutton, ttoolbutton or action');
   if VCLAction <> nil then
   begin
     if VCLAction.Enabled and VCLAction.Visible then

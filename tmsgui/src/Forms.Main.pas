@@ -7,7 +7,9 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
-  Vcl.VirtualImage, Util.Animator, Winapi.ShlObj;
+  Vcl.VirtualImage, Util.Animator, Winapi.ShlObj, System.ImageList, Vcl.ImgList,
+  Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
+  Vcl.ToolWin;
 
 type
   TMainForm = class(TForm)
@@ -27,15 +29,8 @@ type
     Panel3: TPanel;
     PageControl1: TPageControl;
     tsProducts: TTabSheet;
-    LeftPanel: TPanel;
-    rbAll: TRadioButton;
-    rbInstalled: TRadioButton;
     lvProducts: TListView;
     RightPanel: TPanel;
-    Button1: TButton;
-    btnInstall: TButton;
-    btnUninstall: TButton;
-    Button4: TButton;
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
     LogPanel: TPanel;
@@ -46,11 +41,9 @@ type
     acSettings: TAction;
     TopPanel: TPanel;
     edSearch: TEdit;
-    btConfiguration2: TSpeedButton;
     cbServer: TComboBox;
     lbServer: TLabel;
     acSearchFocus: TAction;
-    btCredentials: TButton;
     acInstallVersion: TAction;
     Installversion1: TMenuItem;
     acPin: TAction;
@@ -70,6 +63,36 @@ type
     ProgressBar: TProgressBar;
     acLogDetails: TAction;
     acViewHtmlLog: TAction;
+    ToolbarImageCollection: TImageCollection;
+    ToolbarImageList: TVirtualImageList;
+    MainToolBar: TToolBar;
+    btnInstall: TToolButton;
+    btnUninstall: TToolButton;
+    btnBuild: TToolButton;
+    btnRefresh: TToolButton;
+    ToolButton4: TToolButton;
+    btnConfigure: TToolButton;
+    ToolButton6: TToolButton;
+    btnBackup: TToolButton;
+    btnSBOM: TToolButton;
+    btnDoctor: TToolButton;
+    acBackups: TAction;
+    acSBOM: TAction;
+    acDoctor: TAction;
+    acRefresh: TAction;
+    acBuild: TAction;
+    cbAllOrInstalled: TComboBox;
+    DoctorMenu: TPopupMenu;
+    MenuItem1: TMenuItem;
+    MenuItem2: TMenuItem;
+    acDoctorDiagnose: TAction;
+    acDoctorFix: TAction;
+    acDoctorAutoFix: TAction;
+    Automaticallyapplyfixesusewithcaution1: TMenuItem;
+    ConfigureMenu: TPopupMenu;
+    MenuItem3: TMenuItem;
+    MenuItem4: TMenuItem;
+    acOpenConfigFile: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -115,6 +138,17 @@ type
     procedure StatusBarResize(Sender: TObject);
     procedure acLogDetailsExecute(Sender: TObject);
     procedure acViewHtmlLogExecute(Sender: TObject);
+    procedure acBuildExecute(Sender: TObject);
+    procedure acBuildUpdate(Sender: TObject);
+    procedure acRefreshUpdate(Sender: TObject);
+    procedure acRefreshExecute(Sender: TObject);
+    procedure cbAllOrInstalledChange(Sender: TObject);
+    procedure acDoctorExecute(Sender: TObject);
+    procedure acDoctorUpdate(Sender: TObject);
+    procedure acDoctorDiagnoseExecute(Sender: TObject);
+    procedure acDoctorFixExecute(Sender: TObject);
+    procedure acDoctorAutoFixExecute(Sender: TObject);
+    procedure acOpenConfigFileExecute(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -122,14 +156,17 @@ type
     SortDescending: Boolean;
     OverCaption: Boolean;
     LogDetailsForm: TLogDetailsForm;
-    WorkingAnimator: TAnimator;
-    InstallAnimator: TAnimator;
-    UninstallAnimator: TAnimator;
-    BuildAnimator: TAnimator;
+    WorkingAnimator: TTextAnimator;
+    InstallAnimator: TImageAnimator;
+    UninstallAnimator: TImageAnimator;
+    BuildAnimator: TImageAnimator;
+    RefreshAnimator: TImageAnimator;
     TaskbarList: ITaskbarList3;
     procedure SetProgress(const Percent: Integer);
     procedure ClearProgress;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
+    procedure UpdateToolbarImagesForTheme;
+    procedure GetDarkToolbarBitmap(ASourceImage: TWICImage; AWidth, AHeight: Integer; out ABitmap: TBitmap);
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
     function CompareIcons(const Product1, Product2: TGUIProduct): Integer;
@@ -181,7 +218,7 @@ implementation
 
 uses
   Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
-  UTheming, IOUtils,
+  Vcl.Themes, UTheming, IOUtils,
   GUI.Automation,
   Forms.VersionPicker, Forms.Dialogs;
 
@@ -219,6 +256,16 @@ begin
   acFullBuild.Enabled := GUI.CanBuild;
 end;
 
+procedure TMainForm.acBuildExecute(Sender: TObject);
+begin
+  BuildMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
+end;
+
+procedure TMainForm.acBuildUpdate(Sender: TObject);
+begin
+  acBuild.Enabled := GUI.CanBuild;
+end;
+
 procedure TMainForm.acCancelExecutionExecute(Sender: TObject);
 begin
   GUI.CancelRun;
@@ -231,7 +278,7 @@ end;
 
 procedure TMainForm.acConfigureExecute(Sender: TObject);
 begin
-  GUI.ExecuteConfigure;
+  ConfigureMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
 end;
 
 procedure TMainForm.acConfigureUpdate(Sender: TObject);
@@ -247,6 +294,31 @@ end;
 procedure TMainForm.acCredentialsUpdate(Sender: TObject);
 begin
   acCredentials.Enabled := GUI.CanRequestCredentials;
+end;
+
+procedure TMainForm.acDoctorAutoFixExecute(Sender: TObject);
+begin
+  GUI.ExecuteDoctor(true, false);
+end;
+
+procedure TMainForm.acDoctorDiagnoseExecute(Sender: TObject);
+begin
+  GUI.ExecuteDoctor(false, false);
+end;
+
+procedure TMainForm.acDoctorExecute(Sender: TObject);
+begin
+  DoctorMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
+end;
+
+procedure TMainForm.acDoctorFixExecute(Sender: TObject);
+begin
+  GUI.ExecuteDoctor(true, true);
+end;
+
+procedure TMainForm.acDoctorUpdate(Sender: TObject);
+begin
+  acDoctor.Enabled := not GUI.IsRunning;
 end;
 
 procedure TMainForm.acFilterAllExecute(Sender: TObject);
@@ -314,6 +386,11 @@ begin
   LogDetailsForm.ShowModal;
 end;
 
+procedure TMainForm.acOpenConfigFileExecute(Sender: TObject);
+begin
+  GUI.ExecuteConfigure;
+end;
+
 procedure TMainForm.acPartialBuildExecute(Sender: TObject);
 begin
   GUI.ExecutePartialBuild(ProductProgressEvent);
@@ -332,6 +409,16 @@ end;
 procedure TMainForm.acPinUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := GUI.CanPinSelected;
+end;
+
+procedure TMainForm.acRefreshExecute(Sender: TObject);
+begin
+  GUI.RefreshProductList;
+end;
+
+procedure TMainForm.acRefreshUpdate(Sender: TObject);
+begin
+  acRefresh.Enabled := not GUI.IsRunning;
 end;
 
 procedure TMainForm.acSettingsExecute(Sender: TObject);
@@ -420,6 +507,12 @@ begin
   GUI.ExecuteLogView(SessionId, false);
 end;
 
+procedure TMainForm.cbAllOrInstalledChange(Sender: TObject);
+begin
+  if cbAllOrInstalled.ItemIndex = 1 then acFilterInstalled.Execute
+  else acFilterAll.Execute;
+end;
+
 procedure TMainForm.cbServerChange(Sender: TObject);
 begin
   var Server := '';
@@ -501,6 +594,7 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := ColStatus;  // sort by status by default
+  UpdateToolbarImagesForTheme;
 
   // Progress on the taskbar button. If it isn't available (old Windows, no shell), we just don't show it.
   if Failed(CoCreateInstance(CLSID_TaskbarList, nil, CLSCTX_INPROC_SERVER, ITaskbarList3, TaskbarList))
@@ -509,28 +603,51 @@ begin
   LogDetailsForm := TLogDetailsForm.Create(Self); //keep so it doesn't keep resizing when you reopen it.
   LogPanel.Height := 1; // 0 would not allow us to resize the box when closed.
 
-  WorkingAnimator := TAnimator.Create(500, true, 'Working...', '',
+  WorkingAnimator := TTextAnimator.Create(500, true, 'Working...', '',
     procedure (Value: string)
     begin
       StatusBar.Panels[StatusActivity].Text := Value;
     end);
 
-  InstallAnimator := TAnimator.Create(50, false, 'Installing', acInstall.Caption,
-    procedure (Value: string)
+  InstallAnimator := TImageAnimator.Create(50, 'install', acInstall.ImageName,
+    procedure (ImageName: string)
     begin
-      acInstall.Caption := Value;
+      btnInstall.ImageName := ImageName;
+    end,
+    function (ImageName: string): boolean
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
     end);
 
-  UninstallAnimator := TAnimator.Create(50, false, 'Uninstalling', acUninstall.Caption,
-    procedure (Value: string)
+  UninstallAnimator := TImageAnimator.Create(50, 'uninstall', acUninstall.ImageName,
+    procedure (ImageName: string)
     begin
-      acUninstall.Caption := Value;
+      btnUninstall.ImageName := ImageName;
+    end,
+    function (ImageName: string): boolean
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
     end);
 
-  BuildAnimator := TAnimator.Create(50, false, 'Building', acFullBuild.Caption,
-    procedure (Value: string)
+
+  BuildAnimator := TImageAnimator.Create(50, 'build', acBuild.ImageName,
+    procedure (ImageName: string)
     begin
-      acFullBuild.Caption := Value;
+      btnBuild.ImageName := ImageName;
+    end,
+    function (ImageName: string): boolean
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
+    end);
+
+  RefreshAnimator := TImageAnimator.Create(50, 'refresh', acRefresh.ImageName,
+    procedure (ImageName: string)
+    begin
+      btnRefresh.ImageName := ImageName;
+    end,
+    function (ImageName: string): boolean
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
     end);
 
   GUI := TGUIEnvironment.Create;
@@ -569,6 +686,7 @@ begin
   InstallAnimator.Free;
   UninstallAnimator.Free;
   BuildAnimator.Free;
+  RefreshAnimator.Free;
   TaskbarList := nil;
 
   // at this point no tms.exe should be running anymore
@@ -703,6 +821,17 @@ begin
   acCredentials.Visible := GUI.Servers.IsEnabled('tms');
   // Changing the server reloads the product list, which can't run while another job is running.
   cbServer.Enabled := not GUI.IsRunning;
+
+  // Same for the filter. When idle, show the filter the list is really using, in case a change was rejected.
+  cbAllOrInstalled.Enabled := GUI.CanApplyFilter;
+  if not GUI.IsRunning and not cbAllOrInstalled.DroppedDown then
+  begin
+    var FilterIndex := 0; // "All"
+    if GUI.IsFilterActive(TProductFilter.Installed) then
+      FilterIndex := 1;
+    if cbAllOrInstalled.ItemIndex <> FilterIndex then
+      cbAllOrInstalled.ItemIndex := FilterIndex;
+  end;
 end;
 
 function TMainForm.GetLogIco(const Item: TGUILogItem): string;
@@ -904,6 +1033,8 @@ begin
     TTmsCommand.Build: Result := BuildAnimator; // full and partial: the partial build menu item wouldn't show it
     TTmsCommand.Install: Result := InstallAnimator;
     TTmsCommand.Uninstall: Result := UninstallAnimator;
+    TTmsCommand.List: Result := RefreshAnimator;
+    TTmsCommand.ListRemote: Result := RefreshAnimator;
     else Result := nil;
   end;
 end;
@@ -1072,7 +1203,48 @@ procedure TMainForm.WMSettingChange(var Msg: TWMSettingChange);
 begin
   inherited;
   if SameText('ImmersiveColorSet', String(Msg.Section)) then
+  begin
     ApplyThemeFromWindows;
+    UpdateToolbarImagesForTheme;
+  end;
+end;
+
+// Toolbar icons are stored once, black on transparent. In dark mode we tint them with the
+// style text color while the image list rasterizes them, so we don't ship a second light copy.
+procedure TMainForm.UpdateToolbarImagesForTheme;
+begin
+  if IsDarkStyle then
+    ToolbarImageCollection.OnGetBitmap := GetDarkToolbarBitmap
+  else
+    ToolbarImageCollection.OnGetBitmap := nil;
+  ToolbarImageList.UpdateImageList;
+  MainToolBar.Invalidate;
+end;
+
+procedure TMainForm.GetDarkToolbarBitmap(ASourceImage: TWICImage; AWidth, AHeight: Integer; out ABitmap: TBitmap);
+var
+  Scaled: TWICImage;
+begin
+  // Same as TImageCollection.GetBitmap does by default for styled apps, plus the tint.
+  ABitmap := TBitmap.Create;
+  try
+    if (ASourceImage.Width = AWidth) and (ASourceImage.Height = AHeight) then
+      ABitmap.Assign(ASourceImage)
+    else
+    begin
+      Scaled := ASourceImage.CreateScaledCopy(AWidth, AHeight, wipmHighQualityCubic);
+      try
+        ABitmap.Assign(Scaled);
+      finally
+        Scaled.Free;
+      end;
+    end;
+    ABitmap.AlphaFormat := afIgnored; // un-premultiplies, so we can recolor RGB without touching alpha.
+    TintBitmap(ABitmap, StyleServices.GetSystemColor(clBtnText));
+  except
+    FreeAndNil(ABitmap);
+    raise;
+  end;
 end;
 
 function TMainForm.ProductFromItem(Item: TListItem): TGUIProduct;

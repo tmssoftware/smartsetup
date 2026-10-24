@@ -177,6 +177,7 @@ type
     procedure ExecutePartialBuild(ProgressCallback: TProductProgressProc);
     procedure ExecuteInstall(ProgressCallback: TProductProgressProc);
     procedure ExecuteUninstall(ProgressCallback: TProgressProc);
+    procedure RefreshProductList;
 
     // Execute install explicitly passing the product ids to be installed
     procedure ExecuteInstallProducts(const ProductIds: TArray<string>; ProgressCallback: TProductProgressProc);
@@ -194,6 +195,7 @@ type
 
     procedure ExecuteConfigure(Silent: Boolean = False);
     function ExecuteLogView(const SessionId: string; const Print: Boolean): string;
+    procedure ExecuteDoctor(const Fix: boolean; const Confirm: boolean);
 
     // Change the current applied filter. Will fire the OnProductsUpdated after the product list is modified.
     procedure ChangeProductFilter(Filter: TProductFilter);
@@ -849,6 +851,15 @@ begin
     end);
 end;
 
+procedure TGUIEnvironment.ExecuteDoctor(const Fix: boolean; const Confirm: boolean);
+begin
+  RunSync<TTmsDoctorRunner>(
+    procedure(Runner: TTmsDoctorRunner)
+    begin
+      Runner.RunDoctor(Fix, Confirm);
+    end);
+end;
+
 function TGUIEnvironment.ExecuteLogView(const SessionId: string; const Print: Boolean): string;
 var
   _Result: string;
@@ -1160,6 +1171,15 @@ begin
   finally
     TMonitor.Exit(FInfoLock);
   end;
+end;
+
+procedure TGUIEnvironment.RefreshProductList;
+begin
+  StartExclusive(TTmsCommand.List,
+    procedure
+    begin
+      RefreshFetchedProducts(FProductFilter, FServer);
+    end);
 end;
 
 procedure TGUIEnvironment.RefreshFetchedProductsAfterJob;
