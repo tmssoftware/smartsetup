@@ -65,17 +65,6 @@ type
     acViewHtmlLog: TAction;
     ToolbarImageCollection: TImageCollection;
     ToolbarImageList: TVirtualImageList;
-    MainToolBar: TToolBar;
-    btnInstall: TToolButton;
-    btnUninstall: TToolButton;
-    btnBuild: TToolButton;
-    btnRefresh: TToolButton;
-    ToolButton4: TToolButton;
-    btnConfigure: TToolButton;
-    ToolButton6: TToolButton;
-    btnBackup: TToolButton;
-    btnSBOM: TToolButton;
-    btnDoctor: TToolButton;
     acBackups: TAction;
     acSBOM: TAction;
     acDoctor: TAction;
@@ -106,6 +95,18 @@ type
     MulProdSelCount: TLabel;
     Credentials1: TMenuItem;
     N1: TMenuItem;
+    PanelToolbar: TPanel;
+    ConfigToolBar: TToolBar;
+    btnConfigure: TToolButton;
+    MainToolBar: TToolBar;
+    btnInstall: TToolButton;
+    btnUninstall: TToolButton;
+    btnBuild: TToolButton;
+    btnRefresh: TToolButton;
+    ToolSeparator: TToolButton;
+    btnBackup: TToolButton;
+    btnSBOM: TToolButton;
+    btnDoctor: TToolButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -278,7 +279,7 @@ end;
 
 procedure TMainForm.acBuildExecute(Sender: TObject);
 begin
-  PopupOptions(btnBuild, BuildMenu);
+  acFullBuild.Execute;
 end;
 
 procedure TMainForm.acBuildUpdate(Sender: TObject);
@@ -305,7 +306,7 @@ end;
 
 procedure TMainForm.acConfigureExecute(Sender: TObject);
 begin
-  PopupOptions(btnConfigure, ConfigureMenu);
+  PopupOptions(btnConfigure.Parent, ConfigureMenu);
 end;
 
 procedure TMainForm.acConfigureUpdate(Sender: TObject);

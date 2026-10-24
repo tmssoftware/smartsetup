@@ -19,15 +19,17 @@ object MainForm: TMainForm
   TextHeight = 15
   object Panel3: TPanel
     Left = 0
-    Top = 46
+    Top = 47
     Width = 971
-    Height = 466
+    Height = 465
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
+    ExplicitTop = 46
+    ExplicitHeight = 466
     object LogSplitter: TSplitter
       Left = 0
-      Top = 319
+      Top = 318
       Width = 971
       Height = 12
       Cursor = crVSplit
@@ -42,12 +44,13 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 971
-      Height = 319
+      Height = 318
       ActivePage = tsProducts
       Align = alClient
       MultiLine = True
       TabOrder = 0
       TabPosition = tpBottom
+      ExplicitHeight = 319
       object tsProducts: TTabSheet
         Caption = 'Products'
         object TopPanel: TPanel
@@ -110,58 +113,63 @@ object MainForm: TMainForm
           Left = 0
           Top = 35
           Width = 963
-          Height = 256
+          Height = 255
           Align = alClient
           BevelEdges = [beLeft]
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 1
+          ExplicitHeight = 256
           object Splitter1: TSplitter
             Left = 690
             Top = 0
-            Height = 256
+            Height = 255
             MinSize = 1
             ResizeStyle = rsUpdate
             ExplicitLeft = 681
+            ExplicitHeight = 256
           end
           object DetailsPanel: TPanel
             Left = 693
             Top = 0
             Width = 268
-            Height = 256
+            Height = 255
             Align = alClient
             BevelEdges = [beLeft]
             BevelKind = bkFlat
             BevelOuter = bvNone
             TabOrder = 0
+            ExplicitHeight = 256
             object CardPanelDetails: TCardPanel
               Left = 0
               Top = 0
               Width = 266
-              Height = 256
+              Height = 255
               Align = alClient
               ActiveCard = CardOneProduct
               Caption = 'CardPanelDetails'
               TabOrder = 0
+              ExplicitHeight = 256
               object CardNoProducts: TCard
                 Left = 1
                 Top = 1
                 Width = 264
-                Height = 254
+                Height = 253
                 Caption = 'No Products'
                 CardIndex = 0
                 TabOrder = 2
-                ExplicitLeft = 0
-                ExplicitTop = 0
+                ExplicitHeight = 254
                 object Label1: TLabel
                   AlignWithMargins = True
                   Left = 3
                   Top = 32
-                  Width = 242
-                  Height = 30
+                  Width = 258
+                  Height = 218
                   Align = alClient
                   Caption = 'Select one or  multiple products on the left to install them'
                   WordWrap = True
+                  ExplicitWidth = 242
+                  ExplicitHeight = 30
                 end
                 object NoProdSmartSetup: TLabel
                   AlignWithMargins = True
@@ -188,10 +196,11 @@ object MainForm: TMainForm
                 Left = 1
                 Top = 1
                 Width = 264
-                Height = 254
+                Height = 253
                 Caption = 'One Product'
                 CardIndex = 1
                 TabOrder = 0
+                ExplicitHeight = 254
                 object OneProdProductName: TLabel
                   AlignWithMargins = True
                   Left = 3
@@ -216,20 +225,17 @@ object MainForm: TMainForm
                 Left = 1
                 Top = 1
                 Width = 264
-                Height = 254
+                Height = 253
                 Caption = 'Multiple Products'
                 CardIndex = 2
                 TabOrder = 1
-                ExplicitLeft = 0
-                ExplicitTop = 0
-                ExplicitWidth = 185
-                ExplicitHeight = 41
+                ExplicitHeight = 254
                 object MulProdProductNames: TLabel
                   AlignWithMargins = True
                   Left = 3
                   Top = 6
                   Width = 258
-                  Height = 224
+                  Height = 223
                   Margins.Top = 6
                   Align = alClient
                   AutoSize = False
@@ -249,7 +255,7 @@ object MainForm: TMainForm
                 object MulProdSelCount: TLabel
                   AlignWithMargins = True
                   Left = 3
-                  Top = 236
+                  Top = 235
                   Width = 258
                   Height = 15
                   Align = alBottom
@@ -266,7 +272,7 @@ object MainForm: TMainForm
             Left = 0
             Top = 0
             Width = 690
-            Height = 256
+            Height = 255
             Align = alLeft
             BorderStyle = bsNone
             Columns = <
@@ -313,6 +319,7 @@ object MainForm: TMainForm
             OnKeyPress = lvProductsKeyPress
             OnMouseMove = lvProductsMouseMove
             OnSelectItem = lvProductsSelectItem
+            ExplicitHeight = 256
           end
         end
       end
@@ -323,7 +330,7 @@ object MainForm: TMainForm
           Left = 0
           Top = 0
           Width = 963
-          Height = 291
+          Height = 290
           Align = alClient
           BorderStyle = bsNone
           Font.Charset = DEFAULT_CHARSET
@@ -335,17 +342,19 @@ object MainForm: TMainForm
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 0
+          ExplicitHeight = 291
         end
       end
     end
     object LogPanel: TPanel
       Left = 0
-      Top = 331
+      Top = 330
       Width = 971
       Height = 135
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
+      ExplicitTop = 331
       object lbLog: TControlList
         Left = 0
         Top = 0
@@ -509,84 +518,105 @@ object MainForm: TMainForm
       TabOrder = 0
     end
   end
-  object MainToolBar: TToolBar
+  object PanelToolbar: TPanel
     Left = 0
     Top = 0
     Width = 971
-    Height = 46
-    AutoSize = True
-    ButtonHeight = 46
-    ButtonWidth = 60
-    Images = ToolbarImageList
-    ShowCaptions = True
+    Height = 47
+    Align = alTop
+    BevelOuter = bvNone
+    Caption = 'PanelToolbar'
+    ShowCaption = False
     TabOrder = 3
-    object btnInstall: TToolButton
+    object ConfigToolBar: TToolBar
+      Left = 907
+      Top = 0
+      Width = 64
+      Height = 47
+      Align = alRight
+      AutoSize = True
+      ButtonHeight = 46
+      ButtonWidth = 60
+      Images = ToolbarImageList
+      ShowCaptions = True
+      TabOrder = 0
+      ExplicitLeft = 911
+      ExplicitHeight = 41
+      object btnConfigure: TToolButton
+        Left = 0
+        Top = 0
+        Action = acConfigure
+        AutoSize = True
+        ImageIndex = 17
+        PopupMenu = ConfigureMenu
+        Style = tbsWholeDropDown
+      end
+    end
+    object MainToolBar: TToolBar
       Left = 0
       Top = 0
-      Action = acInstall
-      ImageIndex = 0
-    end
-    object btnUninstall: TToolButton
-      Left = 60
-      Top = 0
-      Action = acUninstall
-      ImageIndex = 18
-    end
-    object btnBuild: TToolButton
-      Left = 120
-      Top = 0
-      Action = acBuild
-      ImageIndex = 14
-      PopupMenu = BuildMenu
-    end
-    object btnRefresh: TToolButton
-      Left = 180
-      Top = 0
-      Action = acRefresh
-      ImageIndex = 43
-    end
-    object ToolButton4: TToolButton
-      Left = 240
-      Top = 0
-      Width = 8
-      Caption = 'ToolButton4'
-      ImageName = 'install'
-      Style = tbsSeparator
-    end
-    object btnConfigure: TToolButton
-      Left = 248
-      Top = 0
-      Action = acConfigure
-      ImageIndex = 17
-      PopupMenu = ConfigureMenu
-    end
-    object ToolButton6: TToolButton
-      Left = 308
-      Top = 0
-      Width = 8
-      Caption = 'ToolButton6'
-      ImageIndex = 16
-      ImageName = 'sbom'
-      Style = tbsSeparator
-    end
-    object btnBackup: TToolButton
-      Left = 316
-      Top = 0
-      Action = acBackups
-      ImageIndex = 13
-    end
-    object btnSBOM: TToolButton
-      Left = 376
-      Top = 0
-      Action = acSBOM
-      ImageIndex = 16
-    end
-    object btnDoctor: TToolButton
-      Left = 436
-      Top = 0
-      Action = acDoctor
-      ImageIndex = 15
-      PopupMenu = DoctorMenu
+      Width = 907
+      Height = 47
+      Align = alClient
+      ButtonHeight = 46
+      ButtonWidth = 53
+      Images = ToolbarImageList
+      ShowCaptions = True
+      TabOrder = 1
+      ExplicitWidth = 483
+      ExplicitHeight = 46
+      object btnInstall: TToolButton
+        Left = 0
+        Top = 0
+        Action = acInstall
+        ImageIndex = 0
+      end
+      object btnUninstall: TToolButton
+        Left = 53
+        Top = 0
+        Action = acUninstall
+        ImageIndex = 18
+      end
+      object btnBuild: TToolButton
+        Left = 106
+        Top = 0
+        Action = acBuild
+        ImageIndex = 14
+        PopupMenu = BuildMenu
+      end
+      object btnRefresh: TToolButton
+        Left = 159
+        Top = 0
+        Action = acRefresh
+        ImageIndex = 43
+      end
+      object ToolSeparator: TToolButton
+        Left = 212
+        Top = 0
+        Width = 8
+        Caption = 'ToolSeparator'
+        ImageName = 'install'
+        Style = tbsSeparator
+      end
+      object btnBackup: TToolButton
+        Left = 220
+        Top = 0
+        Action = acBackups
+        ImageIndex = 13
+      end
+      object btnSBOM: TToolButton
+        Left = 273
+        Top = 0
+        Action = acSBOM
+        ImageIndex = 16
+      end
+      object btnDoctor: TToolButton
+        Left = 326
+        Top = 0
+        Action = acDoctor
+        ImageIndex = 15
+        PopupMenu = DoctorMenu
+      end
     end
   end
   object ActionList1: TActionList
