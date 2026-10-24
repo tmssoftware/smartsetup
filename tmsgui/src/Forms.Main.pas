@@ -90,7 +90,6 @@ type
     CardNoProducts: TCard;
     Label1: TLabel;
     NoProdSmartSetup: TLabel;
-    OneProdProductName: TLabel;
     MulProdProductNames: TLabel;
     MulProdSelCount: TLabel;
     Credentials1: TMenuItem;
@@ -107,6 +106,10 @@ type
     btnBackup: TToolButton;
     btnSBOM: TToolButton;
     btnDoctor: TToolButton;
+    SingleInfoPanel: TStackPanel;
+    OneProdProductName: TLabel;
+    OneProdDescription: TLabel;
+    OneProdUrl: TLinkLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -1027,6 +1030,8 @@ begin
     exit;
   end;
   OneProdProductName.Caption := Product.DisplayName;
+  OneProdDescription.Caption := Product.Description;
+  OneProdUrl.Caption := Product.Url;
   CardPanelDetails.ActiveCard := CardOneProduct;
 end;
 

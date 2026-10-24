@@ -201,24 +201,72 @@ object MainForm: TMainForm
                 CardIndex = 1
                 TabOrder = 0
                 ExplicitHeight = 254
-                object OneProdProductName: TLabel
-                  AlignWithMargins = True
-                  Left = 3
-                  Top = 6
-                  Width = 258
-                  Height = 21
-                  Margins.Top = 6
-                  Align = alTop
-                  AutoSize = False
-                  EllipsisPosition = epEndEllipsis
-                  Font.Charset = DEFAULT_CHARSET
-                  Font.Color = clBtnText
-                  Font.Height = -15
-                  Font.Name = 'Segoe UI'
-                  Font.Style = []
-                  ParentFont = False
-                  ExplicitTop = 5
-                  ExplicitWidth = 262
+                object SingleInfoPanel: TStackPanel
+                  Left = 0
+                  Top = 0
+                  Width = 264
+                  Height = 253
+                  Align = alClient
+                  BevelOuter = bvNone
+                  ControlCollection = <
+                    item
+                      Control = OneProdProductName
+                      HorizontalPositioning = sphpFill
+                      VerticalPositioning = spvpTop
+                    end
+                    item
+                      Control = OneProdDescription
+                      HorizontalPositioning = sphpFill
+                      VerticalPositioning = spvpTop
+                    end
+                    item
+                      Control = OneProdUrl
+                    end>
+                  TabOrder = 0
+                  ExplicitLeft = 40
+                  ExplicitTop = 24
+                  ExplicitWidth = 185
+                  ExplicitHeight = 200
+                  object OneProdProductName: TLabel
+                    AlignWithMargins = True
+                    Left = 3
+                    Top = 6
+                    Width = 258
+                    Height = 21
+                    Margins.Top = 6
+                    AutoSize = False
+                    EllipsisPosition = epEndEllipsis
+                    Font.Charset = DEFAULT_CHARSET
+                    Font.Color = clBtnText
+                    Font.Height = -15
+                    Font.Name = 'Segoe UI'
+                    Font.Style = []
+                    ParentFont = False
+                  end
+                  object OneProdDescription: TLabel
+                    AlignWithMargins = True
+                    Left = 3
+                    Top = 35
+                    Width = 258
+                    Height = 78
+                    AutoSize = False
+                    EllipsisPosition = epEndEllipsis
+                    Font.Charset = DEFAULT_CHARSET
+                    Font.Color = clBtnText
+                    Font.Height = -12
+                    Font.Name = 'Segoe UI'
+                    Font.Style = []
+                    ParentFont = False
+                    WordWrap = True
+                  end
+                  object OneProdUrl: TLinkLabel
+                    AlignWithMargins = True
+                    Left = 3
+                    Top = 121
+                    Width = 4
+                    Height = 4
+                    TabOrder = 0
+                  end
                 end
               end
               object CardMultipleProducts: TCard
@@ -534,7 +582,6 @@ object MainForm: TMainForm
       Width = 64
       Height = 47
       Align = alRight
-      AutoSize = True
       ButtonHeight = 46
       ButtonWidth = 60
       Images = ToolbarImageList
