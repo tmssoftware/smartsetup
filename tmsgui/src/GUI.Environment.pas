@@ -1297,6 +1297,7 @@ begin
           begin
             EnableServerConfigItem('tms', False);
             RefreshServers;
+            RefreshFetchedProductsAfterJob;
             Done := True;
           end
           else Done := True;

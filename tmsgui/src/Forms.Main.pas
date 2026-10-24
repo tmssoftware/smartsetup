@@ -9,7 +9,7 @@ uses
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
   Vcl.VirtualImage, Util.Animator, Winapi.ShlObj, System.ImageList, Vcl.ImgList,
   Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
-  Vcl.ToolWin;
+  Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels;
 
 type
   TMainForm = class(TForm)
@@ -30,7 +30,7 @@ type
     PageControl1: TPageControl;
     tsProducts: TTabSheet;
     lvProducts: TListView;
-    RightPanel: TPanel;
+    DetailsPanel: TPanel;
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
     LogPanel: TPanel;
@@ -93,6 +93,19 @@ type
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     acOpenConfigFile: TAction;
+    Splitter1: TSplitter;
+    PanelProd: TPanel;
+    CardPanelDetails: TCardPanel;
+    CardOneProduct: TCard;
+    CardMultipleProducts: TCard;
+    CardNoProducts: TCard;
+    Label1: TLabel;
+    NoProdSmartSetup: TLabel;
+    OneProdProductName: TLabel;
+    MulProdProductNames: TLabel;
+    MulProdSelCount: TLabel;
+    Credentials1: TMenuItem;
+    N1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -149,6 +162,9 @@ type
     procedure acDoctorFixExecute(Sender: TObject);
     procedure acDoctorAutoFixExecute(Sender: TObject);
     procedure acOpenConfigFileExecute(Sender: TObject);
+    procedure lvProductsSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure lvProductsKeyPress(Sender: TObject; var Key: Char);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -186,6 +202,10 @@ type
 
     function GetLastError: string;
     function EnsureValidFolder(const RejectCaption: string): Boolean;
+    procedure UpdateDetailsPane;
+    procedure FillOneProductDetails;
+    procedure FillMultipleProductDetails;
+    procedure PopupOptions(const Control: TControl; const Menu: TPopupMenu);
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -258,7 +278,7 @@ end;
 
 procedure TMainForm.acBuildExecute(Sender: TObject);
 begin
-  BuildMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
+  PopupOptions(btnBuild, BuildMenu);
 end;
 
 procedure TMainForm.acBuildUpdate(Sender: TObject);
@@ -276,9 +296,16 @@ begin
   acCancelExecution.Enabled := GUI.IsRunning;
 end;
 
+procedure TMainForm.PopupOptions(const Control: TControl; const Menu: TPopupMenu);
+begin
+  var Pt := ClientToScreen(TPoint.Create(Control.Left, Control.Top + Control.Height));
+  Menu.Popup(Pt.X, Pt.Y);
+
+end;
+
 procedure TMainForm.acConfigureExecute(Sender: TObject);
 begin
-  ConfigureMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
+  PopupOptions(btnConfigure, ConfigureMenu);
 end;
 
 procedure TMainForm.acConfigureUpdate(Sender: TObject);
@@ -308,7 +335,7 @@ end;
 
 procedure TMainForm.acDoctorExecute(Sender: TObject);
 begin
-  DoctorMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
+  PopupOptions(btnDoctor, DoctorMenu);
 end;
 
 procedure TMainForm.acDoctorFixExecute(Sender: TObject);
@@ -953,6 +980,28 @@ begin
   end;
 end;
 
+procedure TMainForm.lvProductsKeyPress(Sender: TObject; var Key: Char);
+begin
+  // Type-to-filter: characters typed anywhere in the products page go to the search box, without focusing it.
+  // Controls that take text themselves (edits, memos, combos) keep their keys.
+  if PageControl1.ActivePage <> tsProducts then exit;
+  if (ActiveControl is TCustomEdit) or (ActiveControl is TCustomComboBox) then exit;
+  if not edSearch.Enabled then exit;
+
+  case Key of
+    #8: // Backspace
+      if edSearch.Text <> '' then
+        edSearch.Text := Copy(edSearch.Text, 1, Length(edSearch.Text) - 1);
+    #27: // Escape
+      edSearch.Text := '';
+    else
+      if Key < ' ' then exit; // Ctrl+key and other control characters
+      edSearch.Text := edSearch.Text + Key;
+  end;
+  edSearch.SelStart := Length(edSearch.Text);
+  Key := #0;
+end;
+
 procedure TMainForm.lvProductsMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
   var Item := lvProducts.GetItemAt(X, Y);
@@ -965,6 +1014,49 @@ begin
   // drLabel = rectangle for the first column (caption)
   var R := Item.DisplayRect(drLabel);
   OverCaption := PtInRect(R, Point(X, Y));
+end;
+
+procedure TMainForm.FillOneProductDetails;
+begin
+  var Product := ProductFromItem(lvProducts.Selected);
+
+  if Product = nil then
+  begin
+    CardPanelDetails.ActiveCard := CardNoProducts;
+    exit;
+  end;
+  OneProdProductName.Caption := Product.DisplayName;
+  CardPanelDetails.ActiveCard := CardOneProduct;
+end;
+
+procedure TMainForm.FillMultipleProductDetails;
+begin
+  var AllProducts := '';
+  for var Item in lvProducts.Items do
+    if Item.Selected then
+    begin
+      if AllProducts <> '' then AllProducts := AllProducts + ', ';
+
+      AllProducts := AllProducts + Item.SubItems[SubItemIndex(ColName)];
+    end;
+
+  MulProdProductNames.Caption := AllProducts;
+  MulProdSelCount.Caption := IntToStr(lvProducts.SelCount) + ' products selected.';
+  CardPanelDetails.ActiveCard := CardMultipleProducts;
+end;
+
+procedure TMainForm.UpdateDetailsPane;
+begin
+ var SelCount := lvProducts.SelCount;
+ if SelCount = 1 then FillOneProductDetails
+ else if SelCount > 1 then FillMultipleProductDetails
+ else CardPanelDetails.ActiveCard := CardNoProducts;
+end;
+
+procedure TMainForm.lvProductsSelectItem(Sender: TObject; Item: TListItem;
+  Selected: Boolean);
+begin
+  UpdateDetailsPane;
 end;
 
 procedure TMainForm.NewVersionDetectedEvent;
@@ -1024,7 +1116,7 @@ procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm
 begin
   Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid, DisableServer);
   if DisableServer and not Confirm then
-    TDialogForm.ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
+    TDialogForm.ShowMessage('The "tms" server is now disabled. To turn it back on, go to Configure (gear icon), then Common settings and select "Servers"');
 end;
 
 function TMainForm.AnimatorFor(const Command: TTmsCommand): TAnimator;
@@ -1100,6 +1192,9 @@ begin
   StatusBar.Panels[StatusRepository].Text := Repository;
 
   StatusBar.Panels[StatusWorkingFolder].Text := GUI.Info.WorkingFolder;
+
+  NoProdSmartSetup.Caption := 'TMS SmartSetup ' + TMSVersion;
+
 end;
 
 procedure TMainForm.SortProducts;
@@ -1305,6 +1400,7 @@ begin
   finally
     lvProducts.Items.EndUpdate;
   end;
+  UpdateDetailsPane;
 end;
 
 procedure TMainForm.ProgressEvent(const Percent: Integer);

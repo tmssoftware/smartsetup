@@ -10,6 +10,7 @@ object MainForm: TMainForm
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
+  KeyPreview = True
   Position = poScreenCenter
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
@@ -49,69 +50,6 @@ object MainForm: TMainForm
       TabPosition = tpBottom
       object tsProducts: TTabSheet
         Caption = 'Products'
-        object lvProducts: TListView
-          Left = 0
-          Top = 35
-          Width = 690
-          Height = 256
-          Align = alLeft
-          BorderStyle = bsNone
-          Columns = <
-            item
-            end
-            item
-              Caption = 'Product Id'
-              Width = 120
-            end
-            item
-              Caption = 'Product Name'
-              Width = 200
-            end
-            item
-              Caption = 'Local version'
-              Width = 100
-            end
-            item
-              Caption = 'Remote version'
-              Width = 100
-            end
-            item
-              Caption = 'Status'
-              Width = 100
-            end>
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -12
-          Font.Name = 'Segoe UI'
-          Font.Style = []
-          HideSelection = False
-          MultiSelect = True
-          ReadOnly = True
-          RowSelect = True
-          ParentFont = False
-          ParentShowHint = False
-          PopupMenu = pmProducts
-          ShowHint = True
-          TabOrder = 1
-          ViewStyle = vsReport
-          OnColumnClick = lvProductsColumnClick
-          OnCompare = lvProductsCompare
-          OnInfoTip = lvProductsInfoTip
-          OnMouseMove = lvProductsMouseMove
-        end
-        object RightPanel: TPanel
-          Left = 690
-          Top = 35
-          Width = 273
-          Height = 256
-          Align = alClient
-          BevelEdges = [beLeft]
-          BevelKind = bkFlat
-          BevelOuter = bvNone
-          TabOrder = 2
-          ExplicitLeft = 683
-          ExplicitWidth = 290
-        end
         object TopPanel: TPanel
           Left = 0
           Top = 0
@@ -166,6 +104,215 @@ object MainForm: TMainForm
             Items.Strings = (
               'All'
               'Installed')
+          end
+        end
+        object PanelProd: TPanel
+          Left = 0
+          Top = 35
+          Width = 963
+          Height = 256
+          Align = alClient
+          BevelEdges = [beLeft]
+          BevelKind = bkFlat
+          BevelOuter = bvNone
+          TabOrder = 1
+          object Splitter1: TSplitter
+            Left = 690
+            Top = 0
+            Height = 256
+            MinSize = 1
+            ResizeStyle = rsUpdate
+            ExplicitLeft = 681
+          end
+          object DetailsPanel: TPanel
+            Left = 693
+            Top = 0
+            Width = 268
+            Height = 256
+            Align = alClient
+            BevelEdges = [beLeft]
+            BevelKind = bkFlat
+            BevelOuter = bvNone
+            TabOrder = 0
+            object CardPanelDetails: TCardPanel
+              Left = 0
+              Top = 0
+              Width = 266
+              Height = 256
+              Align = alClient
+              ActiveCard = CardOneProduct
+              Caption = 'CardPanelDetails'
+              TabOrder = 0
+              object CardNoProducts: TCard
+                Left = 1
+                Top = 1
+                Width = 264
+                Height = 254
+                Caption = 'No Products'
+                CardIndex = 0
+                TabOrder = 2
+                ExplicitLeft = 0
+                ExplicitTop = 0
+                object Label1: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 32
+                  Width = 242
+                  Height = 30
+                  Align = alClient
+                  Caption = 'Select one or  multiple products on the left to install them'
+                  WordWrap = True
+                end
+                object NoProdSmartSetup: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 6
+                  Width = 258
+                  Height = 20
+                  Margins.Top = 6
+                  Align = alTop
+                  AutoSize = False
+                  Caption = 'TMS Smart Setup'
+                  EllipsisPosition = epEndEllipsis
+                  Font.Charset = DEFAULT_CHARSET
+                  Font.Color = clBtnText
+                  Font.Height = -15
+                  Font.Name = 'Segoe UI'
+                  Font.Style = []
+                  ParentFont = False
+                  ExplicitTop = 5
+                  ExplicitWidth = 254
+                end
+              end
+              object CardOneProduct: TCard
+                Left = 1
+                Top = 1
+                Width = 264
+                Height = 254
+                Caption = 'One Product'
+                CardIndex = 1
+                TabOrder = 0
+                object OneProdProductName: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 6
+                  Width = 258
+                  Height = 21
+                  Margins.Top = 6
+                  Align = alTop
+                  AutoSize = False
+                  EllipsisPosition = epEndEllipsis
+                  Font.Charset = DEFAULT_CHARSET
+                  Font.Color = clBtnText
+                  Font.Height = -15
+                  Font.Name = 'Segoe UI'
+                  Font.Style = []
+                  ParentFont = False
+                  ExplicitTop = 5
+                  ExplicitWidth = 262
+                end
+              end
+              object CardMultipleProducts: TCard
+                Left = 1
+                Top = 1
+                Width = 264
+                Height = 254
+                Caption = 'Multiple Products'
+                CardIndex = 2
+                TabOrder = 1
+                ExplicitLeft = 0
+                ExplicitTop = 0
+                ExplicitWidth = 185
+                ExplicitHeight = 41
+                object MulProdProductNames: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 6
+                  Width = 258
+                  Height = 224
+                  Margins.Top = 6
+                  Align = alClient
+                  AutoSize = False
+                  EllipsisPosition = epEndEllipsis
+                  Font.Charset = DEFAULT_CHARSET
+                  Font.Color = clBtnText
+                  Font.Height = -15
+                  Font.Name = 'Segoe UI'
+                  Font.Style = []
+                  ParentFont = False
+                  WordWrap = True
+                  ExplicitLeft = 11
+                  ExplicitTop = 13
+                  ExplicitWidth = 246
+                  ExplicitHeight = 236
+                end
+                object MulProdSelCount: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 236
+                  Width = 258
+                  Height = 15
+                  Align = alBottom
+                  AutoSize = False
+                  EllipsisPosition = epEndEllipsis
+                  ExplicitLeft = 0
+                  ExplicitTop = 239
+                  ExplicitWidth = 3
+                end
+              end
+            end
+          end
+          object lvProducts: TListView
+            Left = 0
+            Top = 0
+            Width = 690
+            Height = 256
+            Align = alLeft
+            BorderStyle = bsNone
+            Columns = <
+              item
+              end
+              item
+                Caption = 'Product Id'
+                Width = 120
+              end
+              item
+                Caption = 'Product Name'
+                Width = 200
+              end
+              item
+                Caption = 'Local version'
+                Width = 100
+              end
+              item
+                Caption = 'Remote version'
+                Width = 100
+              end
+              item
+                Caption = 'Status'
+                Width = 100
+              end>
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -12
+            Font.Name = 'Segoe UI'
+            Font.Style = []
+            HideSelection = False
+            MultiSelect = True
+            ReadOnly = True
+            RowSelect = True
+            ParentFont = False
+            ParentShowHint = False
+            PopupMenu = pmProducts
+            ShowHint = True
+            TabOrder = 1
+            ViewStyle = vsReport
+            OnColumnClick = lvProductsColumnClick
+            OnCompare = lvProductsCompare
+            OnInfoTip = lvProductsInfoTip
+            OnKeyPress = lvProductsKeyPress
+            OnMouseMove = lvProductsMouseMove
+            OnSelectItem = lvProductsSelectItem
           end
         end
       end
@@ -411,6 +558,7 @@ object MainForm: TMainForm
       Top = 0
       Action = acConfigure
       ImageIndex = 17
+      PopupMenu = ConfigureMenu
     end
     object ToolButton6: TToolButton
       Left = 308
@@ -438,6 +586,7 @@ object MainForm: TMainForm
       Top = 0
       Action = acDoctor
       ImageIndex = 15
+      PopupMenu = DoctorMenu
     end
   end
   object ActionList1: TActionList
@@ -495,7 +644,7 @@ object MainForm: TMainForm
     end
     object acCredentials: TAction
       Category = 'Commands'
-      Caption = '&Credentials'
+      Caption = '&TMS credentials'
       OnExecute = acCredentialsExecute
       OnUpdate = acCredentialsUpdate
     end
@@ -514,7 +663,7 @@ object MainForm: TMainForm
     end
     object acSettings: TAction
       Category = 'Menus'
-      Caption = 'Settings'
+      Caption = 'Common &settings'
       ShortCut = 24698
       OnExecute = acSettingsExecute
       OnUpdate = acSettingsUpdate
@@ -597,7 +746,7 @@ object MainForm: TMainForm
     end
     object acOpenConfigFile: TAction
       Category = 'Menus'
-      Caption = 'Open config file'
+      Caption = 'Open config &file'
       OnExecute = acOpenConfigFileExecute
       OnUpdate = acConfigureUpdate
     end
@@ -3311,6 +3460,12 @@ object MainForm: TMainForm
     Top = 200
     object MenuItem3: TMenuItem
       Action = acSettings
+    end
+    object Credentials1: TMenuItem
+      Action = acCredentials
+    end
+    object N1: TMenuItem
+      Caption = '-'
     end
     object MenuItem4: TMenuItem
       Action = acOpenConfigFile
