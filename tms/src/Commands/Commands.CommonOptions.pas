@@ -16,6 +16,7 @@ procedure CheckAppAlreadyRunning;
 
 var
   VerbositySetByCommandLine :boolean = false;
+  PauseOnExit: boolean = false;
   ConsoleLogDisplayOptions: TConsoleLogDisplayOptionSet = LogDisplayOptionsDefaut;
 
 type
@@ -137,6 +138,15 @@ begin
         Logger.Verbosity := TVerbosity.trace;
         VerbositySetByCommandLine := true;
       end;
+    end);
+  option.HasValue := False;
+
+  // wait for a key before exiting, so the console window stays open when launched from the GUI
+  option := TOptionsRegistry.RegisterOption<Boolean>(
+    'pause', '', 'waits for Enter before exiting',
+    procedure(const Value: Boolean)
+    begin
+      PauseOnExit := Value;
     end);
   option.HasValue := False;
 

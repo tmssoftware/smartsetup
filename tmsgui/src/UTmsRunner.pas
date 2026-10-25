@@ -22,7 +22,7 @@ type
   {$SCOPEDENUMS ON}
   TTmsCommand = (List, ListRemote, Info, Credentials, Configure, LogView, SelfUpdate,
     ConfigRead, ConfigWrite, ServerList, ServerAdd, ServerEnable, ServerRemove,
-    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Doctor);
+    VersionsRemote, Build, Install, Uninstall, Pin, Unpin);
   {$SCOPEDENUMS OFF}
 
   TTmsRunner = class
@@ -176,12 +176,6 @@ type
     procedure RunConfigure(Silent: Boolean);
   end;
 
-  TTmsDoctorRunner = class(TTmsRunner)
-  public
-    class function Command: TTmsCommand; override;
-    procedure RunDoctor(const Fix: boolean; const Confirm: boolean);
-  end;
-
   TTmsLogViewRunner = class(TTmsRunner)
   public
     class function Command: TTmsCommand; override;
@@ -270,7 +264,7 @@ function TmsCommandName(const Command: TTmsCommand): string;
 const
   Names: array[TTmsCommand] of string = ('list', 'list-remote', 'info', 'credentials', 'config', 'log-view', 'self-update',
     'config-read', 'config-write', 'server-list', 'server-add', 'server-enable', 'server-remove',
-    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'doctor');
+    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin');
 begin
   Result := Names[Command];
 end;
@@ -996,24 +990,6 @@ begin
   if not Initialized then exit('Error reading working folder');
 
   Result := FWorkingFolder;
-end;
-
-{ TTmsDoctorRunner }
-
-class function TTmsDoctorRunner.Command: TTmsCommand;
-begin
-  Result := TTmsCommand.Doctor;
-end;
-
-procedure TTmsDoctorRunner.RunDoctor(const Fix, Confirm: boolean);
-begin
-  var FixString := '';
-  if Fix then FixString := ' -fix';
-  var ConfirmString := '';
-  if not Confirm then ConfirmString := ' -do-not-confirm';
-
-  var Command := 'doctor' + FixString + ConfirmString;
-  Run(Command);
 end;
 
 end.

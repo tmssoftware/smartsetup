@@ -182,6 +182,12 @@ begin
     end;
   end;
 
+  if PauseOnExit then
+  begin
+    WriteLn;
+    Write('Press Enter to close...');
+    ReadLn;
+  end;
 
 {$IFDEF DEBUG}
 {$IFDEF MSWINDOWS}

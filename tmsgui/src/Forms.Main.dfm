@@ -785,7 +785,6 @@ object MainForm: TMainForm
         Top = 0
         Action = acDoctor
         ImageIndex = 15
-        PopupMenu = DoctorMenu
       end
     end
   end
@@ -925,24 +924,6 @@ object MainForm: TMainForm
       ImageName = 'build\build'
       OnExecute = acBuildExecute
       OnUpdate = acBuildUpdate
-    end
-    object acDoctorDiagnose: TAction
-      Category = 'Commands'
-      Caption = '&Diagnose only. Do not change anything'
-      OnExecute = acDoctorDiagnoseExecute
-      OnUpdate = acDoctorUpdate
-    end
-    object acDoctorFix: TAction
-      Category = 'Commands'
-      Caption = '&Fix but confirm each fix'
-      OnExecute = acDoctorFixExecute
-      OnUpdate = acDoctorUpdate
-    end
-    object acDoctorAutoFix: TAction
-      Category = 'Commands'
-      Caption = '&Automatically apply fixes (use with caution)'
-      OnExecute = acDoctorAutoFixExecute
-      OnUpdate = acDoctorUpdate
     end
     object acOpenConfigFile: TAction
       Category = 'Menus'
@@ -3641,19 +3622,6 @@ object MainForm: TMainForm
     Height = 24
     Left = 360
     Top = 176
-  end
-  object DoctorMenu: TPopupMenu
-    Left = 592
-    Top = 144
-    object MenuItem1: TMenuItem
-      Action = acDoctorDiagnose
-    end
-    object MenuItem2: TMenuItem
-      Action = acDoctorFix
-    end
-    object Automaticallyapplyfixesusewithcaution1: TMenuItem
-      Action = acDoctorAutoFix
-    end
   end
   object ConfigureMenu: TPopupMenu
     Left = 560

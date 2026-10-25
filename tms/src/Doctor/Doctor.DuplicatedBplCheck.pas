@@ -339,9 +339,11 @@ begin
             var Select := '';
             //We could use SHOpenFolderAndSelectItems to open explorer with multiple files selected, but it isn't worth.
             //It gets difficult to see if more than one file is selected. So we will only select them if it is a single file.
-            if Length(Files) = 1 then Select := '/select,"' +  TPath.GetFullPath(TPath.Combine(Folders[i], Files[0])) + '"';
-
-            ShellExecute(0, 'open', 'explorer', PChar(Select), PChar(Folders[i]), SW_SHOWNORMAL);
+            if Length(Files) > 0 then
+            begin
+              Select := '/select,"' +  TPath.GetFullPath(TPath.Combine(Folders[i], Files[0])) + '"';
+              ShellExecute(0, 'open', 'explorer', PChar(Select), PChar(Folders[i]), SW_SHOWNORMAL);
+            end;
 
           end;
         end,

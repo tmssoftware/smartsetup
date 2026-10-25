@@ -71,13 +71,6 @@ type
     acRefresh: TAction;
     acBuild: TAction;
     cbAllOrInstalled: TComboBox;
-    DoctorMenu: TPopupMenu;
-    MenuItem1: TMenuItem;
-    MenuItem2: TMenuItem;
-    acDoctorDiagnose: TAction;
-    acDoctorFix: TAction;
-    acDoctorAutoFix: TAction;
-    Automaticallyapplyfixesusewithcaution1: TMenuItem;
     ConfigureMenu: TPopupMenu;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
@@ -174,9 +167,6 @@ type
     procedure cbAllOrInstalledChange(Sender: TObject);
     procedure acDoctorExecute(Sender: TObject);
     procedure acDoctorUpdate(Sender: TObject);
-    procedure acDoctorDiagnoseExecute(Sender: TObject);
-    procedure acDoctorFixExecute(Sender: TObject);
-    procedure acDoctorAutoFixExecute(Sender: TObject);
     procedure acOpenConfigFileExecute(Sender: TObject);
     procedure lvProductsSelectItem(Sender: TObject; Item: TListItem;
       Selected: Boolean);
@@ -342,24 +332,21 @@ begin
   acCredentials.Enabled := GUI.CanRequestCredentials;
 end;
 
-procedure TMainForm.acDoctorAutoFixExecute(Sender: TObject);
-begin
-  GUI.ExecuteDoctor(true, false);
-end;
-
-procedure TMainForm.acDoctorDiagnoseExecute(Sender: TObject);
-begin
-  GUI.ExecuteDoctor(false, false);
-end;
-
 procedure TMainForm.acDoctorExecute(Sender: TObject);
 begin
-  PopupOptions(btnDoctor, DoctorMenu);
-end;
-
-procedure TMainForm.acDoctorFixExecute(Sender: TObject);
-begin
-  GUI.ExecuteDoctor(true, true);
+  var ExeFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'tms.exe');
+  // No cmd.exe: it would expand %vars% and strip quotes in the path. tms.exe gets its own console, and -pause keeps it open.
+  var CmdLine := '"' + ExeFileName + '" doctor -pause -fully-interactive';
+  UniqueString(CmdLine); // CreateProcessW may write to the buffer
+  var SI: TStartupInfo;
+  var PI: TProcessInformation;
+  FillChar(SI, SizeOf(SI), 0);
+  SI.cb := SizeOf(SI);
+  if not CreateProcess(PChar(ExeFileName), PChar(CmdLine), nil, nil, False,
+    CREATE_NEW_CONSOLE, nil, PChar(TPath.GetDirectoryName(ExeFileName)), SI, PI) then
+    RaiseLastOSError;
+  CloseHandle(PI.hThread);
+  CloseHandle(PI.hProcess);
 end;
 
 procedure TMainForm.acDoctorUpdate(Sender: TObject);

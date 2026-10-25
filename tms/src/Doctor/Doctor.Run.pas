@@ -17,10 +17,11 @@ TDoctor = class
     function GetYesNoAnswer(const Key: string; const Fix: TFix): boolean;
     function GetNumericAnswer(const Key: string; const Fix: TFix): boolean;
     procedure WriteQuestion(const Fix: TFix);
+    function AskParameters(var FixErrors, Confirm: boolean): boolean;
   public
     constructor Create(const AlternateRegistryKey: string);
     destructor Destroy; override;
-    procedure RunAllChecks(const FixErrors, Confirm: boolean);
+    procedure RunAllChecks(const aFixErrors, aConfirm, aFullyInteractive: boolean);
 end;
 
 implementation
@@ -203,10 +204,60 @@ begin
 
 end;
 
-
-
-procedure TDoctor.RunAllChecks(const FixErrors, Confirm: boolean);
+function TDoctor.AskParameters(var FixErrors, Confirm: boolean): boolean;
 begin
+  Logger.StartSection(TMessageType.Check, 'Doctor Parameters');
+  try
+    Logger.Message(TLogMessageKind.Question, 'Please select a running mode:');
+    Logger.Message(TLogMessageKind.Text, '  - 1. Only Diagnose (No changes will be made to the machine)');
+    Logger.Message(TLogMessageKind.Text, '  - 2. Confirm each fix (Doctor will ask for confirmation in every fix, and only apply the fix if you confirm)');
+    Logger.Message(TLogMessageKind.Text, '  - 3. Automatically apply all fixes (Apply all fixes that can be applies automatically. Use with caution)');
+    Logger.Message(TLogMessageKind.Text, '');
+    Logger.Message(TLogMessageKind.Text, '  - 0. Abort and don''t run any test');
+
+    while(True) do
+    begin
+      var Key:string := ' ';
+      ReadLn(Key);
+      if Length(Key.Trim) <> 1 then
+      begin
+        Logger.Message(TLogMessageKind.Question, 'Please enter 1, 2, 3 or 0.');
+        continue;
+      end;
+
+      case Key.Trim.Chars[0] of
+        '0': Exit(false);
+        '1': begin
+             FixErrors := false;
+             Confirm := true;
+             Exit(true);
+           end;
+        '2': begin
+             FixErrors := true;
+             Confirm := true;
+             Exit(true);
+           end;
+        '3': begin
+             FixErrors := true;
+             Confirm := false;
+             Exit(true);
+           end;
+        else
+          Logger.Message(TLogMessageKind.Question, 'Please enter 1, 2, 3 or 0.');
+      end;
+    end;
+
+  finally
+    Logger.FinishSection(TMessageType.Check);
+  end;
+end;
+
+procedure TDoctor.RunAllChecks(const aFixErrors, aConfirm, aFullyInteractive: boolean);
+begin
+  var FixErrors := aFixErrors;
+  var Confirm := aConfirm;
+  if aFullyInteractive then if not AskParameters(FixErrors, Confirm) then exit;
+
   var FixesToApply := 0;
   var FixesApplied:= 0;
   var FixesManual := 0;
@@ -234,7 +285,13 @@ begin
    if FixErrors then
    begin
      Logger.Message(TLogMessageKind.Conclusion, IntToStr(FixesApplied) + ' of ' + IntToStr(FixesToApply) + ' fixes were applied.');
-     if FixesManual > 0 then Logger.Message(TLogMessageKind.Conclusion, IntToStr(FixesManual) + ' fixes couldn''t be applied automatically because they require manual intervention. Run doctor without "-do-not-confirm" flag to fix those.')
+     if FixesManual > 0 then
+     begin
+       var FixAction := 'without "-do-not-confirm" flag';
+       if aFullyInteractive then FixAction := ' and choose option "2. Confirm each fix"';
+
+       Logger.Message(TLogMessageKind.Conclusion, IntToStr(FixesManual) + ' fixes couldn''t be applied automatically because they require manual intervention. Run doctor ' + FixAction + ' to fix those.')
+     end;
 
    end
    else Logger.Message(TLogMessageKind.Conclusion, 'No fix was applied out of ' + IntToStr(FixesToApply) + ' available. To automatically apply fixes, run "tms doctor -fix"');
