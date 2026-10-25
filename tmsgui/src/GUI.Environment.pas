@@ -6,7 +6,7 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
-  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes;
+  Deget.Version, Deget.CoreTypes, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -36,6 +36,13 @@ type
     property OnLogMessage: TLogMessageProc read FOnLogMessage write FOnLogMessage;
   end;
 
+  TGUIProductInstallation = record
+    IDEName: TIDEName;
+    Platform: TPlatform;
+    IsBuilt: Boolean;
+    IsRegistered: Boolean;
+  end;
+
   TGUIProduct = class
   private
     FId: string;
@@ -47,6 +54,11 @@ type
     FVendorId: string;
     FServer: string;
     FIsPinned: Boolean;
+    FChannel: string;
+    FDescription: string;
+    FUrl: string;
+    FLicenseStatus: string;
+    FInstallations: TArray<TGUIProductInstallation>;
   public
     function IsOutdated: Boolean;
     function DisplayName: string;
@@ -59,6 +71,12 @@ type
     property VendorId: string read FVendorId write FVendorId;
     property Server: string read FServer write FServer;
     property IsPinned: Boolean read FIsPinned write FIsPinned;
+    property Channel: string read FChannel write FChannel;
+    property Description: string read FDescription write FDescription;
+    property Url: string read FUrl write FUrl;
+    property LicenseStatus: string read FLicenseStatus write FLicenseStatus;
+    // IDEs and platforms where the product is built and/or registered
+    property Installations: TArray<TGUIProductInstallation> read FInstallations write FInstallations;
   end;
 
   TGUIProductList = class(TObjectList<TGUIProduct>)
@@ -568,6 +586,27 @@ begin
     GUIProduct.HasFetchInfo := not Product.Local;
     GUIProduct.Server := Product.Server;
     GUIProduct.IsPinned := Product.Pinned;
+    GUIProduct.Channel := Product.Channel;
+
+    var Installations: TArray<TGUIProductInstallation> := [];
+    for var IDEPair in Product.IDEs do
+    begin
+      // Skip IDEs or platforms unknown to this version of the GUI
+      if (Ord(IDEPair.Key) < Ord(Low(TIDEName))) or (Ord(IDEPair.Key) > Ord(High(TIDEName))) then
+        Continue;
+      for var PlatPair in IDEPair.Value.Platforms do
+      begin
+        if (Ord(PlatPair.Key) < Ord(Low(TPlatform))) or (Ord(PlatPair.Key) > Ord(High(TPlatform))) then
+          Continue;
+        var Installation: TGUIProductInstallation;
+        Installation.IDEName := IDEPair.Key;
+        Installation.Platform := PlatPair.Key;
+        Installation.IsBuilt := PlatPair.Value.IsBuilt;
+        Installation.IsRegistered := PlatPair.Value.IsRegistered;
+        Installations := Installations + [Installation];
+      end;
+    end;
+    GUIProduct.Installations := Installations;
   end;
 
   for var Product in Remote do
@@ -591,6 +630,11 @@ begin
 
     // Update VendorId. For now, only remote products have vendor id, so we are setting here regardless.
     GUIProduct.VendorId := Product.VendorId;
+
+    // Same for description, url and license status: only remote products have them.
+    GUIProduct.Description := Product.Description;
+    GUIProduct.Url := Product.Url;
+    GUIProduct.LicenseStatus := Product.LicenseStatus;
   end;
 end;
 

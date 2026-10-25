@@ -22,6 +22,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function PlatformInfo(const APlatform: TPlatform): TProductPlatformInfo;
+    property Platforms: TDictionary<TPlatform, TProductPlatformInfo> read FPlatformInfoMap;
   end;
 
   TProductInfo = class
@@ -35,6 +36,9 @@ type
     FVendorId: string;
     FServer: string;
     FPinned: Boolean;
+    FDescription: string;
+    FUrl: string;
+    FLicenseStatus: string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -48,6 +52,10 @@ type
     property VendorId: string read FVendorId write FVendorId;
     property Server: string read FServer write FServer;
     property Pinned: Boolean read FPinned write FPinned;
+    property Description: string read FDescription write FDescription;
+    property Url: string read FUrl write FUrl;
+    property LicenseStatus: string read FLicenseStatus write FLicenseStatus;
+    property IDEs: TDictionary<TIDEName, TProductIDEInfo> read FIDEInfoMap;
   end;
 
   TProductInfoList = class(TObjectList<TProductInfo>)

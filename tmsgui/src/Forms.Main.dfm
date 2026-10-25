@@ -25,8 +25,6 @@ object MainForm: TMainForm
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
-    ExplicitTop = 46
-    ExplicitHeight = 466
     object LogSplitter: TSplitter
       Left = 0
       Top = 318
@@ -50,7 +48,6 @@ object MainForm: TMainForm
       MultiLine = True
       TabOrder = 0
       TabPosition = tpBottom
-      ExplicitHeight = 319
       object tsProducts: TTabSheet
         Caption = 'Products'
         object TopPanel: TPanel
@@ -119,7 +116,6 @@ object MainForm: TMainForm
           BevelKind = bkFlat
           BevelOuter = bvNone
           TabOrder = 1
-          ExplicitHeight = 256
           object Splitter1: TSplitter
             Left = 690
             Top = 0
@@ -139,17 +135,15 @@ object MainForm: TMainForm
             BevelKind = bkFlat
             BevelOuter = bvNone
             TabOrder = 0
-            ExplicitHeight = 256
             object CardPanelDetails: TCardPanel
               Left = 0
               Top = 0
               Width = 266
               Height = 255
               Align = alClient
-              ActiveCard = CardOneProduct
+              ActiveCard = CardNoProducts
               Caption = 'CardPanelDetails'
               TabOrder = 0
-              ExplicitHeight = 256
               object CardNoProducts: TCard
                 Left = 1
                 Top = 1
@@ -158,18 +152,16 @@ object MainForm: TMainForm
                 Caption = 'No Products'
                 CardIndex = 0
                 TabOrder = 2
-                ExplicitHeight = 254
                 object Label1: TLabel
                   AlignWithMargins = True
                   Left = 3
                   Top = 32
                   Width = 258
-                  Height = 218
+                  Height = 197
                   Align = alClient
                   Caption = 'Select one or  multiple products on the left to install them'
                   WordWrap = True
-                  ExplicitWidth = 242
-                  ExplicitHeight = 30
+                  ExplicitHeight = 57
                 end
                 object NoProdSmartSetup: TLabel
                   AlignWithMargins = True
@@ -191,6 +183,30 @@ object MainForm: TMainForm
                   ExplicitTop = 5
                   ExplicitWidth = 254
                 end
+                object lnkSmartSetup: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 235
+                  Width = 258
+                  Height = 15
+                  Cursor = crHandPoint
+                  Align = alBottom
+                  AutoSize = False
+                  Caption = 'https://www.smartsetup.org'
+                  EllipsisPosition = epPathEllipsis
+                  Font.Charset = DEFAULT_CHARSET
+                  Font.Color = clHighlight
+                  Font.Height = -12
+                  Font.Name = 'Segoe UI'
+                  Font.Style = []
+                  ParentFont = False
+                  PopupMenu = LinkMenu
+                  ShowAccelChar = False
+                  StyleElements = [seClient, seBorder]
+                  OnClick = OneProdUrlClick
+                  ExplicitLeft = 6
+                  ExplicitTop = 66
+                end
               end
               object CardOneProduct: TCard
                 Left = 1
@@ -200,12 +216,11 @@ object MainForm: TMainForm
                 Caption = 'One Product'
                 CardIndex = 1
                 TabOrder = 0
-                ExplicitHeight = 254
                 object SingleInfoPanel: TStackPanel
                   Left = 0
                   Top = 0
                   Width = 264
-                  Height = 253
+                  Height = 216
                   Align = alClient
                   BevelOuter = bvNone
                   ControlCollection = <
@@ -221,12 +236,10 @@ object MainForm: TMainForm
                     end
                     item
                       Control = OneProdUrl
+                      HorizontalPositioning = sphpFill
                     end>
                   TabOrder = 0
-                  ExplicitLeft = 40
-                  ExplicitTop = 24
-                  ExplicitWidth = 185
-                  ExplicitHeight = 200
+                  ExplicitHeight = 253
                   object OneProdProductName: TLabel
                     AlignWithMargins = True
                     Left = 3
@@ -248,9 +261,8 @@ object MainForm: TMainForm
                     Left = 3
                     Top = 35
                     Width = 258
-                    Height = 78
-                    AutoSize = False
-                    EllipsisPosition = epEndEllipsis
+                    Height = 15
+                    Constraints.MaxHeight = 200
                     Font.Charset = DEFAULT_CHARSET
                     Font.Color = clBtnText
                     Font.Height = -12
@@ -259,12 +271,71 @@ object MainForm: TMainForm
                     ParentFont = False
                     WordWrap = True
                   end
-                  object OneProdUrl: TLinkLabel
+                  object OneProdUrl: TLabel
                     AlignWithMargins = True
                     Left = 3
-                    Top = 121
-                    Width = 4
-                    Height = 4
+                    Top = 58
+                    Width = 258
+                    Height = 15
+                    Cursor = crHandPoint
+                    AutoSize = False
+                    EllipsisPosition = epPathEllipsis
+                    Font.Charset = DEFAULT_CHARSET
+                    Font.Color = clHighlight
+                    Font.Height = -12
+                    Font.Name = 'Segoe UI'
+                    Font.Style = []
+                    ParentFont = False
+                    PopupMenu = LinkMenu
+                    ShowAccelChar = False
+                    StyleElements = [seClient, seBorder]
+                    OnClick = OneProdUrlClick
+                  end
+                end
+                object StackPanel1: TStackPanel
+                  Left = 0
+                  Top = 216
+                  Width = 264
+                  Height = 37
+                  Align = alBottom
+                  BevelOuter = bvNone
+                  ControlCollection = <
+                    item
+                      Control = btnInfoInstallOrUpdate
+                    end
+                    item
+                      Control = btnInfoInstallVersion
+                    end
+                    item
+                      Control = btnInfoUninstall
+                    end>
+                  Orientation = spoHorizontal
+                  TabOrder = 1
+                  object btnInfoInstallOrUpdate: TButton
+                    AlignWithMargins = True
+                    Left = 3
+                    Top = 6
+                    Width = 62
+                    Height = 25
+                    Action = acInstall
+                    TabOrder = 2
+                  end
+                  object btnInfoInstallVersion: TButton
+                    AlignWithMargins = True
+                    Left = 73
+                    Top = 6
+                    Width = 104
+                    Height = 25
+                    Action = acInstallVersion
+                    TabOrder = 1
+                  end
+                  object btnInfoUninstall: TButton
+                    AlignWithMargins = True
+                    Left = 185
+                    Top = 6
+                    Width = 75
+                    Height = 25
+                    Action = acUninstall
                     TabOrder = 0
                   end
                 end
@@ -277,7 +348,6 @@ object MainForm: TMainForm
                 Caption = 'Multiple Products'
                 CardIndex = 2
                 TabOrder = 1
-                ExplicitHeight = 254
                 object MulProdProductNames: TLabel
                   AlignWithMargins = True
                   Left = 3
@@ -312,6 +382,40 @@ object MainForm: TMainForm
                   ExplicitLeft = 0
                   ExplicitTop = 239
                   ExplicitWidth = 3
+                end
+              end
+              object CardDetailsError: TCard
+                Left = 1
+                Top = 1
+                Width = 264
+                Height = 253
+                Caption = 'Error'
+                CardIndex = 3
+                TabOrder = 3
+                ExplicitLeft = 0
+                ExplicitTop = 0
+                ExplicitWidth = 185
+                ExplicitHeight = 41
+                object DetailsError: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 3
+                  Width = 258
+                  Height = 247
+                  Align = alClient
+                  AutoSize = False
+                  Caption = 'DetailsError'
+                  EllipsisPosition = epEndEllipsis
+                  Font.Charset = DEFAULT_CHARSET
+                  Font.Color = clRed
+                  Font.Height = -12
+                  Font.Name = 'Segoe UI'
+                  Font.Style = []
+                  ParentFont = False
+                  WordWrap = True
+                  StyleElements = [seClient, seBorder]
+                  ExplicitWidth = 3
+                  ExplicitHeight = 15
                 end
               end
             end
@@ -367,7 +471,6 @@ object MainForm: TMainForm
             OnKeyPress = lvProductsKeyPress
             OnMouseMove = lvProductsMouseMove
             OnSelectItem = lvProductsSelectItem
-            ExplicitHeight = 256
           end
         end
       end
@@ -390,7 +493,6 @@ object MainForm: TMainForm
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 0
-          ExplicitHeight = 291
         end
       end
     end
@@ -402,7 +504,6 @@ object MainForm: TMainForm
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
-      ExplicitTop = 331
       object lbLog: TControlList
         Left = 0
         Top = 0
@@ -587,8 +688,6 @@ object MainForm: TMainForm
       Images = ToolbarImageList
       ShowCaptions = True
       TabOrder = 0
-      ExplicitLeft = 911
-      ExplicitHeight = 41
       object btnConfigure: TToolButton
         Left = 0
         Top = 0
@@ -610,8 +709,6 @@ object MainForm: TMainForm
       Images = ToolbarImageList
       ShowCaptions = True
       TabOrder = 1
-      ExplicitWidth = 483
-      ExplicitHeight = 46
       object btnInstall: TToolButton
         Left = 0
         Top = 0
@@ -752,13 +849,13 @@ object MainForm: TMainForm
     end
     object acPin: TAction
       Category = 'Menus'
-      Caption = 'Pin version'
+      Caption = '&Pin version'
       OnExecute = acPinExecute
       OnUpdate = acPinUpdate
     end
     object acUnpin: TAction
       Category = 'Menus'
-      Caption = 'Unpin version'
+      Caption = '&Unpin version'
       OnExecute = acUnpinExecute
       OnUpdate = acUnpinUpdate
     end
@@ -3546,6 +3643,14 @@ object MainForm: TMainForm
     end
     object MenuItem4: TMenuItem
       Action = acOpenConfigFile
+    end
+  end
+  object LinkMenu: TPopupMenu
+    Left = 800
+    Top = 224
+    object CopyURL1: TMenuItem
+      Caption = 'Copy URL...'
+      OnClick = CopyURL1Click
     end
   end
 end

@@ -9,7 +9,7 @@ uses
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
   Vcl.VirtualImage, Util.Animator, Winapi.ShlObj, System.ImageList, Vcl.ImgList,
   Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
-  Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels;
+  Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels, Clipbrd;
 
 type
   TMainForm = class(TForm)
@@ -109,7 +109,16 @@ type
     SingleInfoPanel: TStackPanel;
     OneProdProductName: TLabel;
     OneProdDescription: TLabel;
-    OneProdUrl: TLinkLabel;
+    LinkMenu: TPopupMenu;
+    CopyURL1: TMenuItem;
+    OneProdUrl: TLabel;
+    StackPanel1: TStackPanel;
+    btnInfoUninstall: TButton;
+    btnInfoInstallVersion: TButton;
+    btnInfoInstallOrUpdate: TButton;
+    lnkSmartSetup: TLabel;
+    CardDetailsError: TCard;
+    DetailsError: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -169,6 +178,8 @@ type
     procedure lvProductsSelectItem(Sender: TObject; Item: TListItem;
       Selected: Boolean);
     procedure lvProductsKeyPress(Sender: TObject; var Key: Char);
+    procedure CopyURL1Click(Sender: TObject);
+    procedure OneProdUrlClick(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -609,6 +620,11 @@ begin
     Result := 0;
 end;
 
+procedure TMainForm.CopyURL1Click(Sender: TObject);
+begin
+  Clipboard.AsText := OneProdUrl.Caption;
+end;
+
 procedure TMainForm.edSearchChange(Sender: TObject);
 begin
   GUI.SetSearchFilter(edSearch.Text);
@@ -1022,21 +1038,36 @@ end;
 
 procedure TMainForm.FillOneProductDetails;
 begin
-  var Product := ProductFromItem(lvProducts.Selected);
+  try
+    var Product := ProductFromItem(lvProducts.Selected);
 
-  if Product = nil then
-  begin
-    CardPanelDetails.ActiveCard := CardNoProducts;
-    exit;
+    if Product = nil then
+    begin
+      CardPanelDetails.ActiveCard := CardNoProducts;
+      exit;
+    end;
+    OneProdProductName.Caption := Product.DisplayName;
+    OneProdDescription.Caption := Product.Description;
+    OneProdUrl.Caption := Product.Url;
+    if Product.Status = TProductStatus.Installed then
+    begin
+      if Product.IsOutdated or (Product.RemoteVersion.IsNull)
+      then btnInfoInstallOrUpdate.Caption := 'Update'
+      else btnInfoInstallOrUpdate.Caption := 'Reinstall';
+    end
+    else btnInfoInstallOrUpdate.Caption := acInstall.Caption;
+    CardPanelDetails.ActiveCard := CardOneProduct;
+  except on ex: Exception do
+    begin
+      DetailsError.Caption := 'ERROR ' + ex.Message;
+      CardPanelDetails.ActiveCard := CardDetailsError;
+    end;
   end;
-  OneProdProductName.Caption := Product.DisplayName;
-  OneProdDescription.Caption := Product.Description;
-  OneProdUrl.Caption := Product.Url;
-  CardPanelDetails.ActiveCard := CardOneProduct;
 end;
 
 procedure TMainForm.FillMultipleProductDetails;
 begin
+
   var AllProducts := '';
   for var Item in lvProducts.Items do
     if Item.Selected then
@@ -1087,6 +1118,11 @@ begin
           end);
       end);
   end;
+end;
+
+procedure TMainForm.OneProdUrlClick(Sender: TObject);
+begin
+  ShellExecute(Application.Handle, 'open', PChar((Sender as TLabel).Caption), nil, nil, SW_SHOWNORMAL);
 end;
 
 function TMainForm.GetCmdLineParameter(const Prefix: string): string;

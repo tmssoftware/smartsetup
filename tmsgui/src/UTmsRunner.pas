@@ -508,6 +508,7 @@ begin
     Product.Name := JsonProduct.GetValue<string>('name');
     Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.Channel := JsonProduct.GetValue<string>('channel', '');
+    Product.Server := JsonProduct.GetValue<string>('server', '');
     Product.Local := JsonProduct.GetValue<Boolean>('local', False);
     Product.Pinned := JsonProduct.GetValue<Boolean>('pinned', False);
     var JsonIDEs: TJSONObject;
@@ -646,7 +647,9 @@ begin
     Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.VendorId := JsonProduct.GetValue<string>('vendor_id', '');
     Product.Server := JsonProduct.GetValue<string>('server', '');
-//    Product.LicenseStatus := JsonProduct.GetValue<string>('license-status', '');
+    Product.Description := JsonProduct.GetValue<string>('description', '');
+    Product.Url := JsonProduct.GetValue<string>('url', '');
+    Product.LicenseStatus := JsonProduct.GetValue<string>('license_status', '');
   end;
 end;
 
