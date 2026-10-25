@@ -109,7 +109,7 @@ type
     SingleInfoPanel: TStackPanel;
     OneProdProductName: TLabel;
     OneProdDescription: TLabel;
-    LinkMenu: TPopupMenu;
+    ProdUrlMenu: TPopupMenu;
     CopyURL1: TMenuItem;
     OneProdUrl: TLabel;
     StackPanel1: TStackPanel;
@@ -119,6 +119,9 @@ type
     lnkSmartSetup: TLabel;
     CardDetailsError: TCard;
     DetailsError: TLabel;
+    OneProdVersionHistory: TLabel;
+    ProdVersionMenu: TPopupMenu;
+    CopyVersionHistoryMenu: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -179,7 +182,8 @@ type
       Selected: Boolean);
     procedure lvProductsKeyPress(Sender: TObject; var Key: Char);
     procedure CopyURL1Click(Sender: TObject);
-    procedure OneProdUrlClick(Sender: TObject);
+    procedure LinkClick(Sender: TObject);
+    procedure CopyVersionHistoryMenuClick(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -622,7 +626,12 @@ end;
 
 procedure TMainForm.CopyURL1Click(Sender: TObject);
 begin
-  Clipboard.AsText := OneProdUrl.Caption;
+  Clipboard.AsText := OneProdUrl.Hint;
+end;
+
+procedure TMainForm.CopyVersionHistoryMenuClick(Sender: TObject);
+begin
+  Clipboard.AsText := OneProdVersionHistory.Hint;
 end;
 
 procedure TMainForm.edSearchChange(Sender: TObject);
@@ -657,44 +666,44 @@ begin
     end);
 
   InstallAnimator := TImageAnimator.Create(50, 'install', acInstall.ImageName,
-    procedure (ImageName: string)
+    procedure (ImageIndex: Integer)
     begin
-      btnInstall.ImageName := ImageName;
+      btnInstall.ImageIndex := ImageIndex;
     end,
-    function (ImageName: string): boolean
+    function (ImageName: string): Integer
     begin
-      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
+      Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
   UninstallAnimator := TImageAnimator.Create(50, 'uninstall', acUninstall.ImageName,
-    procedure (ImageName: string)
+    procedure (ImageIndex: Integer)
     begin
-      btnUninstall.ImageName := ImageName;
+      btnUninstall.ImageIndex := ImageIndex;
     end,
-    function (ImageName: string): boolean
+    function (ImageName: string): Integer
     begin
-      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
+      Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
 
   BuildAnimator := TImageAnimator.Create(50, 'build', acBuild.ImageName,
-    procedure (ImageName: string)
+    procedure (ImageIndex: Integer)
     begin
-      btnBuild.ImageName := ImageName;
+      btnBuild.ImageIndex := ImageIndex;
     end,
-    function (ImageName: string): boolean
+    function (ImageName: string): Integer
     begin
-      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
+      Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
   RefreshAnimator := TImageAnimator.Create(50, 'refresh', acRefresh.ImageName,
-    procedure (ImageName: string)
+    procedure (ImageIndex: Integer)
     begin
-      btnRefresh.ImageName := ImageName;
+      btnRefresh.ImageIndex := ImageIndex;
     end,
-    function (ImageName: string): boolean
+    function (ImageName: string): Integer
     begin
-      Result := ToolbarImageList.GetIndexByName(ImageName) >= 0;
+      Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
   GUI := TGUIEnvironment.Create;
@@ -858,6 +867,9 @@ begin
 
   if Product.VendorId <> '' then
     Exit(Format('https://www.tmssoftware.com/site/%s.asp?s=history', [Product.VendorId]));
+
+  if Product.Url.StartsWith('https://github.com/') then Exit(Product.Url + '/releases');
+
 
   Result := '';
 end;
@@ -1048,7 +1060,11 @@ begin
     end;
     OneProdProductName.Caption := Product.DisplayName;
     OneProdDescription.Caption := Product.Description;
-    OneProdUrl.Caption := Product.Url;
+    OneProdUrl.Caption := 'Website';
+    OneProdUrl.Hint := Product.Url;
+    OneProdVersionHistory.Caption := 'Version History';
+    OneProdVersionHistory.Hint := GetVersionHistoryUrl(Product);
+    OneProdVersionHistory.Enabled := OneProdVersionHistory.Hint <> '';
     if Product.Status = TProductStatus.Installed then
     begin
       if Product.IsOutdated or (Product.RemoteVersion.IsNull)
@@ -1120,9 +1136,9 @@ begin
   end;
 end;
 
-procedure TMainForm.OneProdUrlClick(Sender: TObject);
+procedure TMainForm.LinkClick(Sender: TObject);
 begin
-  ShellExecute(Application.Handle, 'open', PChar((Sender as TLabel).Caption), nil, nil, SW_SHOWNORMAL);
+  ShellExecute(Application.Handle, 'open', PChar((Sender as TLabel).Hint), nil, nil, SW_SHOWNORMAL);
 end;
 
 function TMainForm.GetCmdLineParameter(const Prefix: string): string;

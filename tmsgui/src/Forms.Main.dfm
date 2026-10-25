@@ -141,7 +141,7 @@ object MainForm: TMainForm
               Width = 266
               Height = 255
               Align = alClient
-              ActiveCard = CardNoProducts
+              ActiveCard = CardOneProduct
               Caption = 'CardPanelDetails'
               TabOrder = 0
               object CardNoProducts: TCard
@@ -161,7 +161,8 @@ object MainForm: TMainForm
                   Align = alClient
                   Caption = 'Select one or  multiple products on the left to install them'
                   WordWrap = True
-                  ExplicitHeight = 57
+                  ExplicitWidth = 242
+                  ExplicitHeight = 30
                 end
                 object NoProdSmartSetup: TLabel
                   AlignWithMargins = True
@@ -200,10 +201,9 @@ object MainForm: TMainForm
                   Font.Name = 'Segoe UI'
                   Font.Style = []
                   ParentFont = False
-                  PopupMenu = LinkMenu
+                  PopupMenu = ProdUrlMenu
                   ShowAccelChar = False
                   StyleElements = [seClient, seBorder]
-                  OnClick = OneProdUrlClick
                   ExplicitLeft = 6
                   ExplicitTop = 66
                 end
@@ -237,9 +237,12 @@ object MainForm: TMainForm
                     item
                       Control = OneProdUrl
                       HorizontalPositioning = sphpFill
+                    end
+                    item
+                      Control = OneProdVersionHistory
                     end>
+                  HorizontalPositioning = sphpFill
                   TabOrder = 0
-                  ExplicitHeight = 253
                   object OneProdProductName: TLabel
                     AlignWithMargins = True
                     Left = 3
@@ -278,6 +281,7 @@ object MainForm: TMainForm
                     Width = 258
                     Height = 15
                     Cursor = crHandPoint
+                    Margins.Bottom = 0
                     AutoSize = False
                     EllipsisPosition = epPathEllipsis
                     Font.Charset = DEFAULT_CHARSET
@@ -286,10 +290,36 @@ object MainForm: TMainForm
                     Font.Name = 'Segoe UI'
                     Font.Style = []
                     ParentFont = False
-                    PopupMenu = LinkMenu
+                    ParentShowHint = False
+                    PopupMenu = ProdUrlMenu
                     ShowAccelChar = False
+                    ShowHint = True
                     StyleElements = [seClient, seBorder]
-                    OnClick = OneProdUrlClick
+                    OnClick = LinkClick
+                  end
+                  object OneProdVersionHistory: TLabel
+                    AlignWithMargins = True
+                    Left = 3
+                    Top = 75
+                    Width = 258
+                    Height = 15
+                    Cursor = crHandPoint
+                    Margins.Top = 0
+                    AutoSize = False
+                    Caption = 'Version History'
+                    EllipsisPosition = epPathEllipsis
+                    Font.Charset = DEFAULT_CHARSET
+                    Font.Color = clHighlight
+                    Font.Height = -12
+                    Font.Name = 'Segoe UI'
+                    Font.Style = []
+                    ParentFont = False
+                    ParentShowHint = False
+                    PopupMenu = ProdVersionMenu
+                    ShowAccelChar = False
+                    ShowHint = True
+                    StyleElements = [seClient, seBorder]
+                    OnClick = LinkClick
                   end
                 end
                 object StackPanel1: TStackPanel
@@ -392,10 +422,6 @@ object MainForm: TMainForm
                 Caption = 'Error'
                 CardIndex = 3
                 TabOrder = 3
-                ExplicitLeft = 0
-                ExplicitTop = 0
-                ExplicitWidth = 185
-                ExplicitHeight = 41
                 object DetailsError: TLabel
                   AlignWithMargins = True
                   Left = 3
@@ -3645,12 +3671,20 @@ object MainForm: TMainForm
       Action = acOpenConfigFile
     end
   end
-  object LinkMenu: TPopupMenu
-    Left = 800
-    Top = 224
+  object ProdUrlMenu: TPopupMenu
+    Left = 760
+    Top = 208
     object CopyURL1: TMenuItem
-      Caption = 'Copy URL...'
+      Caption = 'Copy URL'
       OnClick = CopyURL1Click
+    end
+  end
+  object ProdVersionMenu: TPopupMenu
+    Left = 848
+    Top = 208
+    object CopyVersionHistoryMenu: TMenuItem
+      Caption = 'Copy URL'
+      OnClick = CopyVersionHistoryMenuClick
     end
   end
 end

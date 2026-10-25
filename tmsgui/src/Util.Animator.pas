@@ -39,9 +39,9 @@ type
   private
     ImageCategory: string;
     FinalImage: string;
-    SetImage: TProc<string>;
-    HasImage: TFunc<string, boolean>;
-    CachedLastImage: string; //avoid looking up for it all the time.This runs every some ms.
+    SetImage: TProc<integer>;
+    MapImage: TFunc<string, integer>;
+    Images: TArray<integer>;
 
     function GetImageName: string;
   protected
@@ -49,7 +49,7 @@ type
     procedure DoStart; override;
     procedure DoStop; override;
   public
-    constructor Create(const aDelayMs: integer; const aImageCategory, aFinalImage: string; const aSetImage: TProc<string>; const aHasImage: TFunc<string, boolean>);
+    constructor Create(const aDelayMs: integer; const aImageCategory, aFinalImage: string; const aSetImage: TProc<integer>; const aMapImage: TFunc<string, integer>);
   end;
 
 implementation
@@ -133,14 +133,14 @@ end;
 { TImageAnimator }
 
 constructor TImageAnimator.Create(const aDelayMs: integer; const aImageCategory,
-  aFinalImage: string; const aSetImage: TProc<string>;
-  const aHasImage: TFunc<string, boolean>);
+  aFinalImage: string; const aSetImage: TProc<integer>;
+  const aMapImage: TFunc<string, integer>);
 begin
   inherited Create(aDelayMs);
   ImageCategory := aImageCategory;
   FinalImage := aFinalImage;
   SetImage := aSetImage;
-  HasImage := aHasImage;
+  MapImage := aMapImage;
 end;
 
 procedure TImageAnimator.DoStart;
@@ -150,34 +150,39 @@ end;
 
 procedure TImageAnimator.DoStop;
 begin
-  SetImage(FinalImage);
+  SetImage(MapImage(FinalImage));
 end;
 
 function TImageAnimator.GetImageName: string;
 begin
-  Result := ImageCategory + '\' + ImageCategory + '-' + IntToStr(ProgressIndex).PadLeft(2, '0');
+  Result := ImageCategory + '\' + ImageCategory + '-' + IntToStr(ProgressIndex + 1).PadLeft(2, '0');
 end;
 
 procedure TImageAnimator.Tick(Sender: TObject);
+const
+  EmptyImageMarker = $FFFFFF;
 begin
-  Inc(ProgressIndex);
-  var ImageName := GetImageName;
-  var Wrap: boolean;
-  if CachedLastImage <> '' then
+  if ProgressIndex >= Length(Images) then
   begin
-    Wrap := (CachedLastImage = ImageName);
-  end else
-  begin
-    Wrap := not HasImage(ImageName);
-    if Wrap then CachedLastImage := ImageName;
-  end;
-  if Wrap then
-  begin
-    ProgressIndex := 1;
-    ImageName := GetImageName;
+    var ImagesLen := Length(Images);
+    SetLength(Images, ImagesLen + 20);
+    for var i := ImagesLen to Length(Images) - 1 do Images[i] := EmptyImageMarker;
+
   end;
 
-  SetImage(ImageName);
+  if Images[ProgressIndex] = EmptyImageMarker then
+  begin
+    Images[ProgressIndex] := MapImage(GetImageName);
+  end;
+
+  if Images[ProgressIndex] < 0 then
+  begin
+    if ProgressIndex = 0 then exit; //No images at all.
+    ProgressIndex := 0;
+  end;
+
+  SetImage(Images[ProgressIndex]);
+  Inc(ProgressIndex);
 end;
 
 end.
