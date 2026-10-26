@@ -160,6 +160,7 @@ object MainForm: TMainForm
                   Height = 197
                   Align = alClient
                   Caption = 'Select one or multiple products on the left to install them'
+                  ShowAccelChar = False
                   WordWrap = True
                   ExplicitWidth = 239
                   ExplicitHeight = 30
@@ -181,6 +182,7 @@ object MainForm: TMainForm
                   Font.Name = 'Segoe UI'
                   Font.Style = []
                   ParentFont = False
+                  ShowAccelChar = False
                   ExplicitTop = 5
                   ExplicitWidth = 254
                 end
@@ -259,6 +261,7 @@ object MainForm: TMainForm
                     Font.Name = 'Segoe UI'
                     Font.Style = []
                     ParentFont = False
+                    ShowAccelChar = False
                   end
                   object OneProdDescription: TLabel
                     AlignWithMargins = True
@@ -273,6 +276,7 @@ object MainForm: TMainForm
                     Font.Name = 'Segoe UI'
                     Font.Style = []
                     ParentFont = False
+                    ShowAccelChar = False
                     WordWrap = True
                   end
                   object OneProdUrl: TLabel
@@ -395,6 +399,7 @@ object MainForm: TMainForm
                   Font.Name = 'Segoe UI'
                   Font.Style = []
                   ParentFont = False
+                  ShowAccelChar = False
                   WordWrap = True
                   ExplicitLeft = 11
                   ExplicitTop = 13
@@ -410,6 +415,7 @@ object MainForm: TMainForm
                   Align = alBottom
                   AutoSize = False
                   EllipsisPosition = epEndEllipsis
+                  ShowAccelChar = False
                   ExplicitLeft = 0
                   ExplicitTop = 239
                   ExplicitWidth = 3
@@ -439,6 +445,7 @@ object MainForm: TMainForm
                   Font.Name = 'Segoe UI'
                   Font.Style = []
                   ParentFont = False
+                  ShowAccelChar = False
                   WordWrap = True
                   StyleElements = [seClient, seBorder]
                   ExplicitWidth = 3
