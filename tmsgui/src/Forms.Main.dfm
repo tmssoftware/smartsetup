@@ -141,7 +141,7 @@ object MainForm: TMainForm
               Width = 266
               Height = 255
               Align = alClient
-              ActiveCard = CardOneProduct
+              ActiveCard = CardNoProducts
               Caption = 'CardPanelDetails'
               TabOrder = 0
               object CardNoProducts: TCard
@@ -159,9 +159,9 @@ object MainForm: TMainForm
                   Width = 258
                   Height = 197
                   Align = alClient
-                  Caption = 'Select one or  multiple products on the left to install them'
+                  Caption = 'Select one or multiple products on the left to install them'
                   WordWrap = True
-                  ExplicitWidth = 242
+                  ExplicitWidth = 239
                   ExplicitHeight = 30
                 end
                 object NoProdSmartSetup: TLabel
@@ -191,6 +191,7 @@ object MainForm: TMainForm
                   Width = 258
                   Height = 15
                   Cursor = crHandPoint
+                  Hint = 'https://www.smartsetup.org'
                   Align = alBottom
                   AutoSize = False
                   Caption = 'https://www.smartsetup.org'
@@ -201,9 +202,9 @@ object MainForm: TMainForm
                   Font.Name = 'Segoe UI'
                   Font.Style = []
                   ParentFont = False
-                  PopupMenu = ProdUrlMenu
                   ShowAccelChar = False
                   StyleElements = [seClient, seBorder]
+                  OnClick = LinkClick
                   ExplicitLeft = 6
                   ExplicitTop = 66
                 end

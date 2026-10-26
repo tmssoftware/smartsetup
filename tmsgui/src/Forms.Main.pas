@@ -9,7 +9,7 @@ uses
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
   Vcl.VirtualImage, Util.Animator, Winapi.ShlObj, System.ImageList, Vcl.ImgList,
   Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
-  Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels, Clipbrd;
+  Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels, Clipbrd, Generics.Defaults;
 
 type
   TMainForm = class(TForm)
@@ -215,6 +215,7 @@ type
     procedure FillOneProductDetails;
     procedure FillMultipleProductDetails;
     procedure PopupOptions(const Control: TControl; const Menu: TPopupMenu);
+    function GetListItemIds: TDictionary<string, TListItem>;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -638,6 +639,7 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := ColStatus;  // sort by status by default
   UpdateToolbarImagesForTheme;
+  CardPanelDetails.ActiveCard := CardNoProducts;
 
   // Progress on the taskbar button. If it isn't available (old Windows, no shell), we just don't show it.
   if Failed(CoCreateInstance(CLSID_TaskbarList, nil, CLSCTX_INPROC_SERVER, ITaskbarList3, TaskbarList))
@@ -816,7 +818,10 @@ begin
   Products.Clear;
   for var Item in lvProducts.Items do
     if Item.Selected then
-      Products.Add(ProductFromItem(Item));
+    begin
+      var SelItem := ProductFromItem(Item);
+      if SelItem <> nil then Products.Add(SelItem);
+    end;
 end;
 
 function TMainForm.GetVersionHistoryUrl(Product: TGUIProduct): string;
@@ -1412,6 +1417,21 @@ begin
     end);
 end;
 
+function TMainForm.GetListItemIds: TDictionary<string, TListItem>;
+begin
+  Result := TDictionary<string, TListItem>.Create(TIStringComparer.Ordinal);
+  try
+    for var i := 0 to lvProducts.Items.Count - 1 do
+    begin
+      lvProducts.Items[i].Data := nil;
+      Result.AddOrSetValue(lvProducts.Items[i].SubItems[SubItemIndex(ColId)], lvProducts.Items[i]);
+    end;
+  except
+    FreeAndNil(Result);
+    raise;
+  end;
+end;
+
 procedure TMainForm.ProductsUpdatedEvent(Products: TGUIProductList);
 const
   PinnedChar = #$D83D#$DCCC;
@@ -1420,10 +1440,13 @@ const
 begin
   lvProducts.Items.BeginUpdate;
   try
-    lvProducts.Items.Clear;
+    var ExistingIds := GetListItemIds;
+    try
     for var Product in Products do
     begin
-      var Item := lvProducts.Items.Add;
+        var Item: TListItem;
+        if not ExistingIds.TryGetValue(Product.Id, Item)
+          then Item := lvProducts.Items.Add;
 
       var Icons := '';
       if Product.IsOutdated then
@@ -1432,14 +1455,22 @@ begin
         Icons := Icons + PinnedChar;
       Item.Caption := Icons;  // ColIcons
 
-      for var i := 1 to ColLast do
+        for var i := Item.SubItems.Count + 1 to ColLast do
         Item.SubItems.Add('');
+
       Item.SubItems[SubItemIndex(ColId)] := Product.Id;
       Item.SubItems[SubItemIndex(ColName)] := Product.Name;
       Item.SubItems[SubItemIndex(ColLocalVersion)] := Product.LocalVersion.ToString;
       Item.SubItems[SubItemIndex(ColRemoteVersion)] := Product.RemoteVersion.ToString;
       Item.SubItems[SubItemIndex(ColStatus)] := StatusToStr[Product.Status];
       Item.Data := Product;
+    end;
+    finally
+      ExistingIds.Free;
+    end;
+    for var i := lvProducts.Items.Count - 1 downto 0 do
+    begin
+      if lvProducts.Items[i].Data = nil then lvProducts.Items.Delete(i);
     end;
     SortProducts;
   finally

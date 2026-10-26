@@ -213,7 +213,6 @@ type
 
     procedure ExecuteConfigure(Silent: Boolean = False);
     function ExecuteLogView(const SessionId: string; const Print: Boolean): string;
-    procedure ExecuteDoctor(const Fix: boolean; const Confirm: boolean);
 
     // Change the current applied filter. Will fire the OnProductsUpdated after the product list is modified.
     procedure ChangeProductFilter(Filter: TProductFilter);
@@ -892,15 +891,6 @@ begin
     begin
       Runner.RunConfigure(Silent);
       RefreshInfo;
-    end);
-end;
-
-procedure TGUIEnvironment.ExecuteDoctor(const Fix: boolean; const Confirm: boolean);
-begin
-  RunSync<TTmsDoctorRunner>(
-    procedure(Runner: TTmsDoctorRunner)
-    begin
-      Runner.RunDoctor(Fix, Confirm);
     end);
 end;
 
