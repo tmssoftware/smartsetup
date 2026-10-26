@@ -876,7 +876,10 @@ end;
 procedure TMainForm.InitiateAction;
 begin
   inherited;
-  acCredentials.Visible := GUI.Servers.IsEnabled('tms');
+  //We will allow users to ask for credentials even if they have tms disabled.
+  //If they enter correct credentials, we will just reenable them.
+  //acCredentials.Visible := GUI.Servers.IsEnabled('tms');
+
   // Changing the server reloads the product list, which can't run while another job is running.
   cbServer.Enabled := not GUI.IsRunning;
 
@@ -1258,6 +1261,7 @@ procedure TMainForm.SortProducts;
 begin
   lvProducts.AlphaSort;
   UpdateSortArrows;
+  if lvProducts.Selected <> nil then lvProducts.Selected.MakeVisible(false);
 end;
 
 procedure TMainForm.StatusBarClick(Sender: TObject);
@@ -1449,29 +1453,29 @@ begin
   try
     var ExistingIds := GetListItemIds;
     try
-    for var Product in Products do
-    begin
+      for var Product in Products do
+      begin
         var Item: TListItem;
         if not ExistingIds.TryGetValue(Product.Id, Item)
           then Item := lvProducts.Items.Add;
 
-      var Icons := '';
-      if Product.IsOutdated then
-        Icons := Icons + OutdatedChar;
-      if Product.IsPinned then
-        Icons := Icons + PinnedChar;
-      Item.Caption := Icons;  // ColIcons
+        var Icons := '';
+        if Product.IsOutdated then
+          Icons := Icons + OutdatedChar;
+        if Product.IsPinned then
+          Icons := Icons + PinnedChar;
+        Item.Caption := Icons;  // ColIcons
 
         for var i := Item.SubItems.Count + 1 to ColLast do
-        Item.SubItems.Add('');
+          Item.SubItems.Add('');
 
-      Item.SubItems[SubItemIndex(ColId)] := Product.Id;
-      Item.SubItems[SubItemIndex(ColName)] := Product.Name;
-      Item.SubItems[SubItemIndex(ColLocalVersion)] := Product.LocalVersion.ToString;
-      Item.SubItems[SubItemIndex(ColRemoteVersion)] := Product.RemoteVersion.ToString;
-      Item.SubItems[SubItemIndex(ColStatus)] := StatusToStr[Product.Status];
-      Item.Data := Product;
-    end;
+        Item.SubItems[SubItemIndex(ColId)] := Product.Id;
+        Item.SubItems[SubItemIndex(ColName)] := Product.Name;
+        Item.SubItems[SubItemIndex(ColLocalVersion)] := Product.LocalVersion.ToString;
+        Item.SubItems[SubItemIndex(ColRemoteVersion)] := Product.RemoteVersion.ToString;
+        Item.SubItems[SubItemIndex(ColStatus)] := StatusToStr[Product.Status];
+        Item.Data := Product;
+      end;
     finally
       ExistingIds.Free;
     end;

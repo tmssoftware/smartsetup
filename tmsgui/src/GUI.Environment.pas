@@ -175,6 +175,7 @@ type
     procedure EndRunning;
     function AddActiveRunner(Runner: TTmsRunner): Boolean;
     procedure RemoveActiveRunner(Runner: TTmsRunner);
+    procedure UpdateTMSServerAndRefresh(const Enable: boolean);
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
@@ -1298,6 +1299,13 @@ begin
   FOnServersUpdated(FServers);
 end;
 
+procedure TGUIEnvironment.UpdateTMSServerAndRefresh(const Enable: boolean);
+begin
+  EnableServerConfigItem('tms', Enable);
+  RefreshServers;
+  RefreshFetchedProductsAfterJob;
+end;
+
 function TGUIEnvironment.ExecuteRequestCredentials(const Alert: TProc<string>): boolean;
 begin
   if not Assigned(FOnRequestCredentials) then
@@ -1325,13 +1333,13 @@ begin
             if (Email.Trim <> '') and (Code.Trim <> '') and Runner.RunUpdateCredentials(Email, Code) then LastValid := true;
             RefreshInfo;
             Done := LastValid;
+            if Done then UpdateTMSServerAndRefresh(true);
+
           end
           else
           if Disable then
           begin
-            EnableServerConfigItem('tms', False);
-            RefreshServers;
-            RefreshFetchedProductsAfterJob;
+            UpdateTMSServerAndRefresh(false);
             Done := True;
           end
           else Done := True;

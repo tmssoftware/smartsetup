@@ -154,14 +154,16 @@ begin
 
   var Folders: IBuildFolders := ConfigNoCheck.Folders;
 
+  var SearchServerName := ServerName;
+  if (ServerName = '') then SearchServerName := 'tms';
   var IsEmpty := true;
   var Data := TJSONObject.Create;
   try
     for var i := 0 to ConfigNoCheck.ServerConfig.ServerCount - 1 do
     begin
       var Server := Config.ServerConfig.GetServer(i);
-      if (not Server.Enabled) or (Server.ServerType <> TServerType.Api) then continue;
-      if not (ServerName = '') and not SameText(Server.Name, ServerName) then continue;
+      if (Server.ServerType <> TServerType.Api) then continue;
+      if not SameText(Server.Name, SearchServerName) then continue;
 
       DoServerCredentials(Data, Folders, Server.Name, Server.Url);
       IsEmpty := false;
