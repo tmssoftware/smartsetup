@@ -66,7 +66,7 @@ type
     function NewVersionDetected: Boolean;
     property Output: TList<String> read FOutput;
     function OutputText: string;
-    function CmdAndOutput: string;
+    function CmdAndOutput: string; virtual;
     property OnOutputLine: TOutputLineProc read FOnOutputLine write FOnOutputLine;
   end;
 
@@ -164,6 +164,8 @@ type
     function GetParams: string; override;
   public
     class function Command: TTmsCommand; override;
+    function CmdAndOutput: string; override;
+
     procedure RunGetCredentials(out Email, Code: string);
 
     // Returns true if credentials updated correctly, false if they are invalid
@@ -673,6 +675,11 @@ begin
 end;
 
 { TTmsCredentialsRunner }
+
+function TTmsCredentialsRunner.CmdAndOutput: string;
+begin
+  Result := 'tms credentials';
+end;
 
 class function TTmsCredentialsRunner.Command: TTmsCommand;
 begin

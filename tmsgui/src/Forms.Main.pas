@@ -860,7 +860,14 @@ begin
   if Product.VendorId <> '' then
     Exit(Format('https://www.tmssoftware.com/site/%s.asp?s=history', [Product.VendorId]));
 
-  if Product.Url.StartsWith('https://github.com/') then Exit(Product.Url + '/releases');
+  if Product.Url.StartsWith('https://github.com/') then
+  begin
+    var Url := Product.Url;
+    if Url.EndsWith('/') then Url := Url.Substring(0, Url.Length - 1);
+    if Url.EndsWith('.git') then Url := Url.Substring(0, Url.Length - '.git'.Length);
+
+    Exit(Url + '/releases');
+  end;
 
 
   Result := '';
