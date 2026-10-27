@@ -65,7 +65,7 @@ type
     acViewHtmlLog: TAction;
     ToolbarImageCollection: TImageCollection;
     ToolbarImageList: TVirtualImageList;
-    acBackups: TAction;
+    acBackup: TAction;
     acSBOM: TAction;
     acDoctor: TAction;
     acRefresh: TAction;
@@ -99,7 +99,7 @@ type
     btnBackup: TToolButton;
     btnSBOM: TToolButton;
     btnDoctor: TToolButton;
-    SingleInfoPanel: TStackPanel;
+    SingleInfoPanel: TPanel;
     OneProdProductName: TLabel;
     OneProdDescription: TLabel;
     ProdUrlMenu: TPopupMenu;
@@ -115,6 +115,11 @@ type
     OneProdVersionHistory: TLabel;
     ProdVersionMenu: TPopupMenu;
     CopyVersionHistoryMenu: TMenuItem;
+    StackPanel2: TStackPanel;
+    Button1: TButton;
+    Button3: TButton;
+    acRestore: TAction;
+    btnRestore: TToolButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -186,6 +191,8 @@ type
     UninstallAnimator: TImageAnimator;
     BuildAnimator: TImageAnimator;
     RefreshAnimator: TImageAnimator;
+    BackupAnimator: TImageAnimator;
+    RestoreAnimator: TImageAnimator;
     TaskbarList: ITaskbarList3;
     procedure SetProgress(const Percent: Integer);
     procedure ClearProgress;
@@ -385,6 +392,7 @@ end;
 procedure TMainForm.acInstallUpdate(Sender: TObject);
 begin
   acInstall.Enabled := GUI.CanInstallSelected;
+  acInstall.Caption := GUI.GetInstallCaption;
 end;
 
 procedure TMainForm.acInstallVersionExecute(Sender: TObject);
@@ -695,6 +703,26 @@ begin
       Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
+  BackupAnimator := TImageAnimator.Create(50, 'backup', acBackup.ImageName,
+    procedure (ImageIndex: Integer)
+    begin
+      btnBackup.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
+    end);
+
+  RestoreAnimator := TImageAnimator.Create(50, 'restore', acRestore.ImageName,
+    procedure (ImageIndex: Integer)
+    begin
+      btnRestore.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
+    end);
+
   GUI := TGUIEnvironment.Create;
 
   GUI.OnProductsUpdated := ProductsUpdatedEvent;
@@ -732,6 +760,8 @@ begin
   UninstallAnimator.Free;
   BuildAnimator.Free;
   RefreshAnimator.Free;
+  BackupAnimator.Free;
+  RestoreAnimator.Free;
   TaskbarList := nil;
 
   // at this point no tms.exe should be running anymore
@@ -1067,13 +1097,6 @@ begin
     OneProdVersionHistory.Caption := 'Version History';
     OneProdVersionHistory.Hint := GetVersionHistoryUrl(Product);
     OneProdVersionHistory.Enabled := OneProdVersionHistory.Hint <> '';
-    if Product.Status = TProductStatus.Installed then
-    begin
-      if Product.IsOutdated or (Product.RemoteVersion.IsNull)
-      then btnInfoInstallOrUpdate.Caption := 'Update'
-      else btnInfoInstallOrUpdate.Caption := 'Reinstall';
-    end
-    else btnInfoInstallOrUpdate.Caption := acInstall.Caption;
     CardPanelDetails.ActiveCard := CardOneProduct;
   except on ex: Exception do
     begin
@@ -1187,6 +1210,9 @@ begin
     TTmsCommand.Uninstall: Result := UninstallAnimator;
     TTmsCommand.List: Result := RefreshAnimator;
     TTmsCommand.ListRemote: Result := RefreshAnimator;
+    TTmsCommand.Backup: Result := BackupAnimator;
+    TTmsCommand.Restore: Result := RestoreAnimator;
+
     else Result := nil;
   end;
 end;

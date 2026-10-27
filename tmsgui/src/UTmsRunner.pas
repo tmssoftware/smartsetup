@@ -22,7 +22,7 @@ type
   {$SCOPEDENUMS ON}
   TTmsCommand = (List, ListRemote, Info, Credentials, Configure, LogView, SelfUpdate,
     ConfigRead, ConfigWrite, ServerList, ServerAdd, ServerEnable, ServerRemove,
-    VersionsRemote, Build, Install, Uninstall, Pin, Unpin);
+    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, Restore);
   {$SCOPEDENUMS OFF}
 
   TTmsRunner = class
@@ -246,6 +246,18 @@ type
     procedure RunUnpin(const ProductIds: TArray<string>);
   end;
 
+  TTmsBackupRunner = class(TTmsRunner)
+  public
+    class function Command: TTmsCommand; override;
+    procedure RunBackup(const TargetFile: string; const ProductIds: TArray<string>);
+  end;
+
+  TTmsRestoreRunner = class(TTmsRunner)
+  public
+    class function Command: TTmsCommand; override;
+    procedure RunRestore(const BackupFile: string);
+  end;
+
   ETmsRunner = class(Exception)
   end;
 
@@ -266,7 +278,7 @@ function TmsCommandName(const Command: TTmsCommand): string;
 const
   Names: array[TTmsCommand] of string = ('list', 'list-remote', 'info', 'credentials', 'config', 'log-view', 'self-update',
     'config-read', 'config-write', 'server-list', 'server-add', 'server-enable', 'server-remove',
-    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin');
+    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'restore');
 begin
   Result := Names[Command];
 end;
@@ -997,6 +1009,36 @@ begin
   if not Initialized then exit('Error reading working folder');
 
   Result := FWorkingFolder;
+end;
+
+
+{ TTmsBackupRunner }
+
+class function TTmsBackupRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Backup;
+end;
+
+procedure TTmsBackupRunner.RunBackup(const TargetFile: string;
+  const ProductIds: TArray<string>);
+begin
+  var Command := 'backup';
+  Command := Command + ' ' + String.Join(' ', ProductIds);
+  Run(Command);
+end;
+
+{ TTmsRestoreRunner }
+
+class function TTmsRestoreRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Restore;
+end;
+
+procedure TTmsRestoreRunner.RunRestore(const BackupFile: string);
+begin
+  var Command := 'restore';
+  Command := Command;
+  Run(Command);
 end;
 
 end.

@@ -223,6 +223,7 @@ type
 
     // Functions for enable/disable actions
     function CanInstallSelected: Boolean;
+    function GetInstallCaption: string;
     function CanUninstallSelected: Boolean;
     function CanBuild: Boolean;
     function CanApplyFilter: Boolean;
@@ -493,6 +494,41 @@ begin
 //      Exit(False);
 //  end;
 end;
+
+
+function TGUIEnvironment.GetInstallCaption: string;
+type
+  TInstallCaptionType = (Unknown, Install, Update, Reinstall);
+
+  function GetOneProductInstallCaption(const Product: TGUIProduct): TInstallCaptionType;
+  begin
+    if Product.Status = TProductStatus.Installed then
+    begin
+      if Product.IsOutdated or (Product.RemoteVersion.IsNull)
+        then Exit(TInstallCaptionType.Update)
+        else Exit(TInstallCaptionType.Reinstall);
+    end;
+    Result := TInstallCaptionType.Install;
+  end;
+
+
+begin
+  UpdateSelectedProducts;
+  Result := '&Install';
+  var AllCaptionType := TInstallCaptionType.Unknown;
+  for var Product in FSelected do
+  begin
+    var ProdCaptionType := GetOneProductInstallCaption(Product);
+    if AllCaptionType = TInstallCaptionType.Unknown then AllCaptionType := ProdCaptionType
+    else if AllCaptionType <> ProdCaptionType then exit;
+  end;
+
+  case AllCaptionType of
+    TInstallCaptionType.Update: exit ('U&pdate');
+    TInstallCaptionType.Reinstall: exit('Re&install');
+  end;
+end;
+
 
 function TGUIEnvironment.CanPinSelected: Boolean;
 begin
