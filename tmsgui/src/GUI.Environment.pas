@@ -160,7 +160,6 @@ type
     procedure GenerateLogItem(Item: TGUILogItem);
     procedure RunnerOutputEvent(const S: string);
     function TryBeginExclusive(const Command: TTmsCommand): Boolean;
-    function SelectedProductIds: TArray<string>;
     procedure ExecuteBuild(FullBuild: Boolean; ProgressCallback: TProductProgressProc);
     procedure DoRunStart(const Command: TTmsCommand);
     procedure DoRunFinish(const Command: TTmsCommand);
@@ -190,6 +189,9 @@ type
 
     function IsRunning: Boolean;
     procedure CancelRun;
+
+    function SelectedProductIds: TArray<string>;
+
     
     // Execute the build all the currently selected products (or all if none is selected)
     procedure ExecuteFullBuild(ProgressCallback: TProductProgressProc);
@@ -207,6 +209,8 @@ type
     // Execute pin/unpin operations on selected products
     procedure ExecutePinSelected;
     procedure ExecuteUnpinSelected;
+
+    procedure ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<string, string, boolean>);
 
     // Updates the credentials
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
@@ -231,6 +235,7 @@ type
     function CanConfigure: Boolean;
     function CanPinSelected: Boolean;
     function CanUnpinSelected: Boolean;
+    function CanRunSBOM: Boolean;
 
     // Functions to read/write configuration parameters
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -540,6 +545,18 @@ begin
       Exit(True);
 end;
 
+function TGUIEnvironment.CanRunSBOM: Boolean;
+begin
+  if IsRunning then Exit(False);
+  if not UpdateSelectedProducts then Exit(false);
+  Result := False;
+  for var Product in FSelected do
+  begin
+    if (Product.Status <> TProductStatus.NotInstalled)
+     then Exit(True);
+  end;
+end;
+
 function TGUIEnvironment.CanRequestCredentials: Boolean;
 begin
   if IsRunning then Exit(False);
@@ -835,6 +852,20 @@ begin
   end;
 end;
 
+procedure TGUIEnvironment.ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<string, string, boolean>);
+begin
+  RunSync<TTmsSBOMRunner>(
+    procedure(Runner: TTmsSBOMRunner)
+    begin
+      Runner.OnOutputLine := RunnerOutputEvent;
+      Runner.RunSBOM(Force, ProductIds);
+      for var InfoItem in Runner.SBOMInfoList do
+      begin
+        UpdateSBOMs(InfoItem.Id, InfoItem.FileName, InfoItem.Generated);
+      end;
+    end);
+end;
+
 procedure TGUIEnvironment.ExecuteSelfUpdate(ProgressCallback: TProgressProc; RelaunchCallback: TProc);
 begin
   RunBackground(TTmsCommand.SelfUpdate,
@@ -883,41 +914,43 @@ begin
   RunAsync<TTmsBuildRunner>(
     procedure(Runner: TTmsBuildRunner)
     begin
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        ProgressCallback(ProgressInfo);
-      end;
-
-      Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.FullBuild := FullBuild;
-      Runner.ProductIds.AddStrings(ProductIds);
-      Runner.OnProgress :=
-        procedure(const Info: TProgressInfo)
+      try
+        if Assigned(ProgressCallback) then
         begin
-          if Assigned(ProgressCallback) then
-          begin
-            var ProgressInfo := Default(TProductProgressInfo);
-            ProgressInfo.Percent := Info.Percent;
-            ProgressInfo.ProductId := Info.ProductId;
-            ProgressInfo.ProductPercent := Info.ProductPercent;
-            ProgressCallback(ProgressInfo);
-          end;
+          var ProgressInfo := Default(TProductProgressInfo);
+          ProgressCallback(ProgressInfo);
         end;
-      Runner.RunBuild;
 
-      // Todo: Handle exit code 3 (which is partial succesfully build)
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        if Runner.IsCanceled then
-          ProgressInfo.Percent := 0
-        else
-          ProgressInfo.Percent := 100;
-        ProgressCallback(ProgressInfo);
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.FullBuild := FullBuild;
+        Runner.ProductIds.AddStrings(ProductIds);
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+            begin
+              var ProgressInfo := Default(TProductProgressInfo);
+              ProgressInfo.Percent := Info.Percent;
+              ProgressInfo.ProductId := Info.ProductId;
+              ProgressInfo.ProductPercent := Info.ProductPercent;
+              ProgressCallback(ProgressInfo);
+            end;
+          end;
+        Runner.RunBuild;
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          if Runner.IsCanceled then
+            ProgressInfo.Percent := 0
+          else
+            ProgressInfo.Percent := 100;
+          ProgressCallback(ProgressInfo);
+        end;
+      finally
+        RefreshFetchedProductsAfterJob;
       end;
-
-      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -960,40 +993,42 @@ begin
   RunAsync<TTmsInstallRunner>(
     procedure(Runner: TTmsInstallRunner)
     begin
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        ProgressCallback(ProgressInfo);
-      end;
-
-      Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.ProductIds.AddStrings(ProductIds);
-      Runner.OnProgress :=
-        procedure(const Info: TProgressInfo)
+      try
+        if Assigned(ProgressCallback) then
         begin
-          if Assigned(ProgressCallback) then
-          begin
-            var ProgressInfo := Default(TProductProgressInfo);
-            ProgressInfo.Percent := Info.Percent;
-            ProgressInfo.ProductId := Info.ProductId;
-            ProgressInfo.ProductPercent := Info.ProductPercent;
-            ProgressCallback(ProgressInfo);
-          end;
+          var ProgressInfo := Default(TProductProgressInfo);
+          ProgressCallback(ProgressInfo);
         end;
-      Runner.RunInstall;
 
-      // Todo: Handle exit code 3 (which is partial succesfully build)
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        if Runner.IsCanceled then
-          ProgressInfo.Percent := 0
-        else
-          ProgressInfo.Percent := 100;
-        ProgressCallback(ProgressInfo);
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.ProductIds.AddStrings(ProductIds);
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+            begin
+              var ProgressInfo := Default(TProductProgressInfo);
+              ProgressInfo.Percent := Info.Percent;
+              ProgressInfo.ProductId := Info.ProductId;
+              ProgressInfo.ProductPercent := Info.ProductPercent;
+              ProgressCallback(ProgressInfo);
+            end;
+          end;
+        Runner.RunInstall;
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          if Runner.IsCanceled then
+            ProgressInfo.Percent := 0
+          else
+            ProgressInfo.Percent := 100;
+          ProgressCallback(ProgressInfo);
+        end;
+      finally
+        RefreshFetchedProductsAfterJob;
       end;
-
-      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -1018,29 +1053,31 @@ begin
   RunAsync<TTmsUninstallRunner>(
     procedure(Runner: TTmsUninstallRunner)
     begin
-      if Assigned(ProgressCallback) then
-        ProgressCallback(0);
+      try
+        if Assigned(ProgressCallback) then
+          ProgressCallback(0);
 
-      Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.ProductIds.AddStrings(ProductIds);
-      Runner.OnProgress :=
-        procedure(const Info: TProgressInfo)
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.ProductIds.AddStrings(ProductIds);
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+              ProgressCallback(Info.Percent);
+          end;
+        Runner.RunUninstall;
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
         begin
-          if Assigned(ProgressCallback) then
-            ProgressCallback(Info.Percent);
+          if Runner.IsCanceled then
+            ProgressCallback(0)
+          else
+            ProgressCallback(100);
         end;
-      Runner.RunUninstall;
-
-      // Todo: Handle exit code 3 (which is partial succesfully build)
-      if Assigned(ProgressCallback) then
-      begin
-        if Runner.IsCanceled then
-          ProgressCallback(0)
-        else
-          ProgressCallback(100);
+      finally
+        RefreshFetchedProductsAfterJob;
       end;
-
-      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -1091,9 +1128,9 @@ begin
       if LocalRunner.NewVersionDetected then
         DoNotifyNewVersion;
 
-      if LocalRunner is TAbstractTmsBuildRunner then
+      if (LocalRunner is TAbstractTmsBuildRunner) or (LocalRunner.Command in [TTmsCommand.SBom]) then
       begin
-        // Only build runners get here, so Params has no credentials in it.
+        // not all commands log to the output. But they all do if there is an exception.
         GenerateLogItem(TGUILogItem.Create(
             Format('%s: tms %s', [TmsCommandName(T.Command), LocalRunner.Params]),
             TLogLevel.Info,

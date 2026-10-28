@@ -27,7 +27,8 @@ uses
   Forms.LogDetails in 'src\Forms.LogDetails.pas' {LogDetailsForm},
   GUI.Automation in 'src\GUI.Automation.pas',
   Forms.Dialogs in 'src\Forms.Dialogs.pas' {DialogForm},
-  Util.Animator in 'src\Util.Animator.pas';
+  Util.Animator in 'src\Util.Animator.pas',
+  Forms.SBOMResults in 'src\Forms.SBOMResults.pas' {SBOMResultsForm};
 
 {$R *.res}
 

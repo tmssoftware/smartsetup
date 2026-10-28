@@ -22,7 +22,7 @@ type
   {$SCOPEDENUMS ON}
   TTmsCommand = (List, ListRemote, Info, Credentials, Configure, LogView, SelfUpdate,
     ConfigRead, ConfigWrite, ServerList, ServerAdd, ServerEnable, ServerRemove,
-    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, Restore);
+    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, Restore, SBOM);
   {$SCOPEDENUMS OFF}
 
   TTmsRunner = class
@@ -258,6 +258,25 @@ type
     procedure RunRestore(const BackupFile: string);
   end;
 
+  TSBOMInfo =  class
+  public
+    Id: string;
+    FileName: string;
+    Generated: boolean;
+  end;
+
+  TTmsSBOMRunner = class(TTmsRunner)
+  private
+    FSBOMInfoList: TObjectList<TSBOMInfo>;
+  public
+    class function Command: TTmsCommand; override;
+    constructor Create;
+    destructor Destroy; override;
+    procedure RunSBOM(const Force: boolean; const ProductIds: TArray<string>);
+
+    property SBOMInfoList: TObjectList<TSBOMInfo> read FSBOMInfoList;
+  end;
+
   ETmsRunner = class(Exception)
   end;
 
@@ -278,7 +297,7 @@ function TmsCommandName(const Command: TTmsCommand): string;
 const
   Names: array[TTmsCommand] of string = ('list', 'list-remote', 'info', 'credentials', 'config', 'log-view', 'self-update',
     'config-read', 'config-write', 'server-list', 'server-add', 'server-enable', 'server-remove',
-    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'restore');
+    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'restore', 'sbom-generate');
 begin
   Result := Names[Command];
 end;
@@ -1039,6 +1058,52 @@ begin
   var Command := 'restore';
   Command := Command;
   Run(Command);
+end;
+
+{ TTmsSBOMRunner }
+
+class function TTmsSBOMRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.SBOM;
+end;
+
+constructor TTmsSBOMRunner.Create;
+begin
+  inherited;
+  FSBOMInfoList := TObjectList<TSBOMInfo>.Create;
+end;
+
+destructor TTmsSBOMRunner.Destroy;
+begin
+  FSBOMInfoList.Free;
+  inherited;
+end;
+
+procedure TTmsSBOMRunner.RunSBOM(const Force: boolean; const ProductIds: TArray<string>);
+begin
+  var Command := 'sbom-generate';
+  var ForceStr := '';
+  if Force then ForceStr := ' -force';
+  
+  Command := Command + ' ' + String.Join(' ', ProductIds) + ForceStr + ' -json';
+  Run(Command);
+  if not (JsonOutput is TJSONObject) then
+    raise ETmsRunner.Create('Invalid result for `tms generate-sbom -json` command. Cannot parse "' + OutputText + '" as JSON.');
+
+  var Json := TJSONObject(JsonOutput);
+  for var Pair in Json do
+  begin
+    var SBOMInfo := TSBOMInfo.Create;
+    FSBOMInfoList.Add(SBOMInfo);
+    SBOMInfo.Id := Pair.JsonString.Value;
+    if not (Pair.JsonValue is TJSONObject) then
+      raise ETmsRunner.CreateFmt('Could not parse product "%s" as JSON object from generate-sbom command', [SBOMInfo.Id]);
+    var JsonProduct := TJSONObject(Pair.JsonValue);
+
+    SBOMInfo.FileName := JsonProduct.GetValue<string>('filename');
+    SBOMInfo.Generated := JsonProduct.GetValue<boolean>('generated');
+  end;
+
 end;
 
 end.

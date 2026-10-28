@@ -179,6 +179,8 @@ type
     procedure CopyURL1Click(Sender: TObject);
     procedure LinkClick(Sender: TObject);
     procedure CopyVersionHistoryMenuClick(Sender: TObject);
+    procedure acSBOMUpdate(Sender: TObject);
+    procedure acSBOMExecute(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -257,7 +259,7 @@ uses
   Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
   Vcl.Themes, UTheming, IOUtils,
   GUI.Automation,
-  Forms.VersionPicker, Forms.Dialogs;
+  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults;
 
 {$R *.dfm}
 
@@ -488,6 +490,56 @@ end;
 procedure TMainForm.acSettingsUpdate(Sender: TObject);
 begin
   acSettings.Enabled := GUI.CanConfigure;
+end;
+
+procedure TMainForm.acSBOMExecute(Sender: TObject);
+begin
+  var Results := TList<TSBOMResult>.Create;
+  try
+    var Force := False;
+    var ProductIds := GUI.SelectedProductIds;
+    repeat
+      GUI.ExecuteSBOM(Force, ProductIds,
+        procedure (Id, FileName: string; Generated: boolean)
+        begin
+          var R: TSBOMResult;
+          R.ProductId := Id;
+          var Product := GUI.Products.Find(Id);
+          if Product <> nil then
+            R.ProductName := Product.DisplayName
+          else
+            R.ProductName := Id;
+          R.FileName := FileName;
+          R.Generated := Generated;
+
+          // When regenerating, replace the previous result for the product.
+          for var i := 0 to Results.Count - 1 do
+            if Results[i].ProductId = Id then
+            begin
+              Results[i] := R;
+              Exit;
+            end;
+          Results.Add(R);
+        end
+      );
+
+      if (Results.Count = 0) or not TSBOMResultsForm.Execute(Results.ToArray) then
+        Exit;
+
+      ProductIds := [];
+      for var R in Results do
+        if not R.Generated then
+          ProductIds := ProductIds + [R.ProductId];
+      Force := True;
+    until Length(ProductIds) = 0;
+  finally
+    Results.Free;
+  end;
+end;
+
+procedure TMainForm.acSBOMUpdate(Sender: TObject);
+begin
+  acSBOM.Enabled := GUI.CanRunSBOM;
 end;
 
 procedure TMainForm.acSearchFocusExecute(Sender: TObject);

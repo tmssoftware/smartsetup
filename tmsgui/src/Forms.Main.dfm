@@ -939,6 +939,8 @@ object MainForm: TMainForm
       Category = 'Commands'
       Caption = '&SBOM'
       ImageName = 'sbom'
+      OnExecute = acSBOMExecute
+      OnUpdate = acSBOMUpdate
     end
     object acDoctor: TAction
       Category = 'Commands'
