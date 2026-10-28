@@ -60,8 +60,8 @@ begin
           except
             on E: Exception do
             begin
-              Logger.Error('Failed to generate SBOM for "' + Proj.Application.Id + '": ' + E.Message);
-              // Reported too, or a caller reading the json can't tell the product failed.
+              var Msg := 'Failed to generate SBOM for "' + Proj.Application.Id + '": ' + E.Message;
+              if JsonRoot = nil then Logger.Error(Msg) else Logger.Info(Msg);
               AddJson(JsonRoot, Proj, CdxFile, false, E.Message);
             end;
           end;

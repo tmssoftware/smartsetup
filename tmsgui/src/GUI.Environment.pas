@@ -1526,28 +1526,47 @@ begin
   end;
 end;
 
+// we use | as "or". mostly so we can write better gui tests
+function GetFilterSections(const Filter: string): TArray<string>;
+begin
+  Result := nil;
+  for var Section in Filter.Split(['|']) do
+  begin
+    var Trimmed := Section.Trim;
+    if Trimmed <> '' then Result := Result + [Trimmed];
+  end;
+end;
+
 procedure TGUIEnvironment.ApplyProductFilters;
 begin
-  var Filter := FSearchFilter.ToLower;
-  // The search text is free text typed by the user, so it may not be a valid mask (e.g. "[").
-  // TMask.Create raises EMaskException for those; then we just search without the mask.
-  var Mask: TMask := nil;
+  var Filters := GetFilterSections(FSearchFilter);
+  var Masks: TArray<TMask> := nil;
+  SetLength(Masks, Length(Filters));
   try
-    Mask := TMask.Create(Filter);
-  except
-    on EMaskException do ; // Mask stays nil
-  end;
-  try
+    // The search text is free text typed by the user, so it may not be a valid mask (e.g. "[").
+    // TMask.Create raises EMaskException for those; then we just search without the mask.
+    for var i := Low(Masks) to High(Masks) do
+    begin
+      try
+        Masks[i] := TMask.Create(Filters[i]);
+      except
+        on EMaskException do ; // Mask stays nil
+      end;
+    end;
+
     var Predicate :=
       function(Product: TGUIProduct): Boolean
       begin
-        Result := True;
-        if Filter.Trim <> '' then
+        if Length(Filters) = 0 then Exit(True);
+        for var i := Low(Filters) to High(Filters) do
         begin
-          var IdLower := Product.Id.ToLower;
-          var NameLower := Product.Name.ToLower;
-          Result := IdLower.Contains(Filter) or NameLower.Contains(Filter) or ((Mask <> nil) and Mask.Matches(IdLower));
+          var Filter := Filters[i];
+          if ContainsText(Product.Id, Filter)
+            or ContainsText(Product.Name, Filter)
+            or ContainsText(Product.Description, Filter)
+            or ((Masks[i] <> nil) and Masks[i].Matches(Product.Id)) then Exit(True);
         end;
+        Result := false;
       end;
 
     FProducts.Clear;
@@ -1560,7 +1579,7 @@ begin
     // that are about to be freed (see ReplaceFetchedProducts).
     SelectionChanged;
   finally
-    Mask.Free;
+    for var i := Low(Masks) to High(Masks) do Masks[i].Free;
   end;
 end;
 

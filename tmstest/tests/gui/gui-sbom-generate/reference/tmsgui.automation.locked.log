@@ -1,0 +1,25 @@
+Starting Automation
+wait: condition Self.IsGuiRunning = false
+wait: condition Self.ProductCount <> 0
+assert: "self.Name = MainForm" is true
+call: "MainForm.lvproducts.SelectAll"
+wait: condition acSBOM.Enabled 
+click: "MainForm.acSBOM"
+wait: condition Self.Name = SBOMResultsForm
+assert: "lvResults.GetCount = 3" is true
+assert: "btRegenerate.Enabled = true" is true
+assert: "lbCaption.Caption ~ SBOM files generated: 0. Skipped (already existed): 3" is true
+click: "SBOMResultsForm.btRegenerate"
+wait: condition Self.Name = SBOMResultsForm
+assert: "lvResults.GetCount = 3" is true
+assert: "btRegenerate.Enabled = true" is true
+log: property "SBOMResultsForm.lbCaption.Caption" has the value 'SBOM files generated: 2. Skipped (already existed): 0. Failed: 1.'
+assert: "lbCaption.Caption ~ SBOM files generated: 2. Skipped (already existed): 0. Failed: 1." is true
+click: "SBOMResultsForm.btRegenerate"
+wait: condition Self.Name = SBOMResultsForm
+assert: "lvResults.GetCount = 3" is true
+assert: "btRegenerate.Enabled = true" is true
+assert: "lbCaption.Caption ~ SBOM files generated: 2. Skipped (already existed): 0. Failed: 1." is true
+click: "SBOMResultsForm.btClose"
+wait: condition Self.Name = MainForm
+Completed successfully

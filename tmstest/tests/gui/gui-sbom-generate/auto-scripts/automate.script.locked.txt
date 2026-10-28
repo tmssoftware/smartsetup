@@ -1,0 +1,27 @@
+wait Self.IsGuiRunning = false
+wait Self.ProductCount <> 0
+assert self.Name = MainForm
+
+call lvproducts.SelectAll
+wait acSBOM.Enabled
+click acSBOM
+
+wait Self.Name = SBOMResultsForm
+assert lvResults.GetCount = 3
+assert btRegenerate.Enabled = true
+assert lbCaption.Caption ~ SBOM files generated: 0. Skipped (already existed): 3
+click btRegenerate
+wait Self.Name = SBOMResultsForm
+assert lvResults.GetCount = 3
+assert btRegenerate.Enabled = true
+log lbCaption.Caption
+assert lbCaption.Caption ~ SBOM files generated: 2. Skipped (already existed): 0. Failed: 1.
+
+click btRegenerate
+wait Self.Name = SBOMResultsForm
+assert lvResults.GetCount = 3
+assert btRegenerate.Enabled = true
+assert lbCaption.Caption ~ SBOM files generated: 2. Skipped (already existed): 0. Failed: 1.
+
+click btClose
+wait Self.Name = MainForm

@@ -114,7 +114,7 @@ begin
   lbCaption.Caption := Format('SBOM files generated: %d. Skipped (already existed): %d.',
     [GeneratedCount, Length(Results) - GeneratedCount - FailedCount]);
   if FailedCount > 0 then
-    lbCaption.Caption := lbCaption.Caption + Format(' Failed: %d, regenerating retries them too.', [FailedCount]);
+    lbCaption.Caption := lbCaption.Caption + Format(' Failed: %d.', [FailedCount]);
   btRegenerate.Enabled := GeneratedCount < Length(Results);
 end;
 

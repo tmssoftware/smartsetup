@@ -1,0 +1,35 @@
+Starting Automation
+wait: condition Self.IsGuiRunning = false
+wait: condition Self.ProductCount <> 0
+assert: "self.Name = MainForm" is true
+set-text: "MainForm.edSearch" to "tms.BIZ.bcl | c4d.conn | tms.fmx.mcl"
+wait: condition Self.ProductCount = 3
+call: "MainForm.lvproducts.SelectAll"
+wait: condition acSBOM.Enabled 
+click: "MainForm.acSBOM"
+wait: condition Self.Name = SBOMResultsForm
+assert: "lvResults.GetCount = 3" is true
+assert: "btRegenerate.Enabled = false" is true
+assert: "lbCaption.Caption ~ SBOM files generated: 3. Skipped (already existed): 0" is true
+click: "SBOMResultsForm.btClose"
+wait: condition Self.Name = MainForm
+set-text: "MainForm.edSearch" to ""
+wait: condition Self.ProductCount > 1
+wait: condition Self.IsGuiRunning = false
+call: "MainForm.lvproducts.SelectAll"
+wait: condition acSBOM.Enabled 
+click: "MainForm.acSBOM"
+wait: condition Self.Name = SBOMResultsForm
+assert: "lvResults.GetCount = 3" is true
+assert: "btRegenerate.Enabled = true" is true
+assert: "lbCaption.Caption ~ SBOM files generated: 0. Skipped (already existed): 3" is true
+click: "SBOMResultsForm.btRegenerate"
+wait: condition Self.Name = SBOMResultsForm
+assert: "lvResults.GetCount = 3" is true
+assert: "btRegenerate.Enabled = false" is true
+assert: "lbCaption.Caption ~ SBOM files generated: 3. Skipped (already existed): 0" is true
+click: "SBOMResultsForm.btClose"
+wait: condition Self.Name = MainForm
+set-text: "MainForm.edSearch" to ""
+wait: condition Self.ProductCount > 1
+Completed successfully

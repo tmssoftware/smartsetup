@@ -1,0 +1,38 @@
+wait Self.IsGuiRunning = false
+wait Self.ProductCount <> 0
+assert self.Name = MainForm
+set-text edSearch tms.BIZ.bcl | c4d.conn | tms.fmx.mcl
+wait Self.ProductCount = 3
+
+call lvproducts.SelectAll
+wait acSBOM.Enabled
+click acSBOM
+
+wait Self.Name = SBOMResultsForm
+assert lvResults.GetCount = 3
+assert btRegenerate.Enabled = false
+assert lbCaption.Caption ~ SBOM files generated: 3. Skipped (already existed): 0
+click btClose
+wait Self.Name = MainForm
+set-text edSearch 
+wait Self.ProductCount > 1
+
+wait Self.IsGuiRunning = false
+call lvproducts.SelectAll
+wait acSBOM.Enabled
+click acSBOM
+
+wait Self.Name = SBOMResultsForm
+assert lvResults.GetCount = 3
+assert btRegenerate.Enabled = true
+assert lbCaption.Caption ~ SBOM files generated: 0. Skipped (already existed): 3
+click btRegenerate
+wait Self.Name = SBOMResultsForm
+assert lvResults.GetCount = 3
+assert btRegenerate.Enabled = false
+assert lbCaption.Caption ~ SBOM files generated: 3. Skipped (already existed): 0
+
+click btClose
+wait Self.Name = MainForm
+set-text edSearch 
+wait Self.ProductCount > 1
