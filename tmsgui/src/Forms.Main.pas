@@ -492,6 +492,8 @@ end;
 
 procedure TMainForm.acSBOMExecute(Sender: TObject);
 begin
+  if TDialogForm.MessageDlg('Generate SBOM files for the selected products?', TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbCancel], 0, TMsgDlgBtn.mbYes) <> mrYes then exit;
+
   var Results := TList<TSBOMResult>.Create;
   try
     var Force := False;
