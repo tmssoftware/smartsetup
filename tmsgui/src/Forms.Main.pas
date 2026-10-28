@@ -1034,7 +1034,7 @@ begin
     begin
       if (LogPanel.Height <= 5) and (Item.Level = TLogLevel.Error) then
       begin
-        LogPanel.Height := 300;
+        LogPanel.Height := 200;
       end;
       lbLog.ItemCount := GUI.LogItems.Count;
       lbLog.Refresh;

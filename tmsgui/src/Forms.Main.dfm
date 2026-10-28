@@ -156,14 +156,12 @@ object MainForm: TMainForm
                   AlignWithMargins = True
                   Left = 3
                   Top = 32
-                  Width = 258
-                  Height = 197
+                  Width = 239
+                  Height = 30
                   Align = alClient
                   Caption = 'Select one or multiple products on the left to install them'
                   ShowAccelChar = False
                   WordWrap = True
-                  ExplicitWidth = 239
-                  ExplicitHeight = 30
                 end
                 object NoProdSmartSetup: TLabel
                   AlignWithMargins = True
@@ -308,8 +306,6 @@ object MainForm: TMainForm
                     Caption = 'CardOneProductInfo'
                     CardIndex = 0
                     TabOrder = 0
-                    ExplicitWidth = 185
-                    ExplicitHeight = 41
                     object SingleInfoPanel: TPanel
                       Left = 0
                       Top = 0
@@ -318,13 +314,11 @@ object MainForm: TMainForm
                       Align = alClient
                       BevelOuter = bvNone
                       TabOrder = 0
-                      ExplicitWidth = 264
-                      ExplicitHeight = 216
                       object OneProdDescription: TLabel
                         AlignWithMargins = True
                         Left = 3
                         Top = 3
-                        Width = 238
+                        Width = 3
                         Height = 15
                         Align = alTop
                         Constraints.MaxHeight = 200
@@ -336,8 +330,6 @@ object MainForm: TMainForm
                         ParentFont = False
                         ShowAccelChar = False
                         WordWrap = True
-                        ExplicitTop = 33
-                        ExplicitWidth = 3
                       end
                       object OneProdUrl: TLabel
                         AlignWithMargins = True
@@ -403,13 +395,11 @@ object MainForm: TMainForm
                     Caption = 'CardOneProductInstall'
                     CardIndex = 1
                     TabOrder = 1
-                    ExplicitWidth = 185
-                    ExplicitHeight = 41
                     object OneProdInstalledCaption: TLabel
                       AlignWithMargins = True
                       Left = 3
                       Top = 3
-                      Width = 238
+                      Width = 67
                       Height = 15
                       Align = alTop
                       Caption = 'Not installed'
@@ -422,9 +412,8 @@ object MainForm: TMainForm
                       ParentFont = False
                       ShowAccelChar = False
                       WordWrap = True
-                      ExplicitWidth = 67
                     end
-                    object OneProdInstalledPlats: TMemo
+                    object OneProdInstalledPlats: TRichEdit
                       AlignWithMargins = True
                       Left = 3
                       Top = 21
@@ -433,31 +422,33 @@ object MainForm: TMainForm
                       Margins.Top = 0
                       Align = alClient
                       BorderStyle = bsNone
+                      Font.Charset = ANSI_CHARSET
+                      Font.Color = clBtnText
+                      Font.Height = -12
+                      Font.Name = 'Segoe UI'
+                      Font.Style = []
+                      ParentFont = False
                       ReadOnly = True
                       ScrollBars = ssVertical
                       TabOrder = 0
-                      ExplicitLeft = 0
-                      ExplicitWidth = 264
-                      ExplicitHeight = 165
                     end
                   end
                 end
-                  object BtnInfoSwitch: TButton
-                    AlignWithMargins = True
+                object BtnInfoSwitch: TButton
+                  AlignWithMargins = True
                   Left = 247
                   Top = 30
                   Width = 14
                   Height = 186
-                    Hint = 'Show where this component is installed'
-                    Margins.Top = 0
-                    Margins.Bottom = 0
+                  Hint = 'Show where this component is installed'
+                  Margins.Top = 0
+                  Margins.Bottom = 0
                   Align = alRight
-                    Caption = #10095
-                    ParentShowHint = False
-                    ShowHint = True
+                  Caption = #10095
+                  ParentShowHint = False
+                  ShowHint = True
                   TabOrder = 2
-                    OnClick = BtnInfoSwitchClick
-                  ExplicitLeft = 3
+                  OnClick = BtnInfoSwitchClick
                 end
               end
               object CardMultipleProducts: TCard
@@ -716,7 +707,7 @@ object MainForm: TMainForm
           Left = 3
           Top = 4
           Width = 13
-          Height = 16
+          Height = 15
           Margins.Top = 4
           Margins.Bottom = 4
           Align = alLeft
@@ -727,14 +718,13 @@ object MainForm: TMainForm
           Font.Name = 'Segoe UI'
           Font.Style = [fsBold]
           ParentFont = False
-          ExplicitHeight = 15
         end
         object lblTime: TLabel
           AlignWithMargins = True
           Left = 22
           Top = 4
           Width = 31
-          Height = 16
+          Height = 15
           Margins.Top = 4
           Margins.Bottom = 4
           Align = alLeft
@@ -745,7 +735,6 @@ object MainForm: TMainForm
           Font.Name = 'Segoe UI'
           Font.Style = [fsBold]
           ParentFont = False
-          ExplicitHeight = 15
         end
         object btnOpenHTMLLog: TControlListButton
           AlignWithMargins = True
