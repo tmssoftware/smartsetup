@@ -289,8 +289,8 @@ object MainForm: TMainForm
                 object CardsPanelInstalled: TCardPanel
                   Left = 0
                   Top = 30
-                  Width = 264
-                  Height = 162
+                  Width = 244
+                  Height = 186
                   Align = alClient
                   ActiveCard = CardOneProductInfo
                   BevelOuter = bvNone
@@ -303,8 +303,8 @@ object MainForm: TMainForm
                   object CardOneProductInfo: TCard
                     Left = 0
                     Top = 0
-                    Width = 264
-                    Height = 162
+                    Width = 244
+                    Height = 186
                     Caption = 'CardOneProductInfo'
                     CardIndex = 0
                     TabOrder = 0
@@ -313,17 +313,18 @@ object MainForm: TMainForm
                     object SingleInfoPanel: TPanel
                       Left = 0
                       Top = 0
-                      Width = 264
-                      Height = 162
+                      Width = 244
+                      Height = 186
                       Align = alClient
                       BevelOuter = bvNone
                       TabOrder = 0
+                      ExplicitWidth = 264
                       ExplicitHeight = 216
                       object OneProdDescription: TLabel
                         AlignWithMargins = True
                         Left = 3
                         Top = 3
-                        Width = 258
+                        Width = 238
                         Height = 15
                         Align = alTop
                         Constraints.MaxHeight = 200
@@ -342,7 +343,7 @@ object MainForm: TMainForm
                         AlignWithMargins = True
                         Left = 3
                         Top = 24
-                        Width = 258
+                        Width = 238
                         Height = 15
                         Cursor = crHandPoint
                         Margins.Bottom = 0
@@ -363,12 +364,13 @@ object MainForm: TMainForm
                         StyleElements = [seClient, seBorder]
                         OnClick = LinkClick
                         ExplicitTop = 58
+                        ExplicitWidth = 258
                       end
                       object OneProdVersionHistory: TLabel
                         AlignWithMargins = True
                         Left = 3
                         Top = 39
-                        Width = 258
+                        Width = 238
                         Height = 15
                         Cursor = crHandPoint
                         Margins.Top = 0
@@ -389,14 +391,15 @@ object MainForm: TMainForm
                         StyleElements = [seClient, seBorder]
                         OnClick = LinkClick
                         ExplicitTop = 75
+                        ExplicitWidth = 258
                       end
                     end
                   end
                   object CardOneProductInstall: TCard
                     Left = 0
                     Top = 0
-                    Width = 264
-                    Height = 162
+                    Width = 244
+                    Height = 186
                     Caption = 'CardOneProductInstall'
                     CardIndex = 1
                     TabOrder = 1
@@ -406,7 +409,7 @@ object MainForm: TMainForm
                       AlignWithMargins = True
                       Left = 3
                       Top = 3
-                      Width = 258
+                      Width = 238
                       Height = 15
                       Align = alTop
                       Caption = 'Not installed'
@@ -425,8 +428,8 @@ object MainForm: TMainForm
                       AlignWithMargins = True
                       Left = 3
                       Top = 21
-                      Width = 258
-                      Height = 138
+                      Width = 238
+                      Height = 162
                       Margins.Top = 0
                       Align = alClient
                       BorderStyle = bsNone
@@ -439,55 +442,22 @@ object MainForm: TMainForm
                     end
                   end
                 end
-                object PanelSwitchInfo: TPanel
-                  Left = 0
-                  Top = 192
-                  Width = 264
-                  Height = 24
-                  Margins.Top = 0
-                  Margins.Bottom = 0
-                  Align = alBottom
-                  BevelOuter = bvNone
-                  ShowCaption = False
-                  TabOrder = 2
-                  ExplicitLeft = 3
-                  ExplicitWidth = 258
-                  object BtnInfoLeft: TButton
+                  object BtnInfoSwitch: TButton
                     AlignWithMargins = True
-                    Left = 3
-                    Top = 0
-                    Width = 33
-                    Height = 24
-                    Hint = 'Show information about the selected product'
-                    Margins.Top = 0
-                    Margins.Bottom = 0
-                    Align = alLeft
-                    Caption = #10094
-                    ParentShowHint = False
-                    ShowHint = True
-                    TabOrder = 0
-                    Visible = False
-                    OnClick = BtnInfoLeftClick
-                    ExplicitHeight = 18
-                  end
-                  object BtnInfoRight: TButton
-                    AlignWithMargins = True
-                    Left = 42
-                    Top = 0
-                    Width = 33
-                    Height = 24
+                  Left = 247
+                  Top = 30
+                  Width = 14
+                  Height = 186
                     Hint = 'Show where this component is installed'
                     Margins.Top = 0
                     Margins.Bottom = 0
-                    Align = alLeft
+                  Align = alRight
                     Caption = #10095
                     ParentShowHint = False
                     ShowHint = True
-                    TabOrder = 1
-                    OnClick = BtnInfoRightClick
-                    ExplicitLeft = 228
-                    ExplicitHeight = 18
-                  end
+                  TabOrder = 2
+                    OnClick = BtnInfoSwitchClick
+                  ExplicitLeft = 3
                 end
               end
               object CardMultipleProducts: TCard

@@ -126,11 +126,9 @@ type
     OneProdVersionHistory: TLabel;
     CardOneProductInstall: TCard;
     OneProdProductName: TLabel;
-    OneProdInstalledPlats: TMemo;
+    OneProdInstalledPlats: TRichEdit;
     OneProdInstalledCaption: TLabel;
-    PanelSwitchInfo: TPanel;
-    BtnInfoLeft: TButton;
-    BtnInfoRight: TButton;
+    BtnInfoSwitch: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -193,8 +191,7 @@ type
     procedure CopyVersionHistoryMenuClick(Sender: TObject);
     procedure acSBOMUpdate(Sender: TObject);
     procedure acSBOMExecute(Sender: TObject);
-    procedure BtnInfoLeftClick(Sender: TObject);
-    procedure BtnInfoRightClick(Sender: TObject);
+    procedure BtnInfoSwitchClick(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -1310,18 +1307,19 @@ begin
   end;
 end;
 
-procedure TMainForm.BtnInfoLeftClick(Sender: TObject);
+procedure TMainForm.BtnInfoSwitchClick(Sender: TObject);
 begin
-  CardsPanelInstalled.ActiveCard := CardOneProductInfo;
-  BtnInfoLeft.Visible := false;
-  BtnInfoRight.Visible := true;
-end;
-
-procedure TMainForm.BtnInfoRightClick(Sender: TObject);
-begin
-  CardsPanelInstalled.ActiveCard := CardOneProductInstall;
-  BtnInfoLEft.Visible := true;
-  BtnInfoRight.Visible := false;
+  if CardsPanelInstalled.ActiveCard = CardOneProductInfo then
+  begin
+    CardsPanelInstalled.ActiveCard := CardOneProductInstall;
+    BtnInfoSwitch.Caption := #$276E;
+    BtnInfoSwitch.Hint := 'Show information about the selected product';
+  end else
+  begin
+    CardsPanelInstalled.ActiveCard := CardOneProductInfo;
+    BtnInfoSwitch.Caption := #$276F;
+    BtnInfoSwitch.Hint := 'Show where this component is installed';
+  end
 end;
 
 procedure TMainForm.RunFinishEvent(const Command: TTmsCommand);
