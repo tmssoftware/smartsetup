@@ -6,7 +6,8 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
-  Deget.Version, Deget.CoreTypes, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes;
+  Deget.Version, Deget.CoreTypes, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes,
+  Deget.IDETypes;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -277,6 +278,9 @@ type
     /// </summary>
     function SetServer(const Value: string): Boolean;
     property Server: string read FServer;
+
+    function GetProductInstallInfo(const Source: TGUIProduct): string;
+
 
     /// <summary>
     ///   Retrieves general information about Smart Setup folder
@@ -1650,6 +1654,33 @@ begin
     OldItems.Free;
   end;
 end;
+
+function TGUIEnvironment.GetProductInstallInfo(const Source: TGUIProduct): string;
+const
+  NewLine = #13#10;
+begin
+  Result := '';
+  // Newest IDEs first. We only list platforms that are both built and registered.
+  for var IDEName := High(TIDEName) downto Low(TIDEName) do
+  begin
+    var Platforms := '';
+    for var Plat := Low(TPlatform) to High(TPlatform) do
+      for var Installation in Source.Installations do
+        if (Installation.IDEName = IDEName) and (Installation.Platform = Plat)
+          and Installation.IsBuilt and Installation.IsRegistered then
+        begin
+          Platforms := Platforms + '  - ' + PlatformMacroString(IDEName, Plat) + NewLine;
+        end;
+
+    if Platforms <> '' then
+    begin
+      Result := Result + DelphiNames[IDEName] + NewLine + Platforms;
+    end;
+  end;
+
+end;
+
+
 
 { TGUIProductList }
 

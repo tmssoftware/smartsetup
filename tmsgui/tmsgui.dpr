@@ -29,7 +29,8 @@ uses
   Forms.Dialogs in 'src\Forms.Dialogs.pas' {DialogForm},
   Util.Animator in 'src\Util.Animator.pas',
   Forms.SBOMResults in 'src\Forms.SBOMResults.pas' {SBOMResultsForm},
-  Forms.DoctorWait in 'src\Forms.DoctorWait.pas' {DoctorWaitForm};
+  Forms.DoctorWait in 'src\Forms.DoctorWait.pas' {DoctorWaitForm},
+  Deget.IDETypes in '..\common\src\Deget\Deget.IDETypes.pas';
 
 {$R *.res}
 

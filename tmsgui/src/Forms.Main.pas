@@ -102,12 +102,8 @@ type
     btnBackup: TToolButton;
     btnSBOM: TToolButton;
     btnDoctor: TToolButton;
-    SingleInfoPanel: TPanel;
-    OneProdProductName: TLabel;
-    OneProdDescription: TLabel;
     ProdUrlMenu: TPopupMenu;
     CopyURL1: TMenuItem;
-    OneProdUrl: TLabel;
     StackPanel1: TStackPanel;
     btnInfoUninstall: TButton;
     btnInfoInstallVersion: TButton;
@@ -115,7 +111,6 @@ type
     lnkSmartSetup: TLabel;
     CardDetailsError: TCard;
     DetailsError: TLabel;
-    OneProdVersionHistory: TLabel;
     ProdVersionMenu: TPopupMenu;
     CopyVersionHistoryMenu: TMenuItem;
     StackPanel2: TStackPanel;
@@ -123,6 +118,19 @@ type
     Button3: TButton;
     acRestore: TAction;
     btnRestore: TToolButton;
+    CardsPanelInstalled: TCardPanel;
+    CardOneProductInfo: TCard;
+    SingleInfoPanel: TPanel;
+    OneProdDescription: TLabel;
+    OneProdUrl: TLabel;
+    OneProdVersionHistory: TLabel;
+    CardOneProductInstall: TCard;
+    OneProdProductName: TLabel;
+    OneProdInstalledPlats: TMemo;
+    OneProdInstalledCaption: TLabel;
+    PanelSwitchInfo: TPanel;
+    BtnInfoLeft: TButton;
+    BtnInfoRight: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -185,6 +193,8 @@ type
     procedure CopyVersionHistoryMenuClick(Sender: TObject);
     procedure acSBOMUpdate(Sender: TObject);
     procedure acSBOMExecute(Sender: TObject);
+    procedure BtnInfoLeftClick(Sender: TObject);
+    procedure BtnInfoRightClick(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -1160,6 +1170,13 @@ begin
     OneProdVersionHistory.Caption := 'Version History';
     OneProdVersionHistory.Hint := GetVersionHistoryUrl(Product);
     OneProdVersionHistory.Enabled := OneProdVersionHistory.Hint <> '';
+    var InstalledString := GUI.GetProductInstallInfo(Product);
+    OneProdInstalledPlats.Text := InstalledString;
+    if InstalledString = ''
+      then OneProdInstalledCaption.Caption := 'Not installed in any IDE.'
+      else OneProdInstalledCaption.Caption := 'Installed in:';
+    OneProdInstalledPlats.Visible := InstalledString <> '';
+
     CardPanelDetails.ActiveCard := CardOneProduct;
   except on ex: Exception do
     begin
@@ -1291,6 +1308,20 @@ begin
 
     else Result := nil;
   end;
+end;
+
+procedure TMainForm.BtnInfoLeftClick(Sender: TObject);
+begin
+  CardsPanelInstalled.ActiveCard := CardOneProductInfo;
+  BtnInfoLeft.Visible := false;
+  BtnInfoRight.Visible := true;
+end;
+
+procedure TMainForm.BtnInfoRightClick(Sender: TObject);
+begin
+  CardsPanelInstalled.ActiveCard := CardOneProductInstall;
+  BtnInfoLEft.Visible := true;
+  BtnInfoRight.Visible := false;
 end;
 
 procedure TMainForm.RunFinishEvent(const Command: TTmsCommand);

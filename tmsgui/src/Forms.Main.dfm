@@ -219,102 +219,25 @@ object MainForm: TMainForm
                 Caption = 'One Product'
                 CardIndex = 1
                 TabOrder = 0
-                object SingleInfoPanel: TPanel
-                  Left = 0
-                  Top = 0
-                  Width = 264
-                  Height = 216
-                  Align = alClient
-                  BevelOuter = bvNone
-                  TabOrder = 0
-                  object OneProdProductName: TLabel
-                    AlignWithMargins = True
-                    Left = 3
-                    Top = 6
-                    Width = 258
-                    Height = 21
-                    Margins.Top = 6
-                    Align = alTop
-                    AutoSize = False
-                    EllipsisPosition = epEndEllipsis
-                    Font.Charset = DEFAULT_CHARSET
-                    Font.Color = clBtnText
-                    Font.Height = -15
-                    Font.Name = 'Segoe UI'
-                    Font.Style = []
-                    ParentFont = False
-                    ShowAccelChar = False
-                  end
-                  object OneProdDescription: TLabel
-                    AlignWithMargins = True
-                    Left = 3
-                    Top = 33
-                    Width = 258
-                    Height = 15
-                    Align = alTop
-                    Constraints.MaxHeight = 200
-                    Font.Charset = DEFAULT_CHARSET
-                    Font.Color = clBtnText
-                    Font.Height = -12
-                    Font.Name = 'Segoe UI'
-                    Font.Style = []
-                    ParentFont = False
-                    ShowAccelChar = False
-                    WordWrap = True
-                    ExplicitWidth = 3
-                  end
-                  object OneProdUrl: TLabel
-                    AlignWithMargins = True
-                    Left = 3
-                    Top = 54
-                    Width = 258
-                    Height = 15
-                    Cursor = crHandPoint
-                    Margins.Bottom = 0
-                    Align = alTop
-                    AutoSize = False
-                    Caption = 'Website'
-                    EllipsisPosition = epPathEllipsis
-                    Font.Charset = DEFAULT_CHARSET
-                    Font.Color = clHighlight
-                    Font.Height = -12
-                    Font.Name = 'Segoe UI'
-                    Font.Style = []
-                    ParentFont = False
-                    ParentShowHint = False
-                    PopupMenu = ProdUrlMenu
-                    ShowAccelChar = False
-                    ShowHint = True
-                    StyleElements = [seClient, seBorder]
-                    OnClick = LinkClick
-                    ExplicitTop = 58
-                  end
-                  object OneProdVersionHistory: TLabel
-                    AlignWithMargins = True
-                    Left = 3
-                    Top = 69
-                    Width = 258
-                    Height = 15
-                    Cursor = crHandPoint
-                    Margins.Top = 0
-                    Align = alTop
-                    AutoSize = False
-                    Caption = 'Version History'
-                    EllipsisPosition = epPathEllipsis
-                    Font.Charset = DEFAULT_CHARSET
-                    Font.Color = clHighlight
-                    Font.Height = -12
-                    Font.Name = 'Segoe UI'
-                    Font.Style = []
-                    ParentFont = False
-                    ParentShowHint = False
-                    PopupMenu = ProdVersionMenu
-                    ShowAccelChar = False
-                    ShowHint = True
-                    StyleElements = [seClient, seBorder]
-                    OnClick = LinkClick
-                    ExplicitTop = 75
-                  end
+                object OneProdProductName: TLabel
+                  AlignWithMargins = True
+                  Left = 3
+                  Top = 6
+                  Width = 258
+                  Height = 21
+                  Margins.Top = 6
+                  Align = alTop
+                  AutoSize = False
+                  EllipsisPosition = epEndEllipsis
+                  Font.Charset = DEFAULT_CHARSET
+                  Font.Color = clBtnText
+                  Font.Height = -15
+                  Font.Name = 'Segoe UI'
+                  Font.Style = []
+                  ParentFont = False
+                  ShowAccelChar = False
+                  ExplicitLeft = 6
+                  ExplicitTop = 14
                 end
                 object StackPanel1: TStackPanel
                   Left = 0
@@ -334,7 +257,7 @@ object MainForm: TMainForm
                       Control = btnInfoUninstall
                     end>
                   Orientation = spoHorizontal
-                  TabOrder = 1
+                  TabOrder = 0
                   object btnInfoInstallOrUpdate: TButton
                     AlignWithMargins = True
                     Left = 3
@@ -361,6 +284,209 @@ object MainForm: TMainForm
                     Height = 25
                     Action = acUninstall
                     TabOrder = 0
+                  end
+                end
+                object CardsPanelInstalled: TCardPanel
+                  Left = 0
+                  Top = 30
+                  Width = 264
+                  Height = 162
+                  Align = alClient
+                  ActiveCard = CardOneProductInfo
+                  BevelOuter = bvNone
+                  Caption = 'CardsPanelInstalled'
+                  TabOrder = 1
+                  ExplicitLeft = -16
+                  ExplicitTop = 24
+                  ExplicitWidth = 300
+                  ExplicitHeight = 200
+                  object CardOneProductInfo: TCard
+                    Left = 0
+                    Top = 0
+                    Width = 264
+                    Height = 162
+                    Caption = 'CardOneProductInfo'
+                    CardIndex = 0
+                    TabOrder = 0
+                    ExplicitWidth = 185
+                    ExplicitHeight = 41
+                    object SingleInfoPanel: TPanel
+                      Left = 0
+                      Top = 0
+                      Width = 264
+                      Height = 162
+                      Align = alClient
+                      BevelOuter = bvNone
+                      TabOrder = 0
+                      ExplicitHeight = 216
+                      object OneProdDescription: TLabel
+                        AlignWithMargins = True
+                        Left = 3
+                        Top = 3
+                        Width = 258
+                        Height = 15
+                        Align = alTop
+                        Constraints.MaxHeight = 200
+                        Font.Charset = DEFAULT_CHARSET
+                        Font.Color = clBtnText
+                        Font.Height = -12
+                        Font.Name = 'Segoe UI'
+                        Font.Style = []
+                        ParentFont = False
+                        ShowAccelChar = False
+                        WordWrap = True
+                        ExplicitTop = 33
+                        ExplicitWidth = 3
+                      end
+                      object OneProdUrl: TLabel
+                        AlignWithMargins = True
+                        Left = 3
+                        Top = 24
+                        Width = 258
+                        Height = 15
+                        Cursor = crHandPoint
+                        Margins.Bottom = 0
+                        Align = alTop
+                        AutoSize = False
+                        Caption = 'Website'
+                        EllipsisPosition = epPathEllipsis
+                        Font.Charset = DEFAULT_CHARSET
+                        Font.Color = clHighlight
+                        Font.Height = -12
+                        Font.Name = 'Segoe UI'
+                        Font.Style = []
+                        ParentFont = False
+                        ParentShowHint = False
+                        PopupMenu = ProdUrlMenu
+                        ShowAccelChar = False
+                        ShowHint = True
+                        StyleElements = [seClient, seBorder]
+                        OnClick = LinkClick
+                        ExplicitTop = 58
+                      end
+                      object OneProdVersionHistory: TLabel
+                        AlignWithMargins = True
+                        Left = 3
+                        Top = 39
+                        Width = 258
+                        Height = 15
+                        Cursor = crHandPoint
+                        Margins.Top = 0
+                        Align = alTop
+                        AutoSize = False
+                        Caption = 'Version History'
+                        EllipsisPosition = epPathEllipsis
+                        Font.Charset = DEFAULT_CHARSET
+                        Font.Color = clHighlight
+                        Font.Height = -12
+                        Font.Name = 'Segoe UI'
+                        Font.Style = []
+                        ParentFont = False
+                        ParentShowHint = False
+                        PopupMenu = ProdVersionMenu
+                        ShowAccelChar = False
+                        ShowHint = True
+                        StyleElements = [seClient, seBorder]
+                        OnClick = LinkClick
+                        ExplicitTop = 75
+                      end
+                    end
+                  end
+                  object CardOneProductInstall: TCard
+                    Left = 0
+                    Top = 0
+                    Width = 264
+                    Height = 162
+                    Caption = 'CardOneProductInstall'
+                    CardIndex = 1
+                    TabOrder = 1
+                    ExplicitWidth = 185
+                    ExplicitHeight = 41
+                    object OneProdInstalledCaption: TLabel
+                      AlignWithMargins = True
+                      Left = 3
+                      Top = 3
+                      Width = 258
+                      Height = 15
+                      Align = alTop
+                      Caption = 'Not installed'
+                      Constraints.MaxHeight = 200
+                      Font.Charset = DEFAULT_CHARSET
+                      Font.Color = clBtnText
+                      Font.Height = -12
+                      Font.Name = 'Segoe UI'
+                      Font.Style = []
+                      ParentFont = False
+                      ShowAccelChar = False
+                      WordWrap = True
+                      ExplicitWidth = 67
+                    end
+                    object OneProdInstalledPlats: TMemo
+                      AlignWithMargins = True
+                      Left = 3
+                      Top = 21
+                      Width = 258
+                      Height = 138
+                      Margins.Top = 0
+                      Align = alClient
+                      BorderStyle = bsNone
+                      ReadOnly = True
+                      ScrollBars = ssVertical
+                      TabOrder = 0
+                      ExplicitLeft = 0
+                      ExplicitWidth = 264
+                      ExplicitHeight = 165
+                    end
+                  end
+                end
+                object PanelSwitchInfo: TPanel
+                  Left = 0
+                  Top = 192
+                  Width = 264
+                  Height = 24
+                  Margins.Top = 0
+                  Margins.Bottom = 0
+                  Align = alBottom
+                  BevelOuter = bvNone
+                  ShowCaption = False
+                  TabOrder = 2
+                  ExplicitLeft = 3
+                  ExplicitWidth = 258
+                  object BtnInfoLeft: TButton
+                    AlignWithMargins = True
+                    Left = 3
+                    Top = 0
+                    Width = 33
+                    Height = 24
+                    Hint = 'Show information about the selected product'
+                    Margins.Top = 0
+                    Margins.Bottom = 0
+                    Align = alLeft
+                    Caption = #10094
+                    ParentShowHint = False
+                    ShowHint = True
+                    TabOrder = 0
+                    Visible = False
+                    OnClick = BtnInfoLeftClick
+                    ExplicitHeight = 18
+                  end
+                  object BtnInfoRight: TButton
+                    AlignWithMargins = True
+                    Left = 42
+                    Top = 0
+                    Width = 33
+                    Height = 24
+                    Hint = 'Show where this component is installed'
+                    Margins.Top = 0
+                    Margins.Bottom = 0
+                    Align = alLeft
+                    Caption = #10095
+                    ParentShowHint = False
+                    ShowHint = True
+                    TabOrder = 1
+                    OnClick = BtnInfoRightClick
+                    ExplicitLeft = 228
+                    ExplicitHeight = 18
                   end
                 end
               end

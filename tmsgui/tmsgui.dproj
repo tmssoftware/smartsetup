@@ -182,6 +182,7 @@
         <DCCReference Include="src\Forms.DoctorWait.pas">
             <Form>DoctorWaitForm</Form>
         </DCCReference>
+        <DCCReference Include="..\common\src\Deget\Deget.IDETypes.pas"/>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>
