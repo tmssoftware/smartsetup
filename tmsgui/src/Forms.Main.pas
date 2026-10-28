@@ -259,7 +259,7 @@ uses
   Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
   Vcl.Themes, UTheming, IOUtils,
   GUI.Automation,
-  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults;
+  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults, Forms.DoctorWait;
 
 {$R *.dfm}
 
@@ -344,24 +344,16 @@ end;
 
 procedure TMainForm.acDoctorExecute(Sender: TObject);
 begin
-  var ExeFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'tms.exe');
-  // No cmd.exe: it would expand %vars% and strip quotes in the path. tms.exe gets its own console, and -pause keeps it open.
-  var CmdLine := '"' + ExeFileName + '" doctor -pause -fully-interactive';
-  UniqueString(CmdLine); // CreateProcessW may write to the buffer
-  var SI: TStartupInfo;
-  var PI: TProcessInformation;
-  FillChar(SI, SizeOf(SI), 0);
-  SI.cb := SizeOf(SI);
-  if not CreateProcess(PChar(ExeFileName), PChar(CmdLine), nil, nil, False,
-    CREATE_NEW_CONSOLE, nil, PChar(TPath.GetDirectoryName(ExeFileName)), SI, PI) then
-    RaiseLastOSError;
-  CloseHandle(PI.hThread);
-  CloseHandle(PI.hProcess);
+  GUI.ExecuteDoctor(
+    procedure (Process: THandle)
+    begin
+      TDoctorWaitForm.WaitFor(Process);
+    end);
 end;
 
 procedure TMainForm.acDoctorUpdate(Sender: TObject);
 begin
-  acDoctor.Enabled := not GUI.IsRunning;
+  acDoctor.Enabled := GUI.CanRunDoctor;
 end;
 
 procedure TMainForm.acFilterAllExecute(Sender: TObject);
@@ -500,21 +492,22 @@ begin
     var ProductIds := GUI.SelectedProductIds;
     repeat
       GUI.ExecuteSBOM(Force, ProductIds,
-        procedure (Id, FileName: string; Generated: boolean)
+        procedure (Info: TSBOMInfo)
         begin
           var R: TSBOMResult;
-          R.ProductId := Id;
-          var Product := GUI.Products.Find(Id);
+          R.ProductId := Info.Id;
+          var Product := GUI.Products.Find(Info.Id);
           if Product <> nil then
             R.ProductName := Product.DisplayName
           else
-            R.ProductName := Id;
-          R.FileName := FileName;
-          R.Generated := Generated;
+            R.ProductName := Info.Id;
+          R.FileName := Info.FileName;
+          R.Generated := Info.Generated;
+          R.Error := Info.Error;
 
           // When regenerating, replace the previous result for the product.
           for var i := 0 to Results.Count - 1 do
-            if Results[i].ProductId = Id then
+            if Results[i].ProductId = Info.Id then
             begin
               Results[i] := R;
               Exit;

@@ -16,6 +16,7 @@ type
 
   TTmsRunner = UTmsRunner.TTmsRunner;
   TTmsCommand = UTmsRunner.TTmsCommand;
+  TSBOMInfo = UTmsRunner.TSBOMInfo;
 
   TGUILogger = class(TLogger)
   strict private
@@ -210,7 +211,11 @@ type
     procedure ExecutePinSelected;
     procedure ExecuteUnpinSelected;
 
-    procedure ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<string, string, boolean>);
+    // Opens doctor in its own console, as it asks questions, and calls WaitForDoctor with its process handle.
+    // WaitForDoctor must return only once the process has ended: until then we hold the job, so no other tms starts
+    // and fails on the setup lock doctor holds.
+    procedure ExecuteDoctor(const WaitForDoctor: TProc<THandle>);
+    procedure ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<TSBOMInfo>);
 
     // Updates the credentials
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
@@ -236,6 +241,7 @@ type
     function CanPinSelected: Boolean;
     function CanUnpinSelected: Boolean;
     function CanRunSBOM: Boolean;
+    function CanRunDoctor: Boolean;
 
     // Functions to read/write configuration parameters
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -303,7 +309,7 @@ type
 implementation
 
 uses
-  Winapi.Windows, Masks;
+  Winapi.Windows, System.IOUtils, Masks;
 
 { TGUILogger }
 
@@ -543,6 +549,11 @@ begin
   for var Product in FSelected do
     if not Product.IsPinned then
       Exit(True);
+end;
+
+function TGUIEnvironment.CanRunDoctor: Boolean;
+begin
+  Result := not IsRunning;
 end;
 
 function TGUIEnvironment.CanRunSBOM: Boolean;
@@ -852,7 +863,38 @@ begin
   end;
 end;
 
-procedure TGUIEnvironment.ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<string, string, boolean>);
+procedure TGUIEnvironment.ExecuteDoctor(const WaitForDoctor: TProc<THandle>);
+begin
+  if not TryBeginExclusive(TTmsCommand.Doctor) then
+  begin
+    Logger.Error('tms.exe is already running');
+    Exit;
+  end;
+  try
+    var ExeFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'tms.exe');
+    // No cmd.exe: it would expand %vars% and strip quotes in the path. tms.exe gets its own console, and -pause keeps it open.
+    var CmdLine := '"' + ExeFileName + '" doctor -pause -fully-interactive';
+    UniqueString(CmdLine); // CreateProcessW may write to the buffer
+    var SI: TStartupInfo;
+    var PI: TProcessInformation;
+    FillChar(SI, SizeOf(SI), 0);
+    SI.cb := SizeOf(SI);
+    // In the folder the runners use, not the exe's.
+    if not CreateProcess(PChar(ExeFileName), PChar(CmdLine), nil, nil, False,
+      CREATE_NEW_CONSOLE, nil, PChar(GetCurrentDir), SI, PI) then
+      RaiseLastOSError;
+    CloseHandle(PI.hThread);
+    try
+      WaitForDoctor(PI.hProcess);
+    finally
+      CloseHandle(PI.hProcess);
+    end;
+  finally
+    EndRunning;
+  end;
+end;
+
+procedure TGUIEnvironment.ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<TSBOMInfo>);
 begin
   RunSync<TTmsSBOMRunner>(
     procedure(Runner: TTmsSBOMRunner)
@@ -861,7 +903,7 @@ begin
       Runner.RunSBOM(Force, ProductIds);
       for var InfoItem in Runner.SBOMInfoList do
       begin
-        UpdateSBOMs(InfoItem.Id, InfoItem.FileName, InfoItem.Generated);
+        UpdateSBOMs(InfoItem);
       end;
     end);
 end;

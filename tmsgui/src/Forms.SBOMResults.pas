@@ -12,6 +12,7 @@ type
     ProductName: string;
     FileName: string;
     Generated: Boolean;
+    Error: string; // not empty if generating it failed. Generated is false then, so it can be regenerated.
   end;
 
   TSBOMResultsForm = class(TForm)
@@ -30,7 +31,7 @@ type
   protected
     function DoExecute(const Results: TArray<TSBOMResult>): Boolean;
   public
-    /// <summary>Returns true if the user asked to regenerate the skipped SBOMs.</summary>
+    /// <summary>Returns true if the user asked to regenerate the skipped and failed SBOMs.</summary>
     class function Execute(const Results: TArray<TSBOMResult>): Boolean;
   end;
 
@@ -63,19 +64,27 @@ begin
   end;
 end;
 
+function Rank(const R: TSBOMResult): Integer;
+begin
+  if R.Error <> '' then Result := 0
+  else if R.Generated then Result := 1
+  else Result := 2;
+end;
+
 procedure TSBOMResultsForm.FillResults(const Results: TArray<TSBOMResult>);
 begin
-  // Generated first, then by name.
+  // Failed first, so they are seen, then generated, then skipped. By name inside each group.
   var Sorted := Copy(Results);
   TArray.Sort<TSBOMResult>(Sorted, TComparer<TSBOMResult>.Construct(
     function(const Left, Right: TSBOMResult): Integer
     begin
-      Result := Ord(Right.Generated) - Ord(Left.Generated);
+      Result := Rank(Left) - Rank(Right);
       if Result = 0 then
         Result := CompareText(Left.ProductName, Right.ProductName);
     end));
 
   var GeneratedCount := 0;
+  var FailedCount := 0;
   lvResults.Items.BeginUpdate;
   try
     lvResults.Items.Clear;
@@ -84,7 +93,12 @@ begin
       var Item := lvResults.Items.Add;
       Item.Caption := R.ProductName;
       Item.SubItems.Add(R.ProductId);
-      if R.Generated then
+      if R.Error <> '' then
+      begin
+        Item.SubItems.Add('Failed: ' + R.Error);
+        Inc(FailedCount);
+      end
+      else if R.Generated then
       begin
         Item.SubItems.Add('Generated');
         Inc(GeneratedCount);
@@ -98,7 +112,9 @@ begin
   end;
 
   lbCaption.Caption := Format('SBOM files generated: %d. Skipped (already existed): %d.',
-    [GeneratedCount, Length(Results) - GeneratedCount]);
+    [GeneratedCount, Length(Results) - GeneratedCount - FailedCount]);
+  if FailedCount > 0 then
+    lbCaption.Caption := lbCaption.Caption + Format(' Failed: %d, regenerating retries them too.', [FailedCount]);
   btRegenerate.Enabled := GeneratedCount < Length(Results);
 end;
 

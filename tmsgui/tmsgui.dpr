@@ -28,7 +28,8 @@ uses
   GUI.Automation in 'src\GUI.Automation.pas',
   Forms.Dialogs in 'src\Forms.Dialogs.pas' {DialogForm},
   Util.Animator in 'src\Util.Animator.pas',
-  Forms.SBOMResults in 'src\Forms.SBOMResults.pas' {SBOMResultsForm};
+  Forms.SBOMResults in 'src\Forms.SBOMResults.pas' {SBOMResultsForm},
+  Forms.DoctorWait in 'src\Forms.DoctorWait.pas' {DoctorWaitForm};
 
 {$R *.res}
 

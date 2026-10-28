@@ -22,13 +22,14 @@ begin
   Result := false;
 end;
 
-procedure AddJson(const Root: TJSONObject; const Proj: TProjectDefinition; const CdxFile: string; const Generated: boolean);
+procedure AddJson(const Root: TJSONObject; const Proj: TProjectDefinition; const CdxFile: string; const Generated: boolean; const Error: string = '');
 begin
   if Root = nil then exit;
   var Item := TJSONObject.Create;
   Root.AddPair(Proj.Application.Id, Item);
   Item.AddPair('filename', CdxFile);
   Item.AddPair('generated', Generated);
+  if Error <> '' then Item.AddPair('error', Error);
 end;
 
 procedure SBOMGenerate;
@@ -58,7 +59,11 @@ begin
             AddJson(JsonRoot, Proj, CdxFile, true);
           except
             on E: Exception do
+            begin
               Logger.Error('Failed to generate SBOM for "' + Proj.Application.Id + '": ' + E.Message);
+              // Reported too, or a caller reading the json can't tell the product failed.
+              AddJson(JsonRoot, Proj, CdxFile, false, E.Message);
+            end;
           end;
         end else
         begin

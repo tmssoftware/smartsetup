@@ -179,6 +179,9 @@
         <DCCReference Include="src\Forms.SBOMResults.pas">
             <Form>SBOMResultsForm</Form>
         </DCCReference>
+        <DCCReference Include="src\Forms.DoctorWait.pas">
+            <Form>DoctorWaitForm</Form>
+        </DCCReference>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>

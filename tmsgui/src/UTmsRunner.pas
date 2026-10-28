@@ -22,7 +22,7 @@ type
   {$SCOPEDENUMS ON}
   TTmsCommand = (List, ListRemote, Info, Credentials, Configure, LogView, SelfUpdate,
     ConfigRead, ConfigWrite, ServerList, ServerAdd, ServerEnable, ServerRemove,
-    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, Restore, SBOM);
+    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, Restore, SBOM, Doctor);
   {$SCOPEDENUMS OFF}
 
   TTmsRunner = class
@@ -263,6 +263,7 @@ type
     Id: string;
     FileName: string;
     Generated: boolean;
+    Error: string; // empty unless generating it failed
   end;
 
   TTmsSBOMRunner = class(TTmsRunner)
@@ -297,7 +298,7 @@ function TmsCommandName(const Command: TTmsCommand): string;
 const
   Names: array[TTmsCommand] of string = ('list', 'list-remote', 'info', 'credentials', 'config', 'log-view', 'self-update',
     'config-read', 'config-write', 'server-list', 'server-add', 'server-enable', 'server-remove',
-    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'restore', 'sbom-generate');
+    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'restore', 'sbom-generate', 'doctor');
 begin
   Result := Names[Command];
 end;
@@ -1102,6 +1103,7 @@ begin
 
     SBOMInfo.FileName := JsonProduct.GetValue<string>('filename');
     SBOMInfo.Generated := JsonProduct.GetValue<boolean>('generated');
+    SBOMInfo.Error := JsonProduct.GetValue<string>('error', '');
   end;
 
 end;
