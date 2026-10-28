@@ -218,6 +218,7 @@ begin
     while(True) do
     begin
       var Key:string := ' ';
+      if Eof(Input) then Exit(false); // no one to answer, e.g. stdin redirected from nul
       ReadLn(Key);
       if Length(Key.Trim) <> 1 then
       begin

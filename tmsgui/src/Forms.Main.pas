@@ -11,6 +11,9 @@ uses
   Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
   Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels, Clipbrd, Generics.Defaults;
 
+const
+  WM_UPDATE_DETAILS = WM_APP + 1;
+
 type
   TMainForm = class(TForm)
     ActionList1: TActionList;
@@ -176,6 +179,7 @@ type
     procedure lvProductsSelectItem(Sender: TObject; Item: TListItem;
       Selected: Boolean);
     procedure lvProductsKeyPress(Sender: TObject; var Key: Char);
+    procedure lvProductsKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CopyURL1Click(Sender: TObject);
     procedure LinkClick(Sender: TObject);
     procedure CopyVersionHistoryMenuClick(Sender: TObject);
@@ -196,9 +200,11 @@ type
     BackupAnimator: TImageAnimator;
     RestoreAnimator: TImageAnimator;
     TaskbarList: ITaskbarList3;
+    DetailsUpdatePending: Boolean;
     procedure SetProgress(const Percent: Integer);
     procedure ClearProgress;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
+    procedure WMUpdateDetails(var Msg: TMessage); message WM_UPDATE_DETAILS;
     procedure UpdateToolbarImagesForTheme;
     procedure GetDarkToolbarBitmap(ASourceImage: TWICImage; AWidth, AHeight: Integer; out ABitmap: TBitmap);
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
@@ -1089,6 +1095,16 @@ begin
   end;
 end;
 
+procedure TMainForm.lvProductsKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  // The Windows list view has no Ctrl+A. Not an action shortcut: it would take Ctrl+A from the search box too.
+  if (Key = Ord('A')) and (Shift = [ssCtrl]) then
+  begin
+    lvProducts.SelectAll;
+    Key := 0;
+  end;
+end;
+
 procedure TMainForm.lvProductsKeyPress(Sender: TObject; var Key: Char);
 begin
   // Type-to-filter: characters typed anywhere in the products page go to the search box, without focusing it.
@@ -1153,17 +1169,18 @@ end;
 
 procedure TMainForm.FillMultipleProductDetails;
 begin
-
-  var AllProducts := '';
-  for var Item in lvProducts.Items do
-    if Item.Selected then
-    begin
-      if AllProducts <> '' then AllProducts := AllProducts + ', ';
-
-      AllProducts := AllProducts + Item.SubItems[SubItemIndex(ColName)];
-    end;
-
-  MulProdProductNames.Caption := AllProducts;
+  var AllProducts := TStringBuilder.Create;
+  try
+    for var Item in lvProducts.Items do
+      if Item.Selected then
+      begin
+        if AllProducts.Length > 0 then AllProducts.Append(', ');
+        AllProducts.Append(Item.SubItems[SubItemIndex(ColName)]);
+      end;
+    MulProdProductNames.Caption := AllProducts.ToString;
+  finally
+    AllProducts.Free;
+  end;
   MulProdSelCount.Caption := IntToStr(lvProducts.SelCount) + ' products selected.';
   CardPanelDetails.ActiveCard := CardMultipleProducts;
 end;
@@ -1179,6 +1196,18 @@ end;
 procedure TMainForm.lvProductsSelectItem(Sender: TObject; Item: TListItem;
   Selected: Boolean);
 begin
+  GUI.SelectionChanged;
+  // This fires once per item: Ctrl+A on 500 products is 500 events. Posted, so we fill the pane once at the end.
+  if not DetailsUpdatePending then
+  begin
+    DetailsUpdatePending := True;
+    PostMessage(Handle, WM_UPDATE_DETAILS, 0, 0);
+  end;
+end;
+
+procedure TMainForm.WMUpdateDetails(var Msg: TMessage);
+begin
+  DetailsUpdatePending := False;
   UpdateDetailsPane;
 end;
 

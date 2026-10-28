@@ -131,6 +131,7 @@ type
     FFetchedProducts: TGUIProductList;
     FProducts: TGUIProductList;
     FSelected: TGUIProductList;
+    FSelectedValid: Boolean; //false when the selection changed since FSelected was filled. See SelectionChanged.
     FSearchFilter: string;
     FOnProductsUpdated: TProductsProc;
     FActiveRunners: TList<TTmsRunner>; //every runner currently executing, on any thread. Guarded by TMonitor on itself.
@@ -175,7 +176,7 @@ type
     procedure EndRunning;
     function AddActiveRunner(Runner: TTmsRunner): Boolean;
     procedure RemoveActiveRunner(Runner: TTmsRunner);
-    procedure UpdateTMSServerAndRefresh(const Enable: boolean);
+    procedure UpdateTMSServer(const Enable: boolean);
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
@@ -192,6 +193,9 @@ type
     procedure CancelRun;
 
     function SelectedProductIds: TArray<string>;
+    // Call when the selection in the list changes. The Can* functions run on every idle tick, so they use a cached
+    // selection, and reading it from the list each time made selecting many products crawl.
+    procedure SelectionChanged;
 
     
     // Execute the build all the currently selected products (or all if none is selected)
@@ -219,7 +223,9 @@ type
 
     // Updates the credentials
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
-    function ExecuteRequestCredentials(const Alert: TProc<string>): boolean;
+    // RefreshProducts: reload the products in the background if the credentials or the tms server changed.
+    // Start passes false, as it loads them itself right after.
+    function ExecuteRequestCredentials(const Alert: TProc<string>; const RefreshProducts: Boolean = True): boolean;
 
     procedure ExecuteConfigure(Silent: Boolean = False);
     function ExecuteLogView(const SessionId: string; const Print: Boolean): string;
@@ -1221,7 +1227,7 @@ begin
   RefreshServers;
 
   if FServers.IsEnabled('tms') and not Info.HasCredentials then
-    if not ExecuteRequestCredentials(Alert) then exit(false);
+    if not ExecuteRequestCredentials(Alert, False) then exit(false);
 
   var Server := FServer;
   RunBackground(TTmsCommand.List, procedure
@@ -1414,20 +1420,23 @@ begin
   FOnServersUpdated(FServers);
 end;
 
-procedure TGUIEnvironment.UpdateTMSServerAndRefresh(const Enable: boolean);
+procedure TGUIEnvironment.UpdateTMSServer(const Enable: boolean);
 begin
+  // Read fresh, FServers could be stale. Only when it changes: server-enable rewrites the config.
+  GetServerConfigItems(FServers);
+  if FServers.IsEnabled('tms') = Enable then Exit;
   EnableServerConfigItem('tms', Enable);
   RefreshServers;
-  RefreshFetchedProductsAfterJob;
 end;
 
-function TGUIEnvironment.ExecuteRequestCredentials(const Alert: TProc<string>): boolean;
+function TGUIEnvironment.ExecuteRequestCredentials(const Alert: TProc<string>; const RefreshProducts: Boolean): boolean;
 begin
   if not Assigned(FOnRequestCredentials) then
     Exit(true);
 
   var Confirm := true;
   var Disable := false;
+  var Changed := false;
   RunSync<TTmsCredentialsRunner>(
     procedure(Runner: TTmsCredentialsRunner)
     begin
@@ -1448,13 +1457,18 @@ begin
             if (Email.Trim <> '') and (Code.Trim <> '') and Runner.RunUpdateCredentials(Email, Code) then LastValid := true;
             RefreshInfo;
             Done := LastValid;
-            if Done then UpdateTMSServerAndRefresh(true);
+            if Done then
+            begin
+              UpdateTMSServer(true);
+              Changed := true; // new credentials may give access to other products
+            end;
 
           end
           else
           if Disable then
           begin
-            UpdateTMSServerAndRefresh(false);
+            UpdateTMSServer(false);
+            Changed := true;
             Done := True;
           end
           else Done := True;
@@ -1469,7 +1483,19 @@ begin
       until Done;
     end);
 
-    Result := Confirm or Disable;
+  // In the background: list-remote goes to the network, and here we are on the main thread.
+  // RunBackground, not StartExclusive: it waits for a job that is running instead of skipping the refresh.
+  if Changed and RefreshProducts then
+  begin
+    var Filter := FProductFilter;
+    var Server := FServer;
+    RunBackground(TTmsCommand.List, procedure
+      begin
+        RefreshFetchedProducts(Filter, Server);
+      end);
+  end;
+
+  Result := Confirm or Disable;
 end;
 
 procedure TGUIEnvironment.ChangeProductFilter(Filter: TProductFilter);
@@ -1530,6 +1556,9 @@ begin
         FProducts.Add(Product);
     if Assigned(FOnProductsUpdated) then
       FOnProductsUpdated(FProducts);
+    // The list was rebuilt: items may be gone without a selection event, and FSelected may hold products
+    // that are about to be freed (see ReplaceFetchedProducts).
+    SelectionChanged;
   finally
     Mask.Free;
   end;
@@ -1565,8 +1594,17 @@ function TGUIEnvironment.UpdateSelectedProducts: boolean;
 begin
   if not Assigned(FOnGetSelectedProducts) then Exit(False);
 
-  FOnGetSelectedProducts(FSelected);
+  if not FSelectedValid then
+  begin
+    FOnGetSelectedProducts(FSelected);
+    FSelectedValid := True;
+  end;
   Result := FSelected.Count > 0;
+end;
+
+procedure TGUIEnvironment.SelectionChanged;
+begin
+  FSelectedValid := False;
 end;
 
 procedure TGUIEnvironment.UpdateServerConfigItems(Items: TServerConfigItems);

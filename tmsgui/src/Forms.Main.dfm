@@ -524,6 +524,7 @@ object MainForm: TMainForm
             OnColumnClick = lvProductsColumnClick
             OnCompare = lvProductsCompare
             OnInfoTip = lvProductsInfoTip
+            OnKeyDown = lvProductsKeyDown
             OnKeyPress = lvProductsKeyPress
             OnMouseMove = lvProductsMouseMove
             OnSelectItem = lvProductsSelectItem
