@@ -6,6 +6,10 @@ call lvproducts.SelectAll
 wait acSBOM.Enabled
 click acSBOM
 
+wait self.Name = DialogForm
+assert MemoMessage.Text ~ Generate SBOM files
+click btnYes
+
 wait Self.Name = SBOMResultsForm
 assert lvResults.GetCount = 3
 assert btRegenerate.Enabled = true

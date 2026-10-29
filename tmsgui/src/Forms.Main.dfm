@@ -156,12 +156,14 @@ object MainForm: TMainForm
                   AlignWithMargins = True
                   Left = 3
                   Top = 32
-                  Width = 239
-                  Height = 30
+                  Width = 258
+                  Height = 197
                   Align = alClient
                   Caption = 'Select one or multiple products on the left to install them'
                   ShowAccelChar = False
                   WordWrap = True
+                  ExplicitWidth = 239
+                  ExplicitHeight = 30
                 end
                 object NoProdSmartSetup: TLabel
                   AlignWithMargins = True
@@ -294,10 +296,6 @@ object MainForm: TMainForm
                   BevelOuter = bvNone
                   Caption = 'CardsPanelInstalled'
                   TabOrder = 1
-                  ExplicitLeft = -16
-                  ExplicitTop = 24
-                  ExplicitWidth = 300
-                  ExplicitHeight = 200
                   object CardOneProductInfo: TCard
                     Left = 0
                     Top = 0
@@ -318,7 +316,7 @@ object MainForm: TMainForm
                         AlignWithMargins = True
                         Left = 3
                         Top = 3
-                        Width = 3
+                        Width = 238
                         Height = 15
                         Align = alTop
                         Constraints.MaxHeight = 200
@@ -330,6 +328,7 @@ object MainForm: TMainForm
                         ParentFont = False
                         ShowAccelChar = False
                         WordWrap = True
+                        ExplicitWidth = 3
                       end
                       object OneProdUrl: TLabel
                         AlignWithMargins = True
@@ -399,7 +398,7 @@ object MainForm: TMainForm
                       AlignWithMargins = True
                       Left = 3
                       Top = 3
-                      Width = 67
+                      Width = 238
                       Height = 15
                       Align = alTop
                       Caption = 'Not installed'
@@ -412,6 +411,7 @@ object MainForm: TMainForm
                       ParentFont = False
                       ShowAccelChar = False
                       WordWrap = True
+                      ExplicitWidth = 67
                     end
                     object OneProdInstalledPlats: TRichEdit
                       AlignWithMargins = True
@@ -707,7 +707,7 @@ object MainForm: TMainForm
           Left = 3
           Top = 4
           Width = 13
-          Height = 15
+          Height = 16
           Margins.Top = 4
           Margins.Bottom = 4
           Align = alLeft
@@ -718,13 +718,14 @@ object MainForm: TMainForm
           Font.Name = 'Segoe UI'
           Font.Style = [fsBold]
           ParentFont = False
+          ExplicitHeight = 15
         end
         object lblTime: TLabel
           AlignWithMargins = True
           Left = 22
           Top = 4
           Width = 31
-          Height = 15
+          Height = 16
           Margins.Top = 4
           Margins.Bottom = 4
           Align = alLeft
@@ -735,6 +736,7 @@ object MainForm: TMainForm
           Font.Name = 'Segoe UI'
           Font.Style = [fsBold]
           ParentFont = False
+          ExplicitHeight = 15
         end
         object btnOpenHTMLLog: TControlListButton
           AlignWithMargins = True
@@ -1019,7 +1021,7 @@ object MainForm: TMainForm
     object acBackup: TAction
       Category = 'Commands'
       Caption = 'B&ackup'
-      ImageName = 'backup'
+      ImageName = 'backup\backup'
     end
     object acSBOM: TAction
       Category = 'Commands'
@@ -1058,7 +1060,7 @@ object MainForm: TMainForm
     object acRestore: TAction
       Category = 'Commands'
       Caption = 'R&estore'
-      ImageName = 'restore'
+      ImageName = 'restore\restore'
     end
   end
   object BuildMenu: TPopupMenu
@@ -5791,7 +5793,7 @@ object MainForm: TMainForm
       item
         CollectionIndex = 0
         CollectionName = 'backup\backup'
-        Name = 'backup'
+        Name = 'backup\backup'
       end
       item
         CollectionIndex = 1
@@ -6006,127 +6008,127 @@ object MainForm: TMainForm
       item
         CollectionIndex = 56
         CollectionName = 'restore\restore'
-        Name = 'restore'
+        Name = 'restore\restore'
       end
       item
         CollectionIndex = 57
         CollectionName = 'restore\restore-01'
-        Name = 'restore-01'
+        Name = 'restore\restore-01'
       end
       item
         CollectionIndex = 58
         CollectionName = 'restore\restore-02'
-        Name = 'restore-02'
+        Name = 'restore\restore-02'
       end
       item
         CollectionIndex = 59
         CollectionName = 'restore\restore-03'
-        Name = 'restore-03'
+        Name = 'restore\restore-03'
       end
       item
         CollectionIndex = 60
         CollectionName = 'restore\restore-04'
-        Name = 'restore-04'
+        Name = 'restore\restore-04'
       end
       item
         CollectionIndex = 61
         CollectionName = 'restore\restore-05'
-        Name = 'restore-05'
+        Name = 'restore\restore-05'
       end
       item
         CollectionIndex = 62
         CollectionName = 'restore\restore-06'
-        Name = 'restore-06'
+        Name = 'restore\restore-06'
       end
       item
         CollectionIndex = 63
         CollectionName = 'restore\restore-07'
-        Name = 'restore-07'
+        Name = 'restore\restore-07'
       end
       item
         CollectionIndex = 64
         CollectionName = 'restore\restore-08'
-        Name = 'restore-08'
+        Name = 'restore\restore-08'
       end
       item
         CollectionIndex = 65
         CollectionName = 'restore\restore-09'
-        Name = 'restore-09'
+        Name = 'restore\restore-09'
       end
       item
         CollectionIndex = 66
         CollectionName = 'restore\restore-10'
-        Name = 'restore-10'
+        Name = 'restore\restore-10'
       end
       item
         CollectionIndex = 67
         CollectionName = 'restore\restore-11'
-        Name = 'restore-11'
+        Name = 'restore\restore-11'
       end
       item
         CollectionIndex = 68
         CollectionName = 'restore\restore-12'
-        Name = 'restore-12'
+        Name = 'restore\restore-12'
       end
       item
         CollectionIndex = 69
         CollectionName = 'backup\backup-01'
-        Name = 'backup-01'
+        Name = 'backup\backup-01'
       end
       item
         CollectionIndex = 70
         CollectionName = 'backup\backup-02'
-        Name = 'backup-02'
+        Name = 'backup\backup-02'
       end
       item
         CollectionIndex = 71
         CollectionName = 'backup\backup-03'
-        Name = 'backup-03'
+        Name = 'backup\backup-03'
       end
       item
         CollectionIndex = 72
         CollectionName = 'backup\backup-04'
-        Name = 'backup-04'
+        Name = 'backup\backup-04'
       end
       item
         CollectionIndex = 73
         CollectionName = 'backup\backup-05'
-        Name = 'backup-05'
+        Name = 'backup\backup-05'
       end
       item
         CollectionIndex = 74
         CollectionName = 'backup\backup-06'
-        Name = 'backup-06'
+        Name = 'backup\backup-06'
       end
       item
         CollectionIndex = 75
         CollectionName = 'backup\backup-07'
-        Name = 'backup-07'
+        Name = 'backup\backup-07'
       end
       item
         CollectionIndex = 76
         CollectionName = 'backup\backup-08'
-        Name = 'backup-08'
+        Name = 'backup\backup-08'
       end
       item
         CollectionIndex = 77
         CollectionName = 'backup\backup-09'
-        Name = 'backup-09'
+        Name = 'backup\backup-09'
       end
       item
         CollectionIndex = 78
         CollectionName = 'backup\backup-10'
-        Name = 'backup-10'
+        Name = 'backup\backup-10'
       end
       item
         CollectionIndex = 79
         CollectionName = 'backup\backup-11'
-        Name = 'backup-11'
+        Name = 'backup\backup-11'
       end
       item
         CollectionIndex = 80
         CollectionName = 'backup\backup-12'
-        Name = 'backup-12'
+        Name = 'backup\backup-12'
       end>
     ImageCollection = ToolbarImageCollection
     Width = 24

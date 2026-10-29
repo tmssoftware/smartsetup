@@ -208,12 +208,15 @@ type
     RestoreAnimator: TImageAnimator;
     TaskbarList: ITaskbarList3;
     DetailsUpdatePending: Boolean;
+    DisabledToolbarImageList: TImageList;
     procedure SetProgress(const Percent: Integer);
     procedure ClearProgress;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
     procedure WMUpdateDetails(var Msg: TMessage); message WM_UPDATE_DETAILS;
     procedure UpdateToolbarImagesForTheme;
     procedure GetDarkToolbarBitmap(ASourceImage: TWICImage; AWidth, AHeight: Integer; out ABitmap: TBitmap);
+    procedure UpdateDisabledToolbarImages;
+    procedure FormAfterMonitorDpiChanged(Sender: TObject; OldDPI, NewDPI: Integer);
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
     function CompareIcons(const Product1, Product2: TGUIProduct): Integer;
@@ -706,8 +709,14 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := ColStatus;  // sort by status by default
+  DisabledToolbarImageList := TImageList.Create(Self);
+  DisabledToolbarImageList.ColorDepth := cd32Bit;
+  MainToolBar.DisabledImages := DisabledToolbarImageList;
+  ConfigToolBar.DisabledImages := DisabledToolbarImageList;
+  OnAfterMonitorDpiChanged := FormAfterMonitorDpiChanged;
   UpdateToolbarImagesForTheme;
   CardPanelDetails.ActiveCard := CardNoProducts;
+  CardsPanelInstalled.ActiveCard := CardOneProductInfo;
 
   // Progress on the taskbar button. If it isn't available (old Windows, no shell), we just don't show it.
   if Failed(CoCreateInstance(CLSID_TaskbarList, nil, CLSCTX_INPROC_SERVER, ITaskbarList3, TaskbarList))
@@ -1505,7 +1514,67 @@ begin
   else
     ToolbarImageCollection.OnGetBitmap := nil;
   ToolbarImageList.UpdateImageList;
+  UpdateDisabledToolbarImages;
   MainToolBar.Invalidate;
+  ConfigToolBar.Invalidate;
+end;
+
+procedure TMainForm.FormAfterMonitorDpiChanged(Sender: TObject; OldDPI, NewDPI: Integer);
+begin
+  // ToolbarImageList rescales itself, but the disabled list is a plain TImageList we build.
+  UpdateDisabledToolbarImages;
+end;
+
+// Animation frames are named like 'install\install-01'.
+function IsAnimationFrame(const CollectionName: string): Boolean;
+var
+  Frame: Integer;
+begin
+  var Dash := CollectionName.LastDelimiter('-');
+  Result := (Dash >= 0) and TryStrToInt(CollectionName.Substring(Dash + 1), Frame);
+end;
+
+// Disabled images are the toolbar images (already tinted for dark mode) with reduced opacity.
+// Light icons on a dark background look brighter, so dark mode fades them a little more.
+// Animation frames are copied as is: a button can be disabled while its command runs,
+// and the animation should still look alive.
+procedure TMainForm.UpdateDisabledToolbarImages;
+const
+  LightDisabledOpacity = 100;
+  DarkDisabledOpacity = 80;
+begin
+  var Opacity: Byte := LightDisabledOpacity;
+  if IsDarkStyle then Opacity := DarkDisabledOpacity;
+
+  DisabledToolbarImageList.BeginUpdate;
+  try
+    DisabledToolbarImageList.Clear;
+    DisabledToolbarImageList.SetSize(ToolbarImageList.Width, ToolbarImageList.Height);
+    for var i := 0 to ToolbarImageList.Images.Count - 1 do
+    begin
+      var CollectionName := ToolbarImageList.Images[i].CollectionName;
+      var CollectionIndex := ToolbarImageCollection.GetIndexByName(CollectionName);
+      var Bmp: TBitmap := nil;
+      if CollectionIndex >= 0 then
+        Bmp := ToolbarImageCollection.GetBitmap(CollectionIndex, ToolbarImageList.Width, ToolbarImageList.Height);
+      if Bmp = nil then
+      begin
+        // Keep the indexes in sync with ToolbarImageList.
+        Bmp := TBitmap.Create;
+        Bmp.PixelFormat := pf32bit;
+        Bmp.SetSize(ToolbarImageList.Width, ToolbarImageList.Height);
+      end;
+      try
+        Bmp.AlphaFormat := afIgnored; // straight alpha, so we can scale it.
+        if not IsAnimationFrame(CollectionName) then FadeBitmap(Bmp, Opacity);
+        ImageList_Add(DisabledToolbarImageList.Handle, Bmp.Handle, 0);
+      finally
+        Bmp.Free;
+      end;
+    end;
+  finally
+    DisabledToolbarImageList.EndUpdate;
+  end;
 end;
 
 procedure TMainForm.GetDarkToolbarBitmap(ASourceImage: TWICImage; AWidth, AHeight: Integer; out ABitmap: TBitmap);

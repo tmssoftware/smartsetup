@@ -5,6 +5,9 @@ assert: "self.Name = MainForm" is true
 call: "MainForm.lvproducts.SelectAll"
 wait: condition acSBOM.Enabled 
 click: "MainForm.acSBOM"
+wait: condition self.Name = DialogForm
+assert: "MemoMessage.Text ~ Generate SBOM files" is true
+click: "DialogForm.btnYes"
 wait: condition Self.Name = SBOMResultsForm
 assert: "lvResults.GetCount = 3" is true
 assert: "btRegenerate.Enabled = true" is true

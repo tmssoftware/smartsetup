@@ -10,6 +10,9 @@ function IsDarkStyle: Boolean;
 // Replaces the RGB of every pixel of a 32-bit bitmap with straight (non-premultiplied) alpha
 // with Color, keeping alpha as is. Used to recolor monochrome icons for dark mode.
 procedure TintBitmap(const Bmp: TBitmap; const Color: TColor);
+// Scales the alpha of every pixel of a 32-bit bitmap with straight alpha by Opacity / 255.
+// Used to make disabled versions of the icons.
+procedure FadeBitmap(const Bmp: TBitmap; const Opacity: Byte);
 
 implementation
 
@@ -68,6 +71,23 @@ begin
       Line.rgbBlue := GetBValue(C);
       Line.rgbGreen := GetGValue(C);
       Line.rgbRed := GetRValue(C);
+      Inc(Line);
+    end;
+  end;
+end;
+
+procedure FadeBitmap(const Bmp: TBitmap; const Opacity: Byte);
+var
+  x, y: Integer;
+  Line: PRGBQuad;
+begin
+  Bmp.PixelFormat := pf32bit;
+  for y := 0 to Bmp.Height - 1 do
+  begin
+    Line := Bmp.ScanLine[y];
+    for x := 0 to Bmp.Width - 1 do
+    begin
+      Line.rgbReserved := (Line.rgbReserved * Opacity + 127) div 255;
       Inc(Line);
     end;
   end;
