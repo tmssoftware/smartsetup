@@ -1061,6 +1061,8 @@ object MainForm: TMainForm
       Category = 'Commands'
       Caption = 'R&estore'
       ImageName = 'restore\restore'
+      OnExecute = acRestoreExecute
+      OnUpdate = acRestoreUpdate
     end
   end
   object BuildMenu: TPopupMenu

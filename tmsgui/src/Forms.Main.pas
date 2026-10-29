@@ -192,6 +192,8 @@ type
     procedure acSBOMUpdate(Sender: TObject);
     procedure acSBOMExecute(Sender: TObject);
     procedure BtnInfoSwitchClick(Sender: TObject);
+    procedure acRestoreExecute(Sender: TObject);
+    procedure acRestoreUpdate(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -275,7 +277,7 @@ uses
   Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
   Vcl.Themes, UTheming, IOUtils,
   GUI.Automation,
-  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults, Forms.DoctorWait;
+  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults, Forms.DoctorWait, Forms.Restore;
 
 {$R *.dfm}
 
@@ -471,6 +473,21 @@ end;
 procedure TMainForm.acRefreshUpdate(Sender: TObject);
 begin
   acRefresh.Enabled := not GUI.IsRunning;
+end;
+
+procedure TMainForm.acRestoreExecute(Sender: TObject);
+begin
+  var SelectedIds := GUI.SelectedProductIds;
+  var Options: TRestoreOptions;
+  if not TRestoreForm.Execute(Length(SelectedIds), Options) then exit;
+
+  if not Options.OnlySelected then SelectedIds := nil;
+  GUI.ExecuteRestore(ProductProgressEvent, Options.FileName, Options.SkipRegister, SelectedIds);
+end;
+
+procedure TMainForm.acRestoreUpdate(Sender: TObject);
+begin
+  acRestore.Enabled := not GUI.IsRunning;
 end;
 
 procedure TMainForm.acSettingsExecute(Sender: TObject);

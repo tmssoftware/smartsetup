@@ -30,6 +30,7 @@ uses
   Util.Animator in 'src\Util.Animator.pas',
   Forms.SBOMResults in 'src\Forms.SBOMResults.pas' {SBOMResultsForm},
   Forms.DoctorWait in 'src\Forms.DoctorWait.pas' {DoctorWaitForm},
+  Forms.Restore in 'src\Forms.Restore.pas' {RestoreForm},
   Deget.IDETypes in '..\common\src\Deget\Deget.IDETypes.pas';
 
 {$R *.res}

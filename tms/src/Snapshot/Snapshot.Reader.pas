@@ -3,7 +3,8 @@ unit Snapshot.Reader;
 interface
   uses Classes, SysUtils, Generics.Collections, Status.Manager, BBError, BBYaml, BBClasses, Deget.Version;
 
-  procedure LoadSnapshot(const FileName: string; const Products: TList<TProductStatus>);
+  procedure LoadSnapshot(const FileName: string; const Products: TList<TProductStatus>); overload;
+  procedure LoadSnapshot(const Stream: TTextReader; const DisplayFileName: string; const Products: TList<TProductStatus>); overload;
 implementation
 type
 
@@ -44,6 +45,17 @@ begin
    var MainSection := TSnapshotMainSection.Create(Products);
   try
     TBBYamlReader.ProcessFile(Filename, MainSection, '', false);
+  finally
+    MainSection.Free;
+  end;
+
+end;
+
+procedure LoadSnapshot(const Stream: TTextReader; const DisplayFileName: string; const Products: TList<TProductStatus>);
+begin
+   var MainSection := TSnapshotMainSection.Create(Products);
+  try
+    TBBYamlReader.ProcessStream(Stream, DisplayFileName, MainSection, '', false);
   finally
     MainSection.Free;
   end;

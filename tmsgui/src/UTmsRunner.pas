@@ -252,10 +252,10 @@ type
     procedure RunBackup(const TargetFile: string; const ProductIds: TArray<string>);
   end;
 
-  TTmsRestoreRunner = class(TTmsRunner)
+  TTmsRestoreRunner = class(TAbstractTmsBuildRunner)
   public
     class function Command: TTmsCommand; override;
-    procedure RunRestore(const BackupFile: string);
+    procedure RunRestore(const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
   end;
 
   TSBOMInfo =  class
@@ -1054,11 +1054,19 @@ begin
   Result := TTmsCommand.Restore;
 end;
 
-procedure TTmsRestoreRunner.RunRestore(const BackupFile: string);
+procedure TTmsRestoreRunner.RunRestore(const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
 begin
-  var Command := 'restore';
-  Command := Command;
-  Run(Command);
+  ProductProgress := true;
+  var Command := 'restore "' + BackupFile + '"';
+  if SkipRegister then Command := Command + ' -skip-register' else Command := Command + ' -auto-register';
+  // an empty list restores everything in the backup.
+  for var ProductId in ProductIds do
+    Command := Command + ' -include:' + ProductId;
+
+  if ProductProgress then
+    Command := Command + ' -display-options:product-progress';
+
+  RunCommand(AddRepo(Command));
 end;
 
 { TTmsSBOMRunner }

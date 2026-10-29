@@ -204,6 +204,8 @@ type
     procedure ExecutePartialBuild(ProgressCallback: TProductProgressProc);
     procedure ExecuteInstall(ProgressCallback: TProductProgressProc);
     procedure ExecuteUninstall(ProgressCallback: TProgressProc);
+    // ProductIds: the products to restore from the backup. Empty restores all of them.
+    procedure ExecuteRestore(ProgressCallback: TProductProgressProc; const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
     procedure RefreshProductList;
 
     // Execute install explicitly passing the product ids to be installed
@@ -1126,6 +1128,49 @@ begin
             ProgressCallback(0)
           else
             ProgressCallback(100);
+        end;
+      finally
+        RefreshFetchedProductsAfterJob;
+      end;
+    end);
+end;
+
+procedure TGUIEnvironment.ExecuteRestore(ProgressCallback: TProductProgressProc; const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
+begin
+  RunAsync<TTmsRestoreRunner>(
+    procedure(Runner: TTmsRestoreRunner)
+    begin
+      try
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          ProgressCallback(ProgressInfo);
+        end;
+
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+            begin
+              var ProgressInfo := Default(TProductProgressInfo);
+              ProgressInfo.Percent := Info.Percent;
+              ProgressInfo.ProductId := Info.ProductId;
+              ProgressInfo.ProductPercent := Info.ProductPercent;
+              ProgressCallback(ProgressInfo);
+            end;
+          end;
+        Runner.RunRestore(BackupFile, SkipRegister, ProductIds);
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          if Runner.IsCanceled then
+            ProgressInfo.Percent := 0
+          else
+            ProgressInfo.Percent := 100;
+          ProgressCallback(ProgressInfo);
         end;
       finally
         RefreshFetchedProductsAfterJob;
