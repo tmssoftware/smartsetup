@@ -101,6 +101,7 @@ begin
       var Product := TProductStatus.Create;
       Products.Add(Product);
       Product.Id := Name;
+      Product.Version := TLenientVersion.Create('', TVersionType.FreeForm); // start as freeform, to read older snapshots without version type. those were read as freeforms
       Result := TProductSection.Create(Self, Name, Product);
       ChildSections.Add(Name, Result);
     end;
@@ -123,7 +124,11 @@ begin
   Actions := TListOfActions.Create;
   Actions.Add('version', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;
-    FProduct.Version := TLenientVersion.Create(value, TVersionType.FreeForm);
+    FProduct.Version := FProduct.Version.WithNewVersionValue(value);
+  end);
+  Actions.Add('version type', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    FProduct.Version := FProduct.Version.WithNewVersionType(value);
   end);
   Actions.Add('server', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;

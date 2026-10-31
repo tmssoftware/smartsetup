@@ -39,7 +39,7 @@ begin
   var MaxVersion := Current;
   for var FileName in Updated do
   begin
-    var NextVersion: TVersion := TDownloadFileName.ExtractVersion(FileName);
+    var NextVersion: TVersion := TDownloadFileName.ExtractVersion(FileName).ToVersion;
     if NextVersion > MaxVersion then
     begin
       MaxVersion := NextVersion;
@@ -111,7 +111,7 @@ begin
   RotateDownloads(Config.MaxVersionsPerProduct);
   Logger.Info('');
 
-  Logger.Info(Format('TMS Smart Setup has been updated from version %s to version %s', [TMSVersion, TDownloadFileName.ExtractVersion(NewVersion)]));
+  Logger.Info(Format('TMS Smart Setup has been updated from version %s to version %s', [TMSVersion, TDownloadFileName.ExtractVersion(NewVersion).ToString]));
   SmartSetupUpdated := true;
 end;
 

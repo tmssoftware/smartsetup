@@ -46,7 +46,7 @@ begin
                 TmpList := TProductInfoList.Create;
                 Result.Add(ProductName, TmpList);
               end;
-              TmpList.Add(TProductInfo.Create(FileName, TDownloadFileName.ExtractVersion(FileName)));
+              TmpList.Add(TProductInfo.Create(FileName, TDownloadFileName.ExtractVersion(FileName).ToVersion));
             except on ex: Exception do
               Logger.Info(Format('Can''t process downloaded file "%s", looks invalid. You might need to delete it manually. %s', [FileName, ex.Message]));
             end;

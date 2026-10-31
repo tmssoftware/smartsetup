@@ -24,19 +24,23 @@ type
     procedure SetupLogger(TotalSteps: Integer);
     procedure FetchOneProject(const FetchItem: TFetchItem);
     procedure DownloadAndUnzip(const FetchItem: TFetchItem);
-    procedure CreateInstallInfoFile(const Folder: string; const FetchItem: TFetchItem);
+    class procedure CreateInstallInfoFile(const Folder: string; const ProductId: string; const Version: TLenientVersion; const Server: string); static;
     function DownloadFile(Info: TDownloadInfo; const FileNameOnDisk: string; out DownloadFormat: TDownloadFormat): string;
     function FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;
+
   public
     constructor Create(AItems: TFetchItems; ARepo: TRepositoryManager; AFolders: IBuildFolders);
     destructor Destroy; override;
     procedure Fetch;
-  end;
+
+    class procedure ExtractFile(const Folders: IBuildFolders; const ZipFileName: string;
+      const DownloadFormat: TDownloadFormat; const ProductId: string;
+      const Version: TLenientVersion; const Server: string); static;  end;
 
 implementation
 uses
   ULogger, UMultiLogger, System.Zip, Fetching.OfflineHTTPClient, System.Generics.Collections, UTmsBuildSystemUtils,
-  System.Classes, System.IOUtils, UHasher,
+  System.Classes, System.IOUtils, UHasher, Downloads.FileNameManager,
 {$IFDEF POSIX}
   Posix.UniStd, Posix.Stdio,
 {$ENDIF}
@@ -116,10 +120,10 @@ begin
     end);
 end;
 
-procedure TParallelDownloader.CreateInstallInfoFile(const Folder: string; const FetchItem: TFetchItem);
+class procedure TParallelDownloader.CreateInstallInfoFile(const Folder: string; const ProductId: string; const Version: TLenientVersion; const Server: string);
 begin
   //pinned must be false when downloading new products
-  TFetchInfoFile.SaveInFolder(Folder, FetchItem.ProductId, TLenientVersion.Create(FetchItem.Version, TVersionType.Semantic), FetchItem.Server, false);
+  TFetchInfoFile.SaveInFolder(Folder, ProductId, Version, Server, false);
 end;
 
 function TParallelDownloader.FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;
@@ -140,6 +144,25 @@ begin
       end;
     end;
   end;
+end;
+
+class procedure TParallelDownloader.ExtractFile(const Folders: IBuildFolders; const ZipFileName: string;
+  const DownloadFormat: TDownloadFormat; const ProductId: string; const Version: TLenientVersion; const Server: string);
+begin
+    var ProductsTempFolder := Folders.ProductsTempFolder;
+    var FileName := TDownloadFileName.GenerateFileName(ProductId, Version);
+    var ExtractFolder := CombinePath(ProductsTempFolder, FileName);
+    if TDirectory.Exists(ExtractFolder) then
+      TDirectory.Delete(ExtractFolder, True);
+
+    TBundleDecompressor.ExtractCompressedFile(ZipFileName, ExtractFolder, DownloadFormat);
+    CreateInstallInfoFile(ExtractFolder, ProductId, Version, Server);
+
+    var FinalFolder := CombinePath(Folders.ProductsFolder, ProductId);
+    DeleteFolderMovingToLocked(Folders.LockedFilesFolder, FinalFolder, true);
+    RenameAndCheckFolder(ExtractFolder, FinalFolder);
+    Logger.Info('Extracted ' + TPath.GetFileName(ZipFileName));
+
 end;
 
 procedure TParallelDownloader.DownloadAndUnzip(const FetchItem: TFetchItem);
@@ -173,18 +196,7 @@ begin
 
   if not FetchItem.SkipExtraction then
   begin
-    var ProductsTempFolder := Folders.ProductsTempFolder;
-    var ExtractFolder := CombinePath(ProductsTempFolder, FetchItem.UniqueName);
-    if TDirectory.Exists(ExtractFolder) then
-      TDirectory.Delete(ExtractFolder, True);
-
-    TBundleDecompressor.ExtractCompressedFile(ExistingFileName, ExtractFolder, DownloadFormat);
-    CreateInstallInfoFile(ExtractFolder, FetchItem);
-
-    var FinalFolder := CombinePath(Folders.ProductsFolder, FetchItem.ProductId);
-    DeleteFolderMovingToLocked(Config.Folders.LockedFilesFolder, FinalFolder, true);
-    RenameAndCheckFolder(ExtractFolder, FinalFolder);
-    Logger.Info('Extracted ' + TPath.GetFileName(ExistingFileName));
+    ExtractFile(Folders, ExistingFileName, DownloadFormat, FetchItem.ProductId, TLenientVersion.Create(FetchItem.Version, TVersionType.Semantic), FetchItem.Server);
   end;
 
   FetchItem.Status := TFetchStatus.Downloaded;

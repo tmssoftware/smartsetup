@@ -29,6 +29,7 @@ begin
     begin
       Writer.WriteLine('  - ' + BBYamlEscapeString(Product.Id, false) + ':');
       Writer.WriteLine('      version: ' + BBYamlEscapeString(Product.InstalledVersion, false));
+      Writer.WriteLine('      version type: ' + BBYamlEscapeString(Product.InstalledVersion.VersionTypeId, false));
       Writer.WriteLine('      server: ' + BBYamlEscapeString(Product.Server, false));
       Writer.WriteLine('      url: ' + BBYamlEscapeString(Product.Project.Application.Url, false)); // For audit purposes
       Writer.WriteLine('      pinned: ' + BoolToStr(Product.Pinned, true).ToLowerInvariant);

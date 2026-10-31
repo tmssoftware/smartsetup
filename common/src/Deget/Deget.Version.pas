@@ -64,6 +64,7 @@ type
     constructor Create(Value: string; VersionType: TVersionType); overload;
     constructor Create(Value: string; VersionType: string); overload;
     class operator Implicit(Value: TLenientVersion): string;
+    class operator Implicit(Value: TVersion): TLenientVersion;
     class operator Equal(Left, Right: TLenientVersion): Boolean;
     class operator NotEqual(Left, Right: TLenientVersion): Boolean;
 
@@ -80,7 +81,12 @@ type
     function Normalized: string;
     function IsNull: Boolean;
     function VersionTypeId: string;
+    property VersionType: TVersionType read FVersionType;
     procedure Clear;
+    function ToVersion: TVersion;
+
+    function WithNewVersionValue(const aValue: string): TLenientVersion;
+    function WithNewVersionType(const aVersionType: string): TLenientVersion;
   end;
 
 {$IFDEF DEBUG}
@@ -510,6 +516,11 @@ begin
 end;
 
 
+class operator TLenientVersion.Implicit(Value: TVersion): TLenientVersion;
+begin
+  Result := TLenientVersion.Create(Value.ToString, TVersionType.Semantic);
+end;
+
 function TLenientVersion.IsNull: Boolean;
 var
   Version: TVersion;
@@ -555,6 +566,11 @@ begin
     Result := FValue;
 end;
 
+function TLenientVersion.ToVersion: TVersion;
+begin
+  if not IsSemanticVersion(Self, Result) then raise Exception.Create('Lenient version "' + ToString + '" can''t be converted to a TVersion.');
+end;
+
 function TLenientVersion.VersionTypeId: string;
 begin
   Result := IdFreeForm;
@@ -563,6 +579,18 @@ begin
     FreeForm: Result := IdFreeForm;
   end;
 
+end;
+
+function TLenientVersion.WithNewVersionType(
+  const aVersionType: string): TLenientVersion;
+begin
+  Result := TLenientVersion.Create(FValue, aVersionType);
+end;
+
+function TLenientVersion.WithNewVersionValue(
+  const aValue: string): TLenientVersion;
+begin
+  Result := TLenientVersion.Create(aValue, FVersionType);
 end;
 
 class function TLenientVersion.IsSemanticVersion(const Lenient: TLenientVersion; var Version: TVersion): Boolean;

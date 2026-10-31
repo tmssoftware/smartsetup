@@ -281,6 +281,7 @@ type
 
     property AutoSnapshotFileNames: TOrderedDictionary<string, string> read FAutoSnapshotFileNames;
     function FullAutoSnapshotFileNames: TArray<string>;
+    function FullAutoSnapshotFileName(const i: integer): string;
 
     property Products: TProductConfigDefinitionDictionary read FProducts;
 
@@ -398,13 +399,20 @@ begin
   SetLength(Result, AutoSnapshotFileNames.Count);
   for var i := Low(Result) to High(Result) do
   begin
-    if TPath_IsPathRooted(AutoSnapshotFileNames.KeyList[i]) then
-    begin
-      Result[i] := TPath.GetFullPath(AutoSnapshotFileNames.KeyList[i].Trim);
-      continue;
-    end;
-    Result[i] := TPath.GetFullPath(TPath.Combine(FConfigFolder, AutoSnapshotFileNames.KeyList[i].Trim));
+    Result[i] := FullAutoSnapshotFileName(i);
   end;
+end;
+
+function TConfigDefinition.FullAutoSnapshotFileName(const i: integer): string;
+begin
+  if (i < 0) or (i >= AutoSnapshotFileNames.Count) then raise Exception.Create('Internal error: invalid AutoSnapshotFileNames index.');
+
+  var Entry := AutoSnapshotFileNames.KeyList[i].Trim;
+  if TPath_IsPathRooted(Entry) then
+  begin
+    exit(TPath.GetFullPath(Entry));
+  end;
+  Result := TPath.GetFullPath(TPath.Combine(FConfigFolder, Entry));
 end;
 
 function TConfigDefinition.AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;
