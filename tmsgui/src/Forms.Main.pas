@@ -172,6 +172,7 @@ type
       ARect: TRect; AState: TOwnerDrawState);
     procedure StatusBarClick(Sender: TObject);
     procedure StatusBarResize(Sender: TObject);
+    procedure WrappedLabelsContainerResize(Sender: TObject);
     procedure acLogDetailsExecute(Sender: TObject);
     procedure acViewHtmlLogExecute(Sender: TObject);
     procedure acBuildExecute(Sender: TObject);
@@ -1196,8 +1197,8 @@ begin
     var InstalledString := GUI.GetProductInstallInfo(Product);
     OneProdInstalledPlats.Text := InstalledString;
     if InstalledString = ''
-      then OneProdInstalledCaption.Caption := 'Not installed in any IDE.'
-      else OneProdInstalledCaption.Caption := 'Installed in:';
+      then OneProdInstalledCaption.Caption := 'Not installed or built in any IDE.'
+      else OneProdInstalledCaption.Caption := 'Installed or built in:';
     OneProdInstalledPlats.Visible := InstalledString <> '';
 
     CardPanelDetails.ActiveCard := CardOneProduct;
@@ -1452,6 +1453,23 @@ begin
   var FolderWidth := StatusBar.ClientWidth - OthersWidth;
   if FolderWidth < 0 then FolderWidth := 0;
   StatusBar.Panels[StatusWorkingFolder].Width := FolderWidth;
+end;
+
+procedure TMainForm.WrappedLabelsContainerResize(Sender: TObject);
+begin
+  // TLabel only recalculates its AutoSize height when the caption or font changes, not when its width does.
+  // Force it for word-wrapped top/bottom aligned labels, so they grow or shrink and move the controls below them.
+  var Container := Sender as TWinControl;
+  for var i := 0 to Container.ControlCount - 1 do
+  begin
+    if not (Container.Controls[i] is TLabel) then continue;
+    var Lbl := TLabel(Container.Controls[i]);
+    if Lbl.AutoSize and Lbl.WordWrap and (Lbl.Align in [alTop, alBottom]) then
+    begin
+      Lbl.AutoSize := false;
+      Lbl.AutoSize := true;
+    end;
+  end;
 end;
 
 {$IFDEF DEBUG}

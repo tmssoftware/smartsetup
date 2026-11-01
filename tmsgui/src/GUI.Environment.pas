@@ -1705,16 +1705,20 @@ const
   NewLine = #13#10;
 begin
   Result := '';
-  // Newest IDEs first. We only list platforms that are both built and registered.
+  // Newest IDEs first. We only list platforms that are both built or registered.
   for var IDEName := High(TIDEName) downto Low(TIDEName) do
   begin
     var Platforms := '';
     for var Plat := Low(TPlatform) to High(TPlatform) do
       for var Installation in Source.Installations do
         if (Installation.IDEName = IDEName) and (Installation.Platform = Plat)
-          and Installation.IsBuilt and Installation.IsRegistered then
+          and (Installation.IsBuilt or Installation.IsRegistered) then
         begin
-          Platforms := Platforms + '  - ' + PlatformMacroString(IDEName, Plat) + NewLine;
+          var RegString: string;
+          if Installation.IsRegistered then RegString := ' -> Installed' else RegString := ' -> Built';
+
+
+          Platforms := Platforms + '  - ' + PlatformMacroString(IDEName, Plat) + RegString + NewLine;
         end;
 
     if Platforms <> '' then

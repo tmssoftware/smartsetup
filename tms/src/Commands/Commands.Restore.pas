@@ -222,9 +222,17 @@ begin
 
 end;
 
+function GetDisplayInfo(const NoBuild, SkipRegister: boolean): string;
+begin
+  Result := '';
+  if NoBuild then exit(Result + ' Only restoring. Not building or registering.');
+  if SkipRegister then exit(Result + ' Only building. Not registering.');
+end;
+
 procedure RestoreComponents(FileName: string; const LatestVersions, NoBuild, IncludeLocalProducts: boolean; const IncludeMasks, ExcludeMasks: TArray<string>; const SkipRegister: boolean);
 begin
   Config.ForceSkipRegistering := SkipRegister;
+  Logger.Info('Restoring from "' + TPath.GetFileName(FileName) + '".' + GetDisplayInfo(NoBuild, SkipRegister));
   var Backup := TBackupData.Create;
   try
     if (FileName.Trim = '') and (Config.AutoSnapshotFileNames.Count = 1) then FileName := Config.FullAutoSnapshotFileName(0);

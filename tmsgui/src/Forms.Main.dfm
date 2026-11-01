@@ -312,6 +312,7 @@ object MainForm: TMainForm
                       Align = alClient
                       BevelOuter = bvNone
                       TabOrder = 0
+                      OnResize = WrappedLabelsContainerResize
                       object OneProdDescription: TLabel
                         AlignWithMargins = True
                         Left = 3
@@ -394,6 +395,7 @@ object MainForm: TMainForm
                     Caption = 'CardOneProductInstall'
                     CardIndex = 1
                     TabOrder = 1
+                    OnResize = WrappedLabelsContainerResize
                     object OneProdInstalledCaption: TLabel
                       AlignWithMargins = True
                       Left = 3
