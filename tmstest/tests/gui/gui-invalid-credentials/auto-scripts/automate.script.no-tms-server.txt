@@ -1,0 +1,3 @@
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+wait Self.ProductCount > 1

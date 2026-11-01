@@ -28,7 +28,7 @@ procedure ValidateVCSUrl(const aURL: string);
 procedure ValidateVCSFilePath(const aPath: string);
 
 implementation
-uses SysUtils, Testing.Globals;
+uses SysUtils, Testing.Globals, Deget.CommandLine;
 
 function IsAsciiLetterOrDigit(const ch: Char): boolean; inline;
 begin
@@ -110,7 +110,7 @@ begin
   //Reject leading '-' to prevent the URL from being parsed as an option by git/svn
   //(e.g. "--upload-pack=cmd" would otherwise be executed as the upload-pack helper).
   if StartsWithMinus(aURL) then
-    raise Exception.CreateFmt('Invalid repository URL "%s": must not start with "-".', [aURL]);
+    raise Exception.CreateFmt('Invalid repository URL "%s": must not start with "-".', [RedactUrlCredentials(aURL)]);
 
   for var i := 1 to Length(aURL) do
   begin
@@ -118,7 +118,7 @@ begin
       raise Exception.CreateFmt(
         'Invalid character in repository URL "%s": ''%s'' (0x%s) is not allowed. ' +
         'Only letters, digits and the characters . - _ / + : @ ~ %% ? = # are permitted.',
-        [aURL, aURL[i], IntToHex(Ord(aURL[i]), 2)]);
+        [RedactUrlCredentials(aURL), aURL[i], IntToHex(Ord(aURL[i]), 2)]);
   end;
 end;
 

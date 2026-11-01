@@ -6,7 +6,7 @@ tms build
 
 CheckLogHasString '- TMS Example for VCL & FMX -> OK.'
 
-$result = .\app\$(Global:BaseDelphiVersion)\Win32\Release\xmlencodetest.exe
+$result = &".\app\$($Global:BaseDelphiVersion)\Win32\Release\xmlencodetest.exe"
 if ($result -ne "Work!, Rest! / Work2!, Rest2!") {
     throw "Error The app returned $result instead of the expected value."
 }

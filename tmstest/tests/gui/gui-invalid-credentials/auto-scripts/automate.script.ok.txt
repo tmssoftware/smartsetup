@@ -1,0 +1,7 @@
+wait self.Name = CredentialsForm
+*set-text edEmail $ENV:TMSTEST_EMAIL
+*set-text edCode $ENV:TMSTEST_CODE
+click btOk
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+wait Self.ProductCount > 1

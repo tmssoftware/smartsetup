@@ -67,7 +67,7 @@ TConfigWriter = class
 end;
 
 implementation
-uses UTmsBuildSystemUtils, Deget.IDETypes, UConfigLoaderStateMachine;
+uses UTmsBuildSystemUtils, Deget.IDETypes, UConfigLoaderStateMachine, SmartSetup.Locks;
 
 const
   GlobalPrefixedProperties: array[TGlobalPrefixedProperties] of string= ('excluded products', 'included products', 'additional products folders',
@@ -550,15 +550,24 @@ end;
 
 procedure TConfigWriter.Save(const FileName: string);
 begin
-  //Atomically: writing straight into the file truncated it first, so any exception while writing
-  //(e.g. an unknown variable) left the user's tms.config.yaml empty.
-  SaveTextFileAtomically(FileName, TUTF8NoBOMEncoding.Instance,
-    procedure(TextWriter: TStreamWriter)
-    begin
-      SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
-        'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
-        'TMS Smart Setup configuration file'#10'Modify settings as needed.');
-    end);
+  var Protector := LockConfig(FileName);
+  try
+    //Avoid lost updates: if 2 commands loaded the config and both modify it, the second would overwrite the changes of the first.
+    Cfg.CheckLoadedFileNotModified(FileName);
+    //Atomically: writing straight into the file truncated it first, so any exception while writing
+    //(e.g. an unknown variable) left the user's tms.config.yaml empty.
+    SaveTextFileAtomically(FileName, TUTF8NoBOMEncoding.Instance,
+      procedure(TextWriter: TStreamWriter)
+      begin
+        SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
+          'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
+          'TMS Smart Setup configuration file'#10'Modify settings as needed.');
+      end);
+    //What is on disk is now what we have in memory. If we save again, compare against this.
+    Cfg.SetLoadedFile(FileName);
+  finally
+    Protector.Free;
+  end;
 end;
 
 procedure TConfigWriter.SaveToStream(const TextWriter: TTextWriter; const Filter: string;

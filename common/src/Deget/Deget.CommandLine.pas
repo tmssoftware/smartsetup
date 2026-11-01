@@ -32,10 +32,59 @@ function ExecuteCommand(const CommandLine, WorkingDirectory: string; var Output:
 function ExecuteCommand(const CommandLine, WorkingDirectory: string): Boolean; overload;
 function ExecuteCommand(const CommandLine: string): Boolean; overload;
 
+function QuoteCmd(const Command: string): string;
+
+/// <summary>
+/// Replaces the userinfo (user:password) of any URL inside s with "***", so it can be safely logged.
+/// "git clone https://user:token@host/repo" becomes "git clone https://***@host/repo".
+/// </summary>
+function RedactUrlCredentials(const s: string): string;
+
+{$IFDEF DEBUG}
+procedure DegetCommandLine_TestUrlCredentialRedaction;
+{$ENDIF}
+
 implementation
 
 uses
   ULogger, UMultiLogger, UAppTerminated;
+
+function QuoteCmd(const Command: string): string;
+begin
+  if Command = '' then raise Exception.Create('Error: Empty command to execute.');
+
+  Result := Command;
+  if not Result.StartsWith('"') then Result := '"' + Result;
+  if not Result.EndsWith('"') then Result := Result + '"';
+  if (Result.Length < 2) or Result.Substring(1, Result.Length - 2).Contains('"') then raise Exception.Create('Error: The command ' + Result + ' includes a double quote inside.');
+end;
+
+function RedactUrlCredentials(const s: string): string;
+const
+  SchemeSep = '://';
+begin
+  Result := s;
+  var SchemeIdx := Result.IndexOf(SchemeSep);
+  while SchemeIdx >= 0 do
+  begin
+    var AuthorityStart := SchemeIdx + Length(SchemeSep);
+    var AuthorityEnd := AuthorityStart;
+    //Apostrophes can be part of credentials, even when URL validation rejects them.
+    while (AuthorityEnd < Result.Length)
+      and not CharInSet(Result.Chars[AuthorityEnd], ['/', '\', '?', '#', '"', ' ', #9, #10, #13]) do inc(AuthorityEnd);
+
+    //The password might contain an '@', so we use the last one in the authority.
+    var AtIdx := AuthorityEnd - 1;
+    while (AtIdx >= AuthorityStart) and (Result.Chars[AtIdx] <> '@') do dec(AtIdx);
+    if AtIdx >= AuthorityStart then
+    begin
+      Result := Result.Remove(AuthorityStart, AtIdx - AuthorityStart).Insert(AuthorityStart, '***');
+      AuthorityEnd := AuthorityStart + Length('***') + (AuthorityEnd - AtIdx);
+    end;
+
+    SchemeIdx := Result.IndexOf(SchemeSep, AuthorityEnd);
+  end;
+end;
 
 function ExecuteCommand(const CommandLine, WorkingDirectory: string): Boolean;
 var
@@ -49,12 +98,13 @@ var
   LOutput: string;
 begin
   Result := false;
-  Logger.StartSection(TMessageType.Command, CommandLine);
+  //The command line or its output might include urls with credentials (like https://user:token@host). Don't log those.
+  Logger.StartSection(TMessageType.Command, RedactUrlCredentials(CommandLine));
   try
     var ErrorMessage := '';
     Output := '';
     LOutput := '';
-    Logger.Trace('Execute command: ' + CommandLine);
+    Logger.Trace('Execute command: ' + RedactUrlCredentials(CommandLine));
     Logger.Trace('Working directory: ' + WorkingDirectory);
     try
       TCommandLine.Execute(CommandLine, WorkingDirectory,
@@ -74,11 +124,11 @@ begin
     end;
 
     Logger.Trace('--- Output start ---');
-    Logger.Trace(LOutput);
+    Logger.Trace(RedactUrlCredentials(LOutput));
     Logger.Trace('--- Output end ---');
     Output := LOutput;
 
-    if ErrorMessage <> '' then Logger.Trace(ErrorMessage);
+    if ErrorMessage <> '' then Logger.Trace(RedactUrlCredentials(ErrorMessage));
   finally
     Logger.FinishSection(TMessageType.Command, (not ErrorsAreOk) and (not Result));
   end;
@@ -187,6 +237,35 @@ begin
    Result := Result + #0;
 end;
 
+function SetKillOnJobClose(const Job: THandle; const Value: Boolean): Boolean;
+var
+  Info: TJobObjectExtendedLimitInformation;
+begin
+  FillChar(Info, SizeOf(Info), 0);
+  //This sets all the limits, so keep BREAKAWAY_OK in both cases.
+  //BREAKAWAY_OK: a process that asks for CREATE_BREAKAWAY_FROM_JOB gets it, as it did before we used a job.
+  //Without it, that CreateProcess fails with access denied. Children that don't ask stay in the job.
+  Info.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_BREAKAWAY_OK;
+  if Value then Info.BasicLimitInformation.LimitFlags := Info.BasicLimitInformation.LimitFlags or JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+  Result := SetInformationJobObject(Job, JobObjectExtendedLimitInformation, @Info, SizeOf(Info));
+end;
+
+function CreateKillOnCloseJob: THandle;
+begin
+  Result := CreateJobObject(nil, nil);
+  if (Result <> 0) and not SetKillOnJobClose(Result, true) then
+  begin
+    CloseHandle(Result);
+    Result := 0;
+  end;
+end;
+
+function KillProcessTree(const Job, Process: THandle): Boolean;
+begin
+  Result := (Job <> 0) and TerminateJobObject(Job, ERROR_CANCELLED);
+  if not Result then Result := TerminateProcess(Process, ERROR_CANCELLED);
+end;
+
 class function TCommandLine.InternalExecute(const CommandLine: string;
   const WorkingDirectory: string; CallbackProc: TStringProc; const Env: TArray<string> = nil; IsCanceledFunc: TFunc<Boolean> = nil): Integer;
 var
@@ -194,16 +273,36 @@ var
   SI: TStartupInfo;
   PI: TProcessInformation;
   StdOutPipeRead, StdOutPipeWrite: THandle;
-  Buffer: array[0..255] of AnsiChar;
-//  WBuffer: array[0..255] of Char;
-  BytesRead, TotalBytesAvail: Cardinal;
   Handle: Boolean;
   ExitCode: Cardinal;
   LocalCommandLine: string;
   LocalWorkingDir: PChar;
-  WaitResult, OldWaitResult :DWord;
   Environment: string;
   PEnvironment: PChar;
+  Job: THandle;
+  Canceled, FinishedNormally: Boolean;
+  DrainDeadline: UInt64;
+
+  //Read one chunk so continuous output cannot prevent cancellation checks.
+  function PumpOutput: Boolean;
+  var
+    Buffer: array[0..4095] of AnsiChar;
+    BytesRead, TotalBytesAvail: Cardinal;
+  begin
+    Result := false;
+    if not PeekNamedPipe(StdOutPipeRead, nil, 0, nil, @TotalBytesAvail, nil) then exit;
+    if TotalBytesAvail = 0 then exit;
+    if not ReadFile(StdOutPipeRead, Buffer, SizeOf(Buffer) - 1, BytesRead, nil) then exit;
+    if BytesRead = 0 then exit;
+    if Assigned(CallbackProc) then
+    begin
+      Buffer[BytesRead] := #0;
+      OemToCharBuffA(Buffer, Buffer, BytesRead);
+      CallbackProc(String(Buffer));
+    end;
+    Result := true;
+  end;
+
 begin
    if Env <> nil then
    begin
@@ -240,50 +339,68 @@ begin
     SI.hStdOutput := StdOutPipeWrite;
     SI.hStdError := StdOutPipeWrite;
 
-    Handle := CreateProcess(nil, PChar(LocalCommandLine), nil, nil, True, NORMAL_PRIORITY_CLASS or CREATE_UNICODE_ENVIRONMENT,     //CREATE_NEW_PROCESS_GROUP is needed so ctrl-c is not passed to this proceess.
-      PEnvironment, PChar(LocalWorkingDir), SI, PI);
-    CloseHandle(StdOutPipeWrite);
-    if not Handle then
-      RaiseLastOSError;
-
-    OldWaitResult := WAIT_TIMEOUT;
+    //Everything the child launches goes into this job, so a cancel can kill the whole tree and not only the direct child.
+    //If we die without cleaning up, closing the job kills the tree too.
+    Job := CreateKillOnCloseJob;
+    FinishedNormally := false;
     try
-      WaitResult := WAIT_TIMEOUT;
-      repeat
-        if AppIsTerminated or (Assigned(IsCanceledFunc) and IsCanceledFunc()) then
+      //No CREATE_NEW_PROCESS_GROUP: in the cli, the child gets the user's Ctrl-C too, and can start stopping by itself before we kill it.
+      //CREATE_SUSPENDED: the child can't launch anything before it is in the job.
+      Handle := CreateProcess(nil, PChar(LocalCommandLine), nil, nil, True,
+        NORMAL_PRIORITY_CLASS or CREATE_UNICODE_ENVIRONMENT or CREATE_SUSPENDED,
+        PEnvironment, PChar(LocalWorkingDir), SI, PI);
+      CloseHandle(StdOutPipeWrite);
+      if not Handle then
+        RaiseLastOSError;
+
+      try
+        if (Job <> 0) and not AssignProcessToJobObject(Job, PI.hProcess) then
         begin
-          TerminateProcess(PI.hProcess, 0);
-          CheckAppTerminated;
+          //Can happen on Windows 7 if we are already inside a job. We can still kill the direct child.
+          CloseHandle(Job);
+          Job := 0;
         end;
+        ResumeThread(PI.hThread);
 
-        var WasOk := PeekNamedPipe(StdOutPipeRead, nil, 0, nil, @TotalBytesAvail, nil);
-        if WasOk and (TotalBytesAvail > 0) then
-        begin
-          BytesRead := 0;
-          WasOk := ReadFile(StdOutPipeRead, Buffer, 255, BytesRead, nil);
-          if WasOk and (BytesRead > 0) then
-          begin
-            if Assigned(CallbackProc) then
-            begin
-              Buffer[BytesRead] := #0;
-              OemToCharBuffA(Buffer, Buffer, BytesRead);
-              CallbackProc(String(Buffer));
-            end;
-          end;
-          continue;
-        end;
+        repeat
+          Canceled := AppIsTerminated or (Assigned(IsCanceledFunc) and IsCanceledFunc());
+          if Canceled then break;
+          if not PumpOutput then
+            if WaitForSingleObject(PI.hProcess, 50) = WAIT_OBJECT_0 then break;
+        until false;
 
-        OldWaitResult := WaitResult;
-        WaitResult := WaitForSingleObject(PI.hProcess, 500);
-      until (OldWaitResult <> WAIT_TIMEOUT); //We do an extra loop after PI finished to collect any remaining output.
+        //Kill the whole tree, not only the direct child. If even that fails, don't wait for a process that may never exit.
+        if Canceled and KillProcessTree(Job, PI.hProcess) then
+          WaitForSingleObject(PI.hProcess, 5000);
 
-      GetExitCodeProcess(PI.hProcess, ExitCode);
-      {$R-}
-      Result := ExitCode;
-      {$R+}
+        //Before draining: if the output callback raises, we still keep what the child detached on purpose.
+        FinishedNormally := not Canceled;
+        //The child already exited, so what is left is at most a pipe buffer. Bound it anyway: a grandchild that inherited
+        //the pipe (and that we keep alive on a normal finish) could keep writing forever.
+        DrainDeadline := GetTickCount64 + 2000;
+        while (GetTickCount64 < DrainDeadline) and PumpOutput do
+          if not Canceled and (AppIsTerminated or (Assigned(IsCanceledFunc) and IsCanceledFunc())) then break;
+
+        GetExitCodeProcess(PI.hProcess, ExitCode);
+        //The child might have exited with 0 just before we killed it. Not 0, or a canceled run reads as a success.
+        if Canceled and (ExitCode = 0) then ExitCode := ERROR_CANCELLED;
+        if Canceled and Assigned(CallBackProc) then CallBackProc(#10 + #10 + '**CANCELED**');
+        {$R-}
+        Result := ExitCode;
+        {$R+}
+        CheckAppTerminated;
+      finally
+        CloseHandle(PI.hThread);
+        CloseHandle(PI.hProcess);
+      end;
     finally
-      CloseHandle(PI.hThread);
-      CloseHandle(PI.hProcess);
+      if Job <> 0 then
+      begin
+        //After a normal run, keep anything the child detached on purpose (like git's background gc), same as before we used a job.
+        //Canceled or failed: closing the job kills whatever is still running in it.
+        if FinishedNormally then SetKillOnJobClose(Job, false);
+        CloseHandle(Job);
+      end;
     end;
   finally
     CloseHandle(StdOutPipeRead);
@@ -351,6 +468,22 @@ begin
 end;
 {$IFEND}
 
-
+{$IFDEF DEBUG}
+procedure DegetCommandLine_TestUrlCredentialRedaction;
+  procedure Check(const Input, Expected: string);
+  begin
+    if RedactUrlCredentials(Input) <> Expected then
+      raise Exception.Create('URL credential redaction test failed. Expected "' + Expected + '" but got "' + RedactUrlCredentials(Input) + '"');
+  end;
+begin
+  Check('https://user:pa''ss@host/repo', 'https://***@host/repo');
+  Check('Invalid URL: "https://us''er:pa''ss@host/repo"', 'Invalid URL: "https://***@host/repo"');
+  Check('''https://user:pa''ss@host/repo''', '''https://***@host/repo''');
+  Check('https://user:pa''ss@word@host/repo', 'https://***@host/repo');
+  Check('https://user:token@one/repo file://user:pa''ss@two/repo',
+    'https://***@one/repo file://***@two/repo');
+  Check('https://host/pa''th@name', 'https://host/pa''th@name');
+end;
+{$ENDIF}
 end.
 

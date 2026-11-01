@@ -1,0 +1,38 @@
+Starting Automation
+wait: condition Self.IsGuiRunning = false
+wait: condition Self.ProductCount <> 0
+assert: "self.Name = MainForm" is true
+set-text: "MainForm.edSearch" to "jedi.jcl"
+assert: "Self.ProductCount = 1" is true
+call: "MainForm.lvproducts.SelectAll"
+click: "MainForm.btnInstall"
+wait: condition OutputMemo.Text ~ Build finished. Elapsed time
+assert: "OutputMemo.Text ~ - JEDI JCL -> OK." is true
+wait: condition Self.IsGuiRunning = false
+wait: 1000 milliseconds
+set: "MainForm.LogPanel.Height" to "300"
+wait: 500 milliseconds
+set: "MainForm.lbLog.ItemIndex" to "0"
+wait: 500 milliseconds
+click: "MainForm.acLogDetails"
+wait: condition Self.Name = LogDetailsForm
+assert: "Data.Text ~ - JEDI JCL -> OK." is true
+click: "LogDetailsForm.btOk"
+wait: condition Self.Name = MainForm
+set-text: "MainForm.edSearch" to "tms.biz.bcl"
+wait: condition Self.ProductCount = 1
+wait: condition Self.IsGuiRunning = false
+call: "MainForm.lvproducts.SelectAll"
+click: "MainForm.btnInstall"
+wait: condition OutputMemo.Text ~ Build finished. Elapsed time
+wait: condition Self.IsGuiRunning = false
+wait: 1000 milliseconds
+set: "MainForm.lbLog.ItemIndex" to "1"
+set: "MainForm.lbLog.ItemIndex" to "0"
+wait: 500 milliseconds
+click: "MainForm.acLogDetails"
+wait: condition Self.Name = LogDetailsForm
+assert: "Data.Text ~ - TMS BIZ Core Library" is true
+click: "LogDetailsForm.btOk"
+wait: 1000 milliseconds
+Completed successfully

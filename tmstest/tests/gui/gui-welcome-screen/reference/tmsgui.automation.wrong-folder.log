@@ -1,0 +1,4 @@
+Starting Automation
+wait: 1000 milliseconds
+assert: "self.Name = DialogForm" is true
+click: "DialogForm.btnNo"

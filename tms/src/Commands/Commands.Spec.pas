@@ -12,7 +12,7 @@ implementation
 uses
   USpecWriter, UTmsBuildSystemUtils, UProjectDefinition, UProjectLoader, IOUtils, Deget.Filer.DprojFile,
   Deget.Version, Deget.Filer.Types, Deget.IDETypes,
-  Generics.Collections,
+  Generics.Collections, Commands.Logging,
 {$IFDEF MSWINDOWS}
   Windows,
 {$ENDIF}
@@ -564,6 +564,7 @@ end;
 
 procedure RunSpecCommand;
 begin
+  InitNotFolderBasedCommand; //spec runs in the product's source folder, not in a smart setup folder.
   var Product: TProjectDefinition := nil;
   try
     Product := TProjectLoader.LoadProjectDefinitionFromFile(Template, '', true, Specs);

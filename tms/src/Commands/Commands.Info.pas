@@ -47,6 +47,7 @@ procedure RunInfoCommand;
 const
   {$i ../../../Version.inc}
 begin
+  InitNotFolderBasedCommand;
   var Json := TJSONObject.Create;
   try
     Json.AddPair('tms version', TMSVersion);

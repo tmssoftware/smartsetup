@@ -1,0 +1,5 @@
+Starting Automation
+wait: condition self.Name = MainForm
+wait: condition Self.IsGuiRunning = false
+wait: condition Self.ProductCount > 1
+Completed successfully

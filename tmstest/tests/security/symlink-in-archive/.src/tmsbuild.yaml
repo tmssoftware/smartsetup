@@ -1,0 +1,17 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmstest.evil
+  name: "evil"
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - evil: [runtime, rtl]
+
+
+

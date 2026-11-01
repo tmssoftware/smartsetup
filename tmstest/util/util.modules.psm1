@@ -346,4 +346,32 @@ function Set-AlternateRegistryKey {
 }
 
 
+function Test-tmsgui {
+    param(
+        [string]$suffixParam = "",
+        [string]$tmsguiexe = "",
+        [string]$extraArgs = ""
+    )
+    $suffix = $suffixParam
+    if ($suffix -ne "") {
+        $suffix = "." + $suffix
+    }
+    if ("" -eq $tmsguiexe){ $tmsguiexe = Get-Alias tmsgui | Select-Object -ExpandProperty Definition }
+
+    $CallingScriptFolderName = Split-Path -Path (Split-Path -Path $MyInvocation.ScriptName -Parent) -Leaf
+    $CallingScriptFolder = Join-Path -Path $tmsTestRootDir -ChildPath "tmp-run\$CallingScriptFolderName"
+
+
+    $automationScriptFileName = "$CallingScriptFolder\auto-scripts\automate.script$($suffix).txt" 
+    $automationLogFileName = "$CallingScriptFolder\auto-scripts-result\tmsgui.automation$($suffix).log" 
+    # Don't use -Wait: it waits for child processes too, and tmsgui can relaunch itself after a self-update.
+    $process = Start-Process -FilePath $tmsguiexe -ArgumentList "-automation-script:`"$automationScriptFileName`"", "-automation-log:`"$automationLogFileName`"", $extraArgs -PassThru
+    $null = $process.Handle # cache the handle so ExitCode is available after the process exits.
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) {
+        throw "tmsgui exited with error code $($process.ExitCode)"
+    }
+    Compare-Files $CallingScriptFolder\reference\tmsgui.automation$($suffix).log $automationLogFileName
+}
+
 

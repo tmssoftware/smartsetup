@@ -1,0 +1,107 @@
+object DialogForm: TDialogForm
+  Left = 0
+  Top = 0
+  Caption = 'Information'
+  ClientHeight = 231
+  ClientWidth = 599
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Segoe UI'
+  Font.Style = []
+  Position = poMainFormCenter
+  TextHeight = 15
+  object MemoMessage: TMemo
+    Left = 0
+    Top = 0
+    Width = 599
+    Height = 190
+    Align = alClient
+    BevelInner = bvNone
+    Lines.Strings = (
+      'MemoMessage')
+    ReadOnly = True
+    TabOrder = 0
+    ExplicitWidth = 976
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 190
+    Width = 599
+    Height = 41
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 1
+    ExplicitWidth = 976
+    object btnCancel: TButton
+      AlignWithMargins = True
+      Left = 518
+      Top = 6
+      Width = 75
+      Height = 29
+      Margins.Left = 6
+      Margins.Top = 6
+      Margins.Right = 6
+      Margins.Bottom = 6
+      Align = alRight
+      Cancel = True
+      Caption = 'Cancel'
+      ModalResult = 2
+      TabOrder = 0
+      Visible = False
+      ExplicitLeft = 895
+    end
+    object btnNo: TButton
+      AlignWithMargins = True
+      Left = 344
+      Top = 6
+      Width = 75
+      Height = 29
+      Margins.Left = 6
+      Margins.Top = 6
+      Margins.Right = 6
+      Margins.Bottom = 6
+      Align = alRight
+      Caption = 'No'
+      ModalResult = 7
+      TabOrder = 1
+      Visible = False
+      ExplicitLeft = 721
+    end
+    object btnOk: TButton
+      AlignWithMargins = True
+      Left = 431
+      Top = 6
+      Width = 75
+      Height = 29
+      Margins.Left = 6
+      Margins.Top = 6
+      Margins.Right = 6
+      Margins.Bottom = 6
+      Align = alRight
+      Caption = 'Ok'
+      ModalResult = 1
+      TabOrder = 2
+      Visible = False
+      ExplicitLeft = 808
+    end
+    object btnYes: TButton
+      AlignWithMargins = True
+      Left = 257
+      Top = 6
+      Width = 75
+      Height = 29
+      Margins.Left = 6
+      Margins.Top = 6
+      Margins.Right = 6
+      Margins.Bottom = 6
+      Align = alRight
+      Caption = 'Yes'
+      ModalResult = 6
+      TabOrder = 3
+      Visible = False
+      ExplicitLeft = 634
+    end
+  end
+end

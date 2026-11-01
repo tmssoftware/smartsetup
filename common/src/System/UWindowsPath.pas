@@ -13,9 +13,21 @@ function FindExeInPath(const Path: string; const ExeName: string): string;
 function ExpandWindowsPath(const Path: string): string;
 
 
+{$IFDEF DEBUG}
+procedure WindowsPath_InternalTests;
+{$ENDIF}
+
 implementation
 {$IFDEF MSWINDOWS}
-uses Classes, Windows, Registry, Messages, SysUtils, StrUtils, SyncObjs, Testing.Globals, IOUtils;
+uses Classes, Windows, Registry, Messages, SysUtils, StrUtils, SyncObjs,
+  Testing.Globals, IOUtils, UTmsBuildSystemUtils;
+const
+  Mutex_WindowsPath = 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A';
+
+function GetWindowsPathLock: TMutex;
+begin
+  Result := TMutex.Create(nil, false, Mutex_WindowsPath);
+end;
 
 procedure SetUserEnv(const name, value: string);
 var
@@ -115,7 +127,7 @@ begin
 {$ENDIF}
 
 
-  var Lock := TMutex.Create(nil, false, 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A');
+  var Lock := GetWindowsPathLock;
   try
     Lock.Acquire;
     try
@@ -135,7 +147,7 @@ begin
   if TestParameters.WindowsPath <> '' then exit; //we will only set the user windows path
 {$ENDIF}
 
-  var Lock := TMutex.Create(nil, false, 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A');
+  var Lock := GetWindowsPathLock;
   try
     Lock.Acquire;
     try
@@ -153,7 +165,7 @@ begin
   var path := trim(p);
   if Length(path) = 0 then exit;
 
-  var Lock := TMutex.Create(nil, false, 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A');
+  var Lock := GetWindowsPathLock;
   try
     Lock.Acquire;
     try
@@ -171,7 +183,7 @@ begin
   var path := trim(p);
   if Length(path) = 0 then exit;
 
-  var Lock := TMutex.Create(nil, false, 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A');
+  var Lock := GetWindowsPathLock;
   try
     Lock.Acquire;
     try
@@ -199,7 +211,7 @@ begin
   path := trim(path);
   if Length(path) = 0 then exit;
 
-  var Lock := TMutex.Create(nil, false, 'Global\tms-smart-setup-EC27DF85-D2BE-4C45-9882-7172FA00786A');
+  var Lock := GetWindowsPathLock;
   try
     Lock.Acquire;
     try
@@ -220,44 +232,80 @@ begin
   Result := true;
 end;
 
-function RemoveOneMatchFromWindowsPath(path, WindowsPath: string; var Removed: TArray<string>): string;
+function IsPathInside(TestedPath, RootPath: string): boolean;
 var
-  p2: integer;
+  FullTestedPath, FullRootPath: string;
 begin
-  Path := Trim(Path);
-  var p1 := 1;
-
-  repeat
-    p2:= Posex(';', WindowsPath + ';', p1);
-    var s := Trim(copy(WindowsPath, p1, p2 - p1));
-    if s.StartsWith(path, true) then
-    begin
-      var p1a := p1 - 1; if p1a < 1 then p1a := 1; //Except when we are at the beginning, we want to delete the ";" before too.
-      Removed := Removed + [System.Copy(WindowsPath, p1, p2 - p1)];
-      System.Delete(WindowsPath, p1a, p2 - p1a);
-      exit(WindowsPath);
+  TestedPath := TestedPath.Trim;
+  RootPath := RootPath.Trim;
+  if TestedPath = '' then exit(false);
+  if RootPath = '' then exit(false);
+  //For relative paths, we only remove them if they are a text match.
+  FullTestedPath := IncludeTrailingPathDelimiter(TestedPath);
+  FullRootPath := IncludeTrailingPathDelimiter(RootPath);
+  if TPath_IsPathRootedNoValidation(TestedPath) and TPath_IsPathRootedNoValidation(RootPath) then
+  begin
+    // a path like c:\a\b\..\c would in theory not have been set by us, but anyway,
+    // if we are removing smartsetup from the path, we should remove if anyway.
+    try
+      var NormalizedTestedPath := IncludeTrailingPathDelimiter(TPath.GetFullPath(TestedPath));
+      var NormalizedRootPath := IncludeTrailingPathDelimiter(TPath.GetFullPath(RootPath));
+      FullTestedPath := NormalizedTestedPath;
+      FullRootPath := NormalizedRootPath;
+    except
+      //GetFullPath raises on invalid chars like | or ". We keep the text match for those.
+      on Exception do;
     end;
+  end;
 
-    p1 := p2 + 1;
+  Result := FullTestedPath.StartsWith(FullRootPath, true)
+end;
 
-  until p2 < 1;
-  Result := WindowsPath;
+function RemoveMatchesFromWindowsPath(const Path, WindowsPath: string; out Removed: TArray<string>): string;
+begin
+  Removed := nil;
+  Result := '';
+  var HasResult := false;
+  var Starting := 0;
+  while Starting <= WindowsPath.Length do
+  begin
+    var Ending := WindowsPath.IndexOf(';', Starting);
+    if Ending < 0 then Ending := WindowsPath.Length + 1;
+    var Entry := WindowsPath.Substring(Starting, Ending - Starting);
+    if IsPathInside(Entry, Path) then
+    begin
+      Removed := Removed + [Entry];
+      Starting := Ending + 1;
+      continue;
+    end;
+    if HasResult then Result := Result + ';';
+    Result := Result + Entry;
+    HasResult := true;
+
+    Starting := Ending + 1;
+  end;
+
+  if Removed = nil then exit(WindowsPath);
+
 end;
 
 function RemoveFromWindowsPathWithChildren(path: string): TArray<string>;
 begin
-  Result := nil;
-  var WindowsPath := GetUserEnvironmentVariable('PATH'); //We will only look in user. If we added it, we added it there. If not, the user added it.
-  var NewWindowsPath := WindowsPath;
-  while True do
-  begin
-    var TmpWindowsPath := RemoveOneMatchFromWindowsPath(path, NewWindowsPath, Result);
-    if TmpWindowsPath = NewWindowsPath then break;
-    NewWindowsPath := TmpWindowsPath;
+  var Lock := GetWindowsPathLock;
+  try
+    Lock.Acquire;
+    try
+      Result := nil;
+      var WindowsPath := GetUserEnvironmentVariable('PATH'); //We will only look in user. If we added it, we added it there. If not, the user added it.
+      var NewWindowsPath := RemoveMatchesFromWindowsPath(path, WindowsPath, Result);
+
+      if WindowsPath <> NewWindowsPath then SetUserEnv('PATH', NewWindowsPath);
+    finally
+      Lock.Release;
+    end;
+  finally
+    Lock.Free;
   end;
-
-  if WindowsPath <> NewWindowsPath then SetUserEnv('PATH', NewWindowsPath);
-
 end;
 
 function ExpandEnvironmentVariables(const variable: string): string;
@@ -353,6 +401,43 @@ begin
   Result := Path;
 end;
 
+
+{$ENDIF}
+{$IFDEF DEBUG}
+procedure WindowsPath_InternalTests;
+begin
+{$IFDEF MSWINDOWS}
+  var Removed: TArray<string>;
+  Assert(RemoveMatchesFromWindowsPath('','c:\test;c:\test2', Removed) = 'c:\test;c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('C:\potato\..\test','c:\test;c:\test2', Removed) = 'c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('C:\potato\..\test','c:\test;c:\test;c:\test2;c:\test', Removed) = 'c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('C:\potato\..\test','c:\test;c:\test;c:\test2', Removed) = 'c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('potato\..\test','test;c:\test2', Removed) = 'test;c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('potato\..\test','test;potato\..\test', Removed) = 'test');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test', Removed) = '');
+  Assert(RemoveMatchesFromWindowsPath('b','a;b', Removed) = 'a');
+  Assert(RemoveMatchesFromWindowsPath('a','a;b', Removed) = 'b');
+  Assert(RemoveMatchesFromWindowsPath('b','a;b;c', Removed) = 'a;c');
+  Assert(RemoveMatchesFromWindowsPath('b','a;b;b\c;c', Removed) = 'a;c');
+  Assert(RemoveMatchesFromWindowsPath('C:\test',';c:\test', Removed) = '');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test;', Removed) = '');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test;c:\test;c:\test;c:\test', Removed) = '');
+  Assert(RemoveMatchesFromWindowsPath('C:\test',';c:\test;c:\test;c:\test;c:\test;', Removed) = ';');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','a;c:\test;c:\test;c:\test;c:\test;', Removed) = 'a;');
+  Assert(RemoveMatchesFromWindowsPath('C:\test',';c:\test;c:\test;c:\test;c:\test;a', Removed) = ';a');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test1;c:\test;c:\test2;', Removed) = 'c:\test1;c:\test2;');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test;c:\test;c:\test2;', Removed) = 'c:\test2;');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test;c:\test;c:\test2;c:\test', Removed) = 'c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test1;c:\test\potato;c:\test\tomato\other;c:\test2;c:\test\cucumber\', Removed) = 'c:\test1;c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('C:\test','c:\test1;;;c:\test\potato;c:\test\tomato\other;c:\test2;c:\test\cucumber\', Removed) = 'c:\test1;;;c:\test2');
+  Assert(RemoveMatchesFromWindowsPath('C:\test', 'a;c:\test;c:\test\x', Removed) = 'a');
+  Assert(RemoveMatchesFromWindowsPath('C:\test', ';;;c:\test;;;', Removed) = ';;;;;');
+  Assert(RemoveMatchesFromWindowsPath('C:\test', ' ; ; ; c:\test ; ; ; ', Removed) = ' ; ; ; ; ; ');
+  Assert(RemoveMatchesFromWindowsPath('C:\test', 'c:\a|b;c:\test\x;"c:\test"', Removed) = 'c:\a|b;"c:\test"');
+  Assert(RemoveMatchesFromWindowsPath('C:\test', 'a;c:\test\a|b;c:\test\<x>', Removed) = 'a');
+{$ENDIF}
+
+end;
 
 {$ENDIF}
 end.

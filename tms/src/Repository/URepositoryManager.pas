@@ -109,6 +109,20 @@ implementation
 uses
   UMultiLogger, UConfigDefinition;
 
+// Percent-encodes a single URL component (path segment or query value) as per RFC 3986.
+// Everything except unreserved characters is encoded, including '/', '?', '&' and spaces.
+function UrlEncode(const Value: string): string;
+begin
+  Result := '';
+  for var B in TEncoding.UTF8.GetBytes(Value) do
+  begin
+    if CharInSet(Char(B), ['A'..'Z', 'a'..'z', '0'..'9', '-', '.', '_', '~']) then
+      Result := Result + Char(B)
+    else
+      Result := Result + '%' + IntToHex(B, 2);
+  end;
+end;
+
 function CreateRepositoryManager(const CredentialsFile: string; Options: TFetchOptions; const RootUrl, Server: string; const AllowInsecureConnections: boolean; const ThrowExceptions: boolean): TRepositoryManager;
 begin
   if not ThrowExceptions and (RootUrl = '') then exit(nil);
@@ -250,7 +264,7 @@ end;
 function TRepositoryManager.GetDownloadInfo(const ProductId, Version: string): TDownloadInfo;
 begin
   var Req := CreateRequest('GET', GetEndpoint(Format('setup/products/%s/versions/%s/download/?channel=%s',
-    [ProductId, Version, 'production'])));
+    [UrlEncode(ProductId), UrlEncode(Version), UrlEncode('production')])));
   var Resp := FClient.Execute(Req);
   CheckResponse(Req, Resp);
   var JObj := TJSONObject(TJSONObject.ParseJSONValue(Resp.ContentAsString));
@@ -272,7 +286,7 @@ end;
 function TRepositoryManager.GetProductVersions(const ProductId: string; Versions: TList<TRepositoryUserVersion>): Boolean;
 begin
   var Req := CreateRequest('GET', GetEndpoint(Format('setup/user/products/%s/versions?channel=%s',
-    [ProductId, 'production'])));
+    [UrlEncode(ProductId), UrlEncode('production')])));
   var Resp := FClient.Execute(Req);
   if Resp.StatusCode = 404 then Exit(False);
   CheckResponse(Req, Resp);

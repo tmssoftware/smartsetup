@@ -1,0 +1,16 @@
+assert self.Name = MainForm
+wait Self.ProductCount <> 0
+assert Self.ProductCount <> 0
+*var $allProducts Self.ProductCount
+set-text edSearch x65x32x
+assert Self.ProductCount = 0
+set-text edSearch tms*[]/;:
+assert Self.ProductCount = 0
+set-text edSearch tms
+assert Self.ProductCount > 40
+assert Self.ProductCount < $allProducts
+set-text edSearch tms.flexcel.vcl
+assert Self.ProductCount = 1
+set-text edSearch
+assert Self.ProductCount = $allProducts
+

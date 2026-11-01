@@ -1,0 +1,14 @@
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+call self.ChangeWorkingFolder wrong-folder-but-keep-going
+wait self.Name = DialogForm
+assert MemoMessage.Text ~  isn't empty or recognized as a valid smartsetup folder
+click btnCancel
+click btnYes
+wait self.Name = StartForm
+set cbTMS.Checked False
+#No server enabled, exit
+click btOk
+wait self.Name = MainForm
+assert self.GetWorkingFolder ~ gui-change-working-folder
+assert self.GetWorkingFolder !~ gui-change-working-folder\

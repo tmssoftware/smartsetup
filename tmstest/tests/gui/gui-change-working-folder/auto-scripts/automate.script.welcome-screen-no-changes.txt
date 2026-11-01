@@ -1,0 +1,19 @@
+wait  self.Name = MainForm
+wait Self.IsGuiRunning = false
+call self.ChangeWorkingFolder not-initialized-folder
+wait self.Name = StartForm
+click btOk
+wait self.Name = MainForm
+assert self.GetWorkingFolder ~ gui-change-working-folder\not-initialized-folder
+
+wait Self.ProductCount <> 0
+set-text edSearch tms.graphql
+wait 1000
+wait Self.IsGuiRunning = false
+call lvproducts.SelectAll
+wait Self.ProductCount = 1
+
+wait btnInstall.Enabled
+click btnInstall
+wait OutputMemo.Text ~ Install finished. Elapsed time
+wait 1000
