@@ -129,6 +129,7 @@ begin
         MsBuild.SearchPathMode := TSearchPathMode.DelphiLib;
         MsBuild.PackageLibraryPath := PackageInfo.LibraryPath(BuildInfo.ProjectId, Config.Folders.ParallelFolder,  BuildConfig);
         MsBuild.IgnoreDefines := true; //to avoid undefining existing ones. See https://github.com/tmssoftware/tms-smartsetup/issues/261
+        MsBuild.RegistryName := BuildInfo.AlternateRegistryKey;
         Result := MsBuild;
       end;
     end;

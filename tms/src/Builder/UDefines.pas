@@ -31,22 +31,28 @@ begin
     sw.WriteLine('// This file was generated automatically by TMS Smart Setup.');
     sw.WriteLine('// Do not modify it, as it will be overwritten every time you rebuild.');
     sw.WriteLine('// To change the values below, modify tms.config.yaml and re-run tms build.');
-    var Defines := Config.GetAllDefines(Project.Application.Id);
+    var Defines, RemovedDefines: TArray<string>;
+    Config.GetAllCfgDefines(Project.Application.Id, Defines, RemovedDefines);
 
     for var def in Defines do
     begin
       sw.WriteLine('{$DEFINE ' + def + '}');
     end;
 
+    for var def in RemovedDefines do
+    begin
+      sw.WriteLine('{$UNDEF ' + def + '}');
+    end;
+
     // Just some check to see if the defines that are done exactly for one product are allowed.
     var ProductOnlyDefines := Config.GetDefinesOnlyForProject(Project.Application.Id);
     for var def in ProductOnlyDefines do
     begin
-      if not Project.Defines.ContainsKey(def) then
+      if not Project.AllowedDefines.ContainsKey(def) then
       begin
         Logger.Info('Note: The define "' + def + '" is not in the list of allowed defines for ' + Project.Application.NameAndVersion
            + '. It will probably be ignored. The list of possible defines for ' +  Project.Application.Name + ' is ['
-           + Project.ListDefines
+           + Project.ListAllowedDefines
            + '].') ;
       end;
     end;

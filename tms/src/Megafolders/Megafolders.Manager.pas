@@ -46,7 +46,7 @@ begin
   begin
     try
       repeat
-        if  (SearchRec.Attr and faDirectory = 0) and ((SearchRec.Attr and SysUtils.faSymLink) <> 0) then
+        if  (SearchRec.Attr and faDirectory = 0) and ((SearchRec.Attr and faSymLinkNoPlat) <> 0) then
         begin
           var FilePath := TPath.Combine(Folder, SearchRec.Name);
           if not SysUtils.FileExists(FilePath) then DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FilePath);

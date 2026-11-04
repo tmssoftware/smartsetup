@@ -189,10 +189,16 @@ end;
 
 procedure TFolderDeleter.GatherFiles(const Folder: string; FilesAndFolders: TFilesAndFoldersDeleteInfo);
 begin
+  if IsLinkedFolder(Folder) then
+  begin
+    FilesAndFolders.Files.Add(Folder);
+    exit;
+  end;
+
   WalkThroughDirectory(Folder,
     procedure(const Path: string; const FileInfo: TSearchRec)
     begin
-      var IsDir := (FileInfo.Attr and System.SysUtils.faDirectory) = System.SysUtils.faDirectory;
+      var IsDir := ((FileInfo.Attr and faDirectory) <> 0) and (FileInfo.Attr and faSymLinkNoPlat = 0);
       if IsDir then FilesAndFolders.Folders.Add(TPath.Combine(Path, FileInfo.Name))
       else FilesAndFolders.Files.Add(TPath.Combine(Path, FileInfo.Name));
     end);
@@ -208,10 +214,10 @@ begin
     repeat
       var Ignore := false;
       // gather subfolder files recursively
-      if (SearchRec.Attr and System.SysUtils.faDirectory <> 0) then
+      if (SearchRec.Attr and faDirectory <> 0) then
       begin
         Ignore := (SearchRec.Name = '.') or (SearchRec.Name = '..');
-        if not Ignore then WalkThroughDirectory(TPath.Combine(Path, SearchRec.Name, False), Proc);
+        if not Ignore and (SearchRec.Attr and faSymLinkNoPlat = 0) then WalkThroughDirectory(TPath.Combine(Path, SearchRec.Name, False), Proc);
       end;
 
       // call the post-order callback method

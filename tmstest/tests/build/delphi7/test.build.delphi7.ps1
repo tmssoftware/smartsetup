@@ -9,7 +9,7 @@ tms config-write -p:configuration-for-all-products:replace-delphi-versions=[delp
 tms install tms.vcl.uipack:13.6.9.2  #keep it frozen in time, because newer uipack versions might not support delphi7.
 
 #check the file d7app\Win32\Release\d7.exe was generated
-if (-not (Test-Path "d7app\Win32\Release\d7.exe")) {
+if (-not (Test-Path "d7app\2.0\Win32\Release\d7.exe")) {
     throw "d7.exe was not generated"
 }
 

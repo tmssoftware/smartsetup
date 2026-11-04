@@ -1,17 +1,16 @@
 #Check that all json is utf-8
+. test.setup
 
-$result = tms list-remote -json -detailed
+tms server-enable community
+$result = tms list-remote -json
 
 #check no bom characters in the json output
 if ($result -match "^\xEF\xBB\xBF") {
     throw "The json output from 'tms list-remote -json' contains a BOM character. It should be UTF-8 without BOM."
 }
 
-#Check $result has only valid utf-8 characters. 
-try {
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($result)
-    $decodedString = [System.Text.Encoding]::UTF8.GetString($bytes)
+#Check $result has only valid ascii characters.
+if ($result -match '[^\x00-\x7F]') {
+    throw "The json output from 'tms list-remote -json' contains non-ASCII characters. Non-ASCII characters should be escaped in the JSON output."
 }
-catch {
-    throw "The json output from 'tms list-remote -json' contains invalid UTF-8 characters."
-}
+

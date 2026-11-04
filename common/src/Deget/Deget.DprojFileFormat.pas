@@ -7,10 +7,7 @@ procedure CopyDproj(const Source, Dest, Add, OutputPath: string);
 
 implementation
 uses Xml.XMLDoc, Xml.XMLIntf,
-     {$IFDEF MSWINDOWS}
-     ActiveX,
-     {$ENDIF}
-     SysUtils, IOUtils;
+     SysUtils, IOUtils, UTmsBuildSystemUtils;
 
 procedure Process(const Node: IXmlNode; const Add, OutputPath: string; const Level: integer);
 begin
@@ -58,15 +55,11 @@ end;
 
 procedure CopyDproj(const Source, Dest, Add, OutputPath: string);
 begin
-{$IFDEF MSWINDOWS}
-  Coinitialize(nil);
-{$ENDIF}
+  var ComInitializer := TComInitializer.Create;
   try
     DoCopyDproj(Source, Dest, Add, OutputPath);
   finally
-{$IFDEF MSWINDOWS}
-    CoUninitialize;
-{$ENDIF}
+    ComInitializer.Free;
   end;
 end;
 

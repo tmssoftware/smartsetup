@@ -6,7 +6,7 @@ uses Classes, SysUtils, Generics.Collections;
 procedure RegisterConfigReadCommand;
 
 implementation
-uses UCommandLine, Commands.CommonOptions,
+uses UCommandLine, Commands.CommonOptions, Commands.Logging,
      UConfigWriter, Types, Commands.GlobalConfig,
      BBCmd, UConfigLoaderStateMachine, BBYaml.Writer, UMultiLogger;
 
@@ -17,6 +17,7 @@ var
 
 procedure RunConfigReadCommand;
 begin
+  InitFolderBasedCommand(false);
   WriteLn(TConfigWriter.GetProperty(Config, VariableName, TWritingFormat.NoComments, Logger.JsonMode, CmdSyntax));
 end;
 

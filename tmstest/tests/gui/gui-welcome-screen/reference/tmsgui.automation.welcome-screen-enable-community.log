@@ -1,0 +1,9 @@
+Starting Automation
+wait: 1000 milliseconds
+assert: "self.Name = StartForm" is true
+set: "StartForm.cbCommunity.Checked" to "True"
+set: "StartForm.cbTMS.Checked" to "False"
+click: "StartForm.btOk"
+wait: 1000 milliseconds
+assert: "self.Name = MainForm" is true
+Completed successfully

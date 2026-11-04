@@ -1,7 +1,7 @@
 unit Snapshot.Reader;
 
 interface
-  uses Classes, SysUtils, Generics.Collections, Status.Manager, BBYaml, BBClasses, Deget.Version;
+  uses Classes, SysUtils, Generics.Collections, Status.Manager, BBError, BBYaml, BBClasses, Deget.Version;
 
   procedure LoadSnapshot(const FileName: string; const Products: TList<TProductStatus>);
 implementation
@@ -84,7 +84,7 @@ begin
   ClearArrayValues := procedure begin FProducts.Clear;end;
 
   ChildSectionAction :=
-    function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection
+    function(Name: string; ErrorInfo: TErrorInfo): TSection
     begin
       var Product := TProductStatus.Create;
       Products.Add(Product);

@@ -20,6 +20,8 @@ Run this command from the root folder of the product whose packages you want to 
 
 Use `-non-interactive` to skip all prompts and generate a default file that can be edited manually or populated using `-spec` (`-s`) parameters.
 
+The `-s` parameters are applied after loading the template (if any), and before the interactive questions. They use the same syntax as the `-p` parameter. See [the -p syntax](xref:SmartSetup.ContinuousIntegration#-p-command-to-pass-a-configuration-to-tms) for details. Arrays can contain other arrays, so you can define packages from the command line, as in `-s:"packages=[Example_Core:[runtime,vcl]]"`.
+
 ## Options
 
 | Option                    | Description                                                                                                                       |
@@ -52,6 +54,12 @@ Creates a file based on an existing template, overriding the product ID:
 
 ```shell
 tms spec -template:existing.tmsbuild.yaml -s:application:id=myorg.myproduct
+```
+
+Creates a file without a template, setting the product ID and the packages from the command line:
+
+```shell
+tms spec -non-interactive -s:application:id=myorg.myproduct -s:"packages=[Example_Core:[runtime,vcl],Example_Design:[design,vcl]]"
 ```
 
 ## See Also

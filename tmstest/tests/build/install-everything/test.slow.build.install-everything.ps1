@@ -35,7 +35,7 @@ if ($Result -ne $expectedResult) {
 }
 
 Write-Output "Now testing with bds.exe"
-
+tms uninstall tms.webcore  #avoid a popup asking us to register, and blocking bds
 Set-Location testapp-no-tmsbuild
 
 # msbuild # msbuild uses EnvOptions.dproj, which hasn't been updated yet as we didn't launch the ide.

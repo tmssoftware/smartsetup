@@ -21,6 +21,7 @@ This will open your profile. Add the lines (adapting the paths for the machine)
 
 ```shell
 set-alias tms E:\tms\smartsetup\tms\bin\Win64\Debug\tms.exe
+set-alias tmsgui E:\tms\smartsetup\tmsgui\Win64\Debug\tmsgui.exe
 set-alias signtool "C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\signtool.exe"
 $tmsTestRootDir = "E:\tms\tms-smartsetup\tmstest"
 $env:TMSTEST_CODE="<reg-code>"
@@ -209,6 +210,7 @@ The following functions are defined in util.modules.psm1:
   * **Test-FetchResultCounts**: Checks if the fetch summary is as expected.
   * **Set-AlternateRegistryKey**: Runs the test in an alternate registry key.
   * **CheckLogHasString(message)**: Reads the most recent tms log (via `tms log-view -print`) and throws if it does not contain `message`. Useful for asserting that a specific message reached the log.
+  * **Test-tmsgui**: runs a tmsgui automation script and check it against a reference file.
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

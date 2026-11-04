@@ -13,6 +13,8 @@ type
 
     function GetEnvCommandLine: string;
     function GetSvnCommandLine: string;
+    function RunSvn(const aFolder, Parameters: string): string;
+
   public
     constructor Create(const aSvnCommandLine, aCloneCommand, aPullCommand: string);
 
@@ -53,12 +55,10 @@ begin
   if not TFile.Exists(aFileName) then exit(false); //svn status will return empty, not ? if the file doesn't exist.
 
   ValidateVCSFilePath(aFileName);
-  var Output := '';
+
   var Folder := TPath.GetFullPath(aWorkingFolder);
   //'--' terminates option parsing so that a path starting with '-' cannot be interpreted as an svn option.
-  var FullCommand := '"' + SvnCommandLine + '" --non-interactive status -- "' + aFileName + '"';
-  if not ExecuteCommand(FullCommand, Folder, Output)
-    then raise Exception.Create('Error doing svn status in "' + aFileName + '"');
+  var Output := RunSvn(Folder, '--non-interactive status -- "' + aFileName + '"');
   Result := not Output.Trim.StartsWith('?');
 end;
 
@@ -122,14 +122,12 @@ begin
   if aVersion <> '' then raise Exception.Create('Versioning not supported in SVN protocol.');
 
   ValidateVCSUrl(aURL);
-  var Output := '';
   var CloneFolder := TPath.GetFullPath(aCloneFolder);
-  //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as an svn option.
-  var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + CloneCommand + ' -- "' + aURL + '" "' + CloneFolder + '"';
   if DirectoryExists(CloneFolder) then raise Exception.Create('Can''t svn checkout into an existing folder: "' + CloneFolder + '"');
+
+  //'--' terminates option parsing so that a URL or folder starting with '-' cannot be interpreted as an svn option.
   TDirectory_CreateDirectory(CloneFolder);
-  if not ExecuteCommand(FullCommand, CloneFolder, Output)
-    then raise Exception.Create('Error doing svn checkout from "' + aUrl + '" into ' + aCloneFolder);
+  RunSvn(CloneFolder, '--non-interactive ' + CloneCommand + ' -- "' + aURL + '" "' + CloneFolder + '"');
 end;
 
 procedure TSvnEngine.Pull(const aRootFolder, aGitFolder, aVersion: string);
@@ -139,11 +137,16 @@ begin
   TestParameters.CheckOffline('TSvnEngine.Pull');
 {$ENDIF}
 
-  var Output := '';
   var Folder := TPath.GetFullPath(aGitFolder);
-  var FullCommand := '"' + SvnCommandLine + '" --non-interactive ' + PullCommand;
-  if not ExecuteCommand(FullCommand, Folder, Output)
-    then raise Exception.Create('Error doing svn update in "' + aGitFolder + '"');
+  RunSvn(Folder, '--non-interactive ' + PullCommand);
+end;
+
+function TSvnEngine.RunSvn(const aFolder, Parameters: string): string;
+begin
+  var FullCommand := QuoteCmd(SvnCommandLine) + ' ' + Parameters;
+  if not ExecuteCommand(FullCommand, aFolder, Result)
+    then raise Exception.Create('Error in svn command: ' + RedactUrlCredentials(FullCommand) + ' Working folder: "' + aFolder + '"');
+
 end;
 
 end.

@@ -16,7 +16,13 @@ type
     property FileName: string read FFileName write FFileName;
   end;
 
-  TIncludeFiles<T: TIncludeFile, constructor> = class
+  IIncludeFiles = interface
+    function Count: integer;
+    function GetFile(Index: Integer): TIncludeFile;
+  end;
+
+
+  TIncludeFiles<T: TIncludeFile, constructor> = class(TNoRefCountObject, IIncludeFiles)
   strict private
     FFiles: TObjectList<T>;
     FExt: string;
@@ -30,6 +36,7 @@ type
     function GetEnumerator: TEnumerator<T>;
     function Count: Integer;
     property Items[Index: Integer]: T read GetItem; default;
+    function GetFile(Index: Integer): TIncludeFile;
   end;
 
   TIncludeFiles = class(TIncludeFiles<TIncludeFile>)
@@ -185,6 +192,11 @@ end;
 function TIncludeFiles<T>.GetEnumerator: TEnumerator<T>;
 begin
   Result := FFiles.GetEnumerator;
+end;
+
+function TIncludeFiles<T>.GetFile(Index: Integer): TIncludeFile;
+begin
+  Result := FFiles[Index];
 end;
 
 function TIncludeFiles<T>.GetItem(Index: Integer): T;

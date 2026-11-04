@@ -52,6 +52,11 @@ $branches = @{
     "TagTagAndBranch" = @("", "2.1.0", "", "", "main", "")
 }
 
+$submodules = @{
+    "Submodules_Main_Fetch" = @("../Submodules_Child")
+    "Submodules_Main_NoFetch" = @("../Submodules_Child")
+}
+
 # loop over all products in the folder and create git repos for each one
 $productFolders = Get-ChildItem -Path $testReposTarget -Directory
 foreach ($productFolder in $productFolders) {
@@ -121,7 +126,18 @@ foreach ($productFolder in $productFolders) {
         git tag "$version"
 
     }
+}
 
+foreach ($productFolder in $productFolders) {
+    if ($submodules.ContainsKey($productFolder.Name)) {
+        Write-Output "Creating submodules for product: $($productFolder.Name)"
+        Set-Location -Path $productFolder.FullName
+        $submodulePaths = $submodules[$productFolder.Name]
+        foreach ($submodulePath in $submodulePaths) {
+            git -c protocol.file.allow=always submodule add $submodulePath | Out-Null
+            git commit -m "Added submodule $submodulePath"
+        }
+    }
 }
 Write-Output "Test repositories created at: $testReposTarget"
 Write-Output "Zip file created at: $zipFilePath"

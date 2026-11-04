@@ -1,0 +1,19 @@
+minimum required tmsbuild version: 1.0
+
+application:
+  id: test.prebuild.base
+  name: Prebuild Base
+
+supported frameworks:
+  rtl:
+    ide since: delphi7
+    platforms: 
+      - all
+  
+packages:
+  - Prebuild_Base: [runtime, rtl]
+
+# The defines filename must have a .inc extension. This one doesn't, so creating it fails and
+# the pre-build step of this product fails. That is what this test needs.
+defines:
+  defines filename: defines.txt

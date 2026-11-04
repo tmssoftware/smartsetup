@@ -2,7 +2,7 @@ unit BBClasses;
 {$i ../tmscommon.inc}
 
 interface
-uses Classes, SysUtils, Generics.Collections, BBArrays, BBStrings;
+uses Classes, SysUtils, Generics.Collections, BBArrays, BBStrings, Character, BBError;
 
 const
   SectionAddPrefix = 'add ';
@@ -12,16 +12,6 @@ const
   function TArrayOverrideBehavior_ToStringPrefix(const value: TArrayOverrideBehavior): string;
 
 type
-TErrorInfo = class
-private
-  FIgnoreOtherFiles: boolean;
-public
-  property IgnoreOtherFiles: boolean read FIgnoreOtherFiles;
-  constructor Create(const aIgnoreOtherFiles: boolean);
-
-  // function ToString: string; virtual; abstract;
-end;
-
 TSection = class;
 
 TSectionDictionary = class
@@ -31,16 +21,39 @@ public
   constructor Create;
   destructor Destroy; override;
   function Values: TEnumerable<TSection>;
-  function TryGetValue(const name: string; out Section: TSection; const ErrorInfo: TErrorInfo; const KeepValues: boolean): boolean;
+  function TryGetValue(const name: string; out Section: TSection; const ErrorInfo: TErrorInfo): boolean;
   procedure Add(const aKey: string; const aValue: TSection);
   function Count: integer;
+  function Contains(const name: string): boolean;
+  procedure Clear;
 end;
 
 TAction = reference to procedure(Value: string; ErrorInfo: TErrorInfo);
 TActionNameValue = reference to procedure(Name, Value: string; ErrorInfo: TErrorInfo);
-TChildSectionAction = reference to function(Name: string; ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection;
+TChildSectionAction = reference to function(Name: string; ErrorInfo: TErrorInfo): TSection;
 
-TListOfActions = TDictionary<string, TAction>;
+TListOfActions = class
+private
+  Actions: TDictionary<string, TActionNameValue>;
+  GenericAction: TActionNameValue;
+  Duplicates: THashSet<string>;
+  SectionName: string;
+public
+  constructor Create; overload;
+  constructor Create(const aSectionName: string; const aAllowDuplicates: boolean); overload;
+  constructor Create(const aSectionName: string; aGenericAction: TActionNameValue; const aAllowDuplicates: boolean); overload;
+  destructor Destroy; override;
+
+  function Keys: TEnumerable<string>;
+  function TryGetValue(const Key: string; var Value: TActionNameValue; const ErrorInfo: TErrorInfo): Boolean;
+  function ContainsKey(const Key: string): Boolean;
+
+  procedure Add(const Name: string; const Action: TAction); overload;
+  procedure Add(const Name: string; const Action: TActionNameValue); overload;
+
+  procedure ResetDuplicates;
+
+end;
 
 TSectionValueTypes = (Values, NoValues, Both);
 
@@ -48,16 +61,12 @@ TSection = class
 private
   FParent: TSection;
   FCreatedBy: string;
-  FChildSections: TSectionDictionary;
 
   function ListSectionsAndActions: string;
-  class function GetActions(const Act: TListOfActions): string;
 
 public
-  ChildSectionAction: TChildSectionAction; //if defined, ChildSections is not used.
-
   function FullPath: string;
-  function GotoChild(const Line: string; const ErrorInfo: TErrorInfo; const KeepValues: boolean = false): TSection;
+  function GotoChild(const Line: string; const ErrorInfo: TErrorInfo): TSection;
   function GotoParent: TSection;
   class function RemoveDoubleSpaces(const s: string): string;
 
@@ -67,28 +76,36 @@ public
 
   property CreatedBy: string read FCreatedBy write FCreatedBy;
 
-public
-  SectionValueTypes: TSectionValueTypes; //Only needed to set in data sections.
-  Actions: TListOfActions;
-  ArrayMainAction: TActionNameValue;
-  ContainsArrays: Boolean; //Only needs to be set it if not setting ArrayMainAction.
-  ArraysCanBeKeys: boolean; //For backwards compat. A key can't be repeated in yaml, but we allowed it sometimes. When set to true, we will allow both "- value:" and "value:" values. This property is *only* for wrong existing data. Don't use it for new data.
-
+strict protected
   ClearArrayValues: TProc;  //allows to clear an array before adding new values.
 
-  Duplicated: TDictionary<string, boolean>; // keep it nil to allow duplicated values.
-  ArrayActions: TListOfActions;
+public
+  SectionValueTypes: TSectionValueTypes; //Only needed to set in data sections.
+
+  // Go to a child section
+  ChildSections: TSectionDictionary;
+  ChildSectionAction: TChildSectionAction; //if defined, ChildSections is not used.
+
+  // Name/value properties to set in the section.
+  Actions: TListOfActions;
+
+  ContainsArrays: Boolean;
+  ArraysCanBeKeys: boolean; //For backwards compat. A key can't be repeated in yaml, but we allowed it sometimes. When set to true, we will allow both "- value:" and "value:" values. This property is *only* for wrong existing data. Don't use it for new data.
+
 
   procedure ThrowInvalidTag(const Name: string; const ErrorInfo: TErrorInfo);
-  class procedure GetFlowArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
 
   function ExtraInfo: string; virtual;
 
   procedure LoadedState(const State: TArrayOverrideBehavior); virtual;
 
   property Parent: TSection read FParent;
-  property ChildSections: TSectionDictionary read FChildSections;
   function Root: TSection;
+
+  class function GetActions(const Act: TListOfActions): string;
+
+  procedure ClearValues;
+  function SupportsAddReplace: boolean;
 
 public
   constructor Create(const aParent: TSection);
@@ -113,6 +130,16 @@ begin
   inherited;
 end;
 
+procedure TSectionDictionary.Clear;
+begin
+  FData.Clear;
+end;
+
+function TSectionDictionary.Contains(const name: string): boolean;
+begin
+  Result := FData.ContainsKey(name);
+end;
+
 function TSectionDictionary.Count: integer;
 begin
   Result := FData.Count;
@@ -120,17 +147,17 @@ end;
 
 procedure TSectionDictionary.Add(const aKey: string; const aValue: TSection);
 begin
-  FData.Add (aKey, aValue);
+  FData.Add(aKey, aValue);
 end;
 
 
 
 function TSectionDictionary.TryGetValue(const name: string;
-  out Section: TSection; const ErrorInfo: TErrorInfo; const KeepValues: boolean): boolean;
+  out Section: TSection; const ErrorInfo: TErrorInfo): boolean;
 begin
   if FData.TryGetValue(name, Section) then
   begin
-    if not KeepValues and Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
+    Section.ClearValues;
     Section.LoadedState(TArrayOverrideBehavior.None);
     exit(true);
   end;
@@ -140,7 +167,7 @@ begin
     if FData.TryGetValue(name.Substring(SectionAddPrefix.Length), Section) then
     begin
       Section.LoadedState(TArrayOverrideBehavior.Add);
-      exit(Assigned(Section.ClearArrayValues));
+      exit(Section.SupportsAddReplace);
     end;
   end;
 
@@ -148,9 +175,9 @@ begin
   begin
     if FData.TryGetValue(name.Substring(SectionReplacePrefix.Length), Section) then
     begin
-      if not KeepValues and Assigned(Section.ClearArrayValues) then Section.ClearArrayValues();
+      Section.ClearValues;
       Section.LoadedState(TArrayOverrideBehavior.Replace);
-      exit(Assigned(Section.ClearArrayValues));
+      exit(Section.SupportsAddReplace);
     end;
   end;
 
@@ -169,15 +196,13 @@ begin
   FParent := aParent;
   if aParent <> nil then CreatedBy := Root.FCreatedBy;
 
-  FChildSections := TSectionDictionary.Create;
+  ChildSections := TSectionDictionary.Create;
 end;
 
 destructor TSection.Destroy;
 begin
-  FChildSections.Free;
+  ChildSections.Free;
   Actions.Free;
-  ArrayActions.Free;
-  Duplicated.Free;
   inherited;
 end;
 
@@ -234,7 +259,7 @@ begin
     begin
       Result := Result + sep + '"' + v.SectionName +'"';
       Sep := ', ';
-      if Assigned(v.ClearArrayValues) then Result := Result + sep +  '"' + SectionAddPrefix + v.SectionName +'"' +  sep + '"' + SectionReplacePrefix + v.SectionName +'"';
+      if SupportsAddReplace then Result := Result + sep +  '"' + SectionAddPrefix + v.SectionName +'"' +  sep + '"' + SectionReplacePrefix + v.SectionName +'"';
     end;
   end;
 
@@ -275,6 +300,12 @@ begin
   SetLength(Result, iResult);
 end;
 
+procedure TSection.ClearValues;
+begin
+  if Assigned(ClearArrayValues) then ClearArrayValues;
+  if Actions <> nil then Actions.ResetDuplicates;
+end;
+
 function TSection.Root: TSection;
 begin
   Result := Self;
@@ -291,48 +322,6 @@ procedure TSection.ThrowInvalidTag(const Name: string;
 begin
   raise Exception.Create('Invalid tag "' + Name + '" for section "' + FullSectionName +
   '". It must be one of [' + ListSectionsAndActions + ']. ' + ErrorInfo.ToString);
-end;
-
-class procedure TSection.GetFlowArray(const s: string; const ArrActions: TListOfActions; const CallAction: TAction; const ErrorInfo: TErrorInfo);
-var
-  Act: TAction;
-  varr: TArray<string>;
-  Content: string;
-  BracketDepth: Integer;
-  StartPos, i: Integer;
-begin
-  if not s.StartsWith('[') and not s.EndsWith(']') then raise Exception.Create('"' + s + '" is not a valid array. It must be between square brackets, like [value1, value2]. ' + ErrorInfo.ToString);
-  Content := s.Substring(1, s.Length - 2);
-
-  // Split by commas, but only at top level (not inside nested brackets)
-  varr := [];
-  BracketDepth := 0;
-  StartPos := 1;
-  for i := 1 to Length(Content) do
-  begin
-    if Content[i] = '[' then
-      Inc(BracketDepth)
-    else if Content[i] = ']' then
-      Dec(BracketDepth)
-    else if (Content[i] = ',') and (BracketDepth = 0) then
-    begin
-      varr := varr + [Copy(Content, StartPos, i - StartPos)];
-      StartPos := i + 1;
-    end;
-  end;
-  // Add the last element
-  if StartPos <= Length(Content) then
-    varr := varr + [Copy(Content, StartPos, Length(Content) - StartPos + 1)];
-
-  for var v0 in varr do
-  begin
-    var v := BBYamlUnescapeString(v0.Trim);
-    if ArrActions <> nil then
-    begin
-      if not ArrActions.TryGetValue(v, Act) then raise Exception.Create('The value "' + v +'" in the array ' + s + ' is not a valid value. It must be one of [' + GetActions(ArrActions) + ']. ' + ErrorInfo.ToString );
-      Act(v, ErrorInfo);
-    end else CallAction(v, ErrorInfo);
-  end;
 end;
 
 function TSection.GetBool(const s: string;
@@ -360,18 +349,18 @@ begin
 
 end;
 
-function TSection.GotoChild(const Line: string; const ErrorInfo: TErrorInfo; const KeepValues: boolean): TSection;
+function TSection.GotoChild(const Line: string; const ErrorInfo: TErrorInfo): TSection;
 begin
   if Assigned(ChildSectionAction) then
   begin
-    var ChildAction := ChildSectionAction(Line, ErrorInfo, KeepValues);
+    var ChildAction := ChildSectionAction(Line, ErrorInfo);
     if ChildAction <> nil then
     begin
       exit(ChildAction);
     end;
 
   end;
-  if not ChildSections.TryGetValue(Line, Result, ErrorInfo, KeepValues) then
+  if not ChildSections.TryGetValue(Line, Result, ErrorInfo) then
   begin
     raise Exception.Create('"' + Line +
       '" is an invalid child section for "' + FullSectionName + '". It must be one of: ['
@@ -384,11 +373,9 @@ begin
   Result := Parent;
 end;
 
-{ TErrorInfo }
-
-constructor TErrorInfo.Create(const aIgnoreOtherFiles: boolean);
+function TSection.SupportsAddReplace: boolean;
 begin
-  FIgnoreOtherFiles := aIgnoreOtherFiles;
+  Result := Assigned(ClearArrayValues);
 end;
 
 function TArrayOverrideBehavior_FromString(const value: string): TArrayOverrideBehavior;
@@ -410,5 +397,80 @@ begin
   raise Exception.Create('Invalid value for TArrayOverrideBehavior.');
 end;
 
+{ TListOfActions }
+
+procedure TListOfActions.Add(const Name: string; const Action: TAction);
+begin
+  Add(Name,
+    procedure(Name, Value: string; ErrorInfo: TErrorInfo)
+    begin
+      Action(Value, ErrorInfo);
+    end);
+end;
+
+procedure TListOfActions.Add(const Name: string; const Action: TActionNameValue);
+begin
+  Actions.Add(Name, Action);
+end;
+
+procedure TListOfActions.ResetDuplicates;
+begin
+  if Duplicates <> nil then Duplicates.Clear;
+end;
+
+function TListOfActions.ContainsKey(const Key: string): Boolean;
+begin
+  if Assigned(GenericAction) then exit(true);
+  Result := Actions.ContainsKey(Key);
+end;
+
+constructor TListOfActions.Create;
+begin
+  Actions := TDictionary<string, TActionNameValue>.Create;
+end;
+
+constructor TListOfActions.Create(const aSectionName: string; const aAllowDuplicates: boolean);
+begin
+  Create;
+  if not aAllowDuplicates then
+  begin
+    Duplicates := THashSet<string>.Create;
+  end;
+  SectionName := aSectionName;
+end;
+
+constructor TListOfActions.Create(const aSectionName: string; aGenericAction: TActionNameValue; const aAllowDuplicates: boolean);
+begin
+  Create(aSectionName, aAllowDuplicates);
+  GenericAction := aGenericAction;
+end;
+
+destructor TListOfActions.Destroy;
+begin
+  Duplicates.Free;
+  Actions.Free;
+  inherited;
+end;
+
+function TListOfActions.Keys: TEnumerable<string>;
+begin
+  Result := Actions.Keys;
+end;
+
+function TListOfActions.TryGetValue(const Key: string; var Value: TActionNameValue; const ErrorInfo: TErrorInfo): Boolean;
+begin
+  if (Duplicates <> nil) then
+  begin
+    if (Duplicates.Contains(Key)) then raise Exception.Create('Duplicated item in section ' + SectionName + ': "' + Key + '" is already defined. ' + ErrorInfo.ToString);
+    Duplicates.Add(Key);
+  end;
+
+  Result := Actions.TryGetValue(Key, Value);
+  if not Result and (Assigned(GenericAction)) then
+  begin
+    Value := GenericAction;
+    exit(true);
+  end;
+end;
 
 end.

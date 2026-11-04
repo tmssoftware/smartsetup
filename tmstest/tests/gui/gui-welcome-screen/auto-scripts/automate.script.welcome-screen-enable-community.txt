@@ -1,0 +1,7 @@
+wait 1000
+assert self.Name = StartForm
+set cbCommunity.Checked True
+set cbTMS.Checked False
+click btOk
+wait 1000
+assert self.Name = MainForm

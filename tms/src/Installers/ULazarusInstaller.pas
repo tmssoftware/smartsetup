@@ -3,6 +3,7 @@ unit ULazarusInstaller;
 
 interface
 uses Deget.CoreTypes, UInstaller, UUninstallInfo, UFullBuildInfo, Megafolders.Definition, Generics.Collections,
+  {$IFDEF POSIX}Posix.Stdio,{$ENDIF}
      UProjectBuildInfo;
 
 type
@@ -50,7 +51,6 @@ uses UIDEUtils, UMultiLogger, SysUtils, IOUtils, Generics.Defaults,
      Xml.XMLDoc, Xml.XMLIntf, Variants, UTmsBuildSystemUtils,
      {$IFDEF MSWINDOWS}
      Windows,
-     ActiveX,
      {$ENDIF}
      Deget.CommandLine;
 
@@ -241,15 +241,11 @@ end;
 
 procedure PatchLpkDependencies(const SourceFile, DestFile: string; const ManagedPackages: TDictionary<string, string>);
 begin
-{$IFDEF MSWINDOWS}
-  CoInitialize(nil);
-{$ENDIF}
+  var ComInitializer := TComInitializer.Create;
   try
     DoPatchLpk(SourceFile, DestFile, ManagedPackages);
   finally
-{$IFDEF MSWINDOWS}
-    CoUninitialize;
-{$ENDIF}
+    ComInitializer.Free;
   end;
 end;
 
@@ -315,7 +311,7 @@ begin
           ManagedPackages.Free;
         end;
 
-        if not ExecuteCommand(LazBuild + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
+        if not ExecuteCommand(QuoteCmd(LazBuild) + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
           then raise Exception.Create('Failed to compile ' + PackageFileName);
       finally
         if TFile.Exists(PackageFileName)
@@ -325,7 +321,7 @@ begin
     end
     else
     begin
-      if not ExecuteCommand(LazBuild + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
+      if not ExecuteCommand(QuoteCmd(LazBuild) + ' --build-all ' + CompilerParameters + ' "' + PackageFileName + '"')
         then raise Exception.Create('Failed to compile ' + PackageFileName);
     end;
   end;
@@ -353,7 +349,7 @@ begin
 
   if not BuildInfo.Project.DryRun then
   begin
-    if not ExecuteCommand(LazBuild  + ' ' + CompilerParameters + ' --build-ide= ')
+    if not ExecuteCommand(QuoteCmd(LazBuild) + ' ' + CompilerParameters + ' --build-ide= ')
     then raise Exception.Create('Failed to rebuild lazarus IDE');
   end;
 end;
@@ -368,7 +364,7 @@ begin
   begin
     if not BuildPackage.Package.IsDesign then continue;
 
-    if not ExecuteCommand(LazBuild + ' ' + CompilerParameters + ' --add-package "' + BuildPackage.PackageFileName + '"')
+    if not ExecuteCommand(QuoteCmd(LazBuild) + ' ' + CompilerParameters + ' --add-package "' + BuildPackage.PackageFileName + '"')
     then raise Exception.Create('Failed to register package: ' + BuildPackage.PackageFileName);
   end;
   Logger.Progress(Format('%s registered successfully on platform "%s.%s".',

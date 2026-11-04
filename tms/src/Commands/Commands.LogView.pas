@@ -10,7 +10,7 @@ procedure RegisterLogViewCommand;
 implementation
 
 uses
-  UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes, System.Types;
+  UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes, System.Types, Commands.Logging;
 
 var
   AsText,
@@ -19,6 +19,7 @@ var
 
 procedure RunLogViewCommand;
 begin
+  InitFolderBasedCommand(false);
   var LogFileName := Config.Folders.LogFile;
   if SessionId <> '' then
   begin
@@ -43,7 +44,7 @@ begin
     'More information: https://doc.tmssoftware.com/smartsetup/reference/tms-log-view.html',
     'log-view [<options>]');
 
-   var optionSessionId := cmd.RegisterUnNamedOption<string>('Session Id for an old log. If not specified, the last log will be opened.', 'SessionId',
+   var optionSessionId := cmd.RegisterUnNamedOption<string>('Session Id for an old log. If not specified, the last log will be opened.', 'session-id',
     procedure(const Value : String)
     begin
       SessionId := Value;

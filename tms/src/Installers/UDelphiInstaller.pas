@@ -176,7 +176,11 @@ begin
       // check if $(PATH) is already in PATH system environment variable.
       // If it is, and we are in the main reg key, we don't touch it, as we modified the Windows Path anyway.
       // alternate reg keys don't change the path, so we need to add them there.
-      if (SystemPath <> AddPaths(SystemPath, '$(PATH)')) or (AlternateRegistryKey.Trim <> '') then
+      // we also shouldn't add ourselves to the path if it was empty, or it would add a override and break everything.
+      // see https://support.tmssoftware.com/t/problem-on-delphi7-after-running-smart-setup/27418/2
+      // This leaves a case not working: $(PATH) doesn't work in d7, so if you are in an alternate reg key... we can't just add the path to delphi7
+      // I guess it means: don't use alternate reg keys with delphi7.
+      if ((SystemPath <> AddPaths(SystemPath, '$(PATH)')) and (SystemPath.Trim <> '')) or (AlternateRegistryKey.Trim <> '') then
       begin
         if SystemPath <> AddPaths(SystemPath, Folder) then
         begin
@@ -220,31 +224,46 @@ begin
   end;
 end;
 
-function ExcludeDefine(const Define: string; const PackageExtraDefines: TList<string>): boolean;
+function JoinDefines(const A, B: string): string;
 begin
-  Result := false;
-  for var d in PackageExtraDefines do
-  begin
-    if not d.StartsWith('-') then continue;
-    if (SameText(Define.Trim(), d.Substring(1).Trim)) then exit(true);
-  end;
+  if A = '' then exit(B);
+  if B = '' then exit(A);
+  Result := A + ';' + B;
 end;
 
-function ProcessDefines(const DefineString: string; const PackageExtraDefines: TList<string>): string;
+function ProcessDefines(const DefineString: string; const PackageExtraDefines: TList<string>; const CfgRemoveDefines: TArray<string>): string;
 begin
-  if PackageExtraDefines = nil then exit(DefineString); //most common case.
-  var SplitDefines := DefineString.Split([';'], TStringSplitOptions.ExcludeEmpty);
-  Result := '';
-  for var Extra in PackageExtraDefines do
-  begin
-    if Extra.StartsWith('-') then continue;
-    if Result <> '' then Result := Result + ';';
-    Result := Result + Extra;
-  end;
-  for var Def in SplitDefines do
-  begin
-    if ExcludeDefine(Def, PackageExtraDefines) then continue;
-    Result := Result + ';' + Def;
+  if ((PackageExtraDefines = nil) or (PackageExtraDefines.Count = 0)) and (Length(CfgRemoveDefines) = 0) then exit(DefineString); //most common case.
+
+  //Defines removed either by the package ("-DEF" in extra defines) or by the config.
+  var Excluded := THashSet<string>.Create(TIStringComparer.Ordinal);
+  try
+    for var d in CfgRemoveDefines do Excluded.Add(d.Trim);
+    if PackageExtraDefines <> nil then
+    begin
+      for var d in PackageExtraDefines do
+      begin
+        if d.StartsWith('-') then Excluded.Add(d.Substring(1).Trim);
+      end;
+    end;
+
+    Result := '';
+    if PackageExtraDefines <> nil then
+    begin
+      for var Extra in PackageExtraDefines do
+      begin
+        if Extra.StartsWith('-') or Excluded.Contains(Extra.Trim) then continue;
+        Result := JoinDefines(Result, Extra);
+      end;
+    end;
+
+    for var Def in DefineString.Split([';'], TStringSplitOptions.ExcludeEmpty) do
+    begin
+      if Excluded.Contains(Def.Trim) then continue;
+      Result := JoinDefines(Result, Def);
+    end;
+  finally
+    Excluded.Free;
   end;
 end;
 
@@ -273,10 +292,10 @@ begin
     Logger.Progress(Format('Building package %s for "%s.%s" with %s config.', [Package.Name, DisplayName, PlatformId[PlatformInfo.PlatType], BuildConfig]), BuildInfo.Project.Progress);
     var Settings := CreateDegetPackageCompilationSettings(BuildInfo.Project, PlatformInfo, PackageInfo, IDEName, BuildConfig, DoCBuilder);
     try
-      Settings.Defines := String.Join(';', BuildInfo.Project.Defines);
+      Settings.Defines := String.Join(';', BuildInfo.Project.AddDefines);
       var PkgDefines := PackageInfo.Defines(BuildConfig);
-      if PkgDefines <> '' then Settings.Defines := ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines) + ';' + Settings.Defines;
-      
+      Settings.Defines := JoinDefines(ProcessDefines(PkgDefines, BuildInfo.Project.Project.PackageExtraDefines, BuildInfo.Project.RemoveDefines), Settings.Defines);
+
 
       if not BuildInfo.Project.DryRun then
       begin
@@ -1282,7 +1301,7 @@ var
 
   procedure AddExtraInfoToDproj(const DProjModifier: TDprojModifier);
   begin
-    var Defines := String.Join(';', BuildInfo.Project.Defines);
+    var Defines := String.Join(';', BuildInfo.Project.AddDefines);
     var BaseNodeForDefines: IInterface := nil;
     try
       DProjModifier.LoopOverAllNodes(function (NodeName, NodeText: string; PropGroupIsBase: boolean): string
@@ -1290,9 +1309,8 @@ var
           if (NodeName = '/#document/Project/PropertyGroup/DCC_Define/#text') then
             begin;
               if PropGroupIsBase then BaseNodeForDefines := nil;
-              var PkgDefines := ProcessDefines(NodeText, BuildInfo.Project.Project.PackageExtraDefines);
-              if Defines<>'' then exit(Defines + ';' + PkgDefines);
-              exit(PkgDefines);
+              var PkgDefines := ProcessDefines(NodeText, BuildInfo.Project.Project.PackageExtraDefines, BuildInfo.Project.RemoveDefines);
+              exit(JoinDefines(Defines, PkgDefines));
             end;
 
           if not BuildInfo.Project.BuildEvents then

@@ -1,0 +1,63 @@
+# OK
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tmsbuild.schema.json
+minimum required tmsbuild version: 1.0
+
+application:
+  id: tmslaztest.b
+  name: "LB"
+  url: "file://lazarus-repos/L_B-A"
+
+supported frameworks:
+  rtl:
+    ide since: lazarus
+    platforms: 
+      - all
+
+  
+packages:
+  - l_b: [runtime]
+
+links:
+  - link:
+      type: file  # currently can only be file
+      name: MyTool
+      target: Tools\MyTool.exe
+      description: A tool to do stuff.
+      working folder: 
+
+  - link:
+      type: file
+      name: MyOtherTool
+      target: Tools\MyOtherTool.exe
+      description: Another tool. The same as MyTool but cooler.
+      working folder: 
+
+# Link files inside your bundle
+file links:
+  - link:
+      file to link: example.dll
+      link to folder: #optional. If you don't specify it, it will link to bpl folder (32 bit). You can use the variable %bpl-folder-64% to link to the correct bpl folder according to the OS and platform. For example, if you want to link to the 64 bit bpl folder in windows, you can write %bpl-folder-64%. Note that you can't use someting like %bpl-folder64\Lib. If you use %bpl-folder% it should be used alone. 
+      os: [linux, windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
+  - link:
+      file to link: example.dll
+      link to folder: #optional. If you don't specify it, it will link to bpl folder (32 bit). You can use the variable %bpl-folder-64% to link to the correct bpl folder according to the OS and platform. For example, if you want to link to the 64 bit bpl folder in windows, you can write %bpl-folder-64%. Note that you can't use someting like %bpl-folder64\Lib. If you use %bpl-folder% it should be used alone. 
+      os: [linux, windows] #can be any combination of windows, linux or mac (for example [linux,mac]). If empty it will try to create the links in all supported Operating Systems.
+resources:
+  - resource:
+      copy from: src\resources  # relative to the root of the project.
+      copy to: resources              # destination folder or file path.
+  - resource:
+      copy from: src\resources  # relative to the root of the project.
+      copy to: resources              # destination folder or file path.
+
+# For checking if older products installed with a different method exist.
+other versions: # if the registry key exists, it means the product is already installed with other setup, and tms smart setup will refuse to run.
+  - reg: HKEY_CURRENT_USER\SOFTWARE\tmssoftware\Example 
+  - reg: HKEY_CURRENT_USER\SOFTWARE\tmssoftware\Example 
+
+
+
+dependencies:
+  - tmslaztest.a: Lazarus A
+

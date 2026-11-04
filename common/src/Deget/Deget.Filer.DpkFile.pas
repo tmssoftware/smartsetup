@@ -57,6 +57,8 @@ type
     procedure ReadData(Data: TDpkData);
   end;
 
+  TPasIncludeProc = reference to procedure(const i: integer; out FileName, FormName: string);
+
   TDpkWriter = class(TDpkFiler)
   strict private
     procedure UpdateDirective(const Directive: string; const Value: string = '');
@@ -77,9 +79,12 @@ type
     procedure UpdateDllSuffix(const Value: string);
     procedure UpdateExplicitRebuild(ExplicitRebuild: boolean);
 
-    procedure UpdatePasFiles(PasFiles: TPasIncludeFiles; const NameAdapter: TFunc<string, string> = nil);
-    procedure UpdateRequires(Requires: TStrings);
-    procedure UpdateDcrFiles(DcrFiles: TIncludeFiles; const NameAdapter: TFunc<string, string> = nil);
+    procedure UpdatePasFiles(PasFiles: TPasIncludeFiles; const NameAdapter: TFunc<string, string> = nil); overload;
+    procedure UpdatePasFiles(const PasFileCount: integer; const GetFile: TPasIncludeProc; const NameAdapter: TFunc<string, string>); overload;
+    procedure UpdateRequires(Requires: TStrings); overload;
+    procedure UpdateRequires(const RequiresCount: integer; const GetFile: TFunc<integer, string>); overload;
+    procedure UpdateDcrFiles(DcrFiles: TIncludeFiles; const NameAdapter: TFunc<string, string> = nil); overload;
+    procedure UpdateDcrFiles(const DcrFileCount: integer; const GetFile: TFunc<integer, string>;  const NameAdapter: TFunc<string, string>); overload;
     procedure RemoveDeprecatedRes;
 
     procedure Flush;
@@ -345,7 +350,14 @@ end;
 procedure TDpkReader.ReadRequires(Requires: TStrings);
 begin
   for var Require in ReadSectionItems('requires') do
-    Requires.Add(Require);
+  begin
+    var Splitted := Require.Split([','], TStringSplitOptions.ExcludeEmpty); //for the case there is more than one in the same line.
+    for var SplittedRequire in Splitted do
+    begin
+      Requires.Add(SplittedRequire.Trim);
+    end;
+
+  end;
 end;
 
 { TDpkWriter }
@@ -503,6 +515,16 @@ end;
 
 procedure TDpkWriter.UpdateDcrFiles(DcrFiles: TIncludeFiles; const NameAdapter: TFunc<string, string>);
 begin
+  UpdateDcrFiles(DcrFiles.Count,
+    function(i: integer): string
+    begin
+      Result := DcrFiles[i].FileName;
+    end,
+    NameAdapter);
+end;
+
+procedure TDpkWriter.UpdateDcrFiles(const DcrFileCount: integer; const GetFile: TFunc<integer, string>;  const NameAdapter: TFunc<string, string>);
+begin
   // Delete all .dcr includes (and $R directive that includes a .dcr file)
   var Index := 0;
   while Index < Lines.Count - 1 do
@@ -524,9 +546,9 @@ begin
   end;
 
   // Add all DCR at the position
-  for var DcrFile in DcrFiles do
+  for var i := 0 to DcrFileCount - 1 do
   begin
-    Lines.Insert(Index, Format('{$R ''%s''}', [Adapt(NameAdapter, DcrFile.FileName)]));
+    Lines.Insert(Index, Format('{$R ''%s''}', [Adapt(NameAdapter,GetFile(i))]));
     Inc(Index);
   end;
 end;
@@ -589,23 +611,37 @@ end;
 
 procedure TDpkWriter.UpdatePasFiles(PasFiles: TPasIncludeFiles; const NameAdapter: TFunc<string, string>);
 begin
+  UpdatePasFiles(PasFiles.Count,
+    procedure(const i: integer; out FileName, FormName: string)
+    begin
+      FileName := PasFiles[i].FileName;
+      FormName := PasFiles[i].FormName;
+    end,
+    NameAdapter);
+end;
+
+procedure TDpkWriter.UpdatePasFiles(const PasFileCount: integer; const GetFile: TPasIncludeProc; const NameAdapter: TFunc<string, string>);
+begin
   var Index := DeleteSection('contains');
   if Index = -1 then
   begin
-    if PasFiles.Count = 0 then Exit;
+    if PasFileCount = 0 then Exit;
     Index := CalculateContainsIndex;
   end;
 
   Lines.Insert(Index, 'contains');
   Inc(Index);
 
-  for var I := 0 to PasFiles.Count - 1 do
+  for var I := 0 to PasFileCount - 1 do
   begin
-    var PasFile := PasFiles[I];
-    var LineContent := Format('%s in ''%s''', [TPath.GetFileNameWithoutExtension(PasFile.FileName), Adapt(NameAdapter, PasFile.FileName)]);
-    if PasFile.FormName <> '' then
-      LineContent := LineContent + ' {' + PasFile.FormName + '}';
-    if I < PasFiles.Count - 1 then
+    var FileName, FormName: string;
+    GetFile(I, FileName, FormName);
+    if (FileName = '') then raise Exception.Create('Unexpected empty file name inside file "' + FileName +'".');
+    
+    var LineContent := Format('%s in ''%s''', [TPath.GetFileNameWithoutExtension(FileName), Adapt(NameAdapter, FileName)]);
+    if FormName <> '' then
+      LineContent := LineContent + ' {' + FormName + '}';
+    if I < PasFileCount - 1 then
       LineContent := LineContent + ','
     else
       LineContent := LineContent + ';';
@@ -617,6 +653,11 @@ end;
 
 procedure TDpkWriter.UpdateRequires(Requires: TStrings);
 begin
+  UpdateRequires(Requires.Count, function(i: integer): string begin Result := Requires[i]; end);
+end;
+
+procedure TDpkWriter.UpdateRequires(const RequiresCount: integer; const GetFile: TFunc<integer, string>);
+begin
   var Index := DeleteSection('requires');
   if Index = -1 then
     Index := CalculateRequiresIndex;
@@ -624,10 +665,10 @@ begin
   Lines.Insert(Index, 'requires');
   Inc(Index);
 
-  for var I := 0 to Requires.Count - 1 do
+  for var I := 0 to RequiresCount - 1 do
   begin
-    var LineContent := Requires[I];
-    if I < Requires.Count - 1 then
+    var LineContent := GetFile(I);
+    if I < RequiresCount - 1 then
       LineContent := LineContent + ','
     else
       LineContent := LineContent + ';';
