@@ -340,7 +340,7 @@ begin
     if not TFile.Exists(ActualFileName) then raise Exception.Create('The file "' + ActualFileName + '" is missing.');
 
     var ActualHash := THashSHA2.GetHashStringFromFile(ActualFileName, THashSHA2.TSHA2Version.SHA256);
-    if ExpectedHash <> ActualHash then raise Exception.Create('The file "' + ActualFileName + '" is not the correct one for this Smart Setup release.');
+    if not SameText(ExpectedHash, ActualHash) then raise Exception.Create('The file "' + ActualFileName + '" is not the correct one for this Smart Setup release.');
   end;
 end;
 
@@ -356,7 +356,7 @@ begin
     begin
       //self-update will retry the install: GetNewVersion always updates while the lock exists.
       if SameText(CommandName, 'self-update') then exit;
-      raise Exception.Create('Fatal: This smartsetup update didn''t complete correctly. Please run tms self-update to fix it, or if that doesnt''t work, try reinstalling from https://doc.tmssoftware.com/smartsetup/download/index.html. Error message: ' + ex.Message);
+      raise Exception.Create('Fatal: This smartsetup update didn''t complete correctly. Please run tms self-update to fix it, or if that doesn''t work, try reinstalling from https://doc.tmssoftware.com/smartsetup/download/index.html. Error message: ' + ex.Message);
     end;
   end;
 
