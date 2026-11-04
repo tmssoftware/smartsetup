@@ -55,7 +55,9 @@ begin
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.ZipFileTempFolder);
 
     // self-update
-    TryToDeleteAllFilesInFolderIgnoringLocked(TPath.Combine(TPath.GetDirectoryName(paramstr(0)), '.locked'), false, true, '*' + TempExtension);
+    TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.SameDiskLockedFolder, false, true, '*' + TempExtension);
+    TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.SameDiskTempSelfUpdateFolder, true, true);
+
   except on ex: Exception do
     //just ignore it.
     Logger.Trace('Error cleaning up lock folder. ' + ex.Message);
@@ -112,11 +114,12 @@ begin
   RegisterUncompressCommand;
 
   // Execute
-  ParseCommandLine(procedure
+  ParseCommandLine(procedure (CommandName: string)
     begin
       if IsValidTMSSetupFolder then
       begin
         CleanUp;
+        CheckSelfUpdating(CommandName);
         ConsoleLogger.DisplayOptions := ConsoleLogDisplayOptions;
         try
           if not VerbositySetByCommandLine then Logger.Verbosity := Config.Verbosity(GlobalProductId, Logger.Verbosity);

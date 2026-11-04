@@ -347,3 +347,84 @@ function Set-AlternateRegistryKey {
 
 
 
+# Copies tms.exe and tmsgui.exe to $Folder, patches the version in their VS_FIXEDFILEINFO resource
+# so their hashes change but they still run, and writes tms.smartsetup.hashes.txt with the new hashes.
+function New-AutoUpdateBundle {
+    param(
+        [Parameter(Position=0)] [version] $Version = "99.0.0.0",
+        [Parameter(Position=1)] [string] $Algorithm = "SHA256",
+        [Parameter(Position=2)] [bool] $AddHashes = $true
+    )
+
+     $aliases = @("tms", "tmsgui")
+
+    $actualFiles = @()
+    foreach ($alias in $aliases) {
+        $exe = Get-Alias $alias
+        Copy-Item $exe.Definition "./$(Split-Path $exe.Definition -Leaf)" -Force
+        $actualFiles += (Resolve-Path "./$(Split-Path $exe.Definition -Leaf)").Path
+    }
+
+    $Folder = Join-Path -Path $PWD -ChildPath "fake-auto-update-bundle"
+    New-Item -ItemType Directory -Force $Folder | Out-Null
+    $hashLines = @()
+    foreach ($exe in $actualFiles) {
+        $target = Join-Path $Folder (Split-Path $exe -Leaf)
+        Copy-Item $exe $target -Force
+        Set-ItemProperty -Path $target -Name IsReadOnly -Value $false
+        Set-ExeFixedFileVersion -FileName $target -Version $Version
+        $hash = (Get-FileHash -Path $target -Algorithm $Algorithm).Hash.ToLowerInvariant()
+        $hashLines += "$(Split-Path $target -Leaf): $hash"
+    }
+
+    if ($AddHashes){ Set-Content -Path (Join-Path $Folder "tms.smartsetup.hashes.txt") -Value $hashLines -Encoding utf8 }
+
+    $zipFolder = Join-Path -Path $PWD -ChildPath "Downloads\CurrentVersions"
+    New-Item -ItemType Directory -Force $zipFolder | Out-Null
+    $zipFile = Join-Path -Path $zipFolder -ChildPath "tms.smartsetup.windows_production_$($Version).zip"
+    
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($Folder, $zipFile)
+}
+
+function Restore-AutoupdateBundle {
+ $aliases = @("tms", "tmsgui")
+    foreach ($alias in $aliases) {
+        $exe = Get-Alias $alias
+        Copy-Item $exe.Definition "./$(Split-Path $exe.Definition -Leaf)" -Force
+    }
+}
+
+# Patches the file and product version in the VS_FIXEDFILEINFO block in place. The file size doesn't change,
+# so the exe keeps working (an Authenticode signature, if any, becomes invalid).
+function Set-ExeFixedFileVersion {
+    param(
+        [Parameter(Mandatory, Position=0)] [string] $FileName,
+        [Parameter(Mandatory, Position=1)] [version] $Version
+    )
+
+    $fullName = (Resolve-Path $FileName).Path
+    $bytes = [System.IO.File]::ReadAllBytes($fullName)
+    # VS_FIXEDFILEINFO starts with dwSignature = 0xFEEF04BD followed by dwStrucVersion = 0x00010000
+    $signature = [byte[]](0xBD, 0x04, 0xEF, 0xFE, 0x00, 0x00, 0x01, 0x00)
+    $idx = [Array]::IndexOf($bytes, $signature[0])
+    while ($idx -ge 0) {
+        $found = $idx + $signature.Length -le $bytes.Length
+        for ($i = 1; $found -and $i -lt $signature.Length; $i++) {
+            if ($bytes[$idx + $i] -ne $signature[$i]) { $found = $false }
+        }
+        if ($found) { break }
+        $idx = [Array]::IndexOf($bytes, $signature[0], $idx + 1)
+    }
+    if ($idx -lt 0) {
+        throw "Can't find a version resource in '$FileName'."
+    }
+
+    $ms = [BitConverter]::GetBytes([uint32](($Version.Major -shl 16) -bor $Version.Minor))
+    $ls = [BitConverter]::GetBytes([uint32](([math]::Max($Version.Build, 0) -shl 16) -bor [math]::Max($Version.Revision, 0)))
+    # dwFileVersionMS, dwFileVersionLS, dwProductVersionMS, dwProductVersionLS
+    foreach ($offset in @(8, 16)) {
+        [Array]::Copy($ms, 0, $bytes, $idx + $offset, 4)
+        [Array]::Copy($ls, 0, $bytes, $idx + $offset + 4, 4)
+    }
+    [System.IO.File]::WriteAllBytes($fullName, $bytes)
+}

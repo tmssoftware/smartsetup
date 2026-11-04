@@ -2,11 +2,12 @@
 interface
 
 uses
-  System.SysUtils, System.StrUtils, VSoft.CommandLine.Options, UCommandLine, UMultiLogger, Deget.Version,
+  System.SysUtils, Classes, System.StrUtils, VSoft.CommandLine.Options, UCommandLine, UMultiLogger, Deget.Version,
   ZipFile.Download;
 
 procedure RegisterSelfUpdateCommand;
 function NewSmartSetupAvailable: string; //returns empty is there are none.
+procedure CheckSelfUpdating(const CommandName: string);
 
 var
   SmartSetupUpdated: Boolean;
@@ -16,12 +17,34 @@ uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
   Commands.GlobalConfig, System.Zip, Downloads.VersionManager, JSON,
-  UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character,
+  UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character, Hash,
   UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
 
 
 const
   {$i ../../../Version.inc}
+
+  SmartSetupHashFileName = 'tms.smartsetup.hashes.txt';
+
+function InstallingLock: string;
+begin
+  Result := TPath.Combine(Config.Folders.ExeFolder, 'INSTALLING.LOCK');
+end;
+
+function CurrentVersion: TVersion;
+begin
+  Result := TMSVersion;
+end;
+
+function SmartSetupTmpHash(const TmpFolder: string): string;
+begin
+  Result := TPath.Combine(TmpFolder, SmartSetupHashFileName);
+end;
+
+function SmartSetupExeHash: string;
+begin
+  Result := TPath.Combine(Config.Folders.ExeFolder, SmartSetupHashFileName);
+end;
 
 function GetNewVersion: string;
 begin
@@ -30,10 +53,12 @@ begin
   var Updated := TDirectory.GetFiles(Config.Folders.DownloadsFolder, TDownloadFileName.GenerateRootFileName(TRepositoryManager.TMSSetupProductId) + '*.zip');
   if Length(Updated) = 0 then exit;
 
-  var Current: TVersion := TMSVersion;
+  var Current := CurrentVersion;
 {$IFDEF DEBUG}
   if TestParameters.ForceSelfUpdate then Current := TVersion('0.0');
 {$ENDIF}
+  if TFile.Exists(InstallingLock) then Current := TVersion('0.0'); //if install state is not right, always update
+
 
   var MaxVersion := Current;
   for var FileName in Updated do
@@ -55,24 +80,48 @@ begin
     var NewVersion := GetNewVersion;
     if NewVersion = '' then exit('');
     Result := TDownloadFileName.ExtractVersion(NewVersion);
+    if TVersion(Result) <= CurrentVersion then exit('');
+
   except on ex: Exception do
     //no log here, as it might not be initialized yet.
   end;
 end;
 
+procedure EnsureHashFile(const TmpFolder: string);
+begin
+  //To update from smartsetup 3.5 or older, we can't have .txt files in the bundle, so we need to generate it.
+  var Hashes := SmartSetupTmpHash(TmpFolder);
+  if TFile.Exists(Hashes) then exit;
+  var Files := TDirectory.GetFiles(TmpFolder, '*', TSearchOption.soTopDirectoryOnly);
+  var Encoding := TUTF8Encoding.Create(False);
+  try
+    var Sw := TStreamWriter.Create(Hashes, false, Encoding);
+    try
+      for var F in Files do
+      begin
+        Sw.WriteLine(TPath.GetFileName(F) + ': ' + THashSHA2.GetHashStringFromFile(F, THashSHA2.TSHA2Version.SHA256));
+      end;
+    finally
+      Sw.Free;
+    end;
+  finally
+    Encoding.Free;
+  end;
+end;
+
 procedure MoveUpdatedFiles(const Source, Dest: string);
 begin
-  //We won't bother adding with files not at the top.
+  //We won't bother adding with files not at the top folder.
   //Files in use (the running tms.exe) are moved to Dest\.locked, not to the working folder's locked folder: that can be
   //on another disk, and a running exe can only be renamed within its own disk. UMain.Cleanup removes them on the next run.
-  var LockedFolder := TPath.Combine(Dest, '.locked');
+  var LockedFolder := Config.Folders.SameDiskLockedFolder;
   TDirectory_CreateDirectory(LockedFolder);
+
   var Files := TDirectory.GetFiles(Source, '*.*', TSearchOption.soTopDirectoryOnly);
   for var f in Files do
   begin
     var DestFile := TPath.Combine(Dest, TPath.GetFileName(f));
-    DeleteFileOrMoveToLocked(LockedFolder, DestFile);
-    RenameAndCheck(f, DestFile);
+    AtomicMove(f, DestFile, TPath.Combine(LockedFolder, TPath.GetFileName(DestFile)) + '.' + GuidToStringN(TGUID.NewGuid) + TempExtension);
   end;
 end;
 
@@ -93,8 +142,13 @@ begin
 
   //It should be the place where tms.exe is, not the working folder.
   //We can't move this to the locked folder because tms.exe could be in a different hard disk than the meta folder. See discussion in issue #2
-  var RootFolder := TPath.GetDirectoryName(ParamStr(0));
-  var TmpFolder := TPath.Combine(RootFolder, '$$$');
+  var TmpFolder := Config.Folders.SameDiskTempSelfUpdateFolder;
+  if TDirectory.Exists(TmpFolder, false) then
+  begin
+    DeleteFolderMovingToLocked(Config.Folders.SameDiskLockedFolder, TmpFolder, true, false);
+    if TDirectory.Exists(TmpFolder, false) then raise Exception.Create('Cannot create the folder "' + TmpFolder + '" to unpack the new version. Verify it is not locked, and try removing it manually.');
+  end;
+
   try
     TBundleDecompressor.ExtractCompressedFile(NewVersion, TmpFolder);
 
@@ -103,9 +157,12 @@ begin
     //same server as the bundle, so the hash is not a trust anchor — only an
     //offline-signed binary is. See Commands.SelfUpdate.Verify for details.
     VerifySelfUpdateBundle(ParamStr(0), TmpFolder);
-    MoveUpdatedFiles(TmpFolder, RootFolder);
+    EnsureHashFile(TmpFolder);
+    TFile.WriteAllText(InstallingLock, 'A SmartSetup installation is in process and couldn''t be completed. You can retry `tms self-update` or reinstall again from https://doc.tmssoftware.com/smartsetup/download/index.html');
+    MoveUpdatedFiles(TmpFolder, TPath.GetDirectoryName(ParamStr(0)));
+    DeleteFileOrMoveToLocked(Config.Folders.SameDiskLockedFolder, InstallingLock);
   finally
-    DeleteFolderMovingToLocked(Config.Folders.LockedFilesFolder, TmpFolder, true, false);
+    DeleteFolderMovingToLocked(Config.Folders.SameDiskLockedFolder, TmpFolder, true, false);
   end;
 
 
@@ -114,7 +171,15 @@ begin
   RotateDownloads(Config.MaxVersionsPerProduct);
   Logger.Info('');
 
-  Logger.Info(Format('TMS Smart Setup has been updated from version %s to version %s', [TMSVersion, TDownloadFileName.ExtractVersion(NewVersion)]));
+  var NewVersionVer: TVersion;
+  if TVersion.TryFromString(TDownloadFileName.ExtractVersion(NewVersion), NewVersionVer)
+    and (NewVersionVer = CurrentVersion) then
+  begin
+    Logger.Info(Format('TMS Smart Setup installation of version %s has been repaired', [TMSVersion]));
+  end else
+  begin
+    Logger.Info(Format('TMS Smart Setup has been updated from version %s to version %s', [TMSVersion, TDownloadFileName.ExtractVersion(NewVersion)]));
+  end;
   SmartSetupUpdated := true;
 end;
 
@@ -257,6 +322,46 @@ begin
   RegisterRepoOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Self, RunSelfUpdateCommand);
+end;
+
+procedure VerifyBundleHashesFiles;
+begin
+  var Hashes := TFile.ReadAllLines(SmartSetupExeHash, TEncoding.UTF8);
+  for var Hash in Hashes do
+  begin
+    if Hash.Trim = '' then continue;
+    var idx := Hash.IndexOf(':');
+    if idx <= 0 then raise Exception.Create('The file "' + SmartSetupExeHash + '" is corrupt. Invalid line: "' + Hash + '"');
+    var FileName := Hash.Substring(0, idx).Trim;
+    var ExpectedHash := Hash.Substring(idx + 1).Trim;
+
+    var ActualFileName := TPath.Combine(Config.Folders.ExeFolder, FileName);
+    if not TFile.Exists(ActualFileName) then raise Exception.Create('The file "' + ActualFileName + '" is missing.');
+
+    var ActualHash := THashSHA2.GetHashStringFromFile(ActualFileName, THashSHA2.TSHA2Version.SHA256);
+    if ExpectedHash <> ActualHash then raise Exception.Create('The file "' + ActualFileName + '" is not the correct one for this Smart Setup release.');
+  end;
+end;
+
+procedure CheckSelfUpdating(const CommandName: string);
+begin
+  if not TFile.Exists(InstallingLock) then exit;
+
+  try
+    if not TFile.Exists(SmartSetupExeHash) then raise Exception.Create('The file "' + SmartSetupExeHash + '" doesn''t exist.');
+    VerifyBundleHashesFiles;
+  except
+    on ex: Exception do
+    begin
+      //self-update will retry the install: GetNewVersion always updates while the lock exists.
+      if SameText(CommandName, 'self-update') then exit;
+      raise Exception.Create('Fatal: This smartsetup update didn''t complete correctly. Please run tms self-update to fix it, or if that doesnt''t work, try reinstalling from https://doc.tmssoftware.com/smartsetup/download/index.html. Error message: ' + ex.Message);
+    end;
+  end;
+
+  //We are in a consistent state. The user might have reinstalled manually.
+  //There is no need to reject the command, so we can remove the lock.
+  DeleteFileOrMoveToLocked(Config.Folders.SameDiskLockedFolder, InstallingLock);
 end;
 
 end.

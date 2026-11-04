@@ -7,7 +7,7 @@ $tmsexe = Get-Alias tms
 Copy-Item $tmsexe.Definition "./tms.exe" -Force
 
 $log = ./tms.exe self-update -test-force-self-update -test-no-credentials -test-skip-self-update-signature-verification
-if ($log -like "*TMS Smart Setup has been updated from version*") {
+if ($log -like "*has been repaired*") {
     Write-Host "Self-update reported a successful update."
 }
 else {
@@ -37,7 +37,7 @@ Test-CommandFails {./tms.exe self-update -test-force-self-update} "Unknown comma
 Copy-Item $tmsexe.Definition "./tms.exe" -Force
 
 $log = ./tms.exe self-update -test-force-self-update -test-no-credentials -test-skip-self-update-signature-verification
-if ($log -like "*TMS Smart Setup has been updated from version*") {
+if ($log -like "*has been repaired*") {
     Write-Host "Self-update reported a successful update."
 }
 else {

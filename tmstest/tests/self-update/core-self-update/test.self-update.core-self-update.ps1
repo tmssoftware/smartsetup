@@ -14,7 +14,7 @@ Copy-Item $tmsexe.Definition "./tms.exe" -Force
 #get the time of the copied file, so we can check if it was updated.
 $beforeUpdateTime = (Get-Item "./tms.exe").LastWriteTime
 $log = ./tms.exe self-update -test-force-self-update -test-skip-self-update-signature-verification
-if ($log -like "*TMS Smart Setup has been updated from version*") {
+if ($log -like "*has been repaired*") {
     Write-Host "Self-update reported a successful update."
 }
 else {
@@ -44,10 +44,10 @@ else {
     throw "Unexpected output from self-update: $log"
 }
 
-#signtool sign /tr http://rfc3161timestamp.globalsign.com/advanced /td SHA256 /fd SHA256 "./tms.exe"
+# signtool sign /tr http://rfc3161timestamp.globalsign.com/advanced /td SHA256 /fd SHA256 "./tms.exe"
 
 $log = ./tms.exe self-update -test-force-self-update
-if ($log -like "*TMS Smart Setup has been updated from version*") {
+if ($log -like "*has been repaired*") {
     Write-Host "Self-update reported a successful update even without skipping signature verification, which is expected because now tms is signed."
 }
 else {
