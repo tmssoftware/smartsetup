@@ -12,7 +12,7 @@ uses
 ///   If the parsed command was registered and is execute, returns empty string.
 ///   Otherwise, returns the command to be manualy executed.
 /// </returns>
-function ParseCommandLine(InitProc: TProc = nil): string;
+function ParseCommandLine(InitProc: TProc<string> = nil): string;
 
 /// <summary>
 ///   Registers a command to be executed.
@@ -179,7 +179,7 @@ begin
   end;
 end;
 
-function ParseCommandLine(InitProc: TProc = nil): string;
+function ParseCommandLine(InitProc: TProc<string> = nil): string;
 var
   parseresult: ICommandLineParseResult;
   Proc: TProc;
@@ -199,7 +199,7 @@ begin
     if _Commands.TryGetValue(parseresult.Command, Proc) then
     begin
       if Assigned(InitProc) then
-        InitProc();
+        InitProc(parseresult.Command);
       Proc();
     end
     else

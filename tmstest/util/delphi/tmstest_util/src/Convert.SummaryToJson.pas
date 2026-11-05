@@ -51,7 +51,6 @@ begin
 
         if not CleanLine.StartsWith('   -') then continue;
 
-        var Item := TJSONObject.Create;
         var Data := CleanLine.Split(['->']);
         if Length(Data) <> 2 then continue;
         Root.AddPair(Data[0].Trim.Substring(1).Trim, Data[1].Trim);

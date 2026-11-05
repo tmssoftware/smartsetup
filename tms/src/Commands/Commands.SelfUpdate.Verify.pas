@@ -11,6 +11,10 @@ uses System.SysUtils, System.IOUtils, System.Classes, System.Zip,
      TMSSystem.Signatures
      {$IFDEF DEBUG}, Testing.Globals{$ENDIF};
 
+const
+  //Verification always runs before anything is installed, so the current install is still fine.
+  ManualInstallMessage = ' Please install the latest smartsetup manually from https://doc.tmssoftware.com/smartsetup/download/index.html';
+
 procedure VerifySelfUpdateFile(const CurrentExePath, StagedExePath: string);
 begin
   {$IFDEF DEBUG}
@@ -28,7 +32,7 @@ begin
   // currently running binary (a TOFU model — whoever signed the binary you
   // are running today is who is allowed to ship updates).
   var ExeName := TPath.GetFileName(CurrentExePath);
-
+  try
     // 1. Authenticode signature must be valid (file unmodified, chain trusted).
     try
       CheckIsCodeSigned(StagedExePath);
@@ -57,8 +61,11 @@ begin
     if not SameText(NewSigner, CurrentSigner) then
       raise Exception.CreateFmt(
         'Self-update aborted: the new "%s" was signed by "%s", but the current binary was ' +
-        'signed by "%s". This is likely because our signing certificate has changed. Please download the latest smartsetup version from %s.',
-        [ExeName, NewSigner, CurrentSigner, 'https://github.com/tmssoftware/smartsetup/releases/latest/download/tmssmartsetup.zip']);
+        'signed by "%s". This is likely because our signing certificate has changed.',
+        [ExeName, NewSigner, CurrentSigner]);
+  except on ex: Exception do
+      raise Exception.Create(ex.Message + ManualInstallMessage);
+  end;
   {$ELSE}
   // Authenticode is Windows-only. Until we add a cross-platform signing
   // mechanism (e.g. a detached minisign signature on the bundle, with the
@@ -81,16 +88,32 @@ begin
   {$ENDIF}
 end;
 
+function IsTextFile(const f: string): boolean;
+begin
+  if not SameText(TPath.GetExtension(f), '.txt')
+  and not SameText(TPath.GetExtension(f), '.yaml')
+  and not SameText(TPath.GetExtension(f), '.json')
+  and not SameText(TPath.GetExtension(f), '.p7s')
+   then exit(false);
+
+
+  Result := true;
+end;
+
 procedure VerifySelfUpdateBundle(const CurrentExePath, BundleFolder: string);
 begin
-  var Files := TDirectory.GetFiles(BundleFolder, '*.*', TSearchOption.soTopDirectoryOnly);
+
+  var Files := TDirectory.GetFiles(BundleFolder, '*.*', TSearchOption.soTopDirectoryOnly);
   for var f in Files do
   begin
     // If we allow arbitrary extensions, a malicious update could say provide a tms.bat file instead of tms.exe, which we can't validate
     // Even if we validate tms.exe, the file could contain many other files that we can't verify and could be malign. So we will only accept exes in the zip.
+    // The real solution here is to sign the packages. Until then, we will allow some needed files, like txt and p7s so
+    // this version can update to a newer version with a detached .p7s signature.
+    if IsTextFile(f) then continue;
+
     if not AllowedExtension(TPath.GetExtension(f))
-      then raise Exception.Create('The update contains unknown extensions and can''t be validated. Please download the latest smartsetup version from ' +
-           'https://github.com/tmssoftware/smartsetup/releases/latest/download/tmssmartsetup.zip');
+      then raise Exception.Create('The update contains unknown extensions and can''t be validated.' + ManualInstallMessage);
 
     VerifySelfUpdateFile(CurrentExePath, f);
 

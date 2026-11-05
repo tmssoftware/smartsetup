@@ -31,6 +31,10 @@ type
     function DcuMegafolder: string;
     function MetaSelfUpdateFolder: string;
     function TempSelfUpdateFolder: string;
+    function ExeFolder: string;
+    function SameDiskTempSelfUpdateFolder: string;
+    function SameDiskLockedFolder: string;
+    function SelfUpdateInstallingLock: string;
   end;
 
   TBuildFolders = class(TInterfacedObject, IBuildFolders)
@@ -68,6 +72,10 @@ type
     function DcuMegafolder: string;
     function MetaSelfUpdateFolder: string;
     function TempSelfUpdateFolder: string;
+    function ExeFolder: string;
+    function SameDiskTempSelfUpdateFolder: string;
+    function SameDiskLockedFolder: string;
+    function SelfUpdateInstallingLock: string;
   end;
 
 implementation
@@ -222,6 +230,26 @@ end;
 function TBuildFolders.TempSelfUpdateFolder: string;
 begin
   Result := TPath.Combine(TempFolder, 'self-update')
+end;
+
+function TBuildFolders.ExeFolder: string;
+begin
+  Result := TPath.GetDirectoryName(ParamStr(0));
+end;
+function TBuildFolders.SameDiskTempSelfUpdateFolder: string;
+begin
+  Result := TPath.Combine(ExeFolder, 'tmp-self-update')
+end;
+
+function TBuildFolders.SameDiskLockedFolder: string;
+begin
+  Result := TPath.Combine(ExeFolder, '.locked')
+end;
+
+function TBuildFolders.SelfUpdateInstallingLock: string;
+begin
+  //Exists while a self-update is replacing files. It lives next to tms.exe, so all working folders share it.
+  Result := TPath.Combine(ExeFolder, 'INSTALLING.LOCK')
 end;
 
 function TBuildFolders.DoctorUndoFolder: string;

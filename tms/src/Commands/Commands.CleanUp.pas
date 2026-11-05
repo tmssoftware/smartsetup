@@ -21,7 +21,8 @@ begin
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.ZipFileTempFolder);
 
     // self-update
-    TryToDeleteAllFilesInFolderIgnoringLocked(TPath.Combine(TPath.GetDirectoryName(paramstr(0)), '.locked'), false, true, '*' + TempExtension);
+    TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.SameDiskLockedFolder, false, true, '*' + TempExtension);
+    TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.SameDiskTempSelfUpdateFolder, true, true);
   except on ex: Exception do
     //just ignore it.
     Logger.Trace('Error cleaning up temp folders. ' + ex.Message);

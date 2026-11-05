@@ -43,6 +43,7 @@ uses
   UConfigKeys, Diagnostics, UDelayedErrors, Fetching.InfoFile;
 
 
+
 var
   NewSmartSetupVersion: string = '';
   ConsoleLogger: TConsoleLogger;
@@ -97,10 +98,11 @@ begin
   RegisterUncompressCommand;
 
   // Execute
-  ParseCommandLine(procedure
+  ParseCommandLine(procedure (CommandName: string)
     begin
       if IsValidTMSSetupFolder then
       begin
+        CheckSelfUpdating(CommandName);
         ConsoleLogger.DisplayOptions := ConsoleLogDisplayOptions;
         try
           if not VerbositySetByCommandLine then Logger.Verbosity := Config.Verbosity(GlobalProductId, Logger.Verbosity);
