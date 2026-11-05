@@ -257,6 +257,10 @@ begin
     TMSSetupInfoFile.ProductPath := '';
     TMSSetupInfoFile.Channel := 'production';
     TMSSetupInfoFile.Version := TLenientVersion.Create(TMSVersion, TVersionType.Semantic);
+    //If a self-update didn't complete, the files on disk aren't valid. Pretend nothing is installed so we always fetch
+    //the latest bundle and self-update can repair the install. Downloads is per working folder, so the bundle from
+    //the failed update might not be in this one.
+    if TFile.Exists(FFolders.SelfUpdateInstallingLock) then TMSSetupInfoFile.Version := TLenientVersion.Create('0.0', TVersionType.Semantic);
  {$IFDEF DEBUG}
     if TestParameters.ForceSelfUpdate then TMSSetupInfoFile.Version := TLenientVersion.Create('0.0', TVersionType.Semantic);
  {$ENDIF}

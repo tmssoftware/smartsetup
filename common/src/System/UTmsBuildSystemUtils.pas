@@ -33,6 +33,7 @@ procedure AddPathsWithWildcards(const Result: TList<string>; const Folder: strin
 
 procedure RenameAndCheck(const SourceFile, DestFile: string);
 procedure RenameAndCheckFolder(const SourceFolder, DestFolder: string);
+procedure AtomicMove(const SourceFile, DestFile, BackupFile: string);
 
 function FolderIsOutside(const Folder: string; const RootFolders: TArray<string>): boolean;
 procedure CheckFolderInside(const Folder: string; const RootFolders: TArray<string>);
@@ -570,6 +571,63 @@ begin
   RenameFilesOneByOne(SourceFolder, DestFolder);
 
 end;
+
+procedure AtomicMove(const SourceFile, DestFile, BackupFile: string);
+{$IFDEF MSWINDOWS}
+  const ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 =  $499;
+  const RETRY_ATTEMPTS = 5;
+  const RETRY_DELAY_MS = 100;
+{$ENDIF}
+begin
+  //In windows, there is no way to fully move some file Atomically:
+  // ReplaceFile can fail with a ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (see https://issues.chromium.org/issues/478086885 and https://piunikaweb.com/2026/07/01/microsoft-helps-google-fix-chrome-profile-reset-bug/)
+  //But we'll try our best, similar to what chrome/edge do.
+
+{$IFDEF MSWINDOWS}
+  // TFile.Replace(SourceFile, DestFile, BackupFile, true); won't return an error code
+  if ReplaceFile(PChar(DestFile), PChar(SourceFile),
+    PChar(BackupFile), REPLACEFILE_IGNORE_MERGE_ERRORS, nil, nil) then exit;
+
+  var LastError := GetLastError;
+  var Context := '';
+  case LastError of
+    ERROR_FILE_NOT_FOUND:
+    begin
+      //Destination doesn't exist: not an error, just move the file.
+      if MoveFileEx(PChar(SourceFile), PChar(DestFile), MOVEFILE_REPLACE_EXISTING or MOVEFILE_WRITE_THROUGH)
+        then exit;
+      LastError := GetLastError;
+    end;
+    ERROR_UNABLE_TO_MOVE_REPLACEMENT_2:
+    begin
+      //only try forward loop (retry restoring the new file). chrome/edge also tries to recover the old file if the new fails, but we won't try that.
+      for var i := 1 to RETRY_ATTEMPTS do
+      begin
+        if MoveFileExW(PWideChar(SourceFile), PWideChar(DestFile), MOVEFILE_REPLACE_EXISTING or MOVEFILE_WRITE_THROUGH) then
+        begin
+          Exit;
+        end;
+        LastError := GetLastError;
+        Sleep(RETRY_DELAY_MS);
+      end;
+      Context := ' The original file was moved to "' + BackupFile + '".';
+    end;
+  end;
+
+  if LastError = ERROR_ACCESS_DENIED then
+  begin
+    //FileGetAttr returns -1 (all bits set) if it fails, which includes the file not existing.
+    var Attr := FileGetAttr(DestFile);
+    if (Attr <> -1) and (Attr and faReadOnly <> 0) then
+      Context := Context + ' The file is read-only.';
+  end;
+  raise Exception.Create('Can''t replace "' + DestFile + '" with "' + SourceFile + '". ' + SysErrorMessage(LastError) + Context);
+{$ELSE}
+   //rename is atomic in posix
+   if not RenameFile(SourceFile, DestFile) then raise Exception.Create('Can''t replace "' + DestFile + '" with "' + SourceFile + '". ' + SysErrorMessage(GetLastError));
+{$ENDIF}
+end;
+
 
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string; const DryRun: boolean; const Log: TProc<string>; var NeedsToRestartIDE: boolean);
 begin

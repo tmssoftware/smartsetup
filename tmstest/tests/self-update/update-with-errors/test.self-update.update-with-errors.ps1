@@ -21,7 +21,7 @@ Copy-Item $tmsexe.Definition "./tms.exe" -Force
 
 
 $log = ./tms.exe self-update -test-force-self-update -test-skip-self-update-signature-verification
-if ($log -like "*TMS Smart Setup has been updated from version*") {
+if ($log -like "*has been repaired*") {
     Write-Host "Self-update reported a successful update."
 }
 else {
