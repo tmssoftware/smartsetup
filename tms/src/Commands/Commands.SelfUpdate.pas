@@ -29,7 +29,7 @@ const
 
 function InstallingLock: string;
 begin
-  Result := TPath.Combine(Config.Folders.ExeFolder, 'INSTALLING.LOCK');
+  Result := Config.Folders.SelfUpdateInstallingLock;
 end;
 
 function CurrentVersion: TVersion;

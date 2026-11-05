@@ -11,6 +11,10 @@ uses System.SysUtils, System.IOUtils, System.Classes, System.Zip,
      TMSSystem.Signatures
      {$IFDEF DEBUG}, Testing.Globals{$ENDIF};
 
+const
+  //Verification always runs before anything is installed, so the current install is still fine.
+  ManualInstallMessage = ' Please install the latest smartsetup manually from https://doc.tmssoftware.com/smartsetup/download/index.html';
+
 procedure VerifySelfUpdateFile(const CurrentExePath, StagedExePath: string);
 begin
   {$IFDEF DEBUG}
@@ -60,11 +64,7 @@ begin
         'signed by "%s". This is likely because our signing certificate has changed.',
         [ExeName, NewSigner, CurrentSigner]);
   except on ex: Exception do
-      raise Exception.CreateFmt(
-        ex.Message + ' Please re-install the latest smartsetup manually from %s.',
-        ['https://doc.tmssoftware.com/smartsetup/download/index.html']);
-
-
+      raise Exception.Create(ex.Message + ManualInstallMessage);
   end;
   {$ELSE}
   // Authenticode is Windows-only. Until we add a cross-platform signing
@@ -113,8 +113,7 @@ begin
     if IsTextFile(f) then continue;
 
     if not AllowedExtension(TPath.GetExtension(f))
-      then raise Exception.Create('The update contains unknown extensions and can''t be validated. Please download the latest smartsetup version from ' +
-           'https://github.com/tmssoftware/smartsetup/releases/latest/download/tmssmartsetup.zip');
+      then raise Exception.Create('The update contains unknown extensions and can''t be validated.' + ManualInstallMessage);
 
     VerifySelfUpdateFile(CurrentExePath, f);
 

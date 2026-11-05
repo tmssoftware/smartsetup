@@ -614,8 +614,13 @@ begin
     end;
   end;
 
-  if (LastError = ERROR_ACCESS_DENIED) and TFile.Exists(DestFile) and (faReadOnly and FileGetAttr(DestFile) <> 0) then
-    Context := Context + ' The file is read-only.';
+  if LastError = ERROR_ACCESS_DENIED then
+  begin
+    //FileGetAttr returns -1 (all bits set) if it fails, which includes the file not existing.
+    var Attr := FileGetAttr(DestFile);
+    if (Attr <> -1) and (Attr and faReadOnly <> 0) then
+      Context := Context + ' The file is read-only.';
+  end;
   raise Exception.Create('Can''t replace "' + DestFile + '" with "' + SourceFile + '". ' + SysErrorMessage(LastError) + Context);
 {$ELSE}
    //rename is atomic in posix

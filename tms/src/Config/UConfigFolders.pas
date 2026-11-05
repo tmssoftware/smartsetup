@@ -34,6 +34,7 @@ type
     function ExeFolder: string;
     function SameDiskTempSelfUpdateFolder: string;
     function SameDiskLockedFolder: string;
+    function SelfUpdateInstallingLock: string;
   end;
 
   TBuildFolders = class(TInterfacedObject, IBuildFolders)
@@ -74,6 +75,7 @@ type
     function ExeFolder: string;
     function SameDiskTempSelfUpdateFolder: string;
     function SameDiskLockedFolder: string;
+    function SelfUpdateInstallingLock: string;
   end;
 
 implementation
@@ -242,6 +244,12 @@ end;
 function TBuildFolders.SameDiskLockedFolder: string;
 begin
   Result := TPath.Combine(ExeFolder, '.locked')
+end;
+
+function TBuildFolders.SelfUpdateInstallingLock: string;
+begin
+  //Exists while a self-update is replacing files. It lives next to tms.exe, so all working folders share it.
+  Result := TPath.Combine(ExeFolder, 'INSTALLING.LOCK')
 end;
 
 function TBuildFolders.DoctorUndoFolder: string;
