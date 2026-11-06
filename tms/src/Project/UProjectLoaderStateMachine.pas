@@ -369,7 +369,7 @@ type
   end;
 
 implementation
-uses Classes, UTmsBuildSystemUtils, IOUtils, Deget.Version;
+uses Classes, UTmsBuildSystemUtils, IOUtils, Deget.Version, UMultiLogger;
 
 { TSectionDef }
 
@@ -451,7 +451,10 @@ constructor TApplicationSectionDef.Create(const aParent: TSection;
 begin
   inherited Create(aParent, aProject);
 
-  Actions := TListOfActions.Create;
+  Actions := TListOfActions.Create(SectionName, procedure(name, value: string; ErrorInfo: TErrorInfo)
+    begin
+      Logger.Info('Unknown property ignored: "' + name + '". ' + ErrorInfo.ToString);
+    end, false);
   Actions.Add('id', procedure(value: string; ErrorInfo: TErrorInfo) begin ValidateId(value); Project.Application.Id := value; end);
   Actions.Add('name', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Name := value; end);
   Actions.Add('description', procedure(value: string; ErrorInfo: TErrorInfo) begin Project.Application.Description := value; end);

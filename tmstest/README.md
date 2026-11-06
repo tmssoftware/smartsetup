@@ -210,7 +210,9 @@ The following functions are defined in util.modules.psm1:
   * **Test-FetchResultCounts**: Checks if the fetch summary is as expected.
   * **Set-AlternateRegistryKey**: Runs the test in an alternate registry key.
   * **CheckLogHasString(message)**: Reads the most recent tms log (via `tms log-view -print`) and throws if it does not contain `message`. Useful for asserting that a specific message reached the log.
+  * **CheckTextHasString(variable, message)**: Checks the variable contains message, and throws if it doesn't. 
   * **Test-tmsgui**: runs a tmsgui automation script and check it against a reference file.
+  * **New-AutoUpdateBundle**: Creates an auto-update bundle with a "newer" version of smartsetup to try autoupdates.
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 
