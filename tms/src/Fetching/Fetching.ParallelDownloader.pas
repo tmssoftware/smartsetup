@@ -24,7 +24,7 @@ type
     procedure SetupLogger(TotalSteps: Integer);
     procedure FetchOneProject(const FetchItem: TFetchItem);
     procedure DownloadAndUnzip(const FetchItem: TFetchItem);
-    class procedure CreateInstallInfoFile(const Folder: string; const ProductId: string; const Version: TLenientVersion; const Server: string); static;
+    class procedure CreateInstallInfoFile(const Folder, RootFolder, TextFileTempFolder: string; const ProductId: string; const Version: TLenientVersion; const Server: string); static;
     function DownloadFile(Info: TDownloadInfo; const FileNameOnDisk: string; out DownloadFormat: TDownloadFormat): string;
     function FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;
 
@@ -120,10 +120,10 @@ begin
     end);
 end;
 
-class procedure TParallelDownloader.CreateInstallInfoFile(const Folder: string; const ProductId: string; const Version: TLenientVersion; const Server: string);
+class procedure TParallelDownloader.CreateInstallInfoFile(const Folder, RootFolder, TextFileTempFolder: string; const ProductId: string; const Version: TLenientVersion; const Server: string);
 begin
   //pinned must be false when downloading new products
-  TFetchInfoFile.SaveInFolder(Folder, ProductId, Version, Server, false);
+  TFetchInfoFile.SaveInFolder(Folder, RootFolder, TextFileTempFolder, ProductId, Version, Server, false);
 end;
 
 function TParallelDownloader.FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;
@@ -156,7 +156,7 @@ begin
       TDirectory.Delete(ExtractFolder, True);
 
     TBundleDecompressor.ExtractCompressedFile(ZipFileName, ExtractFolder, DownloadFormat);
-    CreateInstallInfoFile(ExtractFolder, ProductId, Version, Server);
+    CreateInstallInfoFile(ExtractFolder, Folders.RootFolder, Folders.TextFileTempFolder, ProductId, Version, Server);
 
     var FinalFolder := CombinePath(Folders.ProductsFolder, ProductId);
     DeleteFolderMovingToLocked(Folders.LockedFilesFolder, FinalFolder, true);

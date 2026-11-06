@@ -38,7 +38,7 @@ type
   public
     class var ProductsWereModified: boolean;
     class function FromFile(const FileName: string): TFetchInfoFile;
-    class procedure SaveInFolder(const Folder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
+    class procedure SaveInFolder(const Folder, RootFolder, TempFolder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
   end;
 
 implementation
@@ -107,20 +107,21 @@ begin
   end;
 end;
 
-class procedure TFetchInfoFile.SaveInFolder(const Folder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
+class procedure TFetchInfoFile.SaveInFolder(const Folder, RootFolder, TempFolder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
 begin
   ProductsWereModified:= true;
   TDirectory_CreateDirectory(Folder);
-  var sw := TStreamWriter.Create(CombinePath(Folder, TFetchInfoFile.FileName), false, TUTF8NoBOMEncoding.Instance);
-  try
-    sw.WriteLine(InfoProduct + ': ' + ProductId);
-    sw.WriteLine(InfoVersion + ': ' + Version.ToString);
-    sw.WriteLine(InfoVersionType + ': ' + Version.VersionTypeId);
-    sw.WriteLine(InfoServer + ': ' + Server);
-    sw.WriteLine(InfoPinned + ': ' + BoolToStr(Pinned, false));
-  finally
-    sw.Free;
-  end;
+
+  SaveTextFileAtomically(CombinePath(Folder, TFetchInfoFile.FileName),
+    RootFolder, TempFolder,
+    procedure(sw: TStreamWriter)
+    begin
+      sw.WriteLine(InfoProduct + ': ' + ProductId);
+      sw.WriteLine(InfoVersion + ': ' + Version.ToString);
+      sw.WriteLine(InfoVersionType + ': ' + Version.VersionTypeId);
+      sw.WriteLine(InfoServer + ': ' + Server);
+      sw.WriteLine(InfoPinned + ': ' + BoolToStr(Pinned, false));
+    end);
 end;
 
 

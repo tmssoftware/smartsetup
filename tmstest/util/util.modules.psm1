@@ -204,6 +204,18 @@ function CheckLogHasString {
     }
 }
 
+function CheckTextHasString {
+    param(
+        [Parameter(Mandatory, Position=0)] [string[]] $Text,
+        [Parameter(Mandatory, Position=1)] [string] $Message
+    )
+
+    if (-not (Test-Result  -CommandResult $Text -Message $Message)) {
+        throw "Error: Text '$($Text)' doesn't contain '$($Message)'"
+    }
+
+}
+
 function bds {
     param(
         [Parameter(Mandatory, Position=0)] [string] $ProjectFile,
