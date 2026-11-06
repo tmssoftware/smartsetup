@@ -20,7 +20,7 @@ var
 
 function CreateDefaultConfig: TConfigDefinition;
 begin
-  Result := TConfigDefinition.Create('');
+  Result := TConfigDefinition.Create(TPath.GetDirectoryName(ConfigFileName));
   Result.Products.Add(GlobalProductId, TProductConfigDefinition.Create(GlobalProductId));
 end;
 
