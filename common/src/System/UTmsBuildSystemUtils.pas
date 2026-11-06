@@ -24,8 +24,14 @@ function CombinePath(const RootPath, RelPath: string): string;
 procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean; const AlreadyVisited: THashSet<string>);
 procedure LaunchFile(const FileName: string);
 
+function IsFileSystemCaseInsensitive: boolean;
 function GuidToStringN(const Guid: TGuid): String;
 procedure TDirectory_CreateDirectory(const Path: string);
+/// <summary>
+/// Writes a text file so a crash or an exception while writing never leaves it truncated: the content is written
+/// to a temporary file, which then replaces FileName in one step.
+/// </summary>
+procedure SaveTextFileAtomically(FileName: string; RootFolder, TempFolder: string; const Write: TProc<TStreamWriter>);
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string; const DryRun: boolean; const Log: TProc<string>; var NeedsToRestartIDE: boolean); overload;
 procedure DeleteFileOrMoveToLocked(const LockFolder, FileName: string); overload;
 
@@ -510,6 +516,56 @@ begin
   end;
 end;
 
+function IsFileSystemCaseInsensitive: boolean;
+begin
+{$IFDEF MSWINDOWS}
+  //technically, you could set NTFS to be case sensitive... but we won't cover that here.
+  Result := true;
+{$ELSE}
+  Result := false;
+{$ENDIF}
+end;
+
+
+procedure SaveTextFileAtomically(FileName: string; RootFolder, TempFolder: string; const Write: TProc<TStreamWriter>);
+var
+  TempFileName: string;
+  BackupFileName: string;
+  BaseFileName: string;
+begin
+  FileName := TPath.GetFullPath(FileName);
+  if RootFolder <> '' then RootFolder := TPath.GetFullPath(RootFolder);
+  //In general, try to use the folders that will be cleaned by cleanup.
+  var UseTempFolder := (TempFolder <> '') and (RootFolder <> '') and IncludeTrailingPathDelimiter(TPath.GetDirectoryName(FileName)).StartsWith(IncludeTrailingPathDelimiter(RootFolder), IsFileSystemCaseInsensitive);
+  if UseTempFolder then
+  begin
+    TDirectory_CreateDirectory(TempFolder);
+    BaseFileName :=  TPath.Combine(TempFolder, TPath.GetFileName(FileName) + '.' + GuidToStringN(TGUID.NewGuid));
+  end
+  else
+  begin
+    //files are in different paths, we can't be sure we can use our standard folders. This will leave
+    //hanging temp files that will never be cleaned if we crash before deleting the temp files.
+    BaseFileName := FileName + '.' + GuidToStringN(TGUID.NewGuid);
+  end;
+
+  TempFileName := BaseFileName + '.new' + TempExtension;
+  BackupFileName := BaseFileName + '.old' + TempExtension;
+
+  try
+    var Writer := TStreamWriter.Create(TempFileName, false, TUTF8NoBOMEncoding.Instance);
+    try
+      Write(Writer);
+    finally
+      Writer.Free;
+    end;
+    AtomicMove(TempFileName, FileName, BackupFileName);
+  except
+    System.SysUtils.DeleteFile(TempFileName);
+    raise;
+  end;
+end;
+
   procedure DeleteFileOrMoveToLocked(const LockFolder, FileName:      string);
   begin
     var DummyNeedsToRestartIDE := false;
@@ -580,13 +636,19 @@ procedure AtomicMove(const SourceFile, DestFile, BackupFile: string);
 {$ENDIF}
 begin
   //In windows, there is no way to fully move some file Atomically:
-  // ReplaceFile can fail with a ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (see https://issues.chromium.org/issues/478086885 and https://piunikaweb.com/2026/07/01/microsoft-helps-google-fix-chrome-profile-reset-bug/)
+  // ReplaceFile can fail with a ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (see https://issues.chromium.org/issues/478086885
+  // https://piunikaweb.com/2026/07/01/microsoft-helps-google-fix-chrome-profile-reset-bug/)
+  // MoveFileEx can also fail if it removes the file and it crashes before it moves the new one.
   //But we'll try our best, similar to what chrome/edge do.
 
 {$IFDEF MSWINDOWS}
   // TFile.Replace(SourceFile, DestFile, BackupFile, true); won't return an error code
   if ReplaceFile(PChar(DestFile), PChar(SourceFile),
-    PChar(BackupFile), REPLACEFILE_IGNORE_MERGE_ERRORS, nil, nil) then exit;
+    PChar(BackupFile), REPLACEFILE_IGNORE_MERGE_ERRORS, nil, nil) then
+    begin
+      System.SysUtils.DeleteFile(BackupFile);
+      exit;
+    end;
 
   var LastError := GetLastError;
   var Context := '';
@@ -605,6 +667,7 @@ begin
       begin
         if MoveFileExW(PWideChar(SourceFile), PWideChar(DestFile), MOVEFILE_REPLACE_EXISTING or MOVEFILE_WRITE_THROUGH) then
         begin
+          System.SysUtils.DeleteFile(BackupFile);
           Exit;
         end;
         LastError := GetLastError;
@@ -617,7 +680,9 @@ begin
   if LastError = ERROR_ACCESS_DENIED then
   begin
     //FileGetAttr returns -1 (all bits set) if it fails, which includes the file not existing.
+{$WARN SYMBOL_PLATFORM OFF}
     var Attr := FileGetAttr(DestFile);
+{$WARN SYMBOL_PLATFORM ON}
     if (Attr <> -1) and (Attr and faReadOnly <> 0) then
       Context := Context + ' The file is read-only.';
   end;

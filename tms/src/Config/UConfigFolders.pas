@@ -28,6 +28,7 @@ type
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
     function ZipFileTempFolder: string;
+    function TextFileTempFolder: string;
     function DcuMegafolder: string;
     function MetaSelfUpdateFolder: string;
     function TempSelfUpdateFolder: string;
@@ -69,6 +70,7 @@ type
     function VCSMetaFolder: string;
     function VCSTempFolder: string;
     function ZipFileTempFolder: string;
+    function TextFileTempFolder: string;
     function DcuMegafolder: string;
     function MetaSelfUpdateFolder: string;
     function TempSelfUpdateFolder: string;
@@ -215,6 +217,11 @@ end;
 function TBuildFolders.ZipFileTempFolder: string;
 begin
   Result := TPath.Combine(TempFolder, '.zipfiles')
+end;
+
+function TBuildFolders.TextFileTempFolder: string;
+begin
+  Result := TPath.Combine(TempFolder, '.txt')
 end;
 
 function TBuildFolders.DcuMegafolder: string;

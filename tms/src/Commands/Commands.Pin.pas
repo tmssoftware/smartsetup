@@ -40,7 +40,9 @@ begin
         begin
           if Pin then Logger.Trace('Pinned ' + Product.ProductId + ' to version ' + Product.Version)
           else Logger.Trace('Unpinned ' + Product.ProductId);
-          TFetchInfoFile.SaveInFolder(Product.ProductPath, Product.ProductId, Product.Version, Product.Server, Pin);
+          TFetchInfoFile.SaveInFolder(Product.ProductPath,
+            Config.Folders.RootFolder, Config.Folders.TextFileTempFolder,
+            Product.ProductId, Product.Version, Product.Server, Pin);
           inc(Count);
         end;
       end;

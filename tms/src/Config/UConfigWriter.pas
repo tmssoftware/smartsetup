@@ -554,14 +554,14 @@ begin
   try
     //Avoid lost updates: if 2 commands loaded the config and both modify it, the second would overwrite the changes of the first.
     Cfg.CheckLoadedFileNotModified(FileName);
-    var TextWriter := TStreamWriter.Create(FileName, false, TUTF8NoBOMEncoding.Instance);
-    try
-      SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
-        'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
-        'TMS Smart Setup configuration file'#10'Modify settings as needed.');
-    finally
-      TextWriter.Free;
-    end;
+    SaveTextFileAtomically(FileName,
+      Cfg.Folders.RootFolder, Cfg.Folders.TextFileTempFolder,
+      procedure(TextWriter: TStreamWriter)
+      begin
+        SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
+          'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
+          'TMS Smart Setup configuration file'#10'Modify settings as needed.');
+      end);
     //What is on disk is now what we have in memory. If we save again, compare against this.
     Cfg.SetLoadedFile(FileName);
   finally
