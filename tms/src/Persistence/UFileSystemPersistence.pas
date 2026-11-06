@@ -167,8 +167,8 @@ begin
   var f := GetFileName(Project, IDE, Platform, Package);
   TDirectory_CreateDirectory(TPath.GetDirectoryName(f));
 
-  //Atomically, so a crash doesn't leave a half-written uninstall record.
-  SaveTextFileAtomically(f, TEncoding.UTF8,
+  SaveTextFileAtomically(f,
+    Config.Folders.RootFolder, Config.Folders.TextFileTempFolder,
     procedure(Writer: TStreamWriter)
     begin
       Writer.Write(Data);

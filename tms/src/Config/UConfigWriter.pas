@@ -554,9 +554,8 @@ begin
   try
     //Avoid lost updates: if 2 commands loaded the config and both modify it, the second would overwrite the changes of the first.
     Cfg.CheckLoadedFileNotModified(FileName);
-    //Atomically: writing straight into the file truncated it first, so any exception while writing
-    //(e.g. an unknown variable) left the user's tms.config.yaml empty.
-    SaveTextFileAtomically(FileName, TUTF8NoBOMEncoding.Instance,
+    SaveTextFileAtomically(FileName,
+      Cfg.Folders.RootFolder, Cfg.Folders.TextFileTempFolder,
       procedure(TextWriter: TStreamWriter)
       begin
         SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,

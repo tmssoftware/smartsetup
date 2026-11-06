@@ -217,7 +217,9 @@ begin
 
 
     //When we fetch a new product, pinned is false
-    TFetchInfoFile.SaveInFolder(ProductFolderRoot, Product.Product.ProductId, TLenientVersion.Create(ProductVersion, TVersionType.FreeForm), Product.Product.Server, false);
+    TFetchInfoFile.SaveInFolder(ProductFolderRoot,
+      Config.Folders.RootFolder, Config.Folders.TextFileTempFolder,
+      Product.Product.ProductId, TLenientVersion.Create(ProductVersion, TVersionType.FreeForm), Product.Product.Server, false);
     AddPredefinedData(ProductFolder, Product.Product);
     begin
 

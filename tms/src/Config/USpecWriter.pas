@@ -688,8 +688,8 @@ end;
 
 procedure TSpecWriter.Save(const FileName: string; const WritingFormat: TWritingFormat; const UseJSON, CmdSyntax: boolean);
 begin
-  //Atomically, so an exception while writing doesn't leave a truncated tmsbuild.yaml.
-  SaveTextFileAtomically(FileName, TUTF8NoBOMEncoding.Instance,
+  //Here we are modifying a product and the temp folders might not even exist. We will just put the temp files together with the file.
+  SaveTextFileAtomically(FileName, '', '',
     procedure(TextWriter: TStreamWriter)
     begin
       SaveToStream(TextWriter, WritingFormat, UseJSON, CmdSyntax);

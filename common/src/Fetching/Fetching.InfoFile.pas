@@ -38,7 +38,7 @@ type
   public
     class var ProductsWereModified: boolean;
     class function FromFile(const FileName: string): TFetchInfoFile;
-    class procedure SaveInFolder(const Folder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
+    class procedure SaveInFolder(const Folder, RootFolder, TempFolder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
   end;
 
 implementation
@@ -107,12 +107,13 @@ begin
   end;
 end;
 
-class procedure TFetchInfoFile.SaveInFolder(const Folder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
+class procedure TFetchInfoFile.SaveInFolder(const Folder, RootFolder, TempFolder, ProductId: string; const Version: TLenientVersion; const Server: string; const Pinned: boolean);
 begin
   ProductsWereModified:= true;
   TDirectory_CreateDirectory(Folder);
-  //Atomically: a truncated info file makes the product drop out of the installed list ("Invalid Product Id").
-  SaveTextFileAtomically(CombinePath(Folder, TFetchInfoFile.FileName), TUTF8NoBOMEncoding.Instance,
+
+  SaveTextFileAtomically(CombinePath(Folder, TFetchInfoFile.FileName),
+    RootFolder, TempFolder,
     procedure(sw: TStreamWriter)
     begin
       sw.WriteLine(InfoProduct + ': ' + ProductId);
