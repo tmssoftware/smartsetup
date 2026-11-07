@@ -8,20 +8,20 @@ procedure RegisterServerListCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions,
-     UConfigWriter, Commands.GlobalConfig, UConfigDefinition,
-     System.JSON, UJsonPrinter, Commands.Logging, UMultiLogger;
+     UConfigWriter, Commands.LocalConfig, UConfigDefinition,
+     System.JSON, UJsonPrinter, Commands.Logging, UMultiLogger, UConfigSources;
 
 var
   EnableLog: Boolean = False;
 
-procedure OutputAsJson;
+procedure OutputAsJson(const Cfg: TConfigDefinition);
 begin
   var Root := TJSONObject.Create;
   try
-    for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+    for var i := 0 to Cfg.ServerConfig.ServerCount - 1 do
     begin
       var Item := TJSONObject.Create;
-      var Server := Config.ServerConfig.GetServer(i);
+      var Server := Cfg.ServerConfig.GetServer(i);
       Root.AddPair(Server.Name, Item);
 
       Item.AddPair('name', Server.Name);
@@ -35,11 +35,11 @@ begin
   end;
 end;
 
-procedure OutputAsText;
+procedure OutputAsText(const Cfg: TConfigDefinition);
 begin
-  for var i := 0 to Config.ServerConfig.ServerCount - 1 do
+  for var i := 0 to Cfg.ServerConfig.ServerCount - 1 do
   begin
-    var Server := Config.ServerConfig.GetServer(i);
+    var Server := Cfg.ServerConfig.GetServer(i);
 
     var EnabledStr := 'ENABLED';
     if not Server.Enabled then EnabledStr := 'DISABLED';
@@ -57,10 +57,15 @@ end;
 procedure RunServerListCommand;
 begin
   InitFolderBasedCommand(EnableLog);
-  if Logger.JsonMode then
-    OutputAsJson
-  else
-    OutputAsText;
+  var Cfg := TSourcedConfig.Create(AllConfigSources);
+  try
+    if Logger.JsonMode then
+      OutputAsJson(Cfg.Instance)
+    else
+      OutputAsText(Cfg.Instance);
+  finally
+    Cfg.Free;
+  end;
 end;
 
 procedure RegisterServerListCommand;
@@ -80,6 +85,7 @@ begin
   option.Hidden := True;
 
   RegisterJsonOption(cmd);
+  RegisterConfigSourceOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Status, RunServerListCommand);
 end;

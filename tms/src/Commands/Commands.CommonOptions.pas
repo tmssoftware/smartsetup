@@ -3,13 +3,15 @@ unit Commands.CommonOptions;
 interface
 
 uses
-  VSoft.CommandLine.Options, System.SysUtils, UCommandLine, ULogger, UConsoleLogger;
+  VSoft.CommandLine.Options, System.SysUtils, UCommandLine, ULogger, UConsoleLogger, UConfigSources;
 
 procedure RegisterGlobalOptions;
 procedure RegisterRepoOption(cmd: TCommandDefinition);
 procedure RegisterNoBuildOption(cmd: TCommandDefinition; Action: TConstProc<Boolean>);
 procedure RegisterNoFetchOption(cmd: TCommandDefinition; Action: TConstProc<Boolean>);
 procedure RegisterJsonOption(cmd: TCommandDefinition);
+procedure RegisterConfigSourceOption(cmd: TCommandDefinition);
+
 
 procedure RegisterVersionCommand;
 procedure CheckAppAlreadyRunning;
@@ -33,7 +35,8 @@ implementation
 
 uses
   Commands.Logging, Commands.GlobalConfig, UMultiLogger, IOUTils,
-  UTmsBuildSystemUtils, Testing.CommandLineOptions, SmartSetup.Locks;
+  UTmsBuildSystemUtils, Testing.CommandLineOptions, SmartSetup.Locks,
+  Commands.LocalConfig;
 
 procedure CheckAppAlreadyRunning;
 begin
@@ -197,6 +200,18 @@ begin
     end);
   option.HasValue := False;
 end;
+
+procedure RegisterConfigSourceOption(cmd: TCommandDefinition);
+begin
+  var option := cmd.RegisterOption<TConfigSource>('config-source', '', 'what configuration files to load and/or write. Might be "main", "global" or "local"',
+    procedure(const Value: TConfigSource)
+    begin
+      TSourcedConfig.SetOverrideConfigSources([Value]);
+    end);
+  option.HasValue := True;
+  option.AllowMultiple := false;
+end;
+
 
 procedure RegisterNoBuildOption(cmd: TCommandDefinition; Action: TConstProc<Boolean>);
 begin

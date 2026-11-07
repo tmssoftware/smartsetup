@@ -235,7 +235,9 @@ uses
   Testing.TestDeleteFolders in 'src\Testing\Testing.TestDeleteFolders.pas',
   Commands.TestDeleteFolders in 'src\Commands\Commands.TestDeleteFolders.pas',
   Commands.CleanUp in 'src\Commands\Commands.CleanUp.pas',
-  SmartSetup.Locks in 'src\System\SmartSetup.Locks.pas';
+  SmartSetup.Locks in 'src\System\SmartSetup.Locks.pas',
+  UConfigSources in 'src\Config\UConfigSources.pas',
+  Commands.LocalConfig in 'src\Commands\Commands.LocalConfig.pas';
 
 begin
   try

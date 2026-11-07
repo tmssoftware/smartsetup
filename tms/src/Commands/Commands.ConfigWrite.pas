@@ -8,17 +8,22 @@ procedure RegisterConfigWriteCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions, Commands.Logging,
-     UConfigWriter, Types, Commands.GlobalConfig;
+     UConfigWriter, Types, Commands.LocalConfig, UConfigSources;
 
 procedure RunConfigWriteCommand;
 begin
   InitFolderBasedCommand(false);
-  var ConfigWriter := TConfigWriter.Create(Config, false);
+  var Cfg := TSourcedConfig.Create([TConfigSource.Main]);
   try
-   Config.EnsureAllProducts;
-   ConfigWriter.Save(ConfigFileName);
+    var ConfigWriter := TConfigWriter.Create(Cfg.Instance, false);
+    try
+     Cfg.Instance.EnsureAllProducts;
+     ConfigWriter.Save(Cfg.FileName, Cfg.SingleSource, Cfg.WritingFormat);
+    finally
+     ConfigWriter.Free;
+    end;
   finally
-   ConfigWriter.Free;
+    Cfg.Free;
   end;
 end;
 
@@ -32,6 +37,7 @@ begin
   cmd.Examples.Add('config-write -p:configuration-for-all-products:delphi-versions=[delphixe,delphi12] -p:configuration-for-all-products:platforms=[win32intel,win64intel]');
   cmd.Examples.Add('config-write -p:tms-smart-setup-options:git:git-location=c:\git.exe');
 
+  RegisterConfigSourceOption(cmd);
   AddCommand(cmd.Name, CommandGroups.Config, RunConfigWriteCommand);
 end;
 

@@ -4,7 +4,7 @@ unit UConfigWriter;
 interface
 uses Classes, SysUtils, Util.Replacer, UConfigDefinition, Generics.Defaults,
      Generics.Collections, ULogger, Deget.CoreTypes, Megafolders.Definition, BBArrays, BBClasses,
-     BBYaml.Writer, Types, JSON, BBYaml.Types, UConfigKeys, BBCmd;
+     BBYaml.Writer, Types, JSON, BBYaml.Types, UConfigKeys, BBCmd, UConfigSources;
 type
 TConfigWriter = class
   private
@@ -62,7 +62,7 @@ TConfigWriter = class
       const IdeName: string): TYamlValue;
   public
     constructor Create(const aCfg: TConfigDefinition; const aCmdFormat: boolean);
-    procedure Save(const FileName: string);
+    procedure Save(const FileName: string; const aConfigSource: TConfigSource; const aWritingFormat: TWritingFormat);
     class function GetProperty(const aCfg: TConfigDefinition; const aPropertyName: string; const WritingFormat: TWritingFormat; const UseJson, CmdSyntax: boolean): string; static;
 end;
 
@@ -548,22 +548,23 @@ begin
   Result := TEncoding.UTF8.GetString(Buffer);
 end;
 
-procedure TConfigWriter.Save(const FileName: string);
+procedure TConfigWriter.Save(const FileName: string; const aConfigSource: TConfigSource; const aWritingFormat: TWritingFormat);
 begin
+  TDirectory_CreateDirectory(ExtractFileDir(ExpandFileName(FileName)));
   var Protector := LockConfig(FileName);
   try
     //Avoid lost updates: if 2 commands loaded the config and both modify it, the second would overwrite the changes of the first.
-    Cfg.CheckLoadedFileNotModified(FileName);
+    Cfg.CheckLoadedFileNotModified(FileName, aConfigSource);
     SaveTextFileAtomically(FileName,
       Cfg.Folders.RootFolder, Cfg.Folders.TextFileTempFolder,
       procedure(TextWriter: TStreamWriter)
       begin
-        SaveToStream(TextWriter, '', TWritingFormat.Full, false, false,
+        SaveToStream(TextWriter, '', aWritingFormat, false, false,
           'https://raw.githubusercontent.com/tmssoftware/smartsetup/refs/heads/main/tms/example-config/tms.config.schema.json',
           'TMS Smart Setup configuration file'#10'Modify settings as needed.');
       end);
     //What is on disk is now what we have in memory. If we save again, compare against this.
-    Cfg.SetLoadedFile(FileName);
+    Cfg.SetLoadedFile(FileName, aConfigSource);
   finally
     Protector.Free;
   end;

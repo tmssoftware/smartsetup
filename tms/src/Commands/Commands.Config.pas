@@ -12,7 +12,7 @@ implementation
 uses
   UTmsBuildSystemUtils, Commands.GlobalConfig, System.IOUtils, System.Classes,
   System.Types, UConfigWriter, UConfigDefinition, UConfigKeys,
-  Deget.CoreTypes, Commands.Logging;
+  Deget.CoreTypes, Commands.Logging, BBYaml.Writer, UConfigSources;
 
 var
   Print,
@@ -30,7 +30,7 @@ begin
   try
     var ConfigWriter := TConfigWriter.Create(DefaultConfig, false);
     try
-      ConfigWriter.Save(ConfigFileName);
+      ConfigWriter.Save(ConfigFileName, TConfigSource.Main, TWritingFormat.Full);
     finally
       ConfigWriter.Free;
     end;

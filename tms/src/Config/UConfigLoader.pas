@@ -2,17 +2,18 @@ unit UConfigLoader;
 {$i ../../tmssetup.inc}
 
 interface
-uses UConfigDefinition, BBYaml, BBCmd, UConfigLoaderStateMachine, IOUtils, Generics.Collections;
+uses UConfigDefinition, BBYaml, BBCmd, UConfigLoaderStateMachine, IOUtils, Generics.Collections, UConfigSources;
 type
 
   TConfigLoader = class
   private
-    class procedure LoadIntoConfig(const Filename: string; const Config: TConfigDefinition; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
+    class procedure LoadIntoConfig(const Filename: string; const Config: TConfigDefinition; const ConfigSources: TConfigSourceSet; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
     class procedure SetMaxCores(const Config: TConfigDefinition); static;
-    class function GetGlobalConfigFilename: string; static;
 
   public
-    class function LoadConfig(const ConfigFile: string; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TConfigDefinition;
+    class function LoadConfig(const ConfigFile: string; const ConfigSources: TConfigSourceSet; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string = ''; const aIgnoreOtherFiles: boolean = false): TConfigDefinition;
+    class function GetGlobalConfigFileName: string; static;
+    class function GetLocalConfigFileName(const FullFileName: string): string;
   end;
 implementation
 uses Classes, SysUtils, UMultiLogger, System.Threading, SmartSetup.Locks;
@@ -30,7 +31,7 @@ begin
   end;
 end;
 
-class function TConfigLoader.GetGlobalConfigFilename: string;
+class function TConfigLoader.GetGlobalConfigFileName: string;
 begin
   {$IFDEF MSWINDOWS}
   var UserFolder := GetEnvironmentVariable('USERPROFILE');
@@ -41,7 +42,13 @@ begin
   Result := TPath.Combine(TPath.Combine(UserFolder, '.smartsetup'), 'tms.config.global.yaml');
 end;
 
+class function TConfigLoader.GetLocalConfigFileName(const FullFileName: string): string;
+begin
+  Result := TPath.Combine(TPath.GetDirectoryName(FullFileName), TPath.GetFileNameWithoutExtension(FullFileName) + '.local.yaml')
+end;
+
 class procedure TConfigLoader.LoadIntoConfig(const Filename: string; const Config: TConfigDefinition;
+   const ConfigSources: TConfigSourceSet;
    const ExtraConfigFiles: TArray<string>;
    const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean);
 
@@ -49,28 +56,30 @@ begin
   var FullFilename := TPath.GetFullPath(Filename);
   var Protector := LockConfig(FullFileName);
   try
-    Config.SetLoadedFile(FullFilename);
     var MainSection := TMainSectionConf.Create(Config);
     try
-      var GlobalFilename := GetGlobalConfigFilename;
-      if (GlobalFilename <> '') and (TFile.Exists(GlobalFilename)) then
+      var GlobalFilename := GetGlobalConfigFileName;
+      if (GlobalFilename <> '') and (TFile.Exists(GlobalFilename)) and (TConfigSource.Global in ConfigSources) then
       begin
         MainSection.CreatedBy := 'Global: ' + GlobalFilename;
         Logger.Trace('Loading global configuration from ' + GlobalFilename);
+        Config.SetLoadedFile(GlobalFilename, TConfigSource.Global);
         TBBYamlReader.ProcessFile(GlobalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
       end;
 
-      if (TFile.Exists(FullFilename)) then
+      if (TFile.Exists(FullFilename) and (TConfigSource.Main in ConfigSources)) then
       begin
         MainSection.CreatedBy := 'Main: ' + Filename;
+        Config.SetLoadedFile(FullFilename, TConfigSource.Main);
         TBBYamlReader.ProcessFile(FullFilename, MainSection, aStopAt, aIgnoreOtherFiles);
       end;
 
-      var LocalFilename := TPath.Combine(TPath.GetDirectoryName(FullFilename), TPath.GetFileNameWithoutExtension(FullFilename) + '.local.yaml');
-      if (TFile.Exists(LocalFilename)) then
+      var LocalFilename := GetLocalConfigFileName(FullFileName);
+      if (TFile.Exists(LocalFilename) and (TConfigSource.Local in ConfigSources)) then
       begin
         MainSection.CreatedBy := 'Local: ' + LocalFilename;
         Logger.Trace('Loading local configuration from ' + LocalFilename);
+        Config.SetLoadedFile(LocalFilename, TConfigSource.Local);
         TBBYamlReader.ProcessFile(LocalFilename, MainSection, aStopAt, aIgnoreOtherFiles);
       end;
 
@@ -97,7 +106,7 @@ begin
   SetMaxCores(Config);
 end;
 
-class function TConfigLoader.LoadConfig(const ConfigFile: string; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean): TConfigDefinition;
+class function TConfigLoader.LoadConfig(const ConfigFile: string; const ConfigSources: TConfigSourceSet; const ExtraConfigFiles: TArray<string>; const CmdParameters: TArray<string>; const aStopAt: string; const aIgnoreOtherFiles: boolean): TConfigDefinition;
 begin
   if TFile.Exists(ConfigFile) then
   begin
@@ -109,7 +118,7 @@ begin
 
   Result := TConfigDefinition.Create(ConfigFileFullName);
   try
-    LoadIntoConfig(ConfigFile, Result, ExtraConfigFiles, CmdParameters, aStopAt, aIgnoreOtherFiles);
+    LoadIntoConfig(ConfigFile, Result, ConfigSources, ExtraConfigFiles, CmdParameters, aStopAt, aIgnoreOtherFiles);
   Except
     Result.Free;
     raise;
