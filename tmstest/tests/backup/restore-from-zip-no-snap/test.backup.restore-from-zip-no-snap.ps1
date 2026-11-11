@@ -74,7 +74,7 @@ foreach ($expected in $expectedLines) {
 }
 
 $result = tms update
-Test-BuildResultCounts -BuildResult $result -expectedNotModifiedCount 2 -expectedIgnoreCount 0 -expectedOkCount 2
+Test-BuildResultCounts -BuildResult $result -expectedNotModifiedCount 4 -expectedIgnoreCount 0 -expectedOkCount 0
 $result = tms update
 Test-BuildResultCounts -BuildResult $result -expectedNotModifiedCount 4 -expectedIgnoreCount 0 -expectedOkCount 0
 

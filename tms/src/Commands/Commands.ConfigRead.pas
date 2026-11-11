@@ -51,6 +51,7 @@ begin
     procedure(const Value: Boolean)
     begin
       CmdSyntax := Value;
+      Logger.CmdMode := Value;
     end);
   option.HasValue := False;
 

@@ -820,7 +820,9 @@ begin
   Run(AddRepo('self-update'));
 
   // Quick and dirty, but what better option do we have?
-  Result := Pos('TMS Smart Setup has been updated from version', OutputText) > 0;
+  var RText := OutputText;
+  Result := RText.Contains('TMS Smart Setup has been updated from version')
+         or (RText.Contains('TMS Smart Setup installation of version') and RText.Contains('has been repaired'));
 end;
 
 { TTmsConfigureRunner }

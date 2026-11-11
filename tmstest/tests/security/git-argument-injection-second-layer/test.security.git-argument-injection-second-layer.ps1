@@ -13,13 +13,13 @@ tms server-enable community true
 # --orphan, --discard-changes, etc., which manipulate repo state.
 
 Test-CommandFails { tms install sglienke.spring4d:"--upload-pack=evil" -test-allow-vcs-commands-starting-with-minus} "*(0x3D) is not allowed. Only letters, digits, dots, hyphens, underscores, slashes and plus signs are permitted*" "version with leading double dash"
-Test-CommandFails { tms install sglienke.spring4d:"-orphan" -test-allow-vcs-commands-starting-with-minus} "*Error fetching sglienke.spring4d:-orphan from GIT: Can't find the version*" "version with leading single dash"
+Test-CommandFails { tms install sglienke.spring4d:"-orphan" -test-allow-vcs-commands-starting-with-minus} "*Error fetching sglienke.spring4d:-orphan from GIT:* Can't find the version*" "version with leading single dash"
 CheckLogHasString "fatal: invalid reference: -orphan"
-Test-CommandFails { tms install sglienke.spring4d:"--force" -test-allow-vcs-commands-starting-with-minus} "*Error fetching sglienke.spring4d:--force from GIT: Can't find the version*" "version that looks like git --force"
+Test-CommandFails { tms install sglienke.spring4d:"--force" -test-allow-vcs-commands-starting-with-minus} "*Error fetching sglienke.spring4d:--force from GIT:* Can't find the version*" "version that looks like git --force"
 CheckLogHasString "fatal: invalid reference: --force"
 
 # Whitespace before the dash must not bypass the check (the validator trims first).
-Test-CommandFails { tms install sglienke.spring4d:" --upload-pack-evil" -test-allow-vcs-commands-starting-with-minus} "*Error fetching sglienke.spring4d:--upload-pack-evil from GIT: Can't find the version*" "version with leading space then dash"
+Test-CommandFails { tms install sglienke.spring4d:" --upload-pack-evil" -test-allow-vcs-commands-starting-with-minus} "*Error fetching sglienke.spring4d:--upload-pack-evil from GIT:* Can't find the version*" "version with leading space then dash"
 CheckLogHasString "fatal: invalid reference: --upload-pack-evil"
 
 # --- Versions that contain '-' but do NOT start with one are still allowed ---

@@ -12,7 +12,7 @@ uses
 var
   FetchOptions: TFetchOptions; // better remove this later and not make logging depending on fetch options
 
-procedure FinishLogging(const JsonMode: boolean);
+procedure FinishLogging(const MachineReadableMode: boolean);
 procedure AlertAboutNewVersions(const NewSmartSetupVersion: string);
 procedure AlertAboutDiskSpace;
 procedure InitFolderBasedCommand(EnableLog: Boolean = True);
@@ -93,7 +93,7 @@ begin
   Logger.FinishSection(TMessageType.BasicInfo);
 end;
 
-procedure FinishLogging(const JsonMode: boolean);
+procedure FinishLogging(const MachineReadableMode: boolean);
 begin
   if LogFile <> '' then
   begin
@@ -129,7 +129,7 @@ begin
   end
   else
   begin
-    if NeedsToRestartIDE and not JsonMode then
+    if NeedsToRestartIDE and not MachineReadableMode then
     begin
       WriteLn;
       WriteLn('*************************************************************************************');

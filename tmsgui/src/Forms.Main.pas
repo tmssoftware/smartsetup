@@ -1267,12 +1267,11 @@ begin
         begin
           exit;
         end;
-
         GUI.ExecuteSelfUpdate(ProgressEvent,
           procedure
           begin
             Relaunch := True;
-            TThread.Synchronize(nil, Application.MainForm.Close); //must be called from the main thread.
+            TThread.Synchronize(nil, Application.Terminate); //must be called from the main thread.
           end);
       end);
   end;

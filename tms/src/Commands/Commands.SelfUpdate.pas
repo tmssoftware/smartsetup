@@ -17,7 +17,7 @@ uses
   Commands.CommonOptions, URepositoryManager, Commands.Logging, Commands.Update, IOUtils, UTmsBuildSystemUtils, Deget.CoreTypes,
   {$IFDEF MSWINDOWS}WinApi.Windows,{$ENDIF} //to keep compiler happy
   {$IFDEF POSIX}Posix.Unistd,{$ENDIF}
-  Commands.GlobalConfig, System.Zip, Downloads.VersionManager, JSON,
+  Commands.GlobalConfig, System.Zip, Downloads.VersionManager, JSON, UConfigFolders,
   UConfigDefinition, Fetching.Manager, ULogger, Deget.CommandLine, Character, Hash,
   UGenericDecompressor, Commands.SelfUpdate.Verify, Testing.Globals, Downloads.FileNameManager;
 
@@ -29,7 +29,13 @@ const
 
 function InstallingLock: string;
 begin
-  Result := Config.Folders.SelfUpdateInstallingLock;
+  //Do not use Config.Folders here. This might be called when there is no config loaded and we don't want to create one.
+  var BuildFolders := TBuildFolders.Create('');
+  try
+    Result := BuildFolders.SelfUpdateInstallingLock;
+  finally
+    BuildFolders.Free;
+  end;
 end;
 
 function CurrentVersion: TVersion;

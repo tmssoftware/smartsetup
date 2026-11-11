@@ -71,7 +71,7 @@ type
     procedure SetPercentAction(const func: TFunc<integer>); virtual; abstract;
 
     function IgnoresVerbosity: boolean; virtual; abstract;
-    function SilencedInJsonMode: boolean; virtual;
+    function SilencedInMachineReadableMode: boolean; virtual;
 
     procedure StartSpinner; virtual;
     procedure StopSpinner; virtual;
@@ -116,9 +116,9 @@ begin
 
 end;
 
-function TLogger.SilencedInJsonMode: boolean;
+function TLogger.SilencedInMachineReadableMode: boolean;
 begin
-  Result := false;
+  Result := False;
 end;
 
 procedure TLogger.ConnectTo(const ConnectionPoint: TConnectionPoint);

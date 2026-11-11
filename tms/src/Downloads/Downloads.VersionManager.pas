@@ -62,28 +62,39 @@ begin
   end;
 end;
 
-function GetFetchDictionary: TDictionary<string, TVersion>;
+function GetFetchDictionary: TDictionary<string, TProductInfo>;
 begin
-  Result := TDictionary<string, TVersion>.Create;
-  var InstalledProducts := TObjectList<TFetchInfoFile>.Create;
+  Result := TDictionary<string, TProductInfo>.Create;
   try
-    GetFetchedProducts(Config.Folders.ProductsFolder, InstalledProducts);
-    for var Product in InstalledProducts do
-    begin
-      var Version: TVersion;
-      if TVersion.TryFromString(Product.Version, Version) then
+    var InstalledProducts := TObjectList<TFetchInfoFile>.Create;
+    try
+      GetFetchedProducts(Config.Folders.ProductsFolder, InstalledProducts);
+      for var Product in InstalledProducts do
       begin
-        Result.Add(Product.ProductId, Version);
+        var Version: TVersion;
+        if TVersion.TryFromString(Product.Version, Version) then
+        begin
+          var ExistingProductInfo: TProductInfo;
+          if Result.TryGetValue(Product.ProductId, ExistingProductInfo) then
+          begin
+            raise Exception.Create('The project id "' + Product.ProductId + '" is repeated in folders "' + Product.ProductPath + '" and "' + ExistingProductInfo.FileName + '". Make sure only one is available.' );
+          end;
+          Result.Add(Product.ProductId, TProductInfo.Create(Product.ProductPath, Version));
+        end;
       end;
+    finally
+      InstalledProducts.Free;
     end;
-  finally
-    InstalledProducts.Free;
+  except
+    Result.Free;
+    raise;
   end;
 end;
 
-function GetInstalledVersion(const InstalledProducts: TDictionary<string, TVersion>; const ProductId: string): TVersion;
+function GetInstalledVersion(const InstalledProducts: TDictionary<string, TProductInfo>; const ProductId: string): TVersion;
 begin
-  if InstalledProducts.TryGetValue(ProductId, Result) then exit;
+  var ProductInfo: TProductInfo;
+  if InstalledProducts.TryGetValue(ProductId, ProductInfo) then exit(ProductInfo.Version);
   Result := TVersion.Make(-1, -1, -1, -1);
 end;
 
@@ -150,7 +161,7 @@ begin
   end;
 end;
 
-procedure MoveFromCurrentToOld(const InstalledProducts: TDictionary<string, TVersion>; const MaxVersionsPerProduct: integer);
+procedure MoveFromCurrentToOld(const InstalledProducts: TDictionary<string, TProductInfo>; const MaxVersionsPerProduct: integer);
 begin
   var Keep := 1;
   if (MaxVersionsPerProduct = 0) then Keep := 0;
@@ -168,11 +179,11 @@ begin
   end;
 end;
 
-procedure MoveFromOldBackToCurrent(const InstalledProducts: TDictionary<string, TVersion>);
+procedure MoveFromOldBackToCurrent(const InstalledProducts: TDictionary<string, TProductInfo>);
 begin
   for var Product in InstalledProducts do
   begin
-    var FileName := TDownloadFileName.GenerateFileName(Product.Key, Product.Value);
+    var FileName := TDownloadFileName.GenerateFileName(Product.Key, Product.Value.Version);
     if (FileName <> '') then
     begin
       var OldFileName := TPath.Combine(Config.Folders.OldDownloadsFolder, FileName);
@@ -189,7 +200,7 @@ begin
 end;
 
 
-procedure DeleteFromOld(const InstalledProducts: TDictionary<string, TVersion>; const MaxVersionsPerProduct: integer);
+procedure DeleteFromOld(const InstalledProducts: TDictionary<string, TProductInfo>; const MaxVersionsPerProduct: integer);
 begin
  var Old := GetProducts(Config.Folders.OldDownloadsFolder);
  try
@@ -217,7 +228,7 @@ begin
    InstalledProducts.Free;
  end;
 
- Logger.Info('Finished cleaning up downloaded files.')
+ Logger.Info('Finished cleaning up downloaded files.');
 end;
 
 { TProductInfo }

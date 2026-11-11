@@ -147,7 +147,7 @@ begin
 {$IFDEF DEBUG}
   ReportMemoryLeaksOnShutdown := True;
 {$ENDIF}
-  var JsonMode := false;
+  var MachineReadableMode := false;
   try
     ConsoleLogger := TConsoleLogger.Create(ConsoleLogDisplayOptions, 'TMS Smart Setup'); //Here ConsoleLogDisplayOptions is not yet initialized as we haven't parsed the command line yet :(
     Logger := TMultiLogger.Create([ConsoleLogger]);
@@ -169,15 +169,15 @@ begin
             Logger.Error('Error: ' + E.Message);
         end;
       end;
-      JsonMode := Logger.JsonMode;
+      MachineReadableMode := Logger.MachineReadableMode;
     finally
       Logger.Free;
     end;
 
 
-    FinishLogging(JsonMode);
+    FinishLogging(MachineReadableMode);
   finally
-    if not JsonMode then
+    if not MachineReadableMode then
     begin
       AlertAboutNewVersions(NewSmartSetupVersion);
       AlertAboutDiskSpace;
