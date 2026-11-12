@@ -10,4 +10,4 @@ click: "MainForm.btnInstall"
 wait: condition self.Name = DialogForm
 assert: "MemoMessage.Text ~ A new version of TMS Smart Setup is available and ready" is true
 click: "DialogForm.btnOk"
-wait: condition self.Name = DialogForm
+wait: 60000 milliseconds

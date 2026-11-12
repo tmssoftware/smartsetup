@@ -183,7 +183,7 @@ As before, everything must be in the same disk. You can't use `c:\Projects` and 
 
 ### Global options and machine-dependent options
 
-Sometimes, you might want to have some configuration options (like paths) that vary from machine to machine. You can do this by adding an extra `tms.config.local.yaml` to the root folder and adding it to `.gitignore`, or specifying one with [-add-config](xref:SmartSetup.Command.GlobalOptions). If you want the same settings to apply to every project on the machine, you can instead put them in `tms.config.global.yaml` inside the `.smartsetup` folder of your user profile (for example, `C:\Users\<you>\.smartsetup\tms.config.global.yaml` on Windows, or `~/.smartsetup/tms.config.global.yaml` on macOS and Linux).
+Sometimes, you might want to have some configuration options (like paths) that vary from machine to machine. You can do this by adding an extra `tms.config.local.yaml` to the root folder and adding it to `.gitignore`. If you want the same settings to apply to every project on the machine, you can instead put them in `tms.config.global.yaml` inside the `.smartsetup` folder of your user profile (for example, `C:\Users\<you>\.smartsetup\tms.config.global.yaml` on Windows, or `~/.smartsetup/tms.config.global.yaml` on macOS and Linux).
 
 See [below](#adding-extra-settings-to-an-existing-configuration-file) for more information.
 
@@ -340,7 +340,9 @@ Additionally, SmartSetup will also automatically load `tms.config.global.yaml` i
 ### `tms config-read` and `tms config-write` to read and change tms.config.yaml
 These two commands allow you to read or update a setting from `tms.config.yaml`. Unlike the `-p` parameter, [tms config-write](xref:SmartSetup.Command.ConfigWrite) will modify the actual file. This can be useful, for example, when building a GUI: you can use [tms config-read](xref:SmartSetup.Command.ConfigRead) to read a value from the config file and show it to the user. When the user modifies it, you can use [tms config-write](xref:SmartSetup.Command.ConfigWrite) to write it back.
 
-The syntax for specifying the setting to read or write is the same as the one in the `-p` parameter above. In fact, [tms config-write](xref:SmartSetup.Command.ConfigWrite), when called alone, just reads your settings and writes them back, reformatting the config file. You need to use the `-p` parameter to alter that configuration, so what is written is different from the existing settings.
+The syntax for specifying the setting to read or write is the same as the one in the `-p` parameter above. In fact, [tms config-write](xref:SmartSetup.Command.ConfigWrite), when called alone, just reads `tms.config.yaml` and writes it back, reformatting the file. You need to use the `-p` parameter to alter that configuration, so what is written is different from the existing settings.
+
+[tms config-write](xref:SmartSetup.Command.ConfigWrite) loads and writes a single file: `tms.config.yaml` by default, or `tms.config.local.yaml` or `tms.config.global.yaml` if you pass `-config-source:local` or `-config-source:global`. Values from the other files are never copied into the file you write, so machine-dependent values stay out of `tms.config.yaml`. Because of this, a value you write can still be overridden by a file with higher priority. By default, [tms config-read](xref:SmartSetup.Command.ConfigRead) loads all the files and shows the value that is actually in effect, so it can return something different from what you just wrote. Pass `-config-source` to it to see the value in a single file. Files you pass with `-add-config` are loaded by both commands, and [tms config-write](xref:SmartSetup.Command.ConfigWrite) writes their values to the file.
 
 Examples:
 ```shell

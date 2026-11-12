@@ -1,0 +1,26 @@
+wait Self.Name = MainForm
+wait Self.IsGuiRunning = false
+click acCredentials
+wait Self.Name = CredentialsForm
+set cbNoAccount.Checked true
+assert btok.Enabled = false
+click btCancel
+wait self.Name = DialogForm
+assert MemoMessage.Text ~ The "tms" server is now disabled
+click btnOk
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+set-text edSearch tms.biz.xdata
+assert Self.ProductCount = 0
+
+click acCredentials
+wait self.Name = CredentialsForm
+*set-text edEmail $ENV:TMSTEST_EMAIL
+*set-text edCode $ENV:TMSTEST_CODE
+click btOk
+wait Self.Name = MainForm
+wait Self.IsGuiRunning = false
+set-text edSearch tms.biz.xdata
+assert Self.ProductCount > 0
+
+

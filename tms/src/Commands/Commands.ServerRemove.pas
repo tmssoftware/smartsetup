@@ -8,7 +8,7 @@ procedure RegisterServerRemoveCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions,
-     UConfigWriter, Types, Commands.GlobalConfig, UConfigDefinition, Commands.Logging;
+     UConfigWriter, Types, Commands.LocalConfig, UConfigDefinition, Commands.Logging, UConfigSources;
 
 var
   ServerName: string;
@@ -16,15 +16,20 @@ var
 procedure RunServerRemoveCommand;
 begin
   InitFolderBasedCommand(false);
-  var ConfigWriter := TConfigWriter.Create(Config, false);
+  var Cfg := TSourcedConfig.Create([TConfigSource.Main]);
   try
-   Config.EnsureAllProducts;
-   var ServerIndex := Config.ServerConfig.FindServer(ServerName);
-   if ServerIndex < 0 then raise Exception.Create('Server "' + ServerName + '" is not defined in tms.config.yaml.');
-   Config.ServerConfig.RemoveServer(ServerIndex);
-   ConfigWriter.Save(ConfigFileName);
+    var ConfigWriter := TConfigWriter.Create(Cfg.Instance, false);
+    try
+     Cfg.Instance.EnsureAllProducts;
+     var ServerIndex := Cfg.Instance.ServerConfig.FindServer(ServerName);
+     if ServerIndex < 0 then raise Exception.Create('Server "' + ServerName + '" is not defined in "' + Cfg.FileName + '".');
+     Cfg.Instance.ServerConfig.RemoveServer(ServerIndex);
+     ConfigWriter.Save(Cfg.FileName, Cfg.SingleSource, Cfg.WritingFormat);
+    finally
+     ConfigWriter.Free;
+    end;
   finally
-   ConfigWriter.Free;
+    Cfg.Free;
   end;
 end;
 
@@ -44,6 +49,7 @@ begin
     end);
   option.Required := True;
 
+  RegisterConfigSourceOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Config, RunServerRemoveCommand);
 end;

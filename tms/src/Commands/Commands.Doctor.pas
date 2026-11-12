@@ -24,6 +24,7 @@ uses
 var
   FixParam: boolean;
   ConfirmParam: boolean;
+  FullyInteractive: boolean;
 
 procedure RunDoctorCommand;
 begin
@@ -40,7 +41,7 @@ begin
 {$ENDIF}
   var Doctor := TDoctor.Create(Config.AlternateRegistryKey);
   try
-    Doctor.RunAllChecks(FixParam, ConfirmParam);
+    Doctor.RunAllChecks(FixParam, ConfirmParam, FullyInteractive);
   finally
     Doctor.Free;
   end;
@@ -70,6 +71,13 @@ begin
       ConfirmParam := not Value;
     end);
   optionDoNotConfirm.HasValue := False;
+
+  var optionFullyInteractive := cmd.RegisterOption<Boolean>('fully-interactive', '', 'Asks for the -fix and -do-not-confirm parameter values before starting. It ignores the values of those flags. This is used when called to tmsgui, so users can choose the values of -fix and -do-not-confirm they want.',
+    procedure(const Value : Boolean)
+    begin
+      FullyInteractive := Value;
+    end);
+  optionFullyInteractive.HasValue := False;
 
   AddCommand(cmd.Name, CommandGroups.Diagnosis, RunDoctorCommand);
 end;

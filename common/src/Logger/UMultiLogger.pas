@@ -10,6 +10,8 @@ type
     FVerbosity: TVerbosity;
     Loggers: Array of TLogger;
     FJsonMode: boolean;
+    FCmdMode: boolean;
+    FMachineReadableMode: boolean;
   public
     constructor Create(const aLoggers: array of TLogger);
     destructor Destroy; override;
@@ -55,6 +57,10 @@ type
     procedure StopSpinner;
 
     property JsonMode: boolean read FJsonMode write FJsonMode;
+    property CmdMode: boolean read FCmdMode write FCmdMode;
+    function MachineReadableMode: boolean;
+
+    function IgnoreOutput(const LoggerIndex: integer): boolean;
   end;
 
 var
@@ -133,7 +139,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     try
-      if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
+      if (IgnoreOutput(i)) then continue;
       Loggers[i].StartSpinner;
     except
       //nothing, we can't recover or even write the message. Maybe other logger will.
@@ -146,7 +152,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     try
-      if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
+      if (IgnoreOutput(i)) then continue;
       Loggers[i].StopSpinner;
     except
       //nothing, we can't recover or even write the message. Maybe other logger will.
@@ -188,7 +194,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     if (not Loggers[i].IgnoresVerbosity) and (Verbosity > TVerbosity.info) then continue;
-    if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
+    if (IgnoreOutput(i)) then continue;
     try
       Loggers[i].Info(Loggers[i].ProcessMsg(Message));
     except
@@ -205,7 +211,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     if (not Loggers[i].IgnoresVerbosity) and (Verbosity > TVerbosity.info) then continue;
-    if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
+    if (IgnoreOutput(i)) then continue;
     try
       Loggers[i].Progress(Message, Progress);
     except
@@ -247,7 +253,7 @@ begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     if (not Loggers[i].IgnoresVerbosity) and (Verbosity > TVerbosity.trace) then continue;
-    if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
+    if (IgnoreOutput(i)) then continue;
     try
       Loggers[i].Trace(Loggers[i].ProcessMsg(Message));
     except
@@ -263,12 +269,23 @@ begin
   Result := procedure(s: string) begin Logger.Trace(s); end;
 end;
 
+function TMultiLogger.IgnoreOutput(const LoggerIndex: integer): boolean;
+begin
+  if (MachineReadableMode and Loggers[LoggerIndex].SilencedInMachineReadableMode) then exit(true);
+  Result := false;
+end;
+
+function TMultiLogger.MachineReadableMode: boolean;
+begin
+  Result := JsonMode or CmdMode;
+end;
+
 procedure TMultiLogger.Message(const MessageKind: TLogMessageKind; const Message: string; const Process: boolean = false; const NewLine: boolean = true);
 begin
   for var i := Low(Loggers) to High(Loggers) do
   begin
     try
-      if (JsonMode and Loggers[i].SilencedInJsonMode) then continue;
+      if (IgnoreOutput(i)) then continue;
       var ActualMsg := Message;
       if Process then ActualMsg := Loggers[i].ProcessMsg(Message);
       Loggers[i].Message(MessageKind, ActualMsg, NewLine);

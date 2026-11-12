@@ -92,7 +92,7 @@ begin
     if Config.IsIncluded(InstalledProduct.ProductId, ProductIdMask) then
     begin
       Found := True;
-      if RemovalItems.Contains(InstalledProduct.ProductId, InstalledProduct.Version) then
+      if RemovalItems.ContainsPath(InstalledProduct.ProductPath) then
       begin
         Logger.Trace(Format('Ignoring %s because it was already added', [InstalledProduct.ProductId]));
         Continue;
@@ -131,10 +131,10 @@ begin
     for var InstalledProduct in InstalledProducts do
       // if the dependent products is also going to be removed, then we're fine
       // we only need to check for products that will remain installed
-      if not RemovalItems.Contains(InstalledProduct.ProductId, InstalledProduct.Version) then
+      if not RemovalItems.ContainsPath(InstalledProduct.ProductPath) then
       begin
         var DependencyList: TList<string>;
-        if FDependencies.TryGetValue(InstalledProduct.ProductId, DependencyList) then
+        if FDependencies.TryGetValue(InstalledProduct.ProductPath, DependencyList) then
           if DependencyList.Contains(Item.ProductId) then
             Item.Dependents.Add(InstalledProduct.ProductId);
       end;
@@ -204,7 +204,7 @@ begin
   // Build a list of dependency-chain
   FDependencies.Clear;
   for var InstalledProduct in InstalledProducts do
-    FDependencies.Add(InstalledProduct.ProductId,
+    FDependencies.AddOrSetValue(InstalledProduct.ProductPath,
       TList<string>.Create(GetProductDependencies(InstalledProduct.ProductPath)));
 end;
 

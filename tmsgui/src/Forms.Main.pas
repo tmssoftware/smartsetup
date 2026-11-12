@@ -7,7 +7,12 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
   Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
-  Vcl.VirtualImage, Util.Animator, Winapi.ShlObj;
+  Vcl.VirtualImage, Util.Animator, Winapi.ShlObj, System.ImageList, Vcl.ImgList,
+  Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
+  Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels, Clipbrd, Generics.Defaults;
+
+const
+  WM_UPDATE_DETAILS = WM_APP + 1;
 
 type
   TMainForm = class(TForm)
@@ -27,15 +32,8 @@ type
     Panel3: TPanel;
     PageControl1: TPageControl;
     tsProducts: TTabSheet;
-    LeftPanel: TPanel;
-    rbAll: TRadioButton;
-    rbInstalled: TRadioButton;
     lvProducts: TListView;
-    RightPanel: TPanel;
-    Button1: TButton;
-    btnInstall: TButton;
-    btnUninstall: TButton;
-    Button4: TButton;
+    DetailsPanel: TPanel;
     tsOutput: TTabSheet;
     OutputMemo: TMemo;
     LogPanel: TPanel;
@@ -46,11 +44,9 @@ type
     acSettings: TAction;
     TopPanel: TPanel;
     edSearch: TEdit;
-    btConfiguration2: TSpeedButton;
     cbServer: TComboBox;
     lbServer: TLabel;
     acSearchFocus: TAction;
-    btCredentials: TButton;
     acInstallVersion: TAction;
     Installversion1: TMenuItem;
     acPin: TAction;
@@ -70,6 +66,69 @@ type
     ProgressBar: TProgressBar;
     acLogDetails: TAction;
     acViewHtmlLog: TAction;
+    ToolbarImageCollection: TImageCollection;
+    ToolbarImageList: TVirtualImageList;
+    acBackup: TAction;
+    acSBOM: TAction;
+    acDoctor: TAction;
+    acRefresh: TAction;
+    acBuild: TAction;
+    cbAllOrInstalled: TComboBox;
+    ConfigureMenu: TPopupMenu;
+    MenuItem3: TMenuItem;
+    MenuItem4: TMenuItem;
+    acOpenConfigFile: TAction;
+    Splitter1: TSplitter;
+    PanelProd: TPanel;
+    CardPanelDetails: TCardPanel;
+    CardOneProduct: TCard;
+    CardMultipleProducts: TCard;
+    CardNoProducts: TCard;
+    Label1: TLabel;
+    NoProdSmartSetup: TLabel;
+    MulProdProductNames: TLabel;
+    MulProdSelCount: TLabel;
+    Credentials1: TMenuItem;
+    N1: TMenuItem;
+    PanelToolbar: TPanel;
+    ConfigToolBar: TToolBar;
+    btnConfigure: TToolButton;
+    MainToolBar: TToolBar;
+    btnInstall: TToolButton;
+    btnUninstall: TToolButton;
+    btnBuild: TToolButton;
+    btnRefresh: TToolButton;
+    ToolSeparator: TToolButton;
+    btnBackup: TToolButton;
+    btnSBOM: TToolButton;
+    btnDoctor: TToolButton;
+    ProdUrlMenu: TPopupMenu;
+    CopyURL1: TMenuItem;
+    StackPanel1: TStackPanel;
+    btnInfoUninstall: TButton;
+    btnInfoInstallVersion: TButton;
+    btnInfoInstallOrUpdate: TButton;
+    lnkSmartSetup: TLabel;
+    CardDetailsError: TCard;
+    DetailsError: TLabel;
+    ProdVersionMenu: TPopupMenu;
+    CopyVersionHistoryMenu: TMenuItem;
+    StackPanel2: TStackPanel;
+    Button1: TButton;
+    Button3: TButton;
+    acRestore: TAction;
+    btnRestore: TToolButton;
+    CardsPanelInstalled: TCardPanel;
+    CardOneProductInfo: TCard;
+    SingleInfoPanel: TPanel;
+    OneProdDescription: TLabel;
+    OneProdUrl: TLabel;
+    OneProdVersionHistory: TLabel;
+    CardOneProductInstall: TCard;
+    OneProdProductName: TLabel;
+    OneProdInstalledPlats: TRichEdit;
+    OneProdInstalledCaption: TLabel;
+    BtnInfoSwitch: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -113,8 +172,29 @@ type
       ARect: TRect; AState: TOwnerDrawState);
     procedure StatusBarClick(Sender: TObject);
     procedure StatusBarResize(Sender: TObject);
+    procedure WrappedLabelsContainerResize(Sender: TObject);
     procedure acLogDetailsExecute(Sender: TObject);
     procedure acViewHtmlLogExecute(Sender: TObject);
+    procedure acBuildExecute(Sender: TObject);
+    procedure acBuildUpdate(Sender: TObject);
+    procedure acRefreshUpdate(Sender: TObject);
+    procedure acRefreshExecute(Sender: TObject);
+    procedure cbAllOrInstalledChange(Sender: TObject);
+    procedure acDoctorExecute(Sender: TObject);
+    procedure acDoctorUpdate(Sender: TObject);
+    procedure acOpenConfigFileExecute(Sender: TObject);
+    procedure lvProductsSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure lvProductsKeyPress(Sender: TObject; var Key: Char);
+    procedure lvProductsKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure CopyURL1Click(Sender: TObject);
+    procedure LinkClick(Sender: TObject);
+    procedure CopyVersionHistoryMenuClick(Sender: TObject);
+    procedure acSBOMUpdate(Sender: TObject);
+    procedure acSBOMExecute(Sender: TObject);
+    procedure BtnInfoSwitchClick(Sender: TObject);
+    procedure acRestoreExecute(Sender: TObject);
+    procedure acRestoreUpdate(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -122,14 +202,24 @@ type
     SortDescending: Boolean;
     OverCaption: Boolean;
     LogDetailsForm: TLogDetailsForm;
-    WorkingAnimator: TAnimator;
-    InstallAnimator: TAnimator;
-    UninstallAnimator: TAnimator;
-    BuildAnimator: TAnimator;
+    WorkingAnimator: TTextAnimator;
+    InstallAnimator: TImageAnimator;
+    UninstallAnimator: TImageAnimator;
+    BuildAnimator: TImageAnimator;
+    RefreshAnimator: TImageAnimator;
+    BackupAnimator: TImageAnimator;
+    RestoreAnimator: TImageAnimator;
     TaskbarList: ITaskbarList3;
+    DetailsUpdatePending: Boolean;
+    DisabledToolbarImageList: TImageList;
     procedure SetProgress(const Percent: Integer);
     procedure ClearProgress;
     procedure WMSettingChange(var Msg: TWMSettingChange); message WM_SETTINGCHANGE;
+    procedure WMUpdateDetails(var Msg: TMessage); message WM_UPDATE_DETAILS;
+    procedure UpdateToolbarImagesForTheme;
+    procedure GetDarkToolbarBitmap(ASourceImage: TWICImage; AWidth, AHeight: Integer; out ABitmap: TBitmap);
+    procedure UpdateDisabledToolbarImages;
+    procedure FormAfterMonitorDpiChanged(Sender: TObject; OldDPI, NewDPI: Integer);
     function CompareStatus(const Status1, Status2: TProductStatus): Integer;
     function CompareVersion(const Version1, Version2: TLenientVersion): Integer;
     function CompareIcons(const Product1, Product2: TGUIProduct): Integer;
@@ -149,6 +239,11 @@ type
 
     function GetLastError: string;
     function EnsureValidFolder(const RejectCaption: string): Boolean;
+    procedure UpdateDetailsPane;
+    procedure FillOneProductDetails;
+    procedure FillMultipleProductDetails;
+    procedure PopupOptions(const Control: TControl; const Menu: TPopupMenu);
+    function GetListItemIds: TDictionary<string, TListItem>;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -181,9 +276,9 @@ implementation
 
 uses
   Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
-  UTheming, IOUtils,
+  Vcl.Themes, UTheming, IOUtils,
   GUI.Automation,
-  Forms.VersionPicker, Forms.Dialogs;
+  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults, Forms.DoctorWait, Forms.Restore;
 
 {$R *.dfm}
 
@@ -219,6 +314,16 @@ begin
   acFullBuild.Enabled := GUI.CanBuild;
 end;
 
+procedure TMainForm.acBuildExecute(Sender: TObject);
+begin
+  acFullBuild.Execute;
+end;
+
+procedure TMainForm.acBuildUpdate(Sender: TObject);
+begin
+  acBuild.Enabled := GUI.CanBuild;
+end;
+
 procedure TMainForm.acCancelExecutionExecute(Sender: TObject);
 begin
   GUI.CancelRun;
@@ -229,9 +334,16 @@ begin
   acCancelExecution.Enabled := GUI.IsRunning;
 end;
 
+procedure TMainForm.PopupOptions(const Control: TControl; const Menu: TPopupMenu);
+begin
+  var Pt := ClientToScreen(TPoint.Create(Control.Left, Control.Top + Control.Height));
+  Menu.Popup(Pt.X, Pt.Y);
+
+end;
+
 procedure TMainForm.acConfigureExecute(Sender: TObject);
 begin
-  GUI.ExecuteConfigure;
+  PopupOptions(btnConfigure.Parent, ConfigureMenu);
 end;
 
 procedure TMainForm.acConfigureUpdate(Sender: TObject);
@@ -247,6 +359,20 @@ end;
 procedure TMainForm.acCredentialsUpdate(Sender: TObject);
 begin
   acCredentials.Enabled := GUI.CanRequestCredentials;
+end;
+
+procedure TMainForm.acDoctorExecute(Sender: TObject);
+begin
+  GUI.ExecuteDoctor(
+    procedure (Process: THandle)
+    begin
+      TDoctorWaitForm.WaitFor(Process);
+    end);
+end;
+
+procedure TMainForm.acDoctorUpdate(Sender: TObject);
+begin
+  acDoctor.Enabled := GUI.CanRunDoctor;
 end;
 
 procedure TMainForm.acFilterAllExecute(Sender: TObject);
@@ -279,6 +405,7 @@ end;
 procedure TMainForm.acInstallUpdate(Sender: TObject);
 begin
   acInstall.Enabled := GUI.CanInstallSelected;
+  acInstall.Caption := GUI.GetInstallCaption;
 end;
 
 procedure TMainForm.acInstallVersionExecute(Sender: TObject);
@@ -314,6 +441,11 @@ begin
   LogDetailsForm.ShowModal;
 end;
 
+procedure TMainForm.acOpenConfigFileExecute(Sender: TObject);
+begin
+  GUI.ExecuteConfigure;
+end;
+
 procedure TMainForm.acPartialBuildExecute(Sender: TObject);
 begin
   GUI.ExecutePartialBuild(ProductProgressEvent);
@@ -332,6 +464,31 @@ end;
 procedure TMainForm.acPinUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := GUI.CanPinSelected;
+end;
+
+procedure TMainForm.acRefreshExecute(Sender: TObject);
+begin
+  GUI.RefreshProductList;
+end;
+
+procedure TMainForm.acRefreshUpdate(Sender: TObject);
+begin
+  acRefresh.Enabled := not GUI.IsRunning;
+end;
+
+procedure TMainForm.acRestoreExecute(Sender: TObject);
+begin
+  var SelectedIds := GUI.SelectedProductIds;
+  var Options: TRestoreOptions;
+  if not TRestoreForm.Execute(Length(SelectedIds), Options) then exit;
+
+  if not Options.OnlySelected then SelectedIds := nil;
+  GUI.ExecuteRestore(ProductProgressEvent, Options.FileName, Options.SkipRegister, SelectedIds);
+end;
+
+procedure TMainForm.acRestoreUpdate(Sender: TObject);
+begin
+  acRestore.Enabled := not GUI.IsRunning;
 end;
 
 procedure TMainForm.acSettingsExecute(Sender: TObject);
@@ -359,6 +516,59 @@ end;
 procedure TMainForm.acSettingsUpdate(Sender: TObject);
 begin
   acSettings.Enabled := GUI.CanConfigure;
+end;
+
+procedure TMainForm.acSBOMExecute(Sender: TObject);
+begin
+  if TDialogForm.MessageDlg('Generate SBOM files for the selected products?', TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbCancel], 0, TMsgDlgBtn.mbYes) <> mrYes then exit;
+
+  var Results := TList<TSBOMResult>.Create;
+  try
+    var Force := False;
+    var ProductIds := GUI.SelectedProductIds;
+    repeat
+      GUI.ExecuteSBOM(Force, ProductIds,
+        procedure (Info: TSBOMInfo)
+        begin
+          var R: TSBOMResult;
+          R.ProductId := Info.Id;
+          var Product := GUI.Products.Find(Info.Id);
+          if Product <> nil then
+            R.ProductName := Product.DisplayName
+          else
+            R.ProductName := Info.Id;
+          R.FileName := Info.FileName;
+          R.Generated := Info.Generated;
+          R.Error := Info.Error;
+
+          // When regenerating, replace the previous result for the product.
+          for var i := 0 to Results.Count - 1 do
+            if Results[i].ProductId = Info.Id then
+            begin
+              Results[i] := R;
+              Exit;
+            end;
+          Results.Add(R);
+        end
+      );
+
+      if (Results.Count = 0) or not TSBOMResultsForm.Execute(Results.ToArray) then
+        Exit;
+
+      ProductIds := [];
+      for var R in Results do
+        if not R.Generated then
+          ProductIds := ProductIds + [R.ProductId];
+      Force := True;
+    until Length(ProductIds) = 0;
+  finally
+    Results.Free;
+  end;
+end;
+
+procedure TMainForm.acSBOMUpdate(Sender: TObject);
+begin
+  acSBOM.Enabled := GUI.CanRunSBOM;
 end;
 
 procedure TMainForm.acSearchFocusExecute(Sender: TObject);
@@ -418,6 +628,12 @@ begin
   end;
 
   GUI.ExecuteLogView(SessionId, false);
+end;
+
+procedure TMainForm.cbAllOrInstalledChange(Sender: TObject);
+begin
+  if cbAllOrInstalled.ItemIndex = 1 then acFilterInstalled.Execute
+  else acFilterAll.Execute;
 end;
 
 procedure TMainForm.cbServerChange(Sender: TObject);
@@ -485,6 +701,16 @@ begin
     Result := 0;
 end;
 
+procedure TMainForm.CopyURL1Click(Sender: TObject);
+begin
+  Clipboard.AsText := OneProdUrl.Hint;
+end;
+
+procedure TMainForm.CopyVersionHistoryMenuClick(Sender: TObject);
+begin
+  Clipboard.AsText := OneProdVersionHistory.Hint;
+end;
+
 procedure TMainForm.edSearchChange(Sender: TObject);
 begin
   GUI.SetSearchFilter(edSearch.Text);
@@ -501,6 +727,14 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   SortColumn := ColStatus;  // sort by status by default
+  DisabledToolbarImageList := TImageList.Create(Self);
+  DisabledToolbarImageList.ColorDepth := cd32Bit;
+  MainToolBar.DisabledImages := DisabledToolbarImageList;
+  ConfigToolBar.DisabledImages := DisabledToolbarImageList;
+  OnAfterMonitorDpiChanged := FormAfterMonitorDpiChanged;
+  UpdateToolbarImagesForTheme;
+  CardPanelDetails.ActiveCard := CardNoProducts;
+  CardsPanelInstalled.ActiveCard := CardOneProductInfo;
 
   // Progress on the taskbar button. If it isn't available (old Windows, no shell), we just don't show it.
   if Failed(CoCreateInstance(CLSID_TaskbarList, nil, CLSCTX_INPROC_SERVER, ITaskbarList3, TaskbarList))
@@ -509,28 +743,71 @@ begin
   LogDetailsForm := TLogDetailsForm.Create(Self); //keep so it doesn't keep resizing when you reopen it.
   LogPanel.Height := 1; // 0 would not allow us to resize the box when closed.
 
-  WorkingAnimator := TAnimator.Create(500, true, 'Working...', '',
+  WorkingAnimator := TTextAnimator.Create(500, true, 'Working...', '',
     procedure (Value: string)
     begin
       StatusBar.Panels[StatusActivity].Text := Value;
     end);
 
-  InstallAnimator := TAnimator.Create(50, false, 'Installing', acInstall.Caption,
-    procedure (Value: string)
+  InstallAnimator := TImageAnimator.Create(50, 'install', acInstall.ImageName,
+    procedure (ImageIndex: Integer)
     begin
-      acInstall.Caption := Value;
+      btnInstall.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
-  UninstallAnimator := TAnimator.Create(50, false, 'Uninstalling', acUninstall.Caption,
-    procedure (Value: string)
+  UninstallAnimator := TImageAnimator.Create(50, 'uninstall', acUninstall.ImageName,
+    procedure (ImageIndex: Integer)
     begin
-      acUninstall.Caption := Value;
+      btnUninstall.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
-  BuildAnimator := TAnimator.Create(50, false, 'Building', acFullBuild.Caption,
-    procedure (Value: string)
+
+  BuildAnimator := TImageAnimator.Create(50, 'build', acBuild.ImageName,
+    procedure (ImageIndex: Integer)
     begin
-      acFullBuild.Caption := Value;
+      btnBuild.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
+    end);
+
+  RefreshAnimator := TImageAnimator.Create(50, 'refresh', acRefresh.ImageName,
+    procedure (ImageIndex: Integer)
+    begin
+      btnRefresh.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
+    end);
+
+  BackupAnimator := TImageAnimator.Create(50, 'backup', acBackup.ImageName,
+    procedure (ImageIndex: Integer)
+    begin
+      btnBackup.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
+    end);
+
+  RestoreAnimator := TImageAnimator.Create(50, 'restore', acRestore.ImageName,
+    procedure (ImageIndex: Integer)
+    begin
+      btnRestore.ImageIndex := ImageIndex;
+    end,
+    function (ImageName: string): Integer
+    begin
+      Result := ToolbarImageList.GetIndexByName(ImageName);
     end);
 
   GUI := TGUIEnvironment.Create;
@@ -569,6 +846,9 @@ begin
   InstallAnimator.Free;
   UninstallAnimator.Free;
   BuildAnimator.Free;
+  RefreshAnimator.Free;
+  BackupAnimator.Free;
+  RestoreAnimator.Free;
   TaskbarList := nil;
 
   // at this point no tms.exe should be running anymore
@@ -655,7 +935,10 @@ begin
   Products.Clear;
   for var Item in lvProducts.Items do
     if Item.Selected then
-      Products.Add(ProductFromItem(Item));
+    begin
+      var SelItem := ProductFromItem(Item);
+      if SelItem <> nil then Products.Add(SelItem);
+    end;
 end;
 
 function TMainForm.GetVersionHistoryUrl(Product: TGUIProduct): string;
@@ -694,15 +977,39 @@ begin
   if Product.VendorId <> '' then
     Exit(Format('https://www.tmssoftware.com/site/%s.asp?s=history', [Product.VendorId]));
 
+  if Product.Url.StartsWith('https://github.com/') then
+  begin
+    var Url := Product.Url;
+    if Url.EndsWith('/') then Url := Url.Substring(0, Url.Length - 1);
+    if Url.EndsWith('.git') then Url := Url.Substring(0, Url.Length - '.git'.Length);
+
+    Exit(Url + '/releases');
+  end;
+
+
   Result := '';
 end;
 
 procedure TMainForm.InitiateAction;
 begin
   inherited;
-  acCredentials.Visible := GUI.Servers.IsEnabled('tms');
+  //We will allow users to ask for credentials even if they have tms disabled.
+  //If they enter correct credentials, we will just reenable them.
+  //acCredentials.Visible := GUI.Servers.IsEnabled('tms');
+
   // Changing the server reloads the product list, which can't run while another job is running.
   cbServer.Enabled := not GUI.IsRunning;
+
+  // Same for the filter. When idle, show the filter the list is really using, in case a change was rejected.
+  cbAllOrInstalled.Enabled := GUI.CanApplyFilter;
+  if not GUI.IsRunning and not cbAllOrInstalled.DroppedDown then
+  begin
+    var FilterIndex := 0; // "All"
+    if GUI.IsFilterActive(TProductFilter.Installed) then
+      FilterIndex := 1;
+    if cbAllOrInstalled.ItemIndex <> FilterIndex then
+      cbAllOrInstalled.ItemIndex := FilterIndex;
+  end;
 end;
 
 function TMainForm.GetLogIco(const Item: TGUILogItem): string;
@@ -754,7 +1061,7 @@ begin
     begin
       if (LogPanel.Height <= 5) and (Item.Level = TLogLevel.Error) then
       begin
-        LogPanel.Height := 300;
+        LogPanel.Height := 200;
       end;
       lbLog.ItemCount := GUI.LogItems.Count;
       lbLog.Refresh;
@@ -824,6 +1131,38 @@ begin
   end;
 end;
 
+procedure TMainForm.lvProductsKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  // The Windows list view has no Ctrl+A. Not an action shortcut: it would take Ctrl+A from the search box too.
+  if (Key = Ord('A')) and (Shift = [ssCtrl]) then
+  begin
+    lvProducts.SelectAll;
+    Key := 0;
+  end;
+end;
+
+procedure TMainForm.lvProductsKeyPress(Sender: TObject; var Key: Char);
+begin
+  // Type-to-filter: characters typed anywhere in the products page go to the search box, without focusing it.
+  // Controls that take text themselves (edits, memos, combos) keep their keys.
+  if PageControl1.ActivePage <> tsProducts then exit;
+  if (ActiveControl is TCustomEdit) or (ActiveControl is TCustomComboBox) then exit;
+  if not edSearch.Enabled then exit;
+
+  case Key of
+    #8: // Backspace
+      if edSearch.Text <> '' then
+        edSearch.Text := Copy(edSearch.Text, 1, Length(edSearch.Text) - 1);
+    #27: // Escape
+      edSearch.Text := '';
+    else
+      if Key < ' ' then exit; // Ctrl+key and other control characters
+      edSearch.Text := edSearch.Text + Key;
+  end;
+  edSearch.SelStart := Length(edSearch.Text);
+  Key := #0;
+end;
+
 procedure TMainForm.lvProductsMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
   var Item := lvProducts.GetItemAt(X, Y);
@@ -836,6 +1175,83 @@ begin
   // drLabel = rectangle for the first column (caption)
   var R := Item.DisplayRect(drLabel);
   OverCaption := PtInRect(R, Point(X, Y));
+end;
+
+procedure TMainForm.FillOneProductDetails;
+begin
+  try
+    var Product := ProductFromItem(lvProducts.Selected);
+
+    if Product = nil then
+    begin
+      CardPanelDetails.ActiveCard := CardNoProducts;
+      exit;
+    end;
+    OneProdProductName.Caption := Product.DisplayName;
+    OneProdDescription.Caption := Product.Description;
+    OneProdUrl.Caption := 'Website';
+    OneProdUrl.Hint := Product.Url;
+    OneProdVersionHistory.Caption := 'Version History';
+    OneProdVersionHistory.Hint := GetVersionHistoryUrl(Product);
+    OneProdVersionHistory.Enabled := OneProdVersionHistory.Hint <> '';
+    var InstalledString := GUI.GetProductInstallInfo(Product);
+    OneProdInstalledPlats.Text := InstalledString;
+    if InstalledString = ''
+      then OneProdInstalledCaption.Caption := 'Not installed or built in any IDE.'
+      else OneProdInstalledCaption.Caption := 'Installed or built in:';
+    OneProdInstalledPlats.Visible := InstalledString <> '';
+
+    CardPanelDetails.ActiveCard := CardOneProduct;
+  except on ex: Exception do
+    begin
+      DetailsError.Caption := 'ERROR ' + ex.Message;
+      CardPanelDetails.ActiveCard := CardDetailsError;
+    end;
+  end;
+end;
+
+procedure TMainForm.FillMultipleProductDetails;
+begin
+  var AllProducts := TStringBuilder.Create;
+  try
+    for var Item in lvProducts.Items do
+      if Item.Selected then
+      begin
+        if AllProducts.Length > 0 then AllProducts.Append(', ');
+        AllProducts.Append(Item.SubItems[SubItemIndex(ColName)]);
+      end;
+    MulProdProductNames.Caption := AllProducts.ToString;
+  finally
+    AllProducts.Free;
+  end;
+  MulProdSelCount.Caption := IntToStr(lvProducts.SelCount) + ' products selected.';
+  CardPanelDetails.ActiveCard := CardMultipleProducts;
+end;
+
+procedure TMainForm.UpdateDetailsPane;
+begin
+ var SelCount := lvProducts.SelCount;
+ if SelCount = 1 then FillOneProductDetails
+ else if SelCount > 1 then FillMultipleProductDetails
+ else CardPanelDetails.ActiveCard := CardNoProducts;
+end;
+
+procedure TMainForm.lvProductsSelectItem(Sender: TObject; Item: TListItem;
+  Selected: Boolean);
+begin
+  GUI.SelectionChanged;
+  // This fires once per item: Ctrl+A on 500 products is 500 events. Posted, so we fill the pane once at the end.
+  if not DetailsUpdatePending then
+  begin
+    DetailsUpdatePending := True;
+    PostMessage(Handle, WM_UPDATE_DETAILS, 0, 0);
+  end;
+end;
+
+procedure TMainForm.WMUpdateDetails(var Msg: TMessage);
+begin
+  DetailsUpdatePending := False;
+  UpdateDetailsPane;
 end;
 
 procedure TMainForm.NewVersionDetectedEvent;
@@ -851,15 +1267,19 @@ begin
         begin
           exit;
         end;
-
         GUI.ExecuteSelfUpdate(ProgressEvent,
           procedure
           begin
             Relaunch := True;
-            TThread.Synchronize(nil, Application.MainForm.Close); //must be called from the main thread.
+            TThread.Synchronize(nil, Application.Terminate); //must be called from the main thread.
           end);
       end);
   end;
+end;
+
+procedure TMainForm.LinkClick(Sender: TObject);
+begin
+  ShellExecute(Application.Handle, 'open', PChar((Sender as TLabel).Hint), nil, nil, SW_SHOWNORMAL);
 end;
 
 function TMainForm.GetCmdLineParameter(const Prefix: string): string;
@@ -895,7 +1315,7 @@ procedure TMainForm.RequestCredentialsEvent(var Email, Code: string; var Confirm
 begin
   Confirm := TCredentialsForm.GetCredentials(Email, Code, LastWasInvalid, DisableServer);
   if DisableServer and not Confirm then
-    TDialogForm.ShowMessage('The "tms" server is now disabled. To turn it back on, go to Settings (gear icon) and select "Servers"');
+    TDialogForm.ShowMessage('The "tms" server is now disabled. To turn it back on, go to Configure (gear icon), then Common settings and select "Servers"');
 end;
 
 function TMainForm.AnimatorFor(const Command: TTmsCommand): TAnimator;
@@ -904,8 +1324,28 @@ begin
     TTmsCommand.Build: Result := BuildAnimator; // full and partial: the partial build menu item wouldn't show it
     TTmsCommand.Install: Result := InstallAnimator;
     TTmsCommand.Uninstall: Result := UninstallAnimator;
+    TTmsCommand.List: Result := RefreshAnimator;
+    TTmsCommand.ListRemote: Result := RefreshAnimator;
+    TTmsCommand.Backup: Result := BackupAnimator;
+    TTmsCommand.Restore: Result := RestoreAnimator;
+
     else Result := nil;
   end;
+end;
+
+procedure TMainForm.BtnInfoSwitchClick(Sender: TObject);
+begin
+  if CardsPanelInstalled.ActiveCard = CardOneProductInfo then
+  begin
+    CardsPanelInstalled.ActiveCard := CardOneProductInstall;
+    BtnInfoSwitch.Caption := #$276E;
+    BtnInfoSwitch.Hint := 'Show information about the selected product';
+  end else
+  begin
+    CardsPanelInstalled.ActiveCard := CardOneProductInfo;
+    BtnInfoSwitch.Caption := #$276F;
+    BtnInfoSwitch.Hint := 'Show where this component is installed';
+  end
 end;
 
 procedure TMainForm.RunFinishEvent(const Command: TTmsCommand);
@@ -969,12 +1409,16 @@ begin
   StatusBar.Panels[StatusRepository].Text := Repository;
 
   StatusBar.Panels[StatusWorkingFolder].Text := GUI.Info.WorkingFolder;
+
+  NoProdSmartSetup.Caption := 'TMS SmartSetup ' + TMSVersion;
+
 end;
 
 procedure TMainForm.SortProducts;
 begin
   lvProducts.AlphaSort;
   UpdateSortArrows;
+  if lvProducts.Selected <> nil then lvProducts.Selected.MakeVisible(false);
 end;
 
 procedure TMainForm.StatusBarClick(Sender: TObject);
@@ -1008,6 +1452,23 @@ begin
   var FolderWidth := StatusBar.ClientWidth - OthersWidth;
   if FolderWidth < 0 then FolderWidth := 0;
   StatusBar.Panels[StatusWorkingFolder].Width := FolderWidth;
+end;
+
+procedure TMainForm.WrappedLabelsContainerResize(Sender: TObject);
+begin
+  // TLabel only recalculates its AutoSize height when the caption or font changes, not when its width does.
+  // Force it for word-wrapped top/bottom aligned labels, so they grow or shrink and move the controls below them.
+  var Container := Sender as TWinControl;
+  for var i := 0 to Container.ControlCount - 1 do
+  begin
+    if not (Container.Controls[i] is TLabel) then continue;
+    var Lbl := TLabel(Container.Controls[i]);
+    if Lbl.AutoSize and Lbl.WordWrap and (Lbl.Align in [alTop, alBottom]) then
+    begin
+      Lbl.AutoSize := false;
+      Lbl.AutoSize := true;
+    end;
+  end;
 end;
 
 {$IFDEF DEBUG}
@@ -1072,7 +1533,108 @@ procedure TMainForm.WMSettingChange(var Msg: TWMSettingChange);
 begin
   inherited;
   if SameText('ImmersiveColorSet', String(Msg.Section)) then
+  begin
     ApplyThemeFromWindows;
+    UpdateToolbarImagesForTheme;
+  end;
+end;
+
+// Toolbar icons are stored once, black on transparent. In dark mode we tint them with the
+// style text color while the image list rasterizes them, so we don't ship a second light copy.
+procedure TMainForm.UpdateToolbarImagesForTheme;
+begin
+  if IsDarkStyle then
+    ToolbarImageCollection.OnGetBitmap := GetDarkToolbarBitmap
+  else
+    ToolbarImageCollection.OnGetBitmap := nil;
+  ToolbarImageList.UpdateImageList;
+  UpdateDisabledToolbarImages;
+  MainToolBar.Invalidate;
+  ConfigToolBar.Invalidate;
+end;
+
+procedure TMainForm.FormAfterMonitorDpiChanged(Sender: TObject; OldDPI, NewDPI: Integer);
+begin
+  // ToolbarImageList rescales itself, but the disabled list is a plain TImageList we build.
+  UpdateDisabledToolbarImages;
+end;
+
+// Animation frames are named like 'install\install-01'.
+function IsAnimationFrame(const CollectionName: string): Boolean;
+var
+  Frame: Integer;
+begin
+  var Dash := CollectionName.LastDelimiter('-');
+  Result := (Dash >= 0) and TryStrToInt(CollectionName.Substring(Dash + 1), Frame);
+end;
+
+// Disabled images are the toolbar images (already tinted for dark mode) with reduced opacity.
+// Light icons on a dark background look brighter, so dark mode fades them a little more.
+// Animation frames are copied as is: a button can be disabled while its command runs,
+// and the animation should still look alive.
+procedure TMainForm.UpdateDisabledToolbarImages;
+const
+  LightDisabledOpacity = 100;
+  DarkDisabledOpacity = 80;
+begin
+  var Opacity: Byte := LightDisabledOpacity;
+  if IsDarkStyle then Opacity := DarkDisabledOpacity;
+
+  DisabledToolbarImageList.BeginUpdate;
+  try
+    DisabledToolbarImageList.Clear;
+    DisabledToolbarImageList.SetSize(ToolbarImageList.Width, ToolbarImageList.Height);
+    for var i := 0 to ToolbarImageList.Images.Count - 1 do
+    begin
+      var CollectionName := ToolbarImageList.Images[i].CollectionName;
+      var CollectionIndex := ToolbarImageCollection.GetIndexByName(CollectionName);
+      var Bmp: TBitmap := nil;
+      if CollectionIndex >= 0 then
+        Bmp := ToolbarImageCollection.GetBitmap(CollectionIndex, ToolbarImageList.Width, ToolbarImageList.Height);
+      if Bmp = nil then
+      begin
+        // Keep the indexes in sync with ToolbarImageList.
+        Bmp := TBitmap.Create;
+        Bmp.PixelFormat := pf32bit;
+        Bmp.SetSize(ToolbarImageList.Width, ToolbarImageList.Height);
+      end;
+      try
+        Bmp.AlphaFormat := afIgnored; // straight alpha, so we can scale it.
+        if not IsAnimationFrame(CollectionName) then FadeBitmap(Bmp, Opacity);
+        ImageList_Add(DisabledToolbarImageList.Handle, Bmp.Handle, 0);
+      finally
+        Bmp.Free;
+      end;
+    end;
+  finally
+    DisabledToolbarImageList.EndUpdate;
+  end;
+end;
+
+procedure TMainForm.GetDarkToolbarBitmap(ASourceImage: TWICImage; AWidth, AHeight: Integer; out ABitmap: TBitmap);
+var
+  Scaled: TWICImage;
+begin
+  // Same as TImageCollection.GetBitmap does by default for styled apps, plus the tint.
+  ABitmap := TBitmap.Create;
+  try
+    if (ASourceImage.Width = AWidth) and (ASourceImage.Height = AHeight) then
+      ABitmap.Assign(ASourceImage)
+    else
+    begin
+      Scaled := ASourceImage.CreateScaledCopy(AWidth, AHeight, wipmHighQualityCubic);
+      try
+        ABitmap.Assign(Scaled);
+      finally
+        Scaled.Free;
+      end;
+    end;
+    ABitmap.AlphaFormat := afIgnored; // un-premultiplies, so we can recolor RGB without touching alpha.
+    TintBitmap(ABitmap, StyleServices.GetSystemColor(clBtnText));
+  except
+    FreeAndNil(ABitmap);
+    raise;
+  end;
 end;
 
 function TMainForm.ProductFromItem(Item: TListItem): TGUIProduct;
@@ -1100,6 +1662,21 @@ begin
     end);
 end;
 
+function TMainForm.GetListItemIds: TDictionary<string, TListItem>;
+begin
+  Result := TDictionary<string, TListItem>.Create(TIStringComparer.Ordinal);
+  try
+    for var i := 0 to lvProducts.Items.Count - 1 do
+    begin
+      lvProducts.Items[i].Data := nil;
+      Result.AddOrSetValue(lvProducts.Items[i].SubItems[SubItemIndex(ColId)], lvProducts.Items[i]);
+    end;
+  except
+    FreeAndNil(Result);
+    raise;
+  end;
+end;
+
 procedure TMainForm.ProductsUpdatedEvent(Products: TGUIProductList);
 const
   PinnedChar = #$D83D#$DCCC;
@@ -1108,31 +1685,43 @@ const
 begin
   lvProducts.Items.BeginUpdate;
   try
-    lvProducts.Items.Clear;
-    for var Product in Products do
+    var ExistingIds := GetListItemIds;
+    try
+      for var Product in Products do
+      begin
+        var Item: TListItem;
+        if not ExistingIds.TryGetValue(Product.Id, Item)
+          then Item := lvProducts.Items.Add;
+
+        var Icons := '';
+        if Product.IsOutdated then
+          Icons := Icons + OutdatedChar;
+        if Product.IsPinned then
+          Icons := Icons + PinnedChar;
+        Item.Caption := Icons;  // ColIcons
+
+        for var i := Item.SubItems.Count + 1 to ColLast do
+          Item.SubItems.Add('');
+
+        Item.SubItems[SubItemIndex(ColId)] := Product.Id;
+        Item.SubItems[SubItemIndex(ColName)] := Product.Name;
+        Item.SubItems[SubItemIndex(ColLocalVersion)] := Product.LocalVersion.ToString;
+        Item.SubItems[SubItemIndex(ColRemoteVersion)] := Product.RemoteVersion.ToString;
+        Item.SubItems[SubItemIndex(ColStatus)] := StatusToStr[Product.Status];
+        Item.Data := Product;
+      end;
+    finally
+      ExistingIds.Free;
+    end;
+    for var i := lvProducts.Items.Count - 1 downto 0 do
     begin
-      var Item := lvProducts.Items.Add;
-
-      var Icons := '';
-      if Product.IsOutdated then
-        Icons := Icons + OutdatedChar;
-      if Product.IsPinned then
-        Icons := Icons + PinnedChar;
-      Item.Caption := Icons;  // ColIcons
-
-      for var i := 1 to ColLast do
-        Item.SubItems.Add('');
-      Item.SubItems[SubItemIndex(ColId)] := Product.Id;
-      Item.SubItems[SubItemIndex(ColName)] := Product.Name;
-      Item.SubItems[SubItemIndex(ColLocalVersion)] := Product.LocalVersion.ToString;
-      Item.SubItems[SubItemIndex(ColRemoteVersion)] := Product.RemoteVersion.ToString;
-      Item.SubItems[SubItemIndex(ColStatus)] := StatusToStr[Product.Status];
-      Item.Data := Product;
+      if lvProducts.Items[i].Data = nil then lvProducts.Items.Delete(i);
     end;
     SortProducts;
   finally
     lvProducts.Items.EndUpdate;
   end;
+  UpdateDetailsPane;
 end;
 
 procedure TMainForm.ProgressEvent(const Percent: Integer);

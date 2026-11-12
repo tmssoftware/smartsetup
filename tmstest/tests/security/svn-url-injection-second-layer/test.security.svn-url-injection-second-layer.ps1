@@ -12,11 +12,11 @@ tms server-add testserver zipfile "file:///$($workingFolder.Path.Replace('\', '/
 
 
 Test-CommandFails { tms install tmstest.a -test-allow-vcs-commands-starting-with-minus } "*Errors downloading products from version control*" "version with leading double dash"
-CheckLogHasString "Error doing svn checkout from"
+CheckLogHasString "Error in svn command"
 Test-CommandFails { tms install tmstest.b -test-allow-vcs-commands-starting-with-minus } "*Errors downloading products from version control*" "version with leading single dash"
-CheckLogHasString "Error doing svn checkout from"
+CheckLogHasString "Error in svn command"
 Test-CommandFails { tms install tmstest.c -test-allow-vcs-commands-starting-with-minus } "*Errors downloading products from version control*" "version that looks like git --force"
-CheckLogHasString "Error doing svn checkout from"
+CheckLogHasString "Error in svn command"
 
 # Whitespace before the dash must not bypass the check (the validator trims first).
 Test-CommandFails { tms install tmstest.d -test-allow-vcs-commands-starting-with-minus} "*Errors downloading products from version control*" "version with leading space then dash"

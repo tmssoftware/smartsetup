@@ -1,13 +1,13 @@
 unit Commands.ConfigRead;
 
 interface
-uses Classes, SysUtils, Generics.Collections;
+uses Classes, SysUtils, Generics.Collections, UConfigSources;
 
 procedure RegisterConfigReadCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions, Commands.Logging,
-     UConfigWriter, Types, Commands.GlobalConfig,
+     UConfigWriter, Types, Commands.LocalConfig,
      BBCmd, UConfigLoaderStateMachine, BBYaml.Writer, UMultiLogger;
 
 var
@@ -18,7 +18,12 @@ var
 procedure RunConfigReadCommand;
 begin
   InitFolderBasedCommand(false);
-  WriteLn(TConfigWriter.GetProperty(Config, VariableName, TWritingFormat.NoComments, Logger.JsonMode, CmdSyntax));
+  var Cfg := TSourcedConfig.Create(AllConfigSources);
+  try
+    WriteLn(TConfigWriter.GetProperty(Cfg.Instance, VariableName, TWritingFormat.NoComments, Logger.JsonMode, CmdSyntax));
+  finally
+    Cfg.Free;
+  end;
 end;
 
 
@@ -46,8 +51,11 @@ begin
     procedure(const Value: Boolean)
     begin
       CmdSyntax := Value;
+      Logger.CmdMode := Value;
     end);
   option.HasValue := False;
+
+  RegisterConfigSourceOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Config, RunConfigReadCommand);
 end;

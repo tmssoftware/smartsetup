@@ -5,14 +5,14 @@
 $ErrorActionPreference = "SilentlyContinue"
  $err_message = tms server-add TMS zipfile file://asdfasdfda
 
-if (-not "$($err_message)".Contains('Error: Server "TMS" is already added in tms.config.yaml.')) {
+if (-not "$($err_message)".Contains('Error: Server "TMS" is already added in')) {
   Write-Output "It shouldn't let you add a TMS server."
   exit -1
 }
 
 $err_message = tms server-add community zipfile file://asdfasdfda
 
-if (-not "$($err_message)".Contains('Error: Server "community" is already added in tms.config.yaml.')) {
+if (-not "$($err_message)".Contains('Error: Server "community" is already added in')) {
   Write-Output "It shouldn't let you add a community server."
   exit -1
 }

@@ -263,7 +263,7 @@ begin
   end;
   try
     var paramClean := param;
-    if (exe = 'msbuild.exe') and command.ToLowerInvariant.Contains('/p:config') then
+    if (exe = 'msbuild.exe') and command.ToLowerInvariant.Contains('/p:config') and (param.Trim <> '') then
     begin
       paramClean := TPath.GetFileNameWithoutExtension(param);
       paramClean := paramClean + GetDelphiVersion(TPath.GetFileName(TPath.GetDirectoryName(param)));

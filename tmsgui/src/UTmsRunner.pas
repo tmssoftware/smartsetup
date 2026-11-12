@@ -22,7 +22,7 @@ type
   {$SCOPEDENUMS ON}
   TTmsCommand = (List, ListRemote, Info, Credentials, Configure, LogView, SelfUpdate,
     ConfigRead, ConfigWrite, ServerList, ServerAdd, ServerEnable, ServerRemove,
-    VersionsRemote, Build, Install, Uninstall, Pin, Unpin);
+    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, Restore, SBOM, Doctor);
   {$SCOPEDENUMS OFF}
 
   TTmsRunner = class
@@ -66,7 +66,7 @@ type
     function NewVersionDetected: Boolean;
     property Output: TList<String> read FOutput;
     function OutputText: string;
-    function CmdAndOutput: string;
+    function CmdAndOutput: string; virtual;
     property OnOutputLine: TOutputLineProc read FOnOutputLine write FOnOutputLine;
   end;
 
@@ -164,6 +164,8 @@ type
     function GetParams: string; override;
   public
     class function Command: TTmsCommand; override;
+    function CmdAndOutput: string; override;
+
     procedure RunGetCredentials(out Email, Code: string);
 
     // Returns true if credentials updated correctly, false if they are invalid
@@ -244,6 +246,38 @@ type
     procedure RunUnpin(const ProductIds: TArray<string>);
   end;
 
+  TTmsBackupRunner = class(TTmsRunner)
+  public
+    class function Command: TTmsCommand; override;
+    procedure RunBackup(const TargetFile: string; const ProductIds: TArray<string>);
+  end;
+
+  TTmsRestoreRunner = class(TAbstractTmsBuildRunner)
+  public
+    class function Command: TTmsCommand; override;
+    procedure RunRestore(const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
+  end;
+
+  TSBOMInfo =  class
+  public
+    Id: string;
+    FileName: string;
+    Generated: boolean;
+    Error: string; // empty unless generating it failed
+  end;
+
+  TTmsSBOMRunner = class(TTmsRunner)
+  private
+    FSBOMInfoList: TObjectList<TSBOMInfo>;
+  public
+    class function Command: TTmsCommand; override;
+    constructor Create;
+    destructor Destroy; override;
+    procedure RunSBOM(const Force: boolean; const ProductIds: TArray<string>);
+
+    property SBOMInfoList: TObjectList<TSBOMInfo> read FSBOMInfoList;
+  end;
+
   ETmsRunner = class(Exception)
   end;
 
@@ -264,7 +298,7 @@ function TmsCommandName(const Command: TTmsCommand): string;
 const
   Names: array[TTmsCommand] of string = ('list', 'list-remote', 'info', 'credentials', 'config', 'log-view', 'self-update',
     'config-read', 'config-write', 'server-list', 'server-add', 'server-enable', 'server-remove',
-    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin');
+    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'restore', 'sbom-generate', 'doctor');
 begin
   Result := Names[Command];
 end;
@@ -502,6 +536,7 @@ begin
     Product.Name := JsonProduct.GetValue<string>('name');
     Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.Channel := JsonProduct.GetValue<string>('channel', '');
+    Product.Server := JsonProduct.GetValue<string>('server', '');
     Product.Local := JsonProduct.GetValue<Boolean>('local', False);
     Product.Pinned := JsonProduct.GetValue<Boolean>('pinned', False);
     var JsonIDEs: TJSONObject;
@@ -640,7 +675,9 @@ begin
     Product.Version := TLenientVersion.Create(JsonProduct.GetValue<string>('version', ''), JsonProduct.GetValue<string>('version_type', ''));
     Product.VendorId := JsonProduct.GetValue<string>('vendor_id', '');
     Product.Server := JsonProduct.GetValue<string>('server', '');
-//    Product.LicenseStatus := JsonProduct.GetValue<string>('license-status', '');
+    Product.Description := JsonProduct.GetValue<string>('description', '');
+    Product.Url := JsonProduct.GetValue<string>('url', '');
+    Product.LicenseStatus := JsonProduct.GetValue<string>('license_status', '');
   end;
 end;
 
@@ -670,6 +707,11 @@ begin
 end;
 
 { TTmsCredentialsRunner }
+
+function TTmsCredentialsRunner.CmdAndOutput: string;
+begin
+  Result := 'tms credentials';
+end;
 
 class function TTmsCredentialsRunner.Command: TTmsCommand;
 begin
@@ -778,7 +820,9 @@ begin
   Run(AddRepo('self-update'));
 
   // Quick and dirty, but what better option do we have?
-  Result := Pos('TMS Smart Setup has been updated from version', OutputText) > 0;
+  var RText := OutputText;
+  Result := RText.Contains('TMS Smart Setup has been updated from version')
+         or (RText.Contains('TMS Smart Setup installation of version') and RText.Contains('has been repaired'));
 end;
 
 { TTmsConfigureRunner }
@@ -987,6 +1031,91 @@ begin
   if not Initialized then exit('Error reading working folder');
 
   Result := FWorkingFolder;
+end;
+
+
+{ TTmsBackupRunner }
+
+class function TTmsBackupRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Backup;
+end;
+
+procedure TTmsBackupRunner.RunBackup(const TargetFile: string;
+  const ProductIds: TArray<string>);
+begin
+  var Command := 'backup';
+  Command := Command + ' ' + String.Join(' ', ProductIds);
+  Run(Command);
+end;
+
+{ TTmsRestoreRunner }
+
+class function TTmsRestoreRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.Restore;
+end;
+
+procedure TTmsRestoreRunner.RunRestore(const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
+begin
+  ProductProgress := true;
+  var Command := 'restore "' + BackupFile + '"';
+  if SkipRegister then Command := Command + ' -skip-register' else Command := Command + ' -auto-register';
+  // an empty list restores everything in the backup.
+  for var ProductId in ProductIds do
+    Command := Command + ' -include:' + ProductId;
+
+  if ProductProgress then
+    Command := Command + ' -display-options:product-progress';
+
+  RunCommand(AddRepo(Command));
+end;
+
+{ TTmsSBOMRunner }
+
+class function TTmsSBOMRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.SBOM;
+end;
+
+constructor TTmsSBOMRunner.Create;
+begin
+  inherited;
+  FSBOMInfoList := TObjectList<TSBOMInfo>.Create;
+end;
+
+destructor TTmsSBOMRunner.Destroy;
+begin
+  FSBOMInfoList.Free;
+  inherited;
+end;
+
+procedure TTmsSBOMRunner.RunSBOM(const Force: boolean; const ProductIds: TArray<string>);
+begin
+  var Command := 'sbom-generate';
+  var ForceStr := '';
+  if Force then ForceStr := ' -force';
+  
+  Command := Command + ' ' + String.Join(' ', ProductIds) + ForceStr + ' -json';
+  Run(Command);
+  if not (JsonOutput is TJSONObject) then
+    raise ETmsRunner.Create('Invalid result for `tms generate-sbom -json` command. Cannot parse "' + OutputText + '" as JSON.');
+
+  var Json := TJSONObject(JsonOutput);
+  for var Pair in Json do
+  begin
+    var SBOMInfo := TSBOMInfo.Create;
+    FSBOMInfoList.Add(SBOMInfo);
+    SBOMInfo.Id := Pair.JsonString.Value;
+    if not (Pair.JsonValue is TJSONObject) then
+      raise ETmsRunner.CreateFmt('Could not parse product "%s" as JSON object from generate-sbom command', [SBOMInfo.Id]);
+    var JsonProduct := TJSONObject(Pair.JsonValue);
+
+    SBOMInfo.FileName := JsonProduct.GetValue<string>('filename');
+    SBOMInfo.Generated := JsonProduct.GetValue<boolean>('generated');
+    SBOMInfo.Error := JsonProduct.GetValue<string>('error', '');
+  end;
+
 end;
 
 end.

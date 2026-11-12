@@ -43,7 +43,7 @@ type
     procedure ResetPercentAction; override;
     procedure SetPercentAction(const func: TFunc<integer>); override;
     function IgnoresVerbosity: boolean; override;
-    function SilencedInJsonMode: boolean; override;
+    function SilencedInMachineReadableMode: boolean; override;
 
     procedure Error(const Message: string); override;
     procedure Info(const Message: string); override;
@@ -178,7 +178,7 @@ begin
   end;
 end;
 
-function TConsoleLogger.SilencedInJsonMode: boolean;
+function TConsoleLogger.SilencedInMachineReadableMode: boolean;
 begin
   Result := true;
 end;

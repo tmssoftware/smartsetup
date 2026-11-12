@@ -3,15 +3,20 @@ unit Commands.GlobalConfig;
 interface
 
 uses
-  System.IOUtils, System.SysUtils, UConfigDefinition, UConfigLoader, UConfigFolders, VCS.Registry;
+  System.IOUtils, System.SysUtils, UConfigDefinition, UConfigLoader, UConfigFolders, VCS.Registry, UConfigSources, BBYaml.Writer;
 
 function Config: TConfigDefinition;
 function ConfigNoCheck: TConfigDefinition;
+function NewConfig(const aConfigSources: TConfigSourceSet): TConfigDefinition;
 function ConfigHasBeenLoaded: boolean;
 procedure SetConfigFileName(const FileName: string);
 procedure AddConfigFileName(const FileName: string);
 procedure AddConfigParameter(const Parameter: string);
 function ConfigFileName: string;
+function GetConfigSingleSource(const aConfigSources: TConfigSourceSet): TConfigSource;
+function GetConfigFileName(const aConfigSources: TConfigSourceSet) : string;
+function GetWritingFormat(const aConfigSources: TConfigSourceSet) : TWritingFormat;
+
 function IsValidTMSSetupFolder: Boolean;
 procedure CheckValidTMSSetupFolder;
 function RegisteredVCSRepos(const Server: string=''): TProductRegistry;
@@ -37,6 +42,41 @@ end;
 function AddedConfigFileNames: TArray<string>;
 begin
   Result := _AddedConfigFileNames;
+end;
+
+function GetConfigSingleSource(const aConfigSources: TConfigSourceSet): TConfigSource;
+begin
+  var CfgSourceCount := 0;
+  Result := TConfigSource.Main;
+  for var source in aConfigSources do
+  begin
+    inc(CfgSourceCount);
+    Result := source;
+  end;
+  if CfgSourceCount <> 1 then raise Exception.Create('Cannot save the file. Only one ConfigSource is allowed when saving.');
+end;
+
+function GetConfigFileName(const aConfigSources: TConfigSourceSet) : string;
+begin
+  case GetConfigSingleSource(aConfigSources) of
+    TConfigSource.Main: exit(ConfigFileName);
+    TConfigSource.Global:
+    begin
+      Result := TConfigLoader.GetGlobalConfigFileName;
+      if Result = '' then raise Exception.Create('Cannot find the user profile folder to save tms.config.global.yaml. Make sure the USERPROFILE (Windows) or HOME (macOS and Linux) environment variable is set.');
+      exit;
+    end;
+    TConfigSource.Local: exit(TConfigLoader.GetLocalConfigFileName(ConfigFileName));
+  end;
+  raise Exception.Create('Internal error: CfgSource is not a supported value.');
+end;
+
+function GetWritingFormat(const aConfigSources: TConfigSourceSet) : TWritingFormat;
+begin
+  case GetConfigSingleSource(aConfigSources) of
+    TConfigSource.Main: exit(TWritingFormat.Full);
+    else exit(TWritingFormat.Minimal);
+  end;
 end;
 
 function ConfigFileName: string;
@@ -107,11 +147,18 @@ begin
   if _Config = nil then
   begin
     CheckValidTMSSetupFolder;
-    _Config := TConfigLoader.LoadConfig(ConfigFileName, AddedConfigFileNames, _CommandLineConfig);
+    _Config := TConfigLoader.LoadConfig(ConfigFileName, AllConfigSources, AddedConfigFileNames, _CommandLineConfig);
 
   end;
   Result :=_Config;
 end;
+
+function NewConfig(const aConfigSources: TConfigSourceSet): TConfigDefinition;
+begin
+  CheckValidTMSSetupFolder;
+  Result := TConfigLoader.LoadConfig(ConfigFileName, aConfigSources, AddedConfigFileNames, _CommandLineConfig);
+end;
+
 
 function ConfigHasBeenLoaded: boolean;
 begin
@@ -122,7 +169,7 @@ function ConfigNoCheck: TConfigDefinition;
 begin
   if _Config = nil then
   begin
-    _Config := TConfigLoader.LoadConfig(ConfigFileName, AddedConfigFileNames, _CommandLineConfig);
+    _Config := TConfigLoader.LoadConfig(ConfigFileName, AllConfigSources, AddedConfigFileNames, _CommandLineConfig);
 
   end;
   Result :=_Config;

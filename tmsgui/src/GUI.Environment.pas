@@ -6,7 +6,8 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
-  Deget.Version, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes;
+  Deget.Version, Deget.CoreTypes, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes,
+  Deget.IDETypes;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -16,6 +17,7 @@ type
 
   TTmsRunner = UTmsRunner.TTmsRunner;
   TTmsCommand = UTmsRunner.TTmsCommand;
+  TSBOMInfo = UTmsRunner.TSBOMInfo;
 
   TGUILogger = class(TLogger)
   strict private
@@ -36,6 +38,13 @@ type
     property OnLogMessage: TLogMessageProc read FOnLogMessage write FOnLogMessage;
   end;
 
+  TGUIProductInstallation = record
+    IDEName: TIDEName;
+    Platform: TPlatform;
+    IsBuilt: Boolean;
+    IsRegistered: Boolean;
+  end;
+
   TGUIProduct = class
   private
     FId: string;
@@ -47,6 +56,11 @@ type
     FVendorId: string;
     FServer: string;
     FIsPinned: Boolean;
+    FChannel: string;
+    FDescription: string;
+    FUrl: string;
+    FLicenseStatus: string;
+    FInstallations: TArray<TGUIProductInstallation>;
   public
     function IsOutdated: Boolean;
     function DisplayName: string;
@@ -59,6 +73,12 @@ type
     property VendorId: string read FVendorId write FVendorId;
     property Server: string read FServer write FServer;
     property IsPinned: Boolean read FIsPinned write FIsPinned;
+    property Channel: string read FChannel write FChannel;
+    property Description: string read FDescription write FDescription;
+    property Url: string read FUrl write FUrl;
+    property LicenseStatus: string read FLicenseStatus write FLicenseStatus;
+    // IDEs and platforms where the product is built and/or registered
+    property Installations: TArray<TGUIProductInstallation> read FInstallations write FInstallations;
   end;
 
   TGUIProductList = class(TObjectList<TGUIProduct>)
@@ -112,6 +132,7 @@ type
     FFetchedProducts: TGUIProductList;
     FProducts: TGUIProductList;
     FSelected: TGUIProductList;
+    FSelectedValid: Boolean; //false when the selection changed since FSelected was filled. See SelectionChanged.
     FSearchFilter: string;
     FOnProductsUpdated: TProductsProc;
     FActiveRunners: TList<TTmsRunner>; //every runner currently executing, on any thread. Guarded by TMonitor on itself.
@@ -142,7 +163,6 @@ type
     procedure GenerateLogItem(Item: TGUILogItem);
     procedure RunnerOutputEvent(const S: string);
     function TryBeginExclusive(const Command: TTmsCommand): Boolean;
-    function SelectedProductIds: TArray<string>;
     procedure ExecuteBuild(FullBuild: Boolean; ProgressCallback: TProductProgressProc);
     procedure DoRunStart(const Command: TTmsCommand);
     procedure DoRunFinish(const Command: TTmsCommand);
@@ -157,6 +177,7 @@ type
     procedure EndRunning;
     function AddActiveRunner(Runner: TTmsRunner): Boolean;
     procedure RemoveActiveRunner(Runner: TTmsRunner);
+    procedure UpdateTMSServer(const Enable: boolean);
   protected
     procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
@@ -171,12 +192,21 @@ type
 
     function IsRunning: Boolean;
     procedure CancelRun;
+
+    function SelectedProductIds: TArray<string>;
+    // Call when the selection in the list changes. The Can* functions run on every idle tick, so they use a cached
+    // selection, and reading it from the list each time made selecting many products crawl.
+    procedure SelectionChanged;
+
     
     // Execute the build all the currently selected products (or all if none is selected)
     procedure ExecuteFullBuild(ProgressCallback: TProductProgressProc);
     procedure ExecutePartialBuild(ProgressCallback: TProductProgressProc);
     procedure ExecuteInstall(ProgressCallback: TProductProgressProc);
     procedure ExecuteUninstall(ProgressCallback: TProgressProc);
+    // ProductIds: the products to restore from the backup. Empty restores all of them.
+    procedure ExecuteRestore(ProgressCallback: TProductProgressProc; const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
+    procedure RefreshProductList;
 
     // Execute install explicitly passing the product ids to be installed
     procedure ExecuteInstallProducts(const ProductIds: TArray<string>; ProgressCallback: TProductProgressProc);
@@ -188,9 +218,17 @@ type
     procedure ExecutePinSelected;
     procedure ExecuteUnpinSelected;
 
+    // Opens doctor in its own console, as it asks questions, and calls WaitForDoctor with its process handle.
+    // WaitForDoctor must return only once the process has ended: until then we hold the job, so no other tms starts
+    // and fails on the setup lock doctor holds.
+    procedure ExecuteDoctor(const WaitForDoctor: TProc<THandle>);
+    procedure ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<TSBOMInfo>);
+
     // Updates the credentials
     // Fires the event OnRequestCredentials for an opportunity to offer user an UI to enter credentials
-    function ExecuteRequestCredentials(const Alert: TProc<string>): boolean;
+    // RefreshProducts: reload the products in the background if the credentials or the tms server changed.
+    // Start passes false, as it loads them itself right after.
+    function ExecuteRequestCredentials(const Alert: TProc<string>; const RefreshProducts: Boolean = True): boolean;
 
     procedure ExecuteConfigure(Silent: Boolean = False);
     function ExecuteLogView(const SessionId: string; const Print: Boolean): string;
@@ -203,6 +241,7 @@ type
 
     // Functions for enable/disable actions
     function CanInstallSelected: Boolean;
+    function GetInstallCaption: string;
     function CanUninstallSelected: Boolean;
     function CanBuild: Boolean;
     function CanApplyFilter: Boolean;
@@ -210,6 +249,8 @@ type
     function CanConfigure: Boolean;
     function CanPinSelected: Boolean;
     function CanUnpinSelected: Boolean;
+    function CanRunSBOM: Boolean;
+    function CanRunDoctor: Boolean;
 
     // Functions to read/write configuration parameters
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -239,6 +280,9 @@ type
     /// </summary>
     function SetServer(const Value: string): Boolean;
     property Server: string read FServer;
+
+    function GetProductInstallInfo(const Source: TGUIProduct): string;
+
 
     /// <summary>
     ///   Retrieves general information about Smart Setup folder
@@ -277,7 +321,7 @@ type
 implementation
 
 uses
-  Winapi.Windows, Masks;
+  Winapi.Windows, System.IOUtils, Masks;
 
 { TGUILogger }
 
@@ -474,6 +518,41 @@ begin
 //  end;
 end;
 
+
+function TGUIEnvironment.GetInstallCaption: string;
+type
+  TInstallCaptionType = (Unknown, Install, Update, Reinstall);
+
+  function GetOneProductInstallCaption(const Product: TGUIProduct): TInstallCaptionType;
+  begin
+    if Product.Status = TProductStatus.Installed then
+    begin
+      if Product.IsOutdated or (Product.RemoteVersion.IsNull)
+        then Exit(TInstallCaptionType.Update)
+        else Exit(TInstallCaptionType.Reinstall);
+    end;
+    Result := TInstallCaptionType.Install;
+  end;
+
+
+begin
+  UpdateSelectedProducts;
+  Result := '&Install';
+  var AllCaptionType := TInstallCaptionType.Unknown;
+  for var Product in FSelected do
+  begin
+    var ProdCaptionType := GetOneProductInstallCaption(Product);
+    if AllCaptionType = TInstallCaptionType.Unknown then AllCaptionType := ProdCaptionType
+    else if AllCaptionType <> ProdCaptionType then exit;
+  end;
+
+  case AllCaptionType of
+    TInstallCaptionType.Update: exit ('U&pdate');
+    TInstallCaptionType.Reinstall: exit('Re&install');
+  end;
+end;
+
+
 function TGUIEnvironment.CanPinSelected: Boolean;
 begin
   if IsRunning then Exit(False);
@@ -482,6 +561,23 @@ begin
   for var Product in FSelected do
     if not Product.IsPinned then
       Exit(True);
+end;
+
+function TGUIEnvironment.CanRunDoctor: Boolean;
+begin
+  Result := not IsRunning;
+end;
+
+function TGUIEnvironment.CanRunSBOM: Boolean;
+begin
+  if IsRunning then Exit(False);
+  if not UpdateSelectedProducts then Exit(false);
+  Result := False;
+  for var Product in FSelected do
+  begin
+    if (Product.Status <> TProductStatus.NotInstalled)
+     then Exit(True);
+  end;
 end;
 
 function TGUIEnvironment.CanRequestCredentials: Boolean;
@@ -566,6 +662,27 @@ begin
     GUIProduct.HasFetchInfo := not Product.Local;
     GUIProduct.Server := Product.Server;
     GUIProduct.IsPinned := Product.Pinned;
+    GUIProduct.Channel := Product.Channel;
+
+    var Installations: TArray<TGUIProductInstallation> := [];
+    for var IDEPair in Product.IDEs do
+    begin
+      // Skip IDEs or platforms unknown to this version of the GUI
+      if (Ord(IDEPair.Key) < Ord(Low(TIDEName))) or (Ord(IDEPair.Key) > Ord(High(TIDEName))) then
+        Continue;
+      for var PlatPair in IDEPair.Value.Platforms do
+      begin
+        if (Ord(PlatPair.Key) < Ord(Low(TPlatform))) or (Ord(PlatPair.Key) > Ord(High(TPlatform))) then
+          Continue;
+        var Installation: TGUIProductInstallation;
+        Installation.IDEName := IDEPair.Key;
+        Installation.Platform := PlatPair.Key;
+        Installation.IsBuilt := PlatPair.Value.IsBuilt;
+        Installation.IsRegistered := PlatPair.Value.IsRegistered;
+        Installations := Installations + [Installation];
+      end;
+    end;
+    GUIProduct.Installations := Installations;
   end;
 
   for var Product in Remote do
@@ -589,6 +706,11 @@ begin
 
     // Update VendorId. For now, only remote products have vendor id, so we are setting here regardless.
     GUIProduct.VendorId := Product.VendorId;
+
+    // Same for description, url and license status: only remote products have them.
+    GUIProduct.Description := Product.Description;
+    GUIProduct.Url := Product.Url;
+    GUIProduct.LicenseStatus := Product.LicenseStatus;
   end;
 end;
 
@@ -753,6 +875,51 @@ begin
   end;
 end;
 
+procedure TGUIEnvironment.ExecuteDoctor(const WaitForDoctor: TProc<THandle>);
+begin
+  if not TryBeginExclusive(TTmsCommand.Doctor) then
+  begin
+    Logger.Error('tms.exe is already running');
+    Exit;
+  end;
+  try
+    var ExeFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'tms.exe');
+    // No cmd.exe: it would expand %vars% and strip quotes in the path. tms.exe gets its own console, and -pause keeps it open.
+    var CmdLine := '"' + ExeFileName + '" doctor -pause -fully-interactive';
+    UniqueString(CmdLine); // CreateProcessW may write to the buffer
+    var SI: TStartupInfo;
+    var PI: TProcessInformation;
+    FillChar(SI, SizeOf(SI), 0);
+    SI.cb := SizeOf(SI);
+    // In the folder the runners use, not the exe's.
+    if not CreateProcess(PChar(ExeFileName), PChar(CmdLine), nil, nil, False,
+      CREATE_NEW_CONSOLE, nil, PChar(GetCurrentDir), SI, PI) then
+      RaiseLastOSError;
+    CloseHandle(PI.hThread);
+    try
+      WaitForDoctor(PI.hProcess);
+    finally
+      CloseHandle(PI.hProcess);
+    end;
+  finally
+    EndRunning;
+  end;
+end;
+
+procedure TGUIEnvironment.ExecuteSBOM(const Force: boolean; const ProductIds: TArray<string>; const UpdateSBOMs: TProc<TSBOMInfo>);
+begin
+  RunSync<TTmsSBOMRunner>(
+    procedure(Runner: TTmsSBOMRunner)
+    begin
+      Runner.OnOutputLine := RunnerOutputEvent;
+      Runner.RunSBOM(Force, ProductIds);
+      for var InfoItem in Runner.SBOMInfoList do
+      begin
+        UpdateSBOMs(InfoItem);
+      end;
+    end);
+end;
+
 procedure TGUIEnvironment.ExecuteSelfUpdate(ProgressCallback: TProgressProc; RelaunchCallback: TProc);
 begin
   RunBackground(TTmsCommand.SelfUpdate,
@@ -801,41 +968,43 @@ begin
   RunAsync<TTmsBuildRunner>(
     procedure(Runner: TTmsBuildRunner)
     begin
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        ProgressCallback(ProgressInfo);
-      end;
-
-      Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.FullBuild := FullBuild;
-      Runner.ProductIds.AddStrings(ProductIds);
-      Runner.OnProgress :=
-        procedure(const Info: TProgressInfo)
+      try
+        if Assigned(ProgressCallback) then
         begin
-          if Assigned(ProgressCallback) then
-          begin
-            var ProgressInfo := Default(TProductProgressInfo);
-            ProgressInfo.Percent := Info.Percent;
-            ProgressInfo.ProductId := Info.ProductId;
-            ProgressInfo.ProductPercent := Info.ProductPercent;
-            ProgressCallback(ProgressInfo);
-          end;
+          var ProgressInfo := Default(TProductProgressInfo);
+          ProgressCallback(ProgressInfo);
         end;
-      Runner.RunBuild;
 
-      // Todo: Handle exit code 3 (which is partial succesfully build)
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        if Runner.IsCanceled then
-          ProgressInfo.Percent := 0
-        else
-          ProgressInfo.Percent := 100;
-        ProgressCallback(ProgressInfo);
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.FullBuild := FullBuild;
+        Runner.ProductIds.AddStrings(ProductIds);
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+            begin
+              var ProgressInfo := Default(TProductProgressInfo);
+              ProgressInfo.Percent := Info.Percent;
+              ProgressInfo.ProductId := Info.ProductId;
+              ProgressInfo.ProductPercent := Info.ProductPercent;
+              ProgressCallback(ProgressInfo);
+            end;
+          end;
+        Runner.RunBuild;
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          if Runner.IsCanceled then
+            ProgressInfo.Percent := 0
+          else
+            ProgressInfo.Percent := 100;
+          ProgressCallback(ProgressInfo);
+        end;
+      finally
+        RefreshFetchedProductsAfterJob;
       end;
-
-      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -878,40 +1047,42 @@ begin
   RunAsync<TTmsInstallRunner>(
     procedure(Runner: TTmsInstallRunner)
     begin
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        ProgressCallback(ProgressInfo);
-      end;
-
-      Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.ProductIds.AddStrings(ProductIds);
-      Runner.OnProgress :=
-        procedure(const Info: TProgressInfo)
+      try
+        if Assigned(ProgressCallback) then
         begin
-          if Assigned(ProgressCallback) then
-          begin
-            var ProgressInfo := Default(TProductProgressInfo);
-            ProgressInfo.Percent := Info.Percent;
-            ProgressInfo.ProductId := Info.ProductId;
-            ProgressInfo.ProductPercent := Info.ProductPercent;
-            ProgressCallback(ProgressInfo);
-          end;
+          var ProgressInfo := Default(TProductProgressInfo);
+          ProgressCallback(ProgressInfo);
         end;
-      Runner.RunInstall;
 
-      // Todo: Handle exit code 3 (which is partial succesfully build)
-      if Assigned(ProgressCallback) then
-      begin
-        var ProgressInfo := Default(TProductProgressInfo);
-        if Runner.IsCanceled then
-          ProgressInfo.Percent := 0
-        else
-          ProgressInfo.Percent := 100;
-        ProgressCallback(ProgressInfo);
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.ProductIds.AddStrings(ProductIds);
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+            begin
+              var ProgressInfo := Default(TProductProgressInfo);
+              ProgressInfo.Percent := Info.Percent;
+              ProgressInfo.ProductId := Info.ProductId;
+              ProgressInfo.ProductPercent := Info.ProductPercent;
+              ProgressCallback(ProgressInfo);
+            end;
+          end;
+        Runner.RunInstall;
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          if Runner.IsCanceled then
+            ProgressInfo.Percent := 0
+          else
+            ProgressInfo.Percent := 100;
+          ProgressCallback(ProgressInfo);
+        end;
+      finally
+        RefreshFetchedProductsAfterJob;
       end;
-
-      RefreshFetchedProductsAfterJob;
     end);
 end;
 
@@ -936,29 +1107,74 @@ begin
   RunAsync<TTmsUninstallRunner>(
     procedure(Runner: TTmsUninstallRunner)
     begin
-      if Assigned(ProgressCallback) then
-        ProgressCallback(0);
+      try
+        if Assigned(ProgressCallback) then
+          ProgressCallback(0);
 
-      Runner.OnOutputLine := RunnerOutputEvent;
-      Runner.ProductIds.AddStrings(ProductIds);
-      Runner.OnProgress :=
-        procedure(const Info: TProgressInfo)
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.ProductIds.AddStrings(ProductIds);
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+              ProgressCallback(Info.Percent);
+          end;
+        Runner.RunUninstall;
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
         begin
-          if Assigned(ProgressCallback) then
-            ProgressCallback(Info.Percent);
+          if Runner.IsCanceled then
+            ProgressCallback(0)
+          else
+            ProgressCallback(100);
         end;
-      Runner.RunUninstall;
-
-      // Todo: Handle exit code 3 (which is partial succesfully build)
-      if Assigned(ProgressCallback) then
-      begin
-        if Runner.IsCanceled then
-          ProgressCallback(0)
-        else
-          ProgressCallback(100);
+      finally
+        RefreshFetchedProductsAfterJob;
       end;
+    end);
+end;
 
-      RefreshFetchedProductsAfterJob;
+procedure TGUIEnvironment.ExecuteRestore(ProgressCallback: TProductProgressProc; const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
+begin
+  RunAsync<TTmsRestoreRunner>(
+    procedure(Runner: TTmsRestoreRunner)
+    begin
+      try
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          ProgressCallback(ProgressInfo);
+        end;
+
+        Runner.OnOutputLine := RunnerOutputEvent;
+        Runner.OnProgress :=
+          procedure(const Info: TProgressInfo)
+          begin
+            if Assigned(ProgressCallback) then
+            begin
+              var ProgressInfo := Default(TProductProgressInfo);
+              ProgressInfo.Percent := Info.Percent;
+              ProgressInfo.ProductId := Info.ProductId;
+              ProgressInfo.ProductPercent := Info.ProductPercent;
+              ProgressCallback(ProgressInfo);
+            end;
+          end;
+        Runner.RunRestore(BackupFile, SkipRegister, ProductIds);
+
+        // Todo: Handle exit code 3 (which is partial succesfully build)
+        if Assigned(ProgressCallback) then
+        begin
+          var ProgressInfo := Default(TProductProgressInfo);
+          if Runner.IsCanceled then
+            ProgressInfo.Percent := 0
+          else
+            ProgressInfo.Percent := 100;
+          ProgressCallback(ProgressInfo);
+        end;
+      finally
+        RefreshFetchedProductsAfterJob;
+      end;
     end);
 end;
 
@@ -1009,9 +1225,9 @@ begin
       if LocalRunner.NewVersionDetected then
         DoNotifyNewVersion;
 
-      if LocalRunner is TAbstractTmsBuildRunner then
+      if (LocalRunner is TAbstractTmsBuildRunner) or (LocalRunner.Command in [TTmsCommand.SBom]) then
       begin
-        // Only build runners get here, so Params has no credentials in it.
+        // not all commands log to the output. But they all do if there is an exception.
         GenerateLogItem(TGUILogItem.Create(
             Format('%s: tms %s', [TmsCommandName(T.Command), LocalRunner.Params]),
             TLogLevel.Info,
@@ -1060,7 +1276,7 @@ begin
   RefreshServers;
 
   if FServers.IsEnabled('tms') and not Info.HasCredentials then
-    if not ExecuteRequestCredentials(Alert) then exit(false);
+    if not ExecuteRequestCredentials(Alert, False) then exit(false);
 
   var Server := FServer;
   RunBackground(TTmsCommand.List, procedure
@@ -1162,6 +1378,15 @@ begin
   end;
 end;
 
+procedure TGUIEnvironment.RefreshProductList;
+begin
+  StartExclusive(TTmsCommand.List,
+    procedure
+    begin
+      RefreshFetchedProducts(FProductFilter, FServer);
+    end);
+end;
+
 procedure TGUIEnvironment.RefreshFetchedProductsAfterJob;
 begin
   // Runs even if the job was canceled: a canceled install may have finished some products.
@@ -1244,13 +1469,23 @@ begin
   FOnServersUpdated(FServers);
 end;
 
-function TGUIEnvironment.ExecuteRequestCredentials(const Alert: TProc<string>): boolean;
+procedure TGUIEnvironment.UpdateTMSServer(const Enable: boolean);
+begin
+  // Read fresh, FServers could be stale. Only when it changes: server-enable rewrites the config.
+  GetServerConfigItems(FServers);
+  if FServers.IsEnabled('tms') = Enable then Exit;
+  EnableServerConfigItem('tms', Enable);
+  RefreshServers;
+end;
+
+function TGUIEnvironment.ExecuteRequestCredentials(const Alert: TProc<string>; const RefreshProducts: Boolean): boolean;
 begin
   if not Assigned(FOnRequestCredentials) then
     Exit(true);
 
   var Confirm := true;
   var Disable := false;
+  var Changed := false;
   RunSync<TTmsCredentialsRunner>(
     procedure(Runner: TTmsCredentialsRunner)
     begin
@@ -1271,12 +1506,18 @@ begin
             if (Email.Trim <> '') and (Code.Trim <> '') and Runner.RunUpdateCredentials(Email, Code) then LastValid := true;
             RefreshInfo;
             Done := LastValid;
+            if Done then
+            begin
+              UpdateTMSServer(true);
+              Changed := true; // new credentials may give access to other products
+            end;
+
           end
           else
           if Disable then
           begin
-            EnableServerConfigItem('tms', False);
-            RefreshServers;
+            UpdateTMSServer(false);
+            Changed := true;
             Done := True;
           end
           else Done := True;
@@ -1291,7 +1532,19 @@ begin
       until Done;
     end);
 
-    Result := Confirm or Disable;
+  // In the background: list-remote goes to the network, and here we are on the main thread.
+  // RunBackground, not StartExclusive: it waits for a job that is running instead of skipping the refresh.
+  if Changed and RefreshProducts then
+  begin
+    var Filter := FProductFilter;
+    var Server := FServer;
+    RunBackground(TTmsCommand.List, procedure
+      begin
+        RefreshFetchedProducts(Filter, Server);
+      end);
+  end;
+
+  Result := Confirm or Disable;
 end;
 
 procedure TGUIEnvironment.ChangeProductFilter(Filter: TProductFilter);
@@ -1322,28 +1575,47 @@ begin
   end;
 end;
 
+// we use | as "or". mostly so we can write better gui tests
+function GetFilterSections(const Filter: string): TArray<string>;
+begin
+  Result := nil;
+  for var Section in Filter.Split(['|']) do
+  begin
+    var Trimmed := Section.Trim;
+    if Trimmed <> '' then Result := Result + [Trimmed];
+  end;
+end;
+
 procedure TGUIEnvironment.ApplyProductFilters;
 begin
-  var Filter := FSearchFilter.ToLower;
-  // The search text is free text typed by the user, so it may not be a valid mask (e.g. "[").
-  // TMask.Create raises EMaskException for those; then we just search without the mask.
-  var Mask: TMask := nil;
+  var Filters := GetFilterSections(FSearchFilter);
+  var Masks: TArray<TMask> := nil;
+  SetLength(Masks, Length(Filters));
   try
-    Mask := TMask.Create(Filter);
-  except
-    on EMaskException do ; // Mask stays nil
-  end;
-  try
+    // The search text is free text typed by the user, so it may not be a valid mask (e.g. "[").
+    // TMask.Create raises EMaskException for those; then we just search without the mask.
+    for var i := Low(Masks) to High(Masks) do
+    begin
+      try
+        Masks[i] := TMask.Create(Filters[i]);
+      except
+        on EMaskException do ; // Mask stays nil
+      end;
+    end;
+
     var Predicate :=
       function(Product: TGUIProduct): Boolean
       begin
-        Result := True;
-        if Filter.Trim <> '' then
+        if Length(Filters) = 0 then Exit(True);
+        for var i := Low(Filters) to High(Filters) do
         begin
-          var IdLower := Product.Id.ToLower;
-          var NameLower := Product.Name.ToLower;
-          Result := IdLower.Contains(Filter) or NameLower.Contains(Filter) or ((Mask <> nil) and Mask.Matches(IdLower));
+          var Filter := Filters[i];
+          if ContainsText(Product.Id, Filter)
+            or ContainsText(Product.Name, Filter)
+            or ContainsText(Product.Description, Filter)
+            or ((Masks[i] <> nil) and Masks[i].Matches(Product.Id)) then Exit(True);
         end;
+        Result := false;
       end;
 
     FProducts.Clear;
@@ -1352,8 +1624,11 @@ begin
         FProducts.Add(Product);
     if Assigned(FOnProductsUpdated) then
       FOnProductsUpdated(FProducts);
+    // The list was rebuilt: items may be gone without a selection event, and FSelected may hold products
+    // that are about to be freed (see ReplaceFetchedProducts).
+    SelectionChanged;
   finally
-    Mask.Free;
+    for var i := Low(Masks) to High(Masks) do Masks[i].Free;
   end;
 end;
 
@@ -1387,8 +1662,17 @@ function TGUIEnvironment.UpdateSelectedProducts: boolean;
 begin
   if not Assigned(FOnGetSelectedProducts) then Exit(False);
 
-  FOnGetSelectedProducts(FSelected);
+  if not FSelectedValid then
+  begin
+    FOnGetSelectedProducts(FSelected);
+    FSelectedValid := True;
+  end;
   Result := FSelected.Count > 0;
+end;
+
+procedure TGUIEnvironment.SelectionChanged;
+begin
+  FSelectedValid := False;
 end;
 
 procedure TGUIEnvironment.UpdateServerConfigItems(Items: TServerConfigItems);
@@ -1415,6 +1699,37 @@ begin
     OldItems.Free;
   end;
 end;
+
+function TGUIEnvironment.GetProductInstallInfo(const Source: TGUIProduct): string;
+const
+  NewLine = #13#10;
+begin
+  Result := '';
+  // Newest IDEs first. We only list platforms that are both built or registered.
+  for var IDEName := High(TIDEName) downto Low(TIDEName) do
+  begin
+    var Platforms := '';
+    for var Plat := Low(TPlatform) to High(TPlatform) do
+      for var Installation in Source.Installations do
+        if (Installation.IDEName = IDEName) and (Installation.Platform = Plat)
+          and (Installation.IsBuilt or Installation.IsRegistered) then
+        begin
+          var RegString: string;
+          if Installation.IsRegistered then RegString := ' -> Installed' else RegString := ' -> Built';
+
+
+          Platforms := Platforms + '  - ' + PlatformMacroString(IDEName, Plat) + RegString + NewLine;
+        end;
+
+    if Platforms <> '' then
+    begin
+      Result := Result + DelphiNames[IDEName] + NewLine + Platforms;
+    end;
+  end;
+
+end;
+
+
 
 { TGUIProductList }
 

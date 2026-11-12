@@ -35,8 +35,7 @@ type
   public
     function ContainsStatus(Status: TRemovalStatus): Boolean;
     function GetProductsWithStatus(Status: TRemovalStatus): string;
-    function Contains(const ProductId: string; const Version: TLenientVersion): Boolean;
-    function Find(const ProductId: string; const Version: TLenientVersion): TRemovalItem;
+    function ContainsPath(const ProductPath: string): Boolean;
   end;
 
 implementation
@@ -59,9 +58,12 @@ end;
 
 { TRemovalItems }
 
-function TRemovalItems.Contains(const ProductId: string; const Version: TLenientVersion): Boolean;
+function TRemovalItems.ContainsPath(const ProductPath: string): Boolean;
 begin
-  Result := Find(ProductId, Version) <> nil;
+  for var Item in Self do
+    if (Item.ProductPath = ProductPath) then
+       Exit(True);
+  Result := False;
 end;
 
 function TRemovalItems.ContainsStatus(Status: TRemovalStatus): Boolean;
@@ -70,14 +72,6 @@ begin
     if Item.Status = Status then
       Exit(True);
   Result := False;
-end;
-
-function TRemovalItems.Find(const ProductId: string; const Version: TLenientVersion): TRemovalItem;
-begin
-  for var Item in Self do
-    if (Item.ProductId = ProductId) and (Item.Version = Version) then
-       Exit(Item);
-  Result := nil;
 end;
 
 function TRemovalItems.GetProductsWithStatus(Status: TRemovalStatus): string;

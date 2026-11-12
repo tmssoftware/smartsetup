@@ -50,7 +50,7 @@ begin
     end);
   option.Required := True;
 
-  AddCommand(cmd.Name, CommandGroups.Status, RunSnapshotCommand);
+  AddCommand(cmd.Name, CommandGroups.Install, RunSnapshotCommand);
 end;
 
 end.

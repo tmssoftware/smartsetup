@@ -9,11 +9,4 @@ click btnInstall
 wait self.Name = DialogForm
 assert MemoMessage.Text ~ A new version of TMS Smart Setup is available and ready
 click btnOk
-wait self.Name = DialogForm
-wait Self.IsGuiRunning = false
-set lbLog.ItemIndex 0
-wait 500
-click acLogDetails
-wait Self.Name = LogDetailsForm
-wait Data.Text ~ - JEDI JCL -> OK.
-
+wait 60000

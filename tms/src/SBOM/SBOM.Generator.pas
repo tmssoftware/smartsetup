@@ -8,7 +8,7 @@ procedure GenSBOMFromProject(const AProject: TProjectDefinition; const AOutputFi
 
 implementation
 uses
-  System.SysUtils, System.IOUtils, System.JSON, System.DateUtils;
+  System.SysUtils, System.IOUtils, System.JSON, System.DateUtils, Status.Manager, Deget.Version;
 
 const
   SBomFormat   = 'CycloneDX';
@@ -32,7 +32,10 @@ end;
 procedure GenSBOMFromProject(const AProject: TProjectDefinition; const AOutputFile: string);
 begin
   var App := AProject.Application;
-  var ProjPurl := BuildPurl(App.Id, App.Version);
+  var AppVersion := App.Version;
+  if AppVersion = '' then AppVersion := TStatusManager.GetInstalledVersion(TLenientVersion.Create('', TVersionType.FreeForm), App.Id, AProject.RootFolder);
+
+  var ProjPurl := BuildPurl(App.Id, AppVersion);
 
   var Root := TJSONObject.Create;
   try
@@ -66,8 +69,8 @@ begin
 
     ProjComp.AddPair('type', 'library');
     ProjComp.AddPair('name', App.Id);
-    if App.Version <> '' then
-      ProjComp.AddPair('version', App.Version);
+    if AppVersion <> '' then
+      ProjComp.AddPair('version', AppVersion);
     if App.Description <> '' then
       ProjComp.AddPair('description', App.Description);
     if App.Copyright <> '' then

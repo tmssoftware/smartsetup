@@ -4,7 +4,7 @@ unit UConfigDefinition;
 interface
 uses Generics.Defaults, Generics.Collections, Masks, UMultiLogger, UConfigKeys,
      UNaming, UNamingList, SysUtils, Deget.CoreTypes, SyncObjs, ULogger,
-     UConfigFolders, UOSFileLinks, Megafolders.Definition, BBArrays;
+     UConfigFolders, UOSFileLinks, Megafolders.Definition, BBArrays, UConfigSources;
 
 type
   TSkipRegisteringOptions =  (Packages, StartMenu, Help, WindowsPath, WebCore, Registry, FileLinks);
@@ -213,8 +213,8 @@ type
     FDcuMegafolders: TMegafolderList;
     FUnregistering: boolean;
     FForceSkipRegistering: boolean;
-    FLoadedFileName: string;
-    FLoadedFileHash: string;
+    FLoadedFileName: array[TConfigSource] of string;
+    FLoadedFileHash: array[TConfigSource] of string;
 
     function GetSingleSettingsThatNeedRecompile(const Product: TProductConfigDefinition): string;
 
@@ -228,6 +228,7 @@ type
       index: TGlobalPrefixedProperties): TArrayOverrideBehavior;
     procedure SetPrefixedProperties(index: TGlobalPrefixedProperties;
       const Value: TArrayOverrideBehavior);
+    function FullPathFromConfig(const Entry: string): string;
   public
     constructor Create(const AConfigFolder: string);
     destructor Destroy; override;
@@ -254,8 +255,8 @@ type
 
     //Remembers the contents of the main config file when loading, so we can detect if another process modified it before we save.
     //Must be called while holding the ConfigProtector lock.
-    procedure SetLoadedFile(const FileName: string);
-    procedure CheckLoadedFileNotModified(const FileName: string);
+    procedure SetLoadedFile(const FileName: string; const ConfigSource: TConfigSource);
+    procedure CheckLoadedFileNotModified(const FileName: string; const aConfigSource: TConfigSource);
 
     property BuildCores: integer read FBuildCores write FBuildCores;
     property PreventSleep: boolean read FPreventSleep write FPreventSleep;
@@ -281,10 +282,12 @@ type
 
     property AutoSnapshotFileNames: TOrderedDictionary<string, string> read FAutoSnapshotFileNames;
     function FullAutoSnapshotFileNames: TArray<string>;
+    function FullAutoSnapshotFileName(const i: integer): string;
 
     property Products: TProductConfigDefinitionDictionary read FProducts;
 
-    function GetWorkingFolder(const WithDefault: boolean): string;
+    function GetWorkingFolder: string;
+    function GetFullWorkingFolder: string;
     procedure SetWorkingFolder(const value: string);
 
     function Verbosity(const ProductId: String; DefaultVerbosity: TVerbosity): TVerbosity;
@@ -372,24 +375,27 @@ begin
   Products.Add(GlobalProductId, TProductConfigDefinition.Create(GlobalProductId));
 end;
 
-procedure TConfigDefinition.SetLoadedFile(const FileName: string);
+procedure TConfigDefinition.SetLoadedFile(const FileName: string; const ConfigSource: TConfigSource);
 begin
-  FLoadedFileName := TPath.GetFullPath(FileName);
-  FLoadedFileHash := ConfigFileHash(FLoadedFileName);
+  FLoadedFileName[ConfigSource] := TPath.GetFullPath(FileName);
+  FLoadedFileHash[ConfigSource] := ConfigFileHash(FLoadedFileName[ConfigSource]);
 end;
 
-procedure TConfigDefinition.CheckLoadedFileNotModified(const FileName: string);
+procedure TConfigDefinition.CheckLoadedFileNotModified(const FileName: string; const aConfigSource: TConfigSource);
 begin
-  //If the config wasn't loaded from this file (like when creating a new default config), there is nothing to check.
-  if (FLoadedFileName = '') or not SameFileName(FLoadedFileName, TPath.GetFullPath(FileName)) then exit;
+  var LoadedFileName := FLoadedFileName[aConfigSource];
+  var LoadedFileHash := FLoadedFileHash[aConfigSource];
 
-  if ConfigFileHash(FLoadedFileName) <> FLoadedFileHash then
-    raise Exception.CreateFmt('The file "%s" was modified by another process while this command was running. Run the command again.', [FLoadedFileName]);
+  //If the config wasn't loaded from this file (like when creating a new default config), there is nothing to check.
+  if (LoadedFileName = '') or not SameFileName(LoadedFileName, TPath.GetFullPath(FileName)) then exit;
+
+  if ConfigFileHash(LoadedFileName) <> LoadedFileHash then
+    raise Exception.CreateFmt('The file "%s" was modified by another process while this command was running. Run the command again.', [LoadedFileName]);
 end;
 
 function TConfigDefinition.Folders: IBuildFolders;
 begin
-  Result := TBuildFolders.Create(GetWorkingFolder(true));
+  Result := TBuildFolders.Create(GetFullWorkingFolder);
 end;
 
 function TConfigDefinition.FullAutoSnapshotFileNames: TArray<string>;
@@ -398,13 +404,25 @@ begin
   SetLength(Result, AutoSnapshotFileNames.Count);
   for var i := Low(Result) to High(Result) do
   begin
-    if TPath_IsPathRooted(AutoSnapshotFileNames.KeyList[i]) then
-    begin
-      Result[i] := TPath.GetFullPath(AutoSnapshotFileNames.KeyList[i].Trim);
-      continue;
-    end;
-    Result[i] := TPath.GetFullPath(TPath.Combine(FConfigFolder, AutoSnapshotFileNames.KeyList[i].Trim));
+    Result[i] := FullAutoSnapshotFileName(i);
   end;
+end;
+
+function TConfigDefinition.FullPathFromConfig(const Entry: string): string;
+begin
+  if TPath_IsPathRooted(Entry) then
+  begin
+    exit(TPath.GetFullPath(Entry));
+  end;
+  Result := TPath.GetFullPath(TPath.Combine(FConfigFolder, Entry));
+end;
+
+function TConfigDefinition.FullAutoSnapshotFileName(const i: integer): string;
+begin
+  if (i < 0) or (i >= AutoSnapshotFileNames.Count) then raise Exception.Create('Internal error: invalid AutoSnapshotFileNames index.');
+
+  var Entry := AutoSnapshotFileNames.KeyList[i].Trim;
+  Result := FullPathFromConfig(Entry);
 end;
 
 function TConfigDefinition.AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;
@@ -652,8 +670,8 @@ begin
   Result := ReadStringProperty(ProductId, ConfigKeys.CompilerPath + IDEId[dv], '').Trim;
   if Result = '' then exit;
 
-  if not TPath_IsPathRooted(Result) then Result := TPath.Combine(FConfigFolder, Result); //relative to where config is, not to working folder.
-  
+  Result := FullPathFromConfig(Result); //relative to where config is, not to working folder.
+
 end;
 
 function TConfigDefinition.KeepParallelFolders(const ProductId: String): Boolean;
@@ -768,11 +786,17 @@ begin
   Result := false;
 end;
 
-function TConfigDefinition.GetWorkingFolder(const WithDefault: boolean): string;
+function TConfigDefinition.GetWorkingFolder: string;
 begin
   FWorkingFolderUsed := true;
-  if (FWorkingFolder.Trim = '') and WithDefault then exit(FConfigFolder);
   Result := FWorkingFolder;
+end;
+
+function TConfigDefinition.GetFullWorkingFolder: string;
+begin
+  FWorkingFolderUsed := true;
+  if (FWorkingFolder.Trim = '') then exit(FConfigFolder);
+  Result := FullPathFromConfig(FWorkingFolder);
 end;
 
 procedure TConfigDefinition.SetWorkingFolder(const value: string);
@@ -928,7 +952,9 @@ begin
       if Left = ProductId then exit(1);
       if Right = ProductId then exit(-1);
 
-      exit (Right.Length - Left.Length);
+      if Left.Length = Right.Length then exit(CompareStr(Left, Right));
+
+      exit (Left.Length - Right.Length);
     end);
 
 

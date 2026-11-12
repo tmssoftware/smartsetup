@@ -3,7 +3,8 @@ unit Snapshot.Reader;
 interface
   uses Classes, SysUtils, Generics.Collections, Status.Manager, BBError, BBYaml, BBClasses, Deget.Version;
 
-  procedure LoadSnapshot(const FileName: string; const Products: TList<TProductStatus>);
+  procedure LoadSnapshot(const FileName: string; const Products: TList<TProductStatus>); overload;
+  procedure LoadSnapshot(const Stream: TTextReader; const DisplayFileName: string; const Products: TList<TProductStatus>); overload;
 implementation
 type
 
@@ -50,6 +51,17 @@ begin
 
 end;
 
+procedure LoadSnapshot(const Stream: TTextReader; const DisplayFileName: string; const Products: TList<TProductStatus>);
+begin
+   var MainSection := TSnapshotMainSection.Create(Products);
+  try
+    TBBYamlReader.ProcessStream(Stream, DisplayFileName, MainSection, '', false);
+  finally
+    MainSection.Free;
+  end;
+
+end;
+
 
 { TSnapshotSection }
 
@@ -89,6 +101,7 @@ begin
       var Product := TProductStatus.Create;
       Products.Add(Product);
       Product.Id := Name;
+      Product.Version := TLenientVersion.Create('', TVersionType.FreeForm); // start as freeform, to read older snapshots without version type. those were read as freeforms
       Result := TProductSection.Create(Self, Name, Product);
       ChildSections.Add(Name, Result);
     end;
@@ -111,7 +124,11 @@ begin
   Actions := TListOfActions.Create;
   Actions.Add('version', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;
-    FProduct.Version := TLenientVersion.Create(value, TVersionType.FreeForm);
+    FProduct.Version := FProduct.Version.WithNewVersionValue(value);
+  end);
+  Actions.Add('version type', procedure(value: string; ErrorInfo: TErrorInfo)
+  begin;
+    FProduct.Version := FProduct.Version.WithNewVersionType(value);
   end);
   Actions.Add('server', procedure(value: string; ErrorInfo: TErrorInfo)
   begin;

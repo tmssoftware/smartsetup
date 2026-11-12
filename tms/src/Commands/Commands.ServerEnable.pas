@@ -8,7 +8,7 @@ procedure RegisterServerEnableCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions,
-     UConfigWriter, Types, Commands.GlobalConfig, UConfigDefinition, Commands.Logging;
+     UConfigWriter, Types, Commands.LocalConfig, UConfigDefinition, Commands.Logging, UConfigSources;
 
 var
   ServerName: string;
@@ -17,18 +17,23 @@ var
 procedure RunServerEnableCommand;
 begin
   InitFolderBasedCommand(false);
-  var ConfigWriter := TConfigWriter.Create(Config, false);
+  var Cfg := TSourcedConfig.Create([TConfigSource.Main]);
   try
-   Config.EnsureAllProducts;
-   var ServerIndex := Config.ServerConfig.FindServer(ServerName);
-   if ServerIndex < 0 then
-   begin
-     raise Exception.Create('Cannot find the server "' + ServerName + '" in tms.config.yaml.');
-   end;
-   Config.ServerConfig.SetInfo(ServerIndex, procedure(var Server: TServerConfig) begin Server.Enabled := ServerEnabled; end);
-   ConfigWriter.Save(ConfigFileName);
+    var ConfigWriter := TConfigWriter.Create(Cfg.Instance, false);
+    try
+     Cfg.Instance.EnsureAllProducts;
+     var ServerIndex := Cfg.Instance.ServerConfig.FindServer(ServerName);
+     if ServerIndex < 0 then
+     begin
+       raise Exception.Create('Cannot find the server "' + ServerName + '" in "' + Cfg.FileName + '".');
+     end;
+     Cfg.Instance.ServerConfig.SetInfo(ServerIndex, procedure(var Server: TServerConfig) begin Server.Enabled := ServerEnabled; end);
+     ConfigWriter.Save(Cfg.FileName, Cfg.SingleSource, Cfg.WritingFormat);
+    finally
+     ConfigWriter.Free;
+    end;
   finally
-   ConfigWriter.Free;
+    Cfg.Free;
   end;
 end;
 
@@ -55,6 +60,7 @@ begin
       ServerEnabled := Value;
     end);
 
+  RegisterConfigSourceOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Config, RunServerEnableCommand);
 end;

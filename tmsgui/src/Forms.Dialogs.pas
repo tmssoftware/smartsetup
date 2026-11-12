@@ -20,7 +20,9 @@ type
     btnOk: TButton;
     btnYes: TButton;
   private
+{$IFDEF DEBUG}
     procedure FitToContent;
+{$ENDIF}
   public
     class procedure ShowMessage(const Message: string); static;
     class function MessageDlg(const Msg: string; DlgType: TMsgDlgType;
@@ -34,6 +36,7 @@ uses GUI.Automation, System.Math, VCL.Menus;
 
 { TDialogForm }
 
+{$IFDEF DEBUG}
 procedure TDialogForm.FitToContent;
 begin
   Canvas.Font := MemoMessage.Font;
@@ -67,6 +70,7 @@ begin
   ClientWidth := Max(Max(ButtonsWidth + ScaleValue(12), R.Width + Padding), ScaleValue(300));
   ClientHeight := TextHeight + Panel1.Height;
 end;
+{$ENDIF}
 
 class function TDialogForm.MessageDlg(const Msg: string; DlgType: TMsgDlgType;
   Buttons: TMsgDlgButtons; HelpCtx: Longint; DefaultButton: TMsgDlgBtn;

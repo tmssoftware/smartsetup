@@ -14,13 +14,14 @@ tms server-list [<options>] [<global-options>]
 
 ## Description
 
-Displays all servers registered in `tms.config.yaml`, along with their type, URL, and enabled/disabled status. Built-in servers (such as `tms` and `community`) show only their name and status since their URL is managed internally.
+Displays all servers in the merged configuration, including those defined in `tms.config.local.yaml` and `tms.config.global.yaml`, along with their type, URL, and enabled/disabled status. Use `-config-source` to list only the servers in one of those files. Built-in servers (such as `tms` and `community`) show only their name and status since their URL is managed internally.
 
 ## Options
 
 | Option   | Description                              |
 | -------- | ---------------------------------------- |
 | `-json`  | Outputs the server list in JSON format.  |
+| `-config-source:<source>` | Lists only the servers in one configuration file: `main` (`tms.config.yaml`), `local` (`tms.config.local.yaml`) or `global` (`tms.config.global.yaml` in the `.smartsetup` folder of your user profile). If omitted, lists the servers from the merged configuration. |
 
 ## Global Options
 

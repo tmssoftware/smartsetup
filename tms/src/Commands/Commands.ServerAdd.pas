@@ -8,7 +8,7 @@ procedure RegisterServerAddCommand;
 
 implementation
 uses UCommandLine, Commands.CommonOptions,
-     UConfigWriter, Types, Commands.GlobalConfig, UConfigDefinition, Commands.Logging;
+     UConfigWriter, Types, Commands.LocalConfig, UConfigDefinition, Commands.Logging, UConfigSources;
 
 var
   ServerName: string;
@@ -24,14 +24,19 @@ begin
   //which can only be set by editing the YAML manually (no CLI flag).
   TServerConfig.ValidateUrlScheme(ServerUrl, ServerType, false, ServerName);
 
-  var ConfigWriter := TConfigWriter.Create(Config, false);
+  var Cfg := TSourcedConfig.Create([TConfigSource.Main]);
   try
-   Config.EnsureAllProducts;
-   if Config.ServerConfig.FindServer(ServerName) >= 0 then raise Exception.Create('Server "' + ServerName + '" is already added in tms.config.yaml.');
-   Config.ServerConfig.AddServer(TServerConfig.Create(ServerName, ServerType, ServerUrl, ServerEnabled));
-   ConfigWriter.Save(ConfigFileName);
+    var ConfigWriter := TConfigWriter.Create(Cfg.Instance, false);
+    try
+     Cfg.Instance.EnsureAllProducts;
+     if Cfg.Instance.ServerConfig.FindServer(ServerName) >= 0 then raise Exception.Create('Server "' + ServerName + '" is already added in "' + Cfg.FileName + '".');
+     Cfg.Instance.ServerConfig.AddServer(TServerConfig.Create(ServerName, ServerType, ServerUrl, ServerEnabled));
+     ConfigWriter.Save(Cfg.FileName, Cfg.SingleSource, Cfg.WritingFormat);
+    finally
+     ConfigWriter.Free;
+    end;
   finally
-   ConfigWriter.Free;
+    Cfg.Free;
   end;
 end;
 
@@ -73,6 +78,7 @@ begin
       ServerEnabled := Value;
     end);
 
+  RegisterConfigSourceOption(cmd);
 
   AddCommand(cmd.Name, CommandGroups.Config, RunServerAddCommand);
 end;
