@@ -222,7 +222,8 @@ begin
             Aborted := true;
           end;
 
-          var Step := Trunc((AWriteCount / AContentLength) * 100);
+          var Step := 100;
+          if AContentLength > 0 then Step := Trunc((double(AWriteCount) / double(AContentLength)) * 100.0);
           if Step > LastStep then
           begin
             AtomicIncrement(ProcessedSteps, Step - LastStep);

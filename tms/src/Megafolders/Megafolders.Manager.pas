@@ -179,6 +179,7 @@ begin
   begin
     if not TDirectory.Exists(ConfigFolder) then exit;
     DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, MetaFile);
+    exit;
   end;
 
   TDirectory_CreateDirectory(ConfigFolder);

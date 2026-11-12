@@ -668,6 +668,8 @@ end;
 procedure TProjectInstaller.UnregisterDcuMegafolders(const DryRun: boolean; const Installer: TInstaller;
   const ProjectId: string; const IDEName: TIDEName; const Platform: TPlatform);
 begin
+  if DryRun then exit;
+  
   TMonitor.Enter(MegafoldersLock);
   try
     var MegafoldersUninstallInfo := GetProductMegafoldersUninstallInfo(ProjectId, IDEName, Platform);
