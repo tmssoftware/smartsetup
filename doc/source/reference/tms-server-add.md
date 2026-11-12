@@ -14,7 +14,9 @@ tms server-add <name> <type> <url> [<enable>] [<global-options>]
 
 ## Description
 
-Registers a new download server in `tms.config.yaml`. If a server with the specified name already exists, the command returns an error.
+Registers a new download server in `tms.config.yaml`, or in the file specified with `-config-source`. If a server with the specified name already exists in that file, the command returns an error.
+
+The command loads only the file it writes. If a file with higher priority defines a server with the same name, the command succeeds, but the values in that file keep their priority over the ones you add. For example, a server in `tms.config.local.yaml` has priority over one with the same name in `tms.config.yaml`.
 
 The server type controls how Smart Setup communicates with the server:
 
@@ -31,6 +33,12 @@ The server is enabled by default. Pass `false` as the last argument to add the s
 | `<type>`     | Server type: `api` or `zipfile`. Required.                               |
 | `<url>`      | URL of the server. Required.                                             |
 | `[<enable>]` | Whether to enable the server immediately. Defaults to `true` if omitted. |
+
+## Options
+
+| Option                    | Description |
+| ------------------------- | ----------- |
+| `-config-source:<source>` | The configuration file to add the server to: `main` (`tms.config.yaml`), `local` (`tms.config.local.yaml`) or `global` (`tms.config.global.yaml` in the `.smartsetup` folder of your user profile). Defaults to `main`. |
 
 ## Global Options
 
