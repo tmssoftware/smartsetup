@@ -163,8 +163,12 @@ end;
 procedure TFileSystemPersistence.Store(const Data, Project, IDE, Platform,
   Package: string);
 begin
-  if Data = '' then exit;
   var f := GetFileName(Project, IDE, Platform, Package);
+  if (Data = '') then
+  begin
+    TryDeleteFileAndRemoveParentFolderIfEmpty(Config.Folders.LockedFilesFolder, f);
+    exit;
+  end;
   TDirectory_CreateDirectory(TPath.GetDirectoryName(f));
 
   SaveTextFileAtomically(f,

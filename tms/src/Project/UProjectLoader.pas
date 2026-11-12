@@ -28,8 +28,9 @@ begin
   if not TDirectory.Exists(Path) then exit;
 
   var SubFolders := TDirectory.GetDirectories(Path, '*', TSearchOption.soTopDirectoryOnly);
-  for var SubFolder in SubFolders do
+  for var FullSubFolder in SubFolders do
   begin
+    var SubFolder := TPath.GetFileName(FullSubFolder);
     if Subfolder.StartsWith('.') or SubFolder.StartsWith('__') then continue; //skip folders that svn, vs, delphi or whatever could have added.
     if Result <> '' then exit(''); //If there is more than one valid folder, then this is not supported. The subfolder must be unique.
     Result := SubFolder;

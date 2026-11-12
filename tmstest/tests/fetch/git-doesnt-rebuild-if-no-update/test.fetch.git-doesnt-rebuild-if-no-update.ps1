@@ -117,3 +117,19 @@ $result = tms update
 Verify-Version $result "4.0" 0 2 0
 $result = tms update
 Verify-Version $result "4.0" 2 0 0
+
+New-Item -ItemType Directory -Path "Products\test.data.updater\.test" -Force | Out-Null
+New-Item -ItemType Directory -Path "Products\test.data.updater\__test" -Force | Out-Null
+$result = tms update
+Verify-Version $result "4.0" 2 0 0
+if ($result -like "*Could not find any products matching*") {
+    throw "It should find all products."
+}
+
+New-Item -ItemType Directory -Path "Products\test.data.updater\test" -Force | Out-Null
+$result = tms update
+Verify-Version $result "4.0" 2 0 0
+if (-not ($result -like "*Could not find any products matching*")) {
+    throw "It should not find products because it is not an empty folder."
+}
+

@@ -85,6 +85,7 @@ type
     FServer: string;
     FProducts: TObjectList<TRepositoryProduct>;
     FProductsLoaded: Boolean;
+    function GetJSON(const Data: string): TJSONObject;
     function CreateRequest(const Method, Url: string): IHTTPRequest;
     function GetEndpoint(const Path: string): string;
     procedure CheckResponse(Req: IHTTPRequest; Resp: IHTTPResponse);
@@ -158,7 +159,7 @@ begin
 
   // Parse JSON into objects
   FProducts.Clear;
-  var JObj := TJSONObject(TJSONObject.ParseJSONValue(Resp.ContentAsString));
+  var JObj := GetJSON(Resp.ContentAsString);
   try
     var Serializer := TJsonSerializer.Create;
     try
@@ -267,7 +268,7 @@ begin
     [UrlEncode(ProductId), UrlEncode(Version), UrlEncode('production')])));
   var Resp := FClient.Execute(Req);
   CheckResponse(Req, Resp);
-  var JObj := TJSONObject(TJSONObject.ParseJSONValue(Resp.ContentAsString));
+  var JObj := GetJSON(Resp.ContentAsString);
   try
     Result.DownloadUrl := JObj.GetValue<string>('download_url');
     Result.FileHash := JObj.GetValue<string>('file_hash');
@@ -283,6 +284,14 @@ begin
   Result := Url.TrimRight(['/']) + '/' + Path.TrimLeft(['/']);
 end;
 
+function TRepositoryManager.GetJSON(const Data: string): TJSONObject;
+begin
+  var Value := TJSONObject.ParseJSONValue(Data);
+  if Value is TJSONObject then Exit(TJSONObject(Value));
+  Value.Free;
+  raise Exception.Create('Unexpected response from TMS API: The string "' + Data.Substring(0, 50) + '..." is not a JSON object.');
+end;
+
 function TRepositoryManager.GetProductVersions(const ProductId: string; Versions: TList<TRepositoryUserVersion>): Boolean;
 begin
   var Req := CreateRequest('GET', GetEndpoint(Format('setup/user/products/%s/versions?channel=%s',
@@ -292,7 +301,7 @@ begin
   CheckResponse(Req, Resp);
 
   // Parse JSON into objects
-  var JObj := TJSONObject(TJSONObject.ParseJSONValue(Resp.ContentAsString));
+  var JObj := GetJSON(Resp.ContentAsString);
   try
     var Serializer := TJsonSerializer.Create;
     try

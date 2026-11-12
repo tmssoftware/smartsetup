@@ -228,6 +228,7 @@ type
       index: TGlobalPrefixedProperties): TArrayOverrideBehavior;
     procedure SetPrefixedProperties(index: TGlobalPrefixedProperties;
       const Value: TArrayOverrideBehavior);
+    function FullPathFromConfig(const Entry: string): string;
   public
     constructor Create(const AConfigFolder: string);
     destructor Destroy; override;
@@ -285,7 +286,8 @@ type
 
     property Products: TProductConfigDefinitionDictionary read FProducts;
 
-    function GetWorkingFolder(const WithDefault: boolean): string;
+    function GetWorkingFolder: string;
+    function GetFullWorkingFolder: string;
     procedure SetWorkingFolder(const value: string);
 
     function Verbosity(const ProductId: String; DefaultVerbosity: TVerbosity): TVerbosity;
@@ -393,7 +395,7 @@ end;
 
 function TConfigDefinition.Folders: IBuildFolders;
 begin
-  Result := TBuildFolders.Create(GetWorkingFolder(true));
+  Result := TBuildFolders.Create(GetFullWorkingFolder);
 end;
 
 function TConfigDefinition.FullAutoSnapshotFileNames: TArray<string>;
@@ -406,16 +408,21 @@ begin
   end;
 end;
 
-function TConfigDefinition.FullAutoSnapshotFileName(const i: integer): string;
+function TConfigDefinition.FullPathFromConfig(const Entry: string): string;
 begin
-  if (i < 0) or (i >= AutoSnapshotFileNames.Count) then raise Exception.Create('Internal error: invalid AutoSnapshotFileNames index.');
-
-  var Entry := AutoSnapshotFileNames.KeyList[i].Trim;
   if TPath_IsPathRooted(Entry) then
   begin
     exit(TPath.GetFullPath(Entry));
   end;
   Result := TPath.GetFullPath(TPath.Combine(FConfigFolder, Entry));
+end;
+
+function TConfigDefinition.FullAutoSnapshotFileName(const i: integer): string;
+begin
+  if (i < 0) or (i >= AutoSnapshotFileNames.Count) then raise Exception.Create('Internal error: invalid AutoSnapshotFileNames index.');
+
+  var Entry := AutoSnapshotFileNames.KeyList[i].Trim;
+  Result := FullPathFromConfig(Entry);
 end;
 
 function TConfigDefinition.AllIDEsIfEmpty(const aIDENames: TIDENameSet): TIDENameSet;
@@ -663,8 +670,8 @@ begin
   Result := ReadStringProperty(ProductId, ConfigKeys.CompilerPath + IDEId[dv], '').Trim;
   if Result = '' then exit;
 
-  if not TPath_IsPathRooted(Result) then Result := TPath.Combine(FConfigFolder, Result); //relative to where config is, not to working folder.
-  
+  Result := FullPathFromConfig(Result); //relative to where config is, not to working folder.
+
 end;
 
 function TConfigDefinition.KeepParallelFolders(const ProductId: String): Boolean;
@@ -779,11 +786,17 @@ begin
   Result := false;
 end;
 
-function TConfigDefinition.GetWorkingFolder(const WithDefault: boolean): string;
+function TConfigDefinition.GetWorkingFolder: string;
 begin
   FWorkingFolderUsed := true;
-  if (FWorkingFolder.Trim = '') and WithDefault then exit(FConfigFolder);
   Result := FWorkingFolder;
+end;
+
+function TConfigDefinition.GetFullWorkingFolder: string;
+begin
+  FWorkingFolderUsed := true;
+  if (FWorkingFolder.Trim = '') then exit(FConfigFolder);
+  Result := FullPathFromConfig(FWorkingFolder);
 end;
 
 procedure TConfigDefinition.SetWorkingFolder(const value: string);
@@ -939,7 +952,9 @@ begin
       if Left = ProductId then exit(1);
       if Right = ProductId then exit(-1);
 
-      exit (Right.Length - Left.Length);
+      if Left.Length = Right.Length then exit(CompareStr(Left, Right));
+
+      exit (Left.Length - Right.Length);
     end);
 
 
