@@ -13,10 +13,12 @@ uses
 var
   FullBuild: Boolean = False;
   ProductIds: TArray<string>;
+  ConfigUnregistering: Boolean = False;
 
 procedure RunBuildCommand;
 begin
   InitFolderBasedCommand;
+  Config.Unregistering := ConfigUnregistering;
   ExecuteBuildAction(ProductIds, FullBuild);
 end;
 
@@ -48,7 +50,7 @@ begin
   option := cmd.RegisterOption<Boolean>('unregister', '', 'unregister all products from the IDEs, do not delete them. A new tms build will re-register them.',
     procedure(const Value : Boolean)
     begin
-      Config.Unregistering := true;
+      ConfigUnregistering := Value;  //do not access config here, as loading it will prevent further loading of -p parameters.
     end);
   option.HasValue := False;
 

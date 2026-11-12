@@ -10,7 +10,7 @@ function GetSigningCertificateSubject(const Filename: string): string;
 
 implementation
 {$IFDEF MSWINDOWS}
-uses Windows, SysUtils;
+uses Windows, SysUtils, UTmsBuildSystemUtils;
 // IsCodeSigned, which verifies that the exe hasn't been modified, uses
 // WinVerifyTrust, so it's NT only.  IsCompanySigningCertificate works on Win9x,
 // but it only checks that the signing certificate hasn't been replaced, which
@@ -140,12 +140,10 @@ begin
 
   hExe := CreateFile(PChar(Filename), GENERIC_READ, FILE_SHARE_READ,
     nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or FILE_FLAG_RANDOM_ACCESS, 0);
-  if hExe = INVALID_HANDLE_VALUE then
-    RaiseLastOSError;
+  CheckWinApi(hExe <> INVALID_HANDLE_VALUE, 'CreateFile');
   try
     // There should only be one certificate associated with the exe
-    if (not ImageEnumerateCertificates(hExe, CERT_SECTION_TYPE_ANY, CertCount, nil, 0)) then
-      RaiseLastOSError;
+    CheckWinApi(ImageEnumerateCertificates(hExe, CERT_SECTION_TYPE_ANY, CertCount, nil, 0), 'ImageEnumerateCertificates');
     if (CertCount = 0) then
       raise Exception.Create('File "' + FileName + '" doesn''t look to be digitally signed. There are no certificates inside.');
     if (CertCount <> 1) then

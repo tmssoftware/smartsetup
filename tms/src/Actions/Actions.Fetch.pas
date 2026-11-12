@@ -22,6 +22,7 @@ uses
   Commands.Logging,
   UConfigDefinition,
   Fetching.ProductVersion,
+  Commands.Termination,
   VCS.Manager, Downloads.VersionManager;
 
 function FindApiServer: TServerConfig;
@@ -53,6 +54,7 @@ end;
 
 procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
 begin
+  EnableCtrlCTermination;
   if AllServersDisabled then raise Exception.Create('There are no servers enabled. To fetch a product, enable a server first.');
 
   var ApiServer := FindApiServer;

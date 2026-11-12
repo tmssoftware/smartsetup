@@ -258,6 +258,13 @@ begin
       fs.Free;
     end;
 
+    // If the user cancelled, the temp file is partial. Delete it instead of renaming it to the final name (must be done after fs.Free).
+    if Aborted then
+    begin
+      DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, TempFileName);
+      raise Exception.Create(TPath.GetFileName(FileNameOnDisk) + ' download aborted');
+    end;
+
     // Check if file was downloaded ok, if not, delete it (we must do this after fe.Free)
     if AResponse.StatusCode <> 200 then
     begin
@@ -276,10 +283,7 @@ begin
     DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, FinalFileNameOnDisk);
     RenameFile(TempFileName, FinalFileNameOnDisk);
 
-    if Aborted then
-      raise Exception.Create(TPath.GetFileName(FileNameOnDisk) + ' download aborted')
-    else
-      Logger.Info('Downloaded ' + TPath.GetFileName(FinalFileNameOnDisk));
+    Logger.Info('Downloaded ' + TPath.GetFileName(FinalFileNameOnDisk));
   finally
     Client.Free;
   end;

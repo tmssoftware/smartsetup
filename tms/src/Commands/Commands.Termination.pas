@@ -11,6 +11,8 @@ uses
 procedure EnableCtrlCTermination;
 
 implementation
+var
+  CtrlCEnabled: boolean;
 
 {$IFDEF MSWINDOWS}
 function CtrlCHandler( dwCtrlType: DWORD ): BOOL; stdcall;
@@ -38,6 +40,8 @@ end;
 
 procedure EnableCtrlCTermination;
 begin
+  if CtrlCEnabled then exit;
+  CtrlCEnabled := true;
 {$IFDEF MSWINDOWS}
   SetConsoleCtrlHandler(@CtrlCHandler, True);
 {$ENDIF}

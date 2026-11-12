@@ -11,7 +11,6 @@ type
     Loggers: Array of TLogger;
     FJsonMode: boolean;
     FCmdMode: boolean;
-    FMachineReadableMode: boolean;
   public
     constructor Create(const aLoggers: array of TLogger);
     destructor Destroy; override;

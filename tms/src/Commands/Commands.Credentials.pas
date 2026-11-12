@@ -41,10 +41,15 @@ var
   amt, cmode: cardinal;
   buf: packed array[0..BUF_LEN - 1] of Char;
 begin
-  GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), cmode);
-  SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), cmode and not ENABLE_ECHO_INPUT);
-  ReadConsole(GetStdHandle(STD_INPUT_HANDLE), @buf[0], BUF_LEN, amt, nil);
-  SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), cmode);
+  var InputHandle := GetStdHandle(STD_INPUT_HANDLE);
+  CheckWinApi((InputHandle <> 0) and (InputHandle <> INVALID_HANDLE_VALUE), 'GetStdHandle');
+  CheckWinApi(GetConsoleMode(InputHandle, cmode), 'GetConsoleMode');
+  CheckWinApi(SetConsoleMode(InputHandle, cmode and not ENABLE_ECHO_INPUT), 'SetConsoleMode');
+  try
+    CheckWinApi(ReadConsole(InputHandle, @buf[0], BUF_LEN, amt, nil), 'ReadConsole');
+  finally
+    CheckWinApi(SetConsoleMode(InputHandle, cmode), 'SetConsoleMode');
+  end;
   SetString(Result, PChar(@buf[0]), amt);
   Result := Trim(Result); // remove #13#10, which is added to the end of input
 end;

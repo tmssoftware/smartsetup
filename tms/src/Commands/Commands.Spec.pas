@@ -574,7 +574,7 @@ begin
     TmsBuildFileName := Question('File to be created: ',
       '', TmsBuildFileName);
 
-    VerifyWeCanSave(TmsBuildFileName); //We don't want to ask all the questions and at the end crash because the folder is invalid.
+    if Interactive then VerifyWeCanSave(TmsBuildFileName); //We don't want to ask all the questions and at the end crash because the folder is invalid.
 
     if Interactive then
     begin
@@ -591,7 +591,25 @@ begin
       var WritingFormat := TWritingFormat.Minimal;
       if CmdSyntax or UseJSON then WritingFormat := TWritingFormat.NoComments;
 
-      SpecWriter.Save(TmsBuildFileName, WritingFormat, UseJSON, CmdSyntax);
+      while true do
+      begin
+        try
+          TDirectory.CreateDirectory(TPath.GetDirectoryName(TmsBuildFileName)); //The user might have entered a new file in a folder that doesn't exist.
+          SpecWriter.Save(TmsBuildFileName, WritingFormat, UseJSON, CmdSyntax);
+          break;
+        except
+          on ex: Exception do
+          begin
+            if not Interactive then raise;
+
+            //Don't lose all the answers because the file couldn't be saved. Let the user fix the issue and retry.
+            Logger.Error('Error saving "' + TmsBuildFileName + '": ' + ex.Message);
+            var Answer := QuestionChoose('Retry, save to a different file, or cancel? [r/f/c]', '', 'r', ['r', 'f', 'c']);
+            if Answer = 'c' then raise Exception.Create('Spec file was not saved: ' + ex.Message);
+            if Answer = 'f' then TmsBuildFileName := Question('File to be created: ', '', TmsBuildFileName);
+          end;
+        end;
+      end;
     finally
       SpecWriter.Free;
     end;

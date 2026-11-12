@@ -50,6 +50,13 @@ function TPath_IsPathRooted(const s: string): boolean;
 function TPath_IsPathRootedNoValidation(const Path: string): boolean;
 function IsLinkedFolder(const Folder: string): boolean;
 
+{$IFDEF MSWINDOWS}
+/// <summary>
+/// Checks the result of a WinApi call. If Success is false, raises an EOSError with the message from GetLastError.
+/// Call it right after the WinApi function, so nothing else can overwrite the last error.
+/// </summary>
+procedure CheckWinApi(const Success: boolean; const FunctionName: string);
+{$ENDIF}
 
 
 type
@@ -130,6 +137,17 @@ function IsLinkedFolder(const Folder: string): boolean;
 begin
   Result := TFile.Exists(Folder, false);
 end;
+
+{$IFDEF MSWINDOWS}
+procedure CheckWinApi(const Success: boolean; const FunctionName: string);
+begin
+  if Success then exit;
+  var LastError := GetLastError;
+  var E := EOSError.Create('Error calling ' + FunctionName + ': ' + SysErrorMessage(LastError));
+  E.ErrorCode := LastError;
+  raise E;
+end;
+{$ENDIF}
 
 procedure DeleteFolderWithoutFollowingSymlinks(const LockFolder, Folder: string);
 begin
