@@ -10,7 +10,7 @@ uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, Status.Manager, Deget.CoreTypes,
   Deget.Version, Snapshot.Reader, Actions.Fetch, Actions.Build, Commands.Pin, Masks,
   UGenericDecompressor, System.Zip, Downloads.FileNameManager, IOUtils, UMultiLogger,
-  Fetching.ParallelDownloader, UTmsBuildSystemUtils;
+  Fetching.ParallelDownloader, UTmsBuildSystemUtils, Fetching.FetchExtraction;
 
 type
   TBackupData = class
@@ -91,7 +91,7 @@ begin
 
   if ProductsToFetch <> nil then
   begin
-    ExecuteFetchAction(ProductsToFetch, TFetchMode.DownloadNew);
+    ExecuteFetchAction(ProductsToFetch, TFetchMode.DownloadNew, TFetchExtraction.Extract);
   end;
 
   if ProductsToPin <> nil then

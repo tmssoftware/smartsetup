@@ -18,7 +18,7 @@ procedure TryToDeleteAllFilesInFolderIgnoringLocked(const Folder: string; const 
 procedure DeleteFolderMovingToLocked(const LockFolder, Folder: string; const Recursive: boolean; const KeepRootFolder: boolean = false);
 procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCardExcludeFolders,
     WildCardIncludeFiles, WildCardExcludeFiles: TArray<string>; const  OnFile: TProc<string, string>;
-    const Recursive: boolean; const ExcludeDefault: boolean = true);
+    const Recursive: boolean; const ExcludeDefault: boolean = true; const ExcludeFolder: TFunc<string, boolean> = nil);
 
 function CombinePath(const RootPath, RelPath: string): string;
 procedure FindProjects(const FilePath, FileExt: string; const  Files: TList<string>; const AllowMany: boolean; const AlreadyVisited: THashSet<string>);
@@ -404,7 +404,7 @@ end;
 
 procedure ScanFilesInternal(const FilePath, RelFilePath: string; const IncludeMaskFolders, ExcludeMaskFolders,
     IncludeMaskFiles, ExcludeMaskFiles: TArray<TMask>; const  OnFile: TProc<string, string>;
-    const Recursive: boolean; const ExcludeDefault: boolean);
+    const Recursive: boolean; const ExcludeDefault: boolean; const ExcludeFolder: TFunc<string, boolean>);
 var
   F: SysUtils.TSearchRec;
 begin
@@ -423,9 +423,11 @@ begin
             if (F.Name = '.') or (F.Name = '..') then continue;
           end;
           if MatchesMask(F.Name, ExcludeMaskFolders) then continue;
+          if Assigned(ExcludeFolder) and ExcludeFolder(TPath.Combine(FilePath, F.Name)) then continue;
+
           if (IncludeMaskFolders = nil) or MatchesMask(F.Name, IncludeMaskFolders) then
           begin
-            if Recursive then ScanFilesInternal(TPath.Combine(FilePath, F.Name), TPath.Combine(RelFilePath, F.Name), IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive, ExcludeDefault);
+            if Recursive then ScanFilesInternal(TPath.Combine(FilePath, F.Name), TPath.Combine(RelFilePath, F.Name), IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive, ExcludeDefault, ExcludeFolder);
           end;
         end else
         begin
@@ -445,7 +447,7 @@ end;
 
 procedure ScanFiles(const FilePath: string; const WildCardIncludeFolders, WildCardExcludeFolders,
     WildCardIncludeFiles, WildCardExcludeFiles: TArray<string>; const  OnFile: TProc<string, string>;
-    const Recursive: boolean; const ExcludeDefault: boolean = true);
+    const Recursive: boolean; const ExcludeDefault: boolean = true; const ExcludeFolder: TFunc<string, boolean> = nil);
 begin
   // TDirectory.GetFiles(Filepath, FileExt, TSearchOption.soAllDirectories, predicate); won't allow to exclude full folders, only files.
 
@@ -457,7 +459,7 @@ begin
   try
   var ExcludeMaskFiles := CreateMask(WildCardExcludeFiles);
   try
-    ScanFilesInternal(FilePath, '', IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive, ExcludeDefault);
+    ScanFilesInternal(FilePath, '', IncludeMaskFolders, ExcludeMaskFolders, IncludeMaskFiles, ExcludeMaskFiles, OnFile, Recursive, ExcludeDefault, ExcludeFolder);
   finally
     FreeMasks(ExcludeMaskFiles);
   end;
@@ -792,12 +794,7 @@ begin
   for var RootFolder in RootFolders do
   begin
     var FullRootFolder := IncludeTrailingPathDelimiter(TPath.GetFullPath(RootFolder));
-    {$IFDEF MSWINDOWS}
-    var IgnoreCase := true;
-    {$ELSE}
-    var IgnoreCase := false;
-    {$ENDIF}
-    if (FullFolder.StartsWith(FullRootFolder, IgnoreCase)) then exit(false);
+    if (FullFolder.StartsWith(FullRootFolder, IsFileSystemCaseInsensitive)) then exit(false);
   end;
 end;
 

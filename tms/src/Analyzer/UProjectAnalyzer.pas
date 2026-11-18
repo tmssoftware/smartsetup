@@ -29,8 +29,8 @@ type
     function PackageSupportsPlatform(const dv: TIDEName; const dp: TPlatform; const Project: TProjectDefinition; const Package: TPackage): boolean;
     function PackageSupportsCppBuilder(const dv: TIDEName; const dp: TPlatform; const Project: TProjectDefinition; const Package: TPackage): boolean;
     procedure Validate(const Projects: TProjectDefinitionList);
-    function GetPackagesFolder(const ProjectNaming: string; const PackageCache: TPackageCache;
-       const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders): string;
+    class function GetPackagesFolder(const Config: TConfigDefinition; const ProjectNaming: string; const PackageCache: TPackageCache;
+       const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders; const OutPackagesPath: TList<string>): string; static;
     procedure AnalyzeProjectsToInclude(const Projects: TProjectDefinitionList);
     procedure AddInstalled(const Dict: TDictionary<string, boolean>);
     function FindMissingWeakDependencies(const dv: TIDEName;
@@ -38,11 +38,13 @@ type
       const Package: TPackage): string;
     procedure DependencyInclude(const Map: TDictionary<string, TProjectDefinition>; const Project: TProjectDefinition; const Dependencies: TObjectList<TDependency>; var IncludedCount: integer; const IsWeak: boolean);
     function GetUninstallList: TObjectList<TProjectDefinition>;
-    function BackToFolder(const StartFolder: string;
-      const PackageFolders: TPackageFolders): string;
+    class function BackToFolder(const StartFolder: string;
+      const PackageFolders: TPackageFolders): string; static;
     function GetIDEs(const Project: TProjectDefinition): TIDENameArray;
-    function FolderInPackageFolder(const ProjectNaming, StartFolder: string;
-      const PackageFolders: TPackageFolders): boolean;
+    class function FolderInPackageFolder(const Config: TConfigDefinition; const ProjectNaming, StartFolder: string;
+      const PackageFolders: TPackageFolders): boolean; static;
+    class function LocatePackagesFolder(const Config: TConfigDefinition; const Project: TProjectDefinition;
+      const PackageCache: TPackageCache; const OutPackagesPath: TList<string>): string; overload; static;
 
   public
     constructor Create(const aConfig: TConfigDefinition; const aProjectList: TProjectList; const aFileHasher: TFileHasher);
@@ -53,6 +55,8 @@ type
     procedure AnalyzeUnusedPackages;
     property BuildInfo: TBuildInfo read FBuildInfo;
     property ProjectFinder: THashSet<string> read FProjectFinder;
+
+    class function LocatePackagesFolder(const Config: TConfigDefinition; const Project: TProjectDefinition; const OutPackagesPath: TList<string>): string; overload; static;
   end;
 
 implementation
@@ -178,7 +182,7 @@ begin
   Result := false;
 end;
 
-function TProjectAnalyzer.BackToFolder(const StartFolder: string; const PackageFolders: TPackageFolders): string;
+class function TProjectAnalyzer.BackToFolder(const StartFolder: string; const PackageFolders: TPackageFolders): string;
 begin
   for var PackageFolder in PackageFolders do
   begin
@@ -190,7 +194,7 @@ begin
   Result := TPath.GetDirectoryName(StartFolder);
 end;
 
-function TProjectAnalyzer.FolderInPackageFolder(const ProjectNaming, StartFolder: string; const PackageFolders: TPackageFolders): boolean;
+class function TProjectAnalyzer.FolderInPackageFolder(const Config: TConfigDefinition; const ProjectNaming, StartFolder: string; const PackageFolders: TPackageFolders): boolean;
 begin
   var Naming := Config.GetNaming(ProjectNaming, '');
 
@@ -204,7 +208,7 @@ begin
 end;
 
 
-function TProjectAnalyzer.GetPackagesFolder(const ProjectNaming: string; const PackageCache: TPackageCache; const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders): string;
+class function TProjectAnalyzer.GetPackagesFolder(const Config: TConfigDefinition; const ProjectNaming: string; const PackageCache: TPackageCache; const AppFolder: string; const exts: TArray<string>; const Packages: TListOfPackages; const IsExe: boolean; const PackageFolders: TPackageFolders; const OutPackagesPath: TList<string>): string;
 begin
   Result := '';
   var Pkgs := PackageCache.GetFiles(AppFolder, exts);
@@ -221,10 +225,13 @@ begin
         if not IsProjectPackage(TPath.GetFileNameWithoutExtension(P), Packages) then continue;
 
         var PkgFolder := PkgFolderIDE; //for exes.
-        if not IsExe then
+        if IsExe then
         begin
-          if not FolderInPackageFolder(ProjectNaming, PkgFolderIDE, PackageFolders) then continue;
-
+          if OutPackagesPath <> nil then OutPackagesPath.Add(PkgFolderIDE);
+        end else
+        begin
+          if not FolderInPackageFolder(Config, ProjectNaming, PkgFolderIDE, PackageFolders) then continue;
+          if OutPackagesPath <> nil then OutPackagesPath.Add(PkgFolderIDE);
           PkgFolder := BackToFolder(PkgFolderIDE, PackageFolders);
         end;
         if Result = '' then Result := PkgFolder else if Result <> PkgFolder then raise Exception.Create('Packages in a project can''t be in more than one folder. ' + AppFolder + ' has folders in ' + Result + ' and ' + PkgFolder);
@@ -234,6 +241,29 @@ begin
 
   if Result = '' then raise Exception.Create('Can''t find any packages in the project ' + AppFolder);
 
+end;
+
+class function TProjectAnalyzer.LocatePackagesFolder(const Config: TConfigDefinition; const Project: TProjectDefinition; const PackageCache: TPackageCache; const OutPackagesPath: TList<string>): string;
+begin
+  var PackagesFolder :=  TPath.GetDirectoryName(Project.FullPath);
+  if Project.RootPackageFolder <> '' then
+  begin
+    PackagesFolder := TPath.GetFullPath(TPath.Combine(PackagesFolder, Project.RootPackageFolder));
+    if FolderIsOutside(PackagesFolder, [Project.RootFolder])
+      then raise Exception.Create('The base package folder can''t be outside the root folder of the project. Current base package folder is: "' + PackagesFolder + '" and the root folder is "' + Project.RootFolder + '"');
+  end;
+
+  Result := GetPackagesFolder(Config, Project.Naming, PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders, OutPackagesPath);
+end;
+
+class function TProjectAnalyzer.LocatePackagesFolder(const Config: TConfigDefinition; const Project: TProjectDefinition; const OutPackagesPath: TList<string>): string;
+begin
+  var PackageCache: TPackageCache := TPackageCache.Create;
+  try
+    Result := LocatePackagesFolder(Config, Project, PackageCache, OutPackagesPath);
+  finally
+    PackageCache.Free;
+  end;
 end;
 
 procedure TProjectAnalyzer.AnalyzeOneProject(const Project: TProjectDefinition);
@@ -252,18 +282,7 @@ begin
   var PackageCache := TPackageCache.Create;
   try
     BuildInfo.CurrentProject.SourceCodeHash := FileHasher.GenerateSourceCodeHash(PackageCache, Project);
-    var PackagesFolder :=  TPath.GetDirectoryName(Project.FullPath);
-    if Project.RootPackageFolder <> '' then
-    begin
-      PackagesFolder := TPath.GetFullPath(TPath.Combine(PackagesFolder, Project.RootPackageFolder));
-      if FolderIsOutside(PackagesFolder, [Project.RootFolder])
-        then raise Exception.Create('The base package folder can''t be outside the root folder of the project. Current base package folder is: "' + PackagesFolder + '" and the root folder is "' + Project.RootFolder + '"');
-
-      BuildInfo.CurrentProject.BasePackagesFolder := PackagesFolder;
-    end else
-    begin
-      BuildInfo.CurrentProject.BasePackagesFolder := GetPackagesFolder(Project.Naming, PackageCache, PackagesFolder, Project.FileNameExtension, Project.Packages, Project.IsExe, Project.PackageFolders);
-    end;
+    BuildInfo.CurrentProject.BasePackagesFolder := LocatePackagesFolder(Config, Project, PackageCache, nil);
     var DepsCompiled := DependenciesRebuilt(Config, Project);
 
     AnalyzePackages(PackageCache, Project, DepsCompiled, BuildInfo.CurrentProject.BasePackagesFolder);

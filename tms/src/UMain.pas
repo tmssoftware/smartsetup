@@ -27,6 +27,7 @@ uses
   Commands.LogView,
   Commands.Uncompress,
   Commands.Pin,
+  Commands.Backup,
   Commands.Snapshot,
   Commands.Restore,
   Commands.InternalTesting,
@@ -74,6 +75,7 @@ begin
   RegisterVersionsRemoteCommand;
   RegisterInfoCommand;
 
+  RegisterBackupCommand;
   RegisterSnapshotCommand;
   RegisterRestoreCommand;
 

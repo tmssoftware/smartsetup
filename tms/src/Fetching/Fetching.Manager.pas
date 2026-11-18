@@ -7,7 +7,8 @@ interface
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils, UMultiLogger,
   Fetching.FetchItem, Fetching.InfoFile, Fetching.InstallInfo, UConfigFolders,
-  URepositoryManager, Fetching.Options, Deget.Version, Fetching.ProductVersion;
+  URepositoryManager, Fetching.Options, Deget.Version, Fetching.ProductVersion,
+  UProjectDefinition;
 
 type
   TStringSet = TDictionary<string, Boolean>;
@@ -20,6 +21,7 @@ type
     FInstalledProducts: TObjectList<TFetchInfoFile>;
     FAllInstalledProductsIncludingManual: THashSet<string>;
     FIgnoreMissing: Boolean;
+    FSkipExtraction: Boolean;
     FAlreadyHandledProducts: THashSet<string>;
     FPinned: THashSet<string>;
     procedure AddMatchedItems(const ProductVersion: TProductVersion);
@@ -30,14 +32,17 @@ type
     procedure FlagOutdatedItems;
     procedure DownloadOutdated;
     procedure ProcessDependencies;
-    function GetProductDependencies(const ProductId: string): TArray<string>;
     function GetPinned: THashSet<string>;
+    function GetProductDependenciesFromFolder(const ProductId: string): TArray<string>;
+    function GetDependenciesFromBundle(const BundleName: string): TArray<string>;
+    function GetDependenciesFromProjectDef(
+      const def: TProjectDefinition): TArray<string>;
   protected
     property Repo: TRepositoryManager read FRepo;
     function InstalledProducts: TList<TFetchInfoFile>;
     function AllInstalledProductsIncludingManual: THashSet<string>;
   public
-    constructor Create(AFolders: IBuildFolders; ARepo: TRepositoryManager; AAlreadyHandledProducts: THashSet<string>); reintroduce;
+    constructor Create(AFolders: IBuildFolders; ARepo: TRepositoryManager; AAlreadyHandledProducts: THashSet<string>; ASkipExtraction: boolean);
     destructor Destroy; override;
     property FetchItems: TFetchItems read FFetchItems;
     procedure UpdateSelected(const ProductVersions: TArray<TProductVersion>);
@@ -54,8 +59,8 @@ type
 implementation
 
 uses
-  System.Masks, Fetching.ParallelDownloader, UTmsBuildSystemUtils, UProjectLoader, UProjectDefinition, UProjectList,
-  Commands.GlobalConfig, Testing.Globals;
+  System.Masks, Fetching.ParallelDownloader, UTmsBuildSystemUtils, UProjectLoader, UProjectList,
+  Commands.GlobalConfig, Testing.Globals, UGenericDecompressor;
 
 { TFetchManager }
 
@@ -65,7 +70,10 @@ begin
     if (Item.Status in [TFetchStatus.Downloaded, TFetchStatus.SkippedUpToDate, TFetchStatus.SkippedManualVersionExists]) and not Item.DependenciesProcessed then
     begin
       Item.DependenciesProcessed := True;
-      var Dependencies := GetProductDependencies(Item.ProductId);
+      var Dependencies: TArray<string>;
+      if Item.SkipExtraction or FSkipExtraction
+        then Dependencies := GetDependenciesFromBundle(Item.BundleFileName)
+        else Dependencies := GetProductDependenciesFromFolder(Item.ProductId);
       for var Dependency in Dependencies do
         AddMatchedItems(TProductVersion.Create(Dependency, '*'));
     end;
@@ -93,14 +101,15 @@ begin
       Logger.Trace(Format('Product %s:%s to be analyzed', [InstalledProduct.ProductId, InstalledProduct.Version.ToString]));
     end else
     begin
-      if Config.IsExcluded(InstalledProduct.ProductId) then Logger.Trace('Ignoring ' + InstalledProduct.ProductId + ' because it is in the "excluded products" section of tms.config.yaml');
-
+      var Msg := Config.ExcludedMsg(InstalledProduct.ProductId, 'Ignoring %s');
+      if Msg <> '' then Logger.Trace(Msg);
     end;
 
   if not Found and not FAlreadyHandledProducts.Contains(ProductVersion.IdMask) then
   begin
     var ErrorMessage := Format('Could not find any products matching %s', [ProductVersion.IdMask]);
-    if Config.IsExcluded(ProductVersion.IdMask) then ErrorMessage := Format('The product %s is excluded in the section "excluded products" from tms.config.yaml.', [ProductVersion.IdMask]);
+    var Msg := Config.ExcludedMsg(ProductVersion.IdMask, 'The product %s is excluded');
+    if Msg <> '' then ErrorMessage := Msg;
 
     raise Exception.Create(ErrorMessage);
   end;
@@ -154,15 +163,16 @@ begin
         Logger.Info(Format('Found %s in repository', [RepoProduct.Id]));
       end else
       begin
-        if Config.IsExcluded(RepoProduct.Id) then Logger.Trace('Ignoring ' + RepoProduct.Id + ' because it is in the "excluded products" section of tms.config.yaml');
-
+        var Msg := Config.ExcludedMsg(RepoProduct.Id, 'Ignoring %s');
+        if Msg <> '' then Logger.Trace(Msg);
       end;
   end;
 
   if not Found and (ProductVersion.IdMask <> TRepositoryManager.TMSSetupProductId) and not FAlreadyHandledProducts.Contains(ProductVersion.IdMask) then
   begin
     var ErrorMessage := Format('Could not find any products matching %s', [ProductVersion.IdMask]);
-    if Config.IsExcluded(ProductVersion.IdMask) then ErrorMessage := Format('The product %s is excluded in the section "excluded products" from tms.config.yaml.', [ProductVersion.IdMask]);
+    var Msg := Config.ExcludedMsg(ProductVersion.IdMask, 'The product %s is excluded');
+    if Msg <> '' then ErrorMessage := Msg;
 
     if FIgnoreMissing then
     begin
@@ -183,12 +193,13 @@ begin
   Result := FindItem(ProductId, Version, CanBeAnyVersion, AllowDuplicates) <> nil;
 end;
 
-constructor TFetchManager.Create(AFolders: IBuildFolders; ARepo: TRepositoryManager; AAlreadyHandledProducts: THashSet<string>);
+constructor TFetchManager.Create(AFolders: IBuildFolders; ARepo: TRepositoryManager; AAlreadyHandledProducts: THashSet<string>; ASkipExtraction: boolean);
 begin
   FFetchItems := TFetchItems.Create;
   FAlreadyHandledProducts := AAlreadyHandledProducts;
   FRepo := ARepo;
   FFolders := AFolders;
+  FSkipExtraction := ASkipExtraction;
 end;
 
 destructor TFetchManager.Destroy;
@@ -202,7 +213,7 @@ end;
 
 procedure TFetchManager.DownloadOutdated;
 begin
-  var Downloader := TParallelDownloader.Create(FFetchItems, FRepo, FFolders);
+  var Downloader := TParallelDownloader.Create(FFetchItems, FRepo, FFolders, FSkipExtraction);
   try
     Downloader.Fetch;
   finally
@@ -354,10 +365,25 @@ begin
 end;
 
 procedure TFetchManager.FlagOutdatedItems;
+const
+  {$i ../../../Version.inc}
 begin
   // First, check which items must be downloaded or are already downloaded
   for var Item in FetchItems do
   begin
+    if FSkipExtraction then
+    begin
+      if Item.Status <> TFetchStatus.Unprocessed then continue;
+      if Item.ProductId = TRepositoryManager.TMSSetupProductId then
+      begin
+        if TLenientVersion.Create(Item.Version, TVersionType.Semantic) = TLenientVersion.Create(TMSVersion, TVersionType.Semantic)
+          then Item.Status := TFetchStatus.SkippedUpToDate
+          else Item.Status := TFetchStatus.Outdated;
+      end
+      else Item.Status := TFetchStatus.Outdated; //it won't be downloaded again if it exists in the Downloads folder
+      continue;
+    end;
+
     if Pinned.Contains(Item.ProductId) then
     begin
       Item.Status := TFetchStatus.SkippedPinned;
@@ -407,7 +433,35 @@ begin
   Result := FPinned;
 end;
 
-function TFetchManager.GetProductDependencies(const ProductId: string): TArray<string>;
+
+function TFetchManager.GetDependenciesFromBundle(const BundleName: string): TArray<string>;
+begin
+  Result := [];
+  if BundleName = '' then exit; //smartsetup itself
+  
+  var TempFolder := TPath.Combine(Config.Folders.TempBackupFolder, GuidToStringN(TGuid.NewGuid));
+  TDirectory_CreateDirectory(TempFolder);
+  try
+    TBundleDecompressor.ExtractCompressedFile(BundleName, TempFolder, TDownloadFormat.Unknown,
+        function(FileName: string): boolean
+        begin
+          Result := not SameText(TPath.GetFileName(FileName), TProjectLoader.TMSBuildDefinitionFile);
+        end);
+
+    var YamlFolder := TProjectLoader.GetProjectDefinition(TempFolder);
+    if YamlFolder = '' then Exit;
+    var def := TProjectLoader.LoadProjectDefinition(YamlFolder, '', true);
+    try
+      Result := GetDependenciesFromProjectDef(def);
+    finally
+      def.Free;
+    end;
+  finally
+    DeleteFolderMovingToLocked(Config.Folders.LockedFilesFolder, TempFolder, true, false);
+  end;
+end;
+
+function TFetchManager.GetProductDependenciesFromFolder(const ProductId: string): TArray<string>;
 begin
   Result := [];
   var Folder := CombinePath(FFolders.ProductsFolder, ProductId);
@@ -416,13 +470,19 @@ begin
 
   var def := TProjectLoader.LoadProjectDefinition(YamlFolder);
   try
-    for var Dependency in def.Dependencies do
-    begin
-      Logger.Trace(Format('%s depends on %s, added to processing queue', [ProductId, Dependency.Id]));
-      Result := Result + [Dependency.Id];
-    end;
+    Result := GetDependenciesFromProjectDef(def);
   finally
     def.Free;
+  end;
+end;
+
+function TFetchManager.GetDependenciesFromProjectDef(const def: TProjectDefinition): TArray<string>;
+begin
+  Result := [];
+  for var Dependency in def.Dependencies do
+  begin
+    Logger.Trace(Format('%s depends on %s, added to processing queue', [def.Application.Id, Dependency.Id]));
+    Result := Result + [Dependency.Id];
   end;
 end;
 

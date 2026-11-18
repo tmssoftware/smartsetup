@@ -2,17 +2,19 @@ unit Downloads.FileNameManager;
 {$i ../../tmssetup.inc}
 
 interface
-uses Classes, SysUtils, Deget.Version;
+uses Classes, SysUtils, Deget.Version, StrUtils;
 
 type
   TDownloadFileName = record
   private
   const
     Separator = '_production_';
-    FreeFormSeparator = '@';
+    FreeForm64Separator = '@';
+    FreeFormSafeSeparator = '#';
 
     class function TryGetFileNameWithoutExtension(const FileName: string; const Extension: string; out FileNameWithoutExtension: string): boolean; overload; static;
     class function GetFileNameWithoutExtension(const FileName: string): string; static;
+    class function FileNameNeedsEscaping(const s: string): boolean; static;
   public
     class function ExtractProduct(const FileName: string): string; static;
     class function ExtractVersion(const FileName: string): TLenientVersion; static;
@@ -23,7 +25,7 @@ type
   end;
 
 implementation
-uses IOUtils, System.NetEncoding;
+uses IOUtils, System.NetEncoding, Character;
 
 { TDownloadFileName }
 
@@ -33,6 +35,19 @@ begin
   Result := ProductId + Separator;
 end;
 
+class function TDownloadFileName.FileNameNeedsEscaping(const s: string): boolean;
+begin
+  if ContainsText(s, Separator) then exit(true);
+  for var c in s do
+  begin
+    if c.IsLetterOrDigit then continue;
+    if (c <= ' ') or (c >= #127) then exit(true);
+    if CharInSet(c, ['/', '\', '?', '*', ':', '|', '"', '<', '>', ',', ';']) then exit(true);
+  end;
+
+  Result := false;
+end;
+
 class function TDownloadFileName.GenerateFileName(const ProductId: string;
   const Version: TLenientVersion): string;
 begin
@@ -40,7 +55,11 @@ begin
     TVersionType.Semantic:
        Result := GenerateRootFileName(ProductId) + Version.Normalized;
     else
-       Result := GenerateRootFileName(ProductId) + FreeFormSeparator + TNetEncoding.Base64String.Encode(Version.ToString).Replace('/', '#'); //We could use Base64Url.Encode, which replaces '/' with '_', but then '_' can create a fake '_production_' separator.
+    begin
+      if FileNameNeedsEscaping(Version.ToString)
+        then Result := GenerateRootFileName(ProductId) + FreeForm64Separator + TNetEncoding.Base64String.Encode(Version.ToString).Replace('/', '#') //We could use Base64Url.Encode, which replaces '/' with '_', but then '_' can create a fake '_production_' separator.
+        else Result := GenerateRootFileName(ProductId) + FreeFormSafeSeparator + Version.ToString;
+    end;
   end;
 end;
 
@@ -104,9 +123,14 @@ begin
   if (SeparatorIndex <= 0) then raise Exception.Create('Invalid filename: "' + FileName + '". It must include "' + Separator + '".');
 
   var VerStr := OnlyFileName.Substring(SeparatorIndex + Separator.Length);
-  if VerStr.StartsWith(FreeFormSeparator)
-    then Result := TLenientVersion.Create(TNetEncoding.Base64String.Decode(VerStr.Substring(Length(FreeFormSeparator)).Replace('#', '/')), TVersionType.FreeForm)
-    else Result := TLenientVersion.Create(VerStr, TVersionType.Semantic);
+  if VerStr.StartsWith(FreeForm64Separator)
+    then Result := TLenientVersion.Create(TNetEncoding.Base64String.Decode(VerStr.Substring(Length(FreeForm64Separator)).Replace('#', '/')), TVersionType.FreeForm)
+    else
+    begin
+      if VerStr.StartsWith(FreeFormSafeSeparator)
+      then Result := TLenientVersion.Create(VerStr.Substring(Length(FreeFormSafeSeparator)), TVersionType.FreeForm)
+      else Result := TLenientVersion.Create(VerStr, TVersionType.Semantic);
+    end;
 
 
 end;

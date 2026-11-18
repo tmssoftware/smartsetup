@@ -459,6 +459,8 @@
         <DCCReference Include="src\System\SmartSetup.Locks.pas"/>
         <DCCReference Include="src\Config\UConfigSources.pas"/>
         <DCCReference Include="src\Commands\Commands.LocalConfig.pas"/>
+        <DCCReference Include="src\Commands\Commands.Backup.pas"/>
+        <DCCReference Include="src\Fetching\Fetching.FetchExtraction.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

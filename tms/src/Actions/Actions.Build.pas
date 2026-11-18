@@ -75,13 +75,7 @@ begin
   var ProductIds := ParseVersions(ProductIdsAndVersions);
   if Length(ProductIds) > 0 then
   begin
-    //Do not clear Excluded, only included.
-    //Config.ClearExcludedComponents;
-    Config.ClearIncludedComponents;
-    for var ProductId in ProductIds do
-    begin
-      Config.AddIncludedComponent(ProductId.IdMask, '');
-    end;
+    Config.ReplaceIncludedComponents(Length(ProductIds), function(index: integer): string begin Result := ProductIds[index].IdMask; end);
   end;
   ExecuteBuildAction(FullBuild);
 end;

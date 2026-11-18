@@ -180,7 +180,6 @@ begin
   for var Product in List do
   begin
     if Product.FProduct.ProductId = ProductId then Product.Version := NewVersion;
-
   end;
 end;
 
@@ -189,7 +188,8 @@ begin
   Result := false;
   for var ProductId in FProducts do
   begin
-    if Config.IsExcluded(ProductId.Key) then Logger.Trace('Ignoring ' + ProductId.Key + ' because it is in the "excluded products" section of tms.config.yaml');
+    var Msg := Config.ExcludedMsg(ProductId.Key, 'Ignoring %s');
+    if Msg <> '' then Logger.Trace(Msg);
 
     if Config.IsIncluded(ProductId.Key, ProductVersion.IdMask) then
     begin

@@ -20,6 +20,7 @@ begin
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.VCSTempFolder, true, true);
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.ZipFileTempFolder);
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.TextFileTempFolder);
+    TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.TempBackupFolder, true, true);
 
     // self-update
     TryToDeleteAllFilesInFolderIgnoringLocked(Config.Folders.SameDiskLockedFolder, false, true, '*' + TempExtension);

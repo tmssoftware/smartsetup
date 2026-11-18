@@ -268,7 +268,7 @@ begin
   var ApiServer :=  TServerConfig.CreateInternalServer('tms'); //hardcoded. doesn't matter if tms is disabled.
   var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, ApiServer.AllowInsecureConnections, true);
   try
-    var Manager := TFetchManager.Create(Config.Folders, Repo, nil);
+    var Manager := TFetchManager.Create(Config.Folders, Repo, nil, false);
       try
         Logger.StartSection(TMessageType.Update, 'Self-Updating SmartSetup');
         try

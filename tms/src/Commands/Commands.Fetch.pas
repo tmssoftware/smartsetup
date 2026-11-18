@@ -8,19 +8,20 @@ implementation
 
 uses
   System.StrUtils, UCommandLine, Commands.CommonOptions, Commands.Logging, Actions.Fetch,
-  Actions.Build, Commands.GlobalConfig;
+  Actions.Build, Commands.GlobalConfig, Fetching.FetchExtraction;
 
 var
-  NoBuild: Boolean = False;
+  SkipExtraction: Boolean = False;
   ProductIds: TArray<string>;
 
 procedure RunFetchCommand;
 begin
   InitFolderBasedCommand;
+  var Extraction := TFetchExtraction.Create(SkipExtraction, false, nil);
   if Length(ProductIds) = 0 then
-    ExecuteFetchAction(ProductIds, TFetchMode.OnlyInstalled)
+    ExecuteFetchAction(ProductIds, TFetchMode.OnlyInstalled, Extraction)
   else
-    ExecuteFetchAction(ProductIds, TFetchMode.DownloadNew);
+    ExecuteFetchAction(ProductIds, TFetchMode.DownloadNew, Extraction);
 end;
 
 procedure RegisterFetchCommand;
@@ -46,6 +47,14 @@ begin
   option.AllowMultiple := True;
 
   RegisterRepoOption(cmd);
+
+  option := cmd.RegisterOption<Boolean>('skip-extraction', '', 'only fetch the products, do not extract them to build.',
+    procedure(const Value: Boolean)
+    begin
+      SkipExtraction := Value;
+    end);
+  option.HasValue := False;
+
 
   AddCommand(cmd.Name, CommandGroups.Install, RunFetchCommand);
 end;

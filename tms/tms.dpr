@@ -237,7 +237,9 @@ uses
   Commands.CleanUp in 'src\Commands\Commands.CleanUp.pas',
   SmartSetup.Locks in 'src\System\SmartSetup.Locks.pas',
   UConfigSources in 'src\Config\UConfigSources.pas',
-  Commands.LocalConfig in 'src\Commands\Commands.LocalConfig.pas';
+  Commands.LocalConfig in 'src\Commands\Commands.LocalConfig.pas',
+  Commands.Backup in 'src\Commands\Commands.Backup.pas',
+  Fetching.FetchExtraction in 'src\Fetching\Fetching.FetchExtraction.pas';
 
 begin
   try

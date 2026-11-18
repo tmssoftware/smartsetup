@@ -13,7 +13,6 @@ type
     procedure AfterClone(const aRootFolder, aCloneFolder: string);
 
     procedure Pull(const aRootFolder, aGitFolder, aVersion: string);
-    procedure GetFile(const aFileName, aDestFolder, aURL, aServer: string);
     function GetVersionNames(const aExistingRepoFolder, aTempFolder, aLockedFolder: string; const aURL: string): TArray<TVersionAndDate>;
     function GetProduct(const aDestFolderRoot, aDestFolder, aURL, aServer, aProductId, aVersion: string): boolean;
     function FileIsVersioned(const aFileName, aWorkingFolder: string): boolean;
@@ -67,35 +66,6 @@ end;
 function TZipFileEngine.GetCommitId(const aWorkingFolder: string; const allowTags: boolean): string;
 begin
   Result := '';
-end;
-
-procedure TZipFileEngine.GetFile(const aFileName, aDestFolder, aURL, aServer: string);
-begin
-  //Sometimes the files might be inside an empty root folder, so we need to skip it.
-  var ZipFileName := TPath.Combine(aDestFolder, aFileName + '.download');
-  try
-    ZipDownloader.GetRepo(aURL, ZipFileName, aServer, Logger.Write, true);
-    TBundleDecompressor.ExtractCompressedFile(ZipFileName, aDestFolder, TDownloadFormat.Unknown,
-      function(FileName: string): boolean
-      begin
-        Result := not SameText(TPath.GetFileName(FileName), aFileName);
-      end);
-
-  finally
-    DeleteFileOrMoveToLocked(Config.Folders.LockedFilesFolder, ZipFileName);
-  end;
-
-  var Files := TDirectory.GetFiles(aDestFolder, '*', TSearchOption.soAllDirectories);
-  for var FileName in Files do
-  begin
-    if FileIsAtRoot(FileName, aDestFolder) then
-    begin
-      RenameAndCheck(FileName, TPath.Combine(aDestFolder, TPath.GetFileName(FileName)));
-      exit;
-    end;
-
-  end;
-
 end;
 
 procedure TZipFileEngine.RemoveTopEmptyFolder(const DestFolder: string);

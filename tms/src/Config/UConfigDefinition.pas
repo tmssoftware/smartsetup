@@ -197,7 +197,7 @@ type
     FWorkingFolder: string;
     FWorkingFolderUsed: boolean;
     FProducts: TProductConfigDefinitionDictionary;
-    ExcludedComponents, IncludedComponents: TOrderedDictionary<string, string>;
+    ExcludedComponents, IncludedComponents, ExcludedComponentsCmd: TOrderedDictionary<string, string>;
     AdditionalProductsFolders: TOrderedDictionary<string, string>;
     Namings: TNamingList;
     FBuildCores: integer;
@@ -238,12 +238,11 @@ type
 
     procedure AddExcludedComponent(const Name, ErrorInfo: string);
     procedure AddIncludedComponent(const Name, ErrorInfo: string);
+    procedure ReplaceIncludedComponents(const NewComponentCount: integer; const GetItem: TFunc<integer, string>);
     procedure ClearExcludedComponents;
     procedure ClearIncludedComponents;
     function GetExcludedComponents: TEnumerable<string>;
     function GetIncludedComponents: TEnumerable<string>;
-    function GetExcludedComponentsCount: integer;
-    function GetIncludedComponentsCount: integer;
 
     procedure AddAdditionalProductsFolder(const Name, ErrorInfo: string);
     procedure ClearAdditionalProductsFolders;
@@ -295,10 +294,14 @@ type
     function SkipRegisteringExt(const ProductId: String; DefaultValue: string): string;
     function DryRun(const ProductId: String): boolean;
     function IsExcluded(const ProductId: String): boolean;
+    function IsExcludedWithCommandLine(const ProductId: String): boolean;
+    function IsExcludedWithConfig(const ProductId: String): boolean;
     function IsIncluded(const ProductId: String): boolean; overload;
     function IsIncluded(const ProductId, Mask: String): boolean; overload;
     procedure GetAllCfgDefines(const ProductId: string; out AddDefines, RemoveDefines: TArray<string>);
     function GetDefinesOnlyForProject(const ProductId: string): TArray<string>;
+    procedure SetCmdExcludedProjects(const Excluded: TArray<string>);
+    function ExcludedMsg(const ProductId, ErrorMessage: string): string;
 
     function GetIDENames(const ProductId: string): TIDENameSet;
     function GetPlatforms(const dv: TIDEName; const ProductId: string): TPlatformSet;
@@ -339,6 +342,7 @@ begin
   FConfigFolder := AConfigFolder;
   FProducts := TProductConfigDefinitionDictionary.Create;
   ExcludedComponents := TOrderedDictionary<string, string>.Create;
+  ExcludedComponentsCmd := TOrderedDictionary<string, string>.Create;
   IncludedComponents := TOrderedDictionary<string, string>.Create;
   AdditionalProductsFolders := TOrderedDictionary<string, string>.Create;
   FServerConfig := TServerConfigList.Create;
@@ -359,6 +363,7 @@ begin
   FServerConfig.Free;
   IncludedComponents.Free;
   ExcludedComponents.Free;
+  ExcludedComponentsCmd.Free;
   AdditionalProductsFolders.Free;
   FProducts.Free;
   inherited;
@@ -373,6 +378,12 @@ procedure TConfigDefinition.EnsureAllProducts;
 begin
   if Products.ContainsKey(GlobalProductId) then exit;
   Products.Add(GlobalProductId, TProductConfigDefinition.Create(GlobalProductId));
+end;
+
+procedure TConfigDefinition.SetCmdExcludedProjects(
+  const Excluded: TArray<string>);
+begin
+  for var Product in Excluded do ExcludedComponentsCmd.AddOrSetValue(Product, '');
 end;
 
 procedure TConfigDefinition.SetLoadedFile(const FileName: string; const ConfigSource: TConfigSource);
@@ -603,14 +614,41 @@ begin
 
 end;
 
-function TConfigDefinition.IsExcluded(const ProductId: String): boolean;
+function TConfigDefinition.IsExcludedWithConfig(const ProductId: String): boolean;
 begin
   for var ExcludedId in ExcludedComponents.Keys do
     if MatchesMask(ProductId, ExcludedId) then
       Exit(True);
 
   Exit(False);
- end;
+end;
+
+function TConfigDefinition.IsExcludedWithCommandLine(const ProductId: String): boolean;
+begin
+  for var ExcludedId in ExcludedComponentsCmd.Keys do
+    if MatchesMask(ProductId, ExcludedId) then
+      Exit(True);
+
+  Exit(False);
+end;
+
+function TConfigDefinition.IsExcluded(const ProductId: String): boolean;
+begin
+  if IsExcludedWithConfig(ProductId) then
+      Exit(True);
+  if IsExcludedWithCommandLine(ProductId) then
+      Exit(True);
+
+  Exit(False);
+end;
+
+function TConfigDefinition.ExcludedMsg(const ProductId, ErrorMessage: string): string;
+begin
+  if IsExcludedWithCommandLine(ProductId) then exit(Format(ErrorMessage, [ProductId]) + ' because it was excluded in the command line');
+  if IsExcludedWithConfig(ProductId) then exit(Format(ErrorMessage, [ProductId]) + ' because it is in the "excluded products" section of tms.config.yaml');
+  Result := '';
+end;
+
 
 function TConfigDefinition.IsIncluded(const ProductId: String): boolean;
 begin
@@ -653,17 +691,6 @@ procedure TConfigDefinition.ClearIncludedComponents;
 begin
   IncludedComponents.Clear;
 end;
-
-function TConfigDefinition.GetExcludedComponentsCount: integer;
-begin
-  Result := ExcludedComponents.Count;
-end;
-
-function TConfigDefinition.GetIncludedComponentsCount: integer;
-begin
-  Result := IncludedComponents.Count;
-end;
-
 
 function TConfigDefinition.CompilerPath(const ProductId: String; const dv: TIDEName): string;
 begin
@@ -760,6 +787,16 @@ begin
   end;
 
   Result := ResultValue;
+end;
+
+procedure TConfigDefinition.ReplaceIncludedComponents(
+  const NewComponentCount: integer; const GetItem: TFunc<integer, string>);
+begin
+  ClearIncludedComponents;
+  for var i := 0 to NewComponentCount - 1 do
+  begin
+    AddIncludedComponent(GetItem(i), '');
+  end;
 end;
 
 procedure TConfigDefinition.SetPrefixedProperties(index: TGlobalPrefixedProperties;

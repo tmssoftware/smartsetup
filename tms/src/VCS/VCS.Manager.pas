@@ -7,38 +7,43 @@ uses Classes, SysUtils, Commands.GlobalConfig, VCS.Registry,
      Windows,
 {$ENDIF}
      Generics.Collections, Threading, VCS.Summary, VCS.CoreTypes,
-     UProjectDefinition, Fetching.InfoFile, Fetching.ProductVersion, Deget.Version;
+     UProjectDefinition, Fetching.InfoFile, Fetching.ProductVersion, Deget.Version,
+     Fetching.FetchExtraction;
 
 type
 
   TVCSManager = class
   private
-    class procedure DoFetch(const Products: TList<TRegisteredVersionedProduct>); static;
+    class procedure DoFetch(const ProductsRoot: string; const Products: TList<TRegisteredVersionedProduct>; const Extraction: TFetchExtraction); static;
     class function CaptureFetch(TK: integer; Proc: TProc<integer>): TProc; static;
-    class function FetchProduct(const Product: TRegisteredVersionedProduct): TVCSFetchStatus; static;
+    class function FetchProduct(const ProductsRoot: string; const Product: TRegisteredVersionedProduct; const Extraction: TFetchExtraction): TVCSFetchStatus; static;
     class procedure DoFetchProduct(const ProductFolderRoot, ProductFolder: string; const Product: TRegisteredVersionedProduct); static;
     class function HasErrors(const Status: TArray<TVCSFetchStatus>): boolean; static;
     class function GetInstalledProducts: THashSet<string>; static;
     class procedure AddPredefinedData(const ProductFolder: string; const Product: TRegisteredProduct); static;
     class function FindTmsBuildYaml(const ProductFolder: string; const Protocol: TVCSProtocol): string; static;
     class function ProcessDependencies(
-      const ProductsToProcess: TObjectList<TRegisteredVersionedProduct>;
+      const ProductsRoot: string; const ProductsToProcess: TObjectList<TRegisteredVersionedProduct>;
       const ProductsToProcessDict: TDictionary<string, string>;
-      const AlreadyProcessed, InstalledProducts: THashSet<string>): boolean; static;
-    class procedure GetDependencies(
+      const AlreadyProcessed, InstalledProducts: THashSet<string>;
+      const Extraction: TFetchExtraction): boolean; static;
+    class procedure GetDependencies(const ProductsRoot: string;
       const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>); static;
     class function GetCurrentCommitInternal(const ProductId, ProductFolder: string): string; static;
     class procedure ExtractExtraFiles(const ProductFolder, ZipFileName, YamlFileName: string); static;
     class procedure RemoveLinks(const Folder: string); static;
+    class function CreateBundle(const ProductFolderRoot: string;
+      const BundlesOnly: boolean; const ProductId: string; const ProductVersion: TLenientVersion): string; static;
   public
-    class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean): THashSet<string>; static;
+    class function Fetch(const AProductVersions: TArray<TProductVersion>; const OnlyInstalled: boolean; const Extraction: TFetchExtraction): THashSet<string>; static;
     class function GetProductFolder(const ProductId: string): string; static;
     class function GetCurrentCommit(const ProductId, ProductFolder: string): string; static;
   end;
 
 implementation
 uses ULogger, UMultiLogger, UAppTerminated, VCS.Engine.Virtual,
-     VCS.Engine.Factory, IOUtils, UConfigFolders, UTmsBuildSystemUtils, ULoggerTask, UGenericDecompressor,
+     VCS.Engine.Factory, IOUtils, UConfigFolders, UTmsBuildSystemUtils, ULoggerTask,
+     UGenericDecompressor, Zip, Downloads.FileNameManager,
 {$IFDEF POSIX}
      Posix.UniStd, Posix.Stdio,
 {$ENDIF}
@@ -189,10 +194,20 @@ begin
    Result := TPath.Combine(ProductFolderRoot, 'src');
 end;
 
-class function TVCSManager.FetchProduct(const Product: TRegisteredVersionedProduct): TVCSFetchStatus;
+class function TVCSManager.CreateBundle(const ProductFolderRoot: string; const BundlesOnly: boolean; const ProductId: string; const ProductVersion: TLenientVersion): string;
+begin
+  if BundlesOnly then exit('');
+  var ZipFileName := TDownloadFileName.GenerateFileName(ProductId, ProductVersion) + '.zip';
+  var FullZipFileName := TPath.Combine(Config.Folders.TempBackupFolder, 'bundles',  ZipFileName);
+  TDirectory_CreateDirectory(TPath.GetDirectoryName(FullZipFileName));
+  TZipFile.ZipDirectoryContents(FullZipFileName, ProductFolderRoot);
+  Result := FullZipFileName;
+end;
+
+class function TVCSManager.FetchProduct(const ProductsRoot: string; const Product: TRegisteredVersionedProduct; const Extraction: TFetchExtraction): TVCSFetchStatus;
 begin
   Result := TVCSFetchStatus.Ok;
-  if (Product.Pinned) then
+  if (Product.Pinned and not Extraction.Skip) then
   begin
     Logger.Info('Skipping ' + Product.Product.ProductId + ' because it is pinned.');
     exit;
@@ -203,7 +218,7 @@ begin
     CheckAppTerminated;
     Logger.Info('Updating ' + Product.ProductIdAndVersion + ' from ' + Product.Product.ProtocolString);
 
-    var ProductFolderRoot := TPath.Combine(Config.Folders.ProductsFolder, Product.Product.ProductId);
+    var ProductFolderRoot := TPath.Combine(ProductsRoot, Product.Product.ProductId);
     var ProductFolder := TPath.Combine(ProductFolderRoot, 'src');
 
     DoFetchProduct(ProductFolderRoot, ProductFolder, Product);
@@ -213,17 +228,17 @@ begin
     //But, if we do it in that order, and DoFetchProduct fails, you will end up with an empty folder with just tmsfetch.info inside.
     //So instead, we ensure DoFetchProduct either returns a full thing, or nothing. Then we save tmsfetch.info only if DoFetchFolder succeeded.
     var ProductVersion := Product.Version; if ProductVersion = '*' then ProductVersion := '';
-    if ProductVersion = '' then ProductVersion := GetCurrentCommit(Product.Product.ProductId, GetProductFolder(Product.Product.ProductId));
+    if ProductVersion = '' then ProductVersion := GetCurrentCommit(Product.Product.ProductId, ProductFolder);
 
 
     //When we fetch a new product, pinned is false
-    TFetchInfoFile.SaveInFolder(ProductFolderRoot,
+    if not Extraction.Skip then TFetchInfoFile.SaveInFolder(ProductFolderRoot,
       Config.Folders.RootFolder, Config.Folders.TextFileTempFolder,
       Product.Product.ProductId, TLenientVersion.Create(ProductVersion, TVersionType.FreeForm), Product.Product.Server, false);
     AddPredefinedData(ProductFolder, Product.Product);
-    begin
 
-    end;
+    var ProductLenientVersion := TLenientVersion.Create(ProductVersion, TVersionType.FreeForm);
+    Extraction.DoOnExtract(Product.Product.ProductId, CreateBundle(ProductFolderRoot, Extraction.BundlesOnly, Product.Product.ProductId, ProductLenientVersion), Product.Product.Server, ProductLenientVersion);
 
     Logger.Info('Updated ' + Product.ProductIdAndVersion + ' from ' + Product.Product.ProtocolString);
   except
@@ -262,7 +277,7 @@ begin
   Result := true;
 end;
 
-class procedure TVCSManager.DoFetch(const Products: TList<TRegisteredVersionedProduct>);
+class procedure TVCSManager.DoFetch(const ProductsRoot: string; const Products: TList<TRegisteredVersionedProduct>; const Extraction: TFetchExtraction);
 begin
   var Tasks: TArray<ITask>;
   SetLength(Tasks, Products.Count);
@@ -279,7 +294,7 @@ begin
       CaptureFetch(task,
       procedure (TK: integer)
       begin
-        Status[TK] := FetchProduct(Products[TK]);
+        Status[TK] := FetchProduct(ProductsRoot, Products[TK], Extraction);
       end));
     end;
 
@@ -352,15 +367,15 @@ begin
   CachedProductFolder := ProductFolder;
 end;
 
-class procedure TVCSManager.GetDependencies(const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>);
+class procedure TVCSManager.GetDependencies(const ProductsRoot: string; const Products: TObjectList<TRegisteredVersionedProduct>; const AlreadyProcessed, Dependencies: THashSet<string>);
 begin
   Dependencies.Clear;
-  if not TDirectory.Exists(Config.Folders.ProductsFolder) then exit;
+  if not TDirectory.Exists(ProductsRoot) then exit;
 
   for var Product in Products do
   begin
     var ProductId := Product.Product.ProductId;
-    var Folder := CombinePath(Config.Folders.ProductsFolder, ProductId);
+    var Folder := CombinePath(ProductsRoot, ProductId);
     var YamlFolder := TProjectLoader.GetProjectDefinition(Folder);
     if YamlFolder = '' then continue;
     var def := TProjectLoader.LoadProjectDefinition(YamlFolder);
@@ -380,7 +395,7 @@ end;
 
 
 class function TVCSManager.Fetch(const AProductVersions: TArray<TProductVersion>;
-  const OnlyInstalled: boolean): THashSet<string>;
+  const OnlyInstalled: boolean; const Extraction: TFetchExtraction): THashSet<string>;
 begin
   Result := THashSet<string>.Create;
   try
@@ -407,10 +422,12 @@ begin
           //We need both those with wildcards (to know later if a command like install tms.biz.* installed anything)
           //But also the real products, to handle dependencies.
           for var Prod in ProductsToProcess do Result.Add(Prod.Product.ProductId);
+          var ProductsRoot := Config.Folders.ProductsFolder;
+          if Extraction.Skip then ProductsRoot := TPath.Combine(Config.Folders.TempBackupFolder, 'extracted');
 
-          DoFetch(ProductsToProcess);
+          DoFetch(ProductsRoot, ProductsToProcess, Extraction);
 
-          while ProcessDependencies(ProductsToProcess, ProductsToProcessDict, Result, InstalledProducts) do;
+          while ProcessDependencies(ProductsRoot, ProductsToProcess, ProductsToProcessDict, Result, InstalledProducts, Extraction) do;
         finally
           InstalledProducts.Free;
         end;
@@ -426,11 +443,11 @@ begin
   end;
 end;
 
-class function TVCSManager.ProcessDependencies(const ProductsToProcess: TObjectList<TRegisteredVersionedProduct>; const ProductsToProcessDict: TDictionary<string, string>; const AlreadyProcessed, InstalledProducts: THashSet<string>): boolean;
+class function TVCSManager.ProcessDependencies(const ProductsRoot: string; const ProductsToProcess: TObjectList<TRegisteredVersionedProduct>; const ProductsToProcessDict: TDictionary<string, string>; const AlreadyProcessed, InstalledProducts: THashSet<string>; const Extraction: TFetchExtraction): boolean;
 begin
   var Dependencies := THashSet<string>.Create;
   try
-    GetDependencies(ProductsToProcess, AlreadyProcessed, Dependencies);
+    GetDependencies(ProductsRoot, ProductsToProcess, AlreadyProcessed, Dependencies);
     ProductsToProcess.Clear;
 
     //If in an update, we could check that we the dependency is in installedproducts
@@ -447,7 +464,7 @@ begin
 
   if ProductsToProcess.Count = 0 then exit(false);
 
-  DoFetch(ProductsToProcess);
+  DoFetch(ProductsRoot, ProductsToProcess, Extraction);
   Result := true;
 end;
 

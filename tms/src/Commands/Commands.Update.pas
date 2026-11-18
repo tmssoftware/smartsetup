@@ -8,7 +8,7 @@ implementation
 
 uses
   System.StrUtils, System.Diagnostics, UCommandLine, Commands.CommonOptions, Commands.Logging, Actions.Fetch,
-  Actions.Build, Commands.GlobalConfig, UMultiLogger;
+  Actions.Build, Commands.GlobalConfig, UMultiLogger, Fetching.FetchExtraction;
 
 var
   NoBuild: Boolean = False;
@@ -21,7 +21,7 @@ begin
   var AllStopWatch := TStopWatch.Create;
   AllStopWatch.Start;
 
-  ExecuteFetchAction(ProductIds, TFetchMode.OnlyInstalled);
+  ExecuteFetchAction(ProductIds, TFetchMode.OnlyInstalled, TFetchExtraction.Extract);
 
   // Build
   if not NoBuild then

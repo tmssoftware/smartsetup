@@ -28,6 +28,7 @@ type
     FSkipExtraction: Boolean;
     FInternal: Boolean;
     FFileHash: string;
+    FBundleFileName: string;
   public
     constructor Create(const AProductId, AVersion, AServer: string; const ACanBeAnyVersion: boolean);
     function UniqueName: string;
@@ -40,6 +41,7 @@ type
     property SkipExtraction: Boolean read FSkipExtraction write FSkipExtraction;
     property Internal: Boolean read FInternal write FInternal;
     property DependenciesProcessed: Boolean read FDependenciesProcessed write FDependenciesProcessed;
+    property BundleFileName: string read FBundleFileName write FBundleFileName;
   end;
 
   TFetchItems = class(TObjectList<TFetchItem>)

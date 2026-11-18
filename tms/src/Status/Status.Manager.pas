@@ -39,6 +39,8 @@ type
     FFetched: Boolean;
     FProject: TProjectDefinition;
     FIDEStatusMap: TDictionary<TIDEName, TIDEStatus>;
+    FBundleFileName: string;
+    FInstallFolder: string;
     procedure SetProject(const Value: TProjectDefinition);
   public
     constructor Create;
@@ -52,6 +54,8 @@ type
     property Channel: string read FChannel write FChannel;
     property Server: string read FServer write FServer;
     property Pinned: boolean read FPinned write FPinned;
+    property InstallFolder: string read FInstallFolder write FInstallFolder;
+    property BundleFileName: string read FBundleFileName write FBundleFileName;
     property Fetched: Boolean read FFetched write FFetched;
     property Project: TProjectDefinition read FProject write SetProject;
   end;
@@ -114,6 +118,7 @@ begin
         Product := TProductStatus.Create;
         Products.Add(Product);
         Product.Id := Proj.Application.Id;
+        Product.InstallFolder := Proj.RootFolder;
       end;
 
       // override properties, use data from tmsbuild.yaml instead of fetch.info.txt
@@ -126,7 +131,7 @@ begin
 
 
 
-      Product.Project := Projs.All.Extract(Proj);
+      Product.Project := Projs.All.ExtractAt(0);
     end;
   finally
     Projs.Free;
@@ -151,6 +156,7 @@ begin
       Product.Id := Item.ProductId;
       Product.Name := Item.DisplayName;
       Product.Version := Item.Version;
+      Product.InstallFolder := Item.ProductPath;
       Product.InstalledVersion := GetInstalledVersion(Item.Version, Item.ProductId, TVCSManager.GetProductFolder(Item.ProductId));
       Product.Channel := Item.Channel;
       Product.Server := Item.Server;

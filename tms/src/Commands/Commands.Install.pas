@@ -11,7 +11,7 @@ implementation
 
 uses
   Commands.CommonOptions, URepositoryManager, Fetching.Manager, Fetching.Summary, Commands.Logging, Commands.GlobalConfig,
-  Actions.Build, Actions.Fetch;
+  Actions.Build, Actions.Fetch, Fetching.FetchExtraction;
 
 var
   ProductIds: TArray<string>;
@@ -25,7 +25,7 @@ begin
   AllStopWatch.Start;
 
   // fetch
-  ExecuteFetchAction(ProductIds, TFetchMode.DownloadNew);
+  ExecuteFetchAction(ProductIds, TFetchMode.DownloadNew, TFetchExtraction.Extract);
   // Build
   if not NoBuild then
     ExecuteBuildAction(ProductIds, False);

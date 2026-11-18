@@ -36,6 +36,7 @@ type
     function SameDiskTempSelfUpdateFolder: string;
     function SameDiskLockedFolder: string;
     function SelfUpdateInstallingLock: string;
+    function TempBackupFolder: string;
   end;
 
   TBuildFolders = class(TInterfacedObject, IBuildFolders)
@@ -78,6 +79,7 @@ type
     function SameDiskTempSelfUpdateFolder: string;
     function SameDiskLockedFolder: string;
     function SelfUpdateInstallingLock: string;
+    function TempBackupFolder: string;
   end;
 
 implementation
@@ -267,6 +269,11 @@ end;
 function TBuildFolders.CompileTempFolder: string;
 begin
   Result := TPath.Combine(TempBuildFolder, 'compile');
+end;
+
+function TBuildFolders.TempBackupFolder: string;
+begin
+  Result := TPath.Combine(TempFolder, '.backup');
 end;
 
 end.

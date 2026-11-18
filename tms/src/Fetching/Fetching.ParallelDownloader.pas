@@ -21,6 +21,7 @@ type
     Repo: TRepositoryManager;
     LastTime: TDateTime;
     Folders: IBuildFolders;
+    SkipExtraction: boolean;
     procedure SetupLogger(TotalSteps: Integer);
     procedure FetchOneProject(const FetchItem: TFetchItem);
     procedure DownloadAndUnzip(const FetchItem: TFetchItem);
@@ -29,7 +30,7 @@ type
     function FindFile(const FileNameWithoutExtension: string; const FetchItemFileHash: string): string;
 
   public
-    constructor Create(AItems: TFetchItems; ARepo: TRepositoryManager; AFolders: IBuildFolders);
+    constructor Create(AItems: TFetchItems; ARepo: TRepositoryManager; AFolders: IBuildFolders; ASkipExtraction: boolean);
     destructor Destroy; override;
     procedure Fetch;
 
@@ -50,13 +51,14 @@ uses
 
 { TParallelDownloader }
 
-constructor TParallelDownloader.Create(AItems: TFetchItems; ARepo: TRepositoryManager; AFolders: IBuildFolders);
+constructor TParallelDownloader.Create(AItems: TFetchItems; ARepo: TRepositoryManager; AFolders: IBuildFolders; ASkipExtraction: boolean);
 begin
   inherited Create;
   Items := AItems;
   Repo := ARepo;
   ParallelProjects := TParallelProjectInfoList.Create;
   Folders := AFolders;
+  SkipExtraction := ASkipExtraction;
 end;
 
 destructor TParallelDownloader.Destroy;
@@ -180,7 +182,7 @@ begin
   end;
 
   var ExistingFileName := FindFile(FetchItem.UniqueName, FetchItem.FileHash);
-  
+
   var DownloadFormat := TDownloadFormat.Unknown;
   if ExistingFileName = '' then
   begin
@@ -194,7 +196,9 @@ begin
     AtomicIncrement(ProcessedSteps, 100);
   end;
 
-  if not FetchItem.SkipExtraction then
+  FetchItem.BundleFileName := ExistingFileName;
+
+  if not FetchItem.SkipExtraction and not SkipExtraction then
   begin
     ExtractFile(Folders, ExistingFileName, DownloadFormat, FetchItem.ProductId, TLenientVersion.Create(FetchItem.Version, TVersionType.Semantic), FetchItem.Server);
   end;

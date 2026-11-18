@@ -3,11 +3,12 @@ unit Actions.Fetch;
 {$I ../../tmssetup.inc}
 
 interface
+uses Fetching.FetchExtraction;
 
 type
   TFetchMode = (OnlyInstalled, DownloadNew);
 
-procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
+procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode; const Extraction: TFetchExtraction; const DoRotateDownloads: boolean = true);
 
 implementation
 uses
@@ -23,6 +24,7 @@ uses
   UConfigDefinition,
   Fetching.ProductVersion,
   Commands.Termination,
+  Fetching.FetchItem,
   VCS.Manager, Downloads.VersionManager;
 
 function FindApiServer: TServerConfig;
@@ -52,7 +54,19 @@ begin
   Result := true;
 end;
 
-procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode);
+procedure DoOnExtraction(const Extraction: TFetchExtraction; const FetchItems: TFetchItems);
+begin
+  if not Extraction.HasOnExtract then exit;
+
+  for var Item in FetchItems do
+  begin
+    if not Item.Internal then Extraction.DoOnExtract(Item.ProductId, Item.BundleFileName, Item.Server, Item.Version);
+  end;
+
+end;
+
+
+procedure ExecuteFetchAction(AProductIdsAndVersions: TArray<string>; FetchMode: TFetchMode; const Extraction: TFetchExtraction; const DoRotateDownloads: boolean);
 begin
   EnableCtrlCTermination;
   if AllServersDisabled then raise Exception.Create('There are no servers enabled. To fetch a product, enable a server first.');
@@ -62,9 +76,9 @@ begin
   var Repo: TRepositoryManager := nil;
   if ApiServer.Enabled then Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(ApiServer.Name), FetchOptions, ApiServer.Url, ApiServer.Name, ApiServer.AllowInsecureConnections, true);
   try
-    var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled);
+    var VCSProducts := TVCSManager.Fetch(ProductVersions, FetchMode = TFetchMode.OnlyInstalled, Extraction);
     try
-      var Manager := TFetchManager.Create(Config.Folders, Repo, VCSProducts);
+      var Manager := TFetchManager.Create(Config.Folders, Repo, VCSProducts, Extraction.Skip);
       try
         try
           case FetchMode of
@@ -88,6 +102,7 @@ begin
               end;
             end;
           end;
+          DoOnExtraction(Extraction, Manager.FetchItems);
 
         finally
           LogFetchSummary(Manager.FetchItems);
@@ -102,7 +117,7 @@ begin
     Repo.Free;
   end;
 
-  RotateDownloads(Config.MaxVersionsPerProduct);
+  if DoRotateDownloads then RotateDownloads(Config.MaxVersionsPerProduct);
 
 end;
 
