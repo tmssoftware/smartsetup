@@ -191,6 +191,7 @@ type
     procedure RefreshServers;
 
     function IsRunning: Boolean;
+    function WaitForCommand: Boolean;
     procedure CancelRun;
 
     function SelectedProductIds: TArray<string>;
@@ -1352,6 +1353,11 @@ begin
   Result := FRunningCount > 0;
 end;
 
+function TGUIEnvironment.WaitForCommand: Boolean;
+begin
+  Result := (FRunningCount > 0) and not (FRunningCommand in [TTmsCommand.List, TTmsCommand.ListRemote]);
+end;
+
 function TGUIEnvironment.IsValidProduct(Product: TGUIProduct): Boolean;
 begin
   Result := FFetchedProducts.IndexOf(Product) >= 0;
@@ -1404,8 +1410,20 @@ begin
       RunSync<TTmsListRemoteRunner>(
         procedure(RemoteRunner: TTmsListRemoteRunner)
         begin
+          var ListRemoteError := '';
           RemoteRunner.Server := Server;
-          RemoteRunner.RunListRemote;
+          try
+            RemoteRunner.RunListRemote;
+          except
+            // Cancel/abort must keep its type so it is handled silently; only real list-remote errors fall back to the local list.
+            on ETmsRunnerCanceled do raise;
+            on EAbort do raise;
+            on ex: Exception do
+            begin
+              RemoteRunner.Products.Clear;
+              ListRemoteError := ex.Message;
+            end;
+          end;
 
           // Build a new list here; FFetchedProducts itself is only replaced on the main thread.
           // Clearing it from this thread freed the TGUIProduct objects the list view still pointed at.
@@ -1433,12 +1451,14 @@ begin
             raise;
           end;
 
-          // fire event to refresh producs. Synchronize runs it directly when we already are in the main thread.
+          // fire event to refresh products. Synchronize runs it directly when we already are in the main thread.
           TThread.Synchronize(nil,
             procedure
             begin
               ReplaceFetchedProducts(NewProducts, Filter);
             end);
+          if ListRemoteError <> '' then raise Exception.Create(ListRemoteError);
+
         end)
     end)
 end;

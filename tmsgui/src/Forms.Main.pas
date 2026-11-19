@@ -129,6 +129,7 @@ type
     OneProdInstalledPlats: TRichEdit;
     OneProdInstalledCaption: TLabel;
     BtnInfoSwitch: TButton;
+    lbServerText: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -195,6 +196,8 @@ type
     procedure BtnInfoSwitchClick(Sender: TObject);
     procedure acRestoreExecute(Sender: TObject);
     procedure acRestoreUpdate(Sender: TObject);
+    procedure lbServerTextClick(Sender: TObject);
+    procedure lbServerClick(Sender: TObject);
   private
     GUI: TGUIEnvironment;
     Relaunch: Boolean;
@@ -244,6 +247,7 @@ type
     procedure FillMultipleProductDetails;
     procedure PopupOptions(const Control: TControl; const Menu: TPopupMenu);
     function GetListItemIds: TDictionary<string, TListItem>;
+    procedure ShowConfigForm(const TabName: string);
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -491,7 +495,7 @@ begin
   acRestore.Enabled := not GUI.IsRunning;
 end;
 
-procedure TMainForm.acSettingsExecute(Sender: TObject);
+procedure TMainForm.ShowConfigForm(const TabName: string);
 begin
   var ConfigInfo := TConfigInfo.Create;
   try
@@ -511,6 +515,12 @@ begin
   finally
     ConfigInfo.Free;
   end;
+
+end;
+
+procedure TMainForm.acSettingsExecute(Sender: TObject);
+begin
+  ShowConfigForm('');
 end;
 
 procedure TMainForm.acSettingsUpdate(Sender: TObject);
@@ -863,7 +873,7 @@ procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   // Closing cancels the running job, which kills tms.exe wherever it is, so ask first.
   // Not when relaunching after a self-update: that job is the one closing us.
-  if Relaunch or not GUI.IsRunning then exit;
+  if Relaunch or not GUI.WaitForCommand then exit;
   CanClose := TDialogForm.MessageDlg('An operation is still running. Closing will cancel it.' + sLineBreak + sLineBreak +
     'Close anyway?', TMsgDlgType.mtConfirmation, [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], 0, TMsgDlgBtn.mbNo) = mrYes;
 end;
@@ -917,13 +927,9 @@ begin
     var TMS, Community: Boolean;
     if TStartForm.Execute(TMS, Community) then
     begin
-      // Initialize the folders only if one of servers were chosen
-      if TMS or Community then
-      begin
-        GUI.ExecuteConfigure(True);
-        GUI.EnableServerConfigItem('tms', TMS);
-        GUI.EnableServerConfigItem('community', Community);
-      end;
+      GUI.ExecuteConfigure(True);
+      GUI.EnableServerConfigItem('tms', TMS);
+      GUI.EnableServerConfigItem('community', Community);
     end;
   end;
 
@@ -1053,6 +1059,16 @@ begin
     lblErrorCaption.Font.Color := TColors.Black;
     lblErrorCaption.StyleElements := lblErrorCaption.StyleElements + [TStyleElement.SeFont];
   end;
+end;
+
+procedure TMainForm.lbServerClick(Sender: TObject);
+begin
+  ShowConfigForm('servers');
+end;
+
+procedure TMainForm.lbServerTextClick(Sender: TObject);
+begin
+  ShowConfigForm('servers');
 end;
 
 procedure TMainForm.LogItemGeneratedEvent(const Item: TGUILogItem);
@@ -1399,6 +1415,12 @@ begin
   end;
   cbServer.Visible := cbServer.Items.Count > 2;
   lbServer.Visible := cbServer.Visible;
+  lbServerText.Visible := not cbServer.Visible;
+  case cbServer.Items.Count of
+    0..1: lbServerText.Caption := 'Server: None (offline)';
+    2: lbServerText.Caption := 'Server: ' + cbServer.Items[1];
+    else lbServerText.Caption := '';
+  end;
 end;
 
 procedure TMainForm.ShowInfo;

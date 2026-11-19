@@ -195,6 +195,12 @@ begin
       Zip.Open(TempFileName, TZipMode.zmWrite);
       var Products := GetProducts;
       try
+        // Same order as Status.Manager, so the snapshot is always the same for the same products.
+        Products.Sort(TComparer<TProductStatus>.Construct(
+          function(const P1, P2: TProductStatus): Integer
+          begin
+            Result := CompareStr(P1.Id, P2.Id);
+          end));
         Zip.Add(GetSnapshot(Products), 'tms.snapshot.yaml');
         SaveProducts(Products, Zip);
       finally

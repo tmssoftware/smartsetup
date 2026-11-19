@@ -70,6 +70,7 @@ begin
     if (Item.Status in [TFetchStatus.Downloaded, TFetchStatus.SkippedUpToDate, TFetchStatus.SkippedManualVersionExists]) and not Item.DependenciesProcessed then
     begin
       Item.DependenciesProcessed := True;
+      if Item.ProductId = TRepositoryManager.TMSSetupProductId then continue; //no need to look for deps in tms.smartsetup itself.
       var Dependencies: TArray<string>;
       if Item.SkipExtraction or FSkipExtraction
         then Dependencies := GetDependenciesFromBundle(Item.BundleFileName)

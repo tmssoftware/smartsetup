@@ -238,7 +238,11 @@ begin
     AddPredefinedData(ProductFolder, Product.Product);
 
     var ProductLenientVersion := TLenientVersion.Create(ProductVersion, TVersionType.FreeForm);
-    Extraction.DoOnExtract(Product.Product.ProductId, CreateBundle(ProductFolderRoot, Extraction.BundlesOnly, Product.Product.ProductId, ProductLenientVersion), Product.Product.Server, ProductLenientVersion);
+    if Extraction.HasOnExtract then
+    begin
+      var BundleFileName := CreateBundle(ProductFolderRoot, Extraction.BundlesOnly, Product.Product.ProductId, ProductLenientVersion);
+      Extraction.DoOnExtract(Product.Product.ProductId, BundleFileName, Product.Product.Server, ProductLenientVersion);
+    end;
 
     Logger.Info('Updated ' + Product.ProductIdAndVersion + ' from ' + Product.Product.ProtocolString);
   except

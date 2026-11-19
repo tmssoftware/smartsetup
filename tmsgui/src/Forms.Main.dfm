@@ -64,13 +64,27 @@ object MainForm: TMainForm
             963
             33)
           object lbServer: TLabel
-            Left = 829
+            Left = 819
             Top = 8
             Width = 35
             Height = 15
+            Cursor = crHandPoint
             Alignment = taRightJustify
             Anchors = [akTop, akRight]
             Caption = 'Server:'
+            OnClick = lbServerClick
+            ExplicitLeft = 829
+          end
+          object lbServerText: TLabel
+            Left = 948
+            Top = 8
+            Width = 3
+            Height = 15
+            Cursor = crHandPoint
+            Alignment = taRightJustify
+            Anchors = [akTop, akRight]
+            Visible = False
+            OnClick = lbServerTextClick
           end
           object edSearch: TEdit
             Left = 5
@@ -82,7 +96,7 @@ object MainForm: TMainForm
             OnChange = edSearchChange
           end
           object cbServer: TComboBox
-            Left = 870
+            Left = 860
             Top = 5
             Width = 91
             Height = 23

@@ -73,11 +73,11 @@ end;
 
 procedure TStartForm.UpdateButton;
 begin
-  var Valid := cbTMS.Checked or cbCommunity.Checked;
-  if Valid then
+  var Online := cbTMS.Checked or cbCommunity.Checked;
+  if Online then
     btOk.Caption := 'Ok'
   else
-    btOk.Caption := 'Cancel';
+    btOk.Caption := 'Offline';
 end;
 
 end.
