@@ -23,6 +23,10 @@ type
   end;
 
   TCredentialsManager = class
+  public const
+    EnvEmail = 'SMARTSETUP_EMAIL';
+    EnvCode = 'SMARTSETUP_CODE';
+    EnvServer = 'tms'; //Environment variables only apply to this server.
   private const
     IniEmail = 'email';
     IniCode = 'code';
@@ -39,6 +43,8 @@ type
     function AuthCredName(Profile: string): string;
     function TokensCredName(Profile: string): string;
     function CredName(Profile, Name: string): string;
+    procedure LoadEnvironmentCredentials(Credentials: TCredentials);
+    procedure SaveEnvironmentCredentials(Credentials: TCredentials; const OnlyToken: boolean);
   protected
     function RetrieveAccessToken(const AuthUrl: string): string;
   public
@@ -49,6 +55,10 @@ type
 
     procedure SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
     function ReadCredentials: TCredentials;
+
+    // True if credentials for this server come from SMARTSETUP_EMAIL / SMARTSETUP_CODE.
+    // In that case the Credential Manager (or credentials file) is completely ignored.
+    function UsesEnvironmentCredentials: boolean;
   public
     class function GetAccessToken(const CredentialsFile: string; Options: TFetchOptions; const AuthUrl, Server: string): string;
   end;
@@ -62,6 +72,13 @@ uses
 
 const
   ZstdPrefix = 'zstd:';
+
+var
+  // Access token cache for credentials coming from environment variables.
+  // We can't persist it anywhere (that's the point of using env vars), so it only lives for this process.
+  EnvTokenLock: TObject;
+  EnvAccessToken: string;
+  EnvTokenExpiration: TDateTime;
 
 function CompressToken(const Token: string): TBytes;
 begin
@@ -156,7 +173,12 @@ begin
       Exit(Credentials.AccessToken);
 
     if (Credentials.Email = '') or (Credentials.Code = '') then
+    begin
+      if UsesEnvironmentCredentials then
+        raise Exception.Create('Credentials for the ' + FServerName + ' server are being read from environment variables, but they are incomplete. Both ' + EnvEmail + ' and ' + EnvCode + ' must be set.');
+
       raise Exception.Create('Credentials not provided. Use "tms credentials" to access the ' + FServerName + ' server, or disable it with "tms server-enable ' + FServerName + ' false"');
+    end;
 
     // Retrieve access token using credentials
     if Credentials.AccessToken <> '' then
@@ -270,10 +292,52 @@ begin
   end;
 end;
 
+function TCredentialsManager.UsesEnvironmentCredentials: boolean;
+begin
+  if not SameText(FServerName, EnvServer) then exit(false);
+  //If any of them is set, we use the environment. A missing one is reported as an error, instead of silently mixing sources.
+  Result := (Trim(GetEnvironmentVariable(EnvEmail)) <> '') or (Trim(GetEnvironmentVariable(EnvCode)) <> '');
+end;
+
+procedure TCredentialsManager.LoadEnvironmentCredentials(Credentials: TCredentials);
+begin
+  Logger.Trace('Reading credentials for server "' + FServerName + '" from environment variables ' + EnvEmail + ' and ' + EnvCode + '. Stored credentials are ignored.');
+  //Set Email and Code first: their setters clear the access token.
+  Credentials.Email := Trim(GetEnvironmentVariable(EnvEmail));
+  Credentials.Code := Trim(GetEnvironmentVariable(EnvCode));
+
+  TMonitor.Enter(EnvTokenLock);
+  try
+    Credentials.AccessToken := EnvAccessToken;
+    Credentials.Expiration := EnvTokenExpiration;
+  finally
+    TMonitor.Exit(EnvTokenLock);
+  end;
+end;
+
+procedure TCredentialsManager.SaveEnvironmentCredentials(Credentials: TCredentials; const OnlyToken: boolean);
+begin
+  if not OnlyToken then
+    raise Exception.Create('Cannot save credentials for server "' + FServerName + '" because they are being read from environment variables ' + EnvEmail + ' and ' + EnvCode + '.');
+
+  TMonitor.Enter(EnvTokenLock);
+  try
+    EnvAccessToken := Credentials.AccessToken;
+    EnvTokenExpiration := Credentials.Expiration;
+  finally
+    TMonitor.Exit(EnvTokenLock);
+  end;
+end;
+
 function TCredentialsManager.ReadCredentials: TCredentials;
 begin
   Result := TCredentials.Create;
   try
+    if UsesEnvironmentCredentials then
+    begin
+      LoadEnvironmentCredentials(Result);
+      exit;
+    end;
     LoadCredentials(Result);
   except
     Result.Free;
@@ -284,26 +348,38 @@ end;
 procedure TCredentialsManager.DoSaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
 begin
 {$IFDEF MSWINDOWS}
-  if not OnlyToken then
-  begin
-    if String.IsNullOrWhiteSpace(Credentials.Email) or String.IsNullOrWhiteSpace(Credentials.Code) then
+  try
+    if not OnlyToken then
     begin
-      var CmdResult := CredDeleteGenericCredential(AuthCredName(FDefaultProfile), false);
-      if CmdResult <> '' then Logger.Trace(CmdResult);
+      if String.IsNullOrWhiteSpace(Credentials.Email) or String.IsNullOrWhiteSpace(Credentials.Code) then
+      begin
+        var CmdResult := CredDeleteGenericCredential(AuthCredName(FDefaultProfile), false);
+        if CmdResult <> '' then Logger.Trace(CmdResult);
 
-      CmdResult := CredDeleteGenericCredential(TokensCredName(FDefaultProfile), false);
-      if CmdResult <> '' then Logger.Trace(CmdResult);
-      exit;
+        CmdResult := CredDeleteGenericCredential(TokensCredName(FDefaultProfile), false);
+        if CmdResult <> '' then Logger.Trace(CmdResult);
+        exit;
+      end;
+
+      CredWriteGenericCredentials(AuthCredName(FDefaultProfile), Credentials.Email, Credentials.Code);
     end;
 
-    CredWriteGenericCredentials(AuthCredName(FDefaultProfile), Credentials.Email, Credentials.Code);
+    var Expiration := '';
+    if YearOf(Credentials.Expiration) > 1900 then
+        Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
+
+    CredWriteGenericCredentials(TokensCredName(FDefaultProfile), Expiration, CompressToken(Credentials.AccessToken));
+  except
+    on E: ECredentialsError do
+    begin
+      if E.ErrorCode <> CRED_ERROR_NO_SUCH_LOGON_SESSION then raise;
+      raise Exception.Create(E.Message + sLineBreak
+        + 'The Windows Credential Manager is not available in this session. This usually happens when running '
+        + 'from SSH, a remote PowerShell session, a service, a CI agent or a scheduled task.' + sLineBreak
+        + 'In this case, provide the credentials for the "' + EnvServer + '" server in the environment variables '
+        + EnvEmail + ' and ' + EnvCode + ' instead of using "tms credentials".');
+    end;
   end;
-
-  var Expiration := '';
-  if YearOf(Credentials.Expiration) > 1900 then
-      Expiration := DateToISO8601(TTimeZone.Local.ToUniversalTime(Credentials.Expiration));
-
-  CredWriteGenericCredentials(TokensCredName(FDefaultProfile), Expiration, CompressToken(Credentials.AccessToken));
 {$ELSE}
   var IniFile := TMemIniFile.Create(FCredentialsFile);
   try
@@ -327,6 +403,12 @@ end;
 
 procedure TCredentialsManager.SaveCredentials(Credentials: TCredentials; const OnlyToken: boolean);
 begin
+  if UsesEnvironmentCredentials then
+  begin
+    SaveEnvironmentCredentials(Credentials, OnlyToken);
+    exit;
+  end;
+
   var Protector := LockCredentials;
   try
     DoSaveCredentials(Credentials, OnlyToken);
@@ -376,4 +458,8 @@ begin
   end;
 end;
 
+initialization
+  EnvTokenLock := TObject.Create;
+finalization
+  EnvTokenLock.Free;
 end.

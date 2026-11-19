@@ -187,6 +187,12 @@ Sometimes, you might want to have some configuration options (like paths) that v
 
 See [below](#adding-extra-settings-to-an-existing-configuration-file) for more information.
 
+### Credentials
+
+Build servers often run as a service, a CI agent, or over SSH. In those sessions the Windows Credential Manager may not be available, so `tms credentials` can't store the credentials. Instead, store the e-mail and registration code in your CI system's secret store and expose them to the build as the environment variables `SMARTSETUP_EMAIL` and `SMARTSETUP_CODE`. Smart Setup uses them directly, without saving anything to disk.
+
+See [Environment Variables in tms credentials](xref:SmartSetup.Command.Credentials#environment-variables) for the details.
+
 ## Snapshots
 
 In order to retrieve the exact same versions of all the components used, you need to save a [snapshot](xref:SmartSetup.Versioning#snapshots) of all the components and versions you are developing with at the root. You can create this file manually or automatically, and you should have it in version control so it can be checked out in the build server.

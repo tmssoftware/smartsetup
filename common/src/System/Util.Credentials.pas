@@ -15,6 +15,17 @@ type
     constructor Create(const aName, aUser, aPassword: string);
   end;
 
+  ECredentialsError = class(Exception)
+  private
+    FErrorCode: Cardinal;
+  public
+    constructor CreateCode(const Msg: string; const AErrorCode: Cardinal);
+    property ErrorCode: Cardinal read FErrorCode;
+  end;
+
+const
+  CRED_ERROR_NO_SUCH_LOGON_SESSION = 1312; //ERROR_NO_SUCH_LOGON_SESSION: session has no credential set (network logon, service, etc.)
+
 function CredReadGenericCredentials(const Target: UnicodeString; out Username, Password: UnicodeString; const ThrowExceptions: boolean = true): string; overload;
 function CredReadGenericCredentials(const Target: UnicodeString; out Username: UnicodeString; out Password: TBytes; const ThrowExceptions: boolean = true): string; overload;
 procedure CredWriteGenericCredentials(const Target: UnicodeString; Username, Password: UnicodeString); overload;
@@ -100,7 +111,7 @@ begin
   if not CredWriteW(@Credential, 0) then
   begin
     le := GetLastError;
-    raise Exception.Create('Could not write "'+ Target + '" in generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le));
+    raise ECredentialsError.CreateCode('Could not write "'+ Target + '" in generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le), le);
   end;
 end;
 
@@ -119,7 +130,7 @@ begin
   if not CredWriteW(@Credential, 0) then
   begin
     le := GetLastError;
-    raise Exception.Create('Could not write "'+ Target + '" in generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le));
+    raise ECredentialsError.CreateCode('Could not write "'+ Target + '" in generic credentials: '+SysErrorMessage(le)+' '+IntToStr(le), le);
   end;
 end;
 
@@ -183,6 +194,14 @@ begin
   Name := aName;
   User := aUser;
   Password := aPassword;
+end;
+
+{ ECredentialsError }
+
+constructor ECredentialsError.CreateCode(const Msg: string; const AErrorCode: Cardinal);
+begin
+  inherited Create(Msg);
+  FErrorCode := AErrorCode;
 end;
 {$ENDIF}
 end.

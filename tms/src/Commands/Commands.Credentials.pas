@@ -89,6 +89,11 @@ procedure DoServerCredentials(const Data: TJSONObject; Folders: IBuildFolders; c
 begin
   var Manager := CreateCredentialsManager(Folders.CredentialsFile(ServerName), FetchOptions, ServerName);
   try
+    if Manager.UsesEnvironmentCredentials then
+      raise Exception.Create('Credentials for server "' + ServerName + '" are being read from the environment variables '
+        + TCredentialsManager.EnvEmail + ' and ' + TCredentialsManager.EnvCode + ', and stored credentials are ignored. '
+        + 'Unset those variables to view or modify the stored credentials.');
+
     var Credentials := Manager.ReadCredentials;
     try
       if Print then

@@ -157,6 +157,8 @@ object MainForm: TMainForm
               Align = alClient
               ActiveCard = CardNoProducts
               Caption = 'CardPanelDetails'
+              Color = clWindow
+              ParentBackground = False
               TabOrder = 0
               object CardNoProducts: TCard
                 Left = 1
@@ -165,6 +167,8 @@ object MainForm: TMainForm
                 Height = 253
                 Caption = 'No Products'
                 CardIndex = 0
+                Color = clWindow
+                ParentBackground = False
                 TabOrder = 2
                 object Label1: TLabel
                   AlignWithMargins = True
@@ -232,6 +236,8 @@ object MainForm: TMainForm
                 Height = 253
                 Caption = 'One Product'
                 CardIndex = 1
+                Color = clWindow
+                ParentBackground = False
                 TabOrder = 0
                 object OneProdProductName: TLabel
                   AlignWithMargins = True
@@ -260,6 +266,7 @@ object MainForm: TMainForm
                   Height = 37
                   Align = alBottom
                   BevelOuter = bvNone
+                  Color = clWindow
                   ControlCollection = <
                     item
                       Control = btnInfoInstallOrUpdate
@@ -271,6 +278,7 @@ object MainForm: TMainForm
                       Control = btnInfoUninstall
                     end>
                   Orientation = spoHorizontal
+                  ParentBackground = False
                   TabOrder = 0
                   object btnInfoInstallOrUpdate: TButton
                     AlignWithMargins = True
@@ -309,6 +317,8 @@ object MainForm: TMainForm
                   ActiveCard = CardOneProductInfo
                   BevelOuter = bvNone
                   Caption = 'CardsPanelInstalled'
+                  Color = clWindow
+                  ParentBackground = False
                   TabOrder = 1
                   object CardOneProductInfo: TCard
                     Left = 0
@@ -325,6 +335,8 @@ object MainForm: TMainForm
                       Height = 186
                       Align = alClient
                       BevelOuter = bvNone
+                      Color = clWindow
+                      ParentBackground = False
                       TabOrder = 0
                       OnResize = WrappedLabelsContainerResize
                       object OneProdDescription: TLabel
@@ -474,6 +486,8 @@ object MainForm: TMainForm
                 Height = 253
                 Caption = 'Multiple Products'
                 CardIndex = 2
+                Color = clWindow
+                ParentBackground = False
                 TabOrder = 1
                 object MulProdProductNames: TLabel
                   AlignWithMargins = True
@@ -517,6 +531,7 @@ object MainForm: TMainForm
                   Height = 37
                   Align = alBottom
                   BevelOuter = bvNone
+                  Color = clWindow
                   ControlCollection = <
                     item
                       Control = Button1
@@ -525,6 +540,7 @@ object MainForm: TMainForm
                       Control = Button3
                     end>
                   Orientation = spoHorizontal
+                  ParentBackground = False
                   TabOrder = 0
                   object Button1: TButton
                     AlignWithMargins = True
@@ -553,6 +569,8 @@ object MainForm: TMainForm
                 Height = 253
                 Caption = 'Error'
                 CardIndex = 3
+                Color = clWindow
+                ParentBackground = False
                 TabOrder = 3
                 object DetailsError: TLabel
                   AlignWithMargins = True
