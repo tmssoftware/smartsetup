@@ -6,5 +6,7 @@ assert self.Name = StartForm
 set cbTMS.Checked False
 #No server enabled, exit
 click btOk
-wait 1000
-assert self.Name <> MainForm
+wait self.Name = MainForm
+assert lbServer.Visible = false
+assert lbServerText.Visible = true
+assert lbServerText.Caption ~ offline

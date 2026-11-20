@@ -6,3 +6,8 @@ wait: 1000 milliseconds
 assert: "self.Name = StartForm" is true
 set: "StartForm.cbTMS.Checked" to "False"
 click: "StartForm.btOk"
+wait: condition self.Name = MainForm
+assert: "lbServer.Visible = false" is true
+assert: "lbServerText.Visible = true" is true
+assert: "lbServerText.Caption ~ offline" is true
+Completed successfully

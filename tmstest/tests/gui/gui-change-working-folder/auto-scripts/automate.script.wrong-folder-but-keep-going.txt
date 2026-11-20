@@ -6,9 +6,9 @@ assert MemoMessage.Text ~  isn't empty or recognized as a valid smartsetup folde
 click btnCancel
 click btnYes
 wait self.Name = StartForm
-set cbTMS.Checked False
-#No server enabled, exit
-click btOk
+#exit
+click btCancel
 wait self.Name = MainForm
+log self.GetWorkingFolder
 assert self.GetWorkingFolder ~ gui-change-working-folder
 assert self.GetWorkingFolder !~ gui-change-working-folder\

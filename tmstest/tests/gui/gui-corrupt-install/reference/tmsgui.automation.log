@@ -1,0 +1,4 @@
+Starting Automation
+wait: condition self.Name = DialogForm
+assert: "MemoMessage.Text ~  This smartsetup update didn't complete correctly" is true
+click: "DialogForm.btnOk"

@@ -14,6 +14,7 @@ type
     cbCommunity: TCheckBox;
     lbCommunity: TLabel;
     Label4: TLabel;
+    btCancel: TButton;
     btOk: TButton;
     procedure lbTMSClick(Sender: TObject);
     procedure lbCommunityClick(Sender: TObject);

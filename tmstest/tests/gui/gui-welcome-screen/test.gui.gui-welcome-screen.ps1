@@ -50,6 +50,8 @@ Test-tmsgui wrong-folder
 
 Test-tmsgui wrong-folder-but-keep-going
 
+Remove-Item -Path "./tms.config.yaml" -Force
+
 Test-tmsgui wrong-folder-but-really-keep-going
 
 Pop-Location

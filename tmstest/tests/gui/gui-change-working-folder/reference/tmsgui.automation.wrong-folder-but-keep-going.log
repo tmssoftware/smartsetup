@@ -7,9 +7,9 @@ assert: "MemoMessage.Text ~  isn't empty or recognized as a valid smartsetup fol
 click: cannot click button "DialogForm.btnCancel" because it is not visible
 click: "DialogForm.btnYes"
 wait: condition self.Name = StartForm
-set: "StartForm.cbTMS.Checked" to "False"
-click: "StartForm.btOk"
+click: "StartForm.btCancel"
 wait: condition self.Name = MainForm
+log: property "MainForm.self.GetWorkingFolder" has the value 'E:\tms\smartsetup\tmstest\tmp-run\gui-change-working-folder'
 assert: "self.GetWorkingFolder ~ gui-change-working-folder" is true
 assert: "self.GetWorkingFolder !~ gui-change-working-folder\" is true
 Completed successfully

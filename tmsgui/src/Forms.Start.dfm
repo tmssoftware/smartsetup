@@ -112,15 +112,26 @@ object StartForm: TStartForm
     TabOrder = 1
     OnClick = cbTMSClick
   end
+  object btCancel: TButton
+    Left = 308
+    Top = 236
+    Width = 75
+    Height = 25
+    Anchors = [akRight, akBottom]
+    Cancel = True
+    Caption = 'Cancel'
+    ModalResult = 2
+    TabOrder = 2
+  end
   object btOk: TButton
-    Left = 302
-    Top = 232
+    Left = 227
+    Top = 236
     Width = 75
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Ok'
     Default = True
-    TabOrder = 2
+    TabOrder = 3
     OnClick = btOkClick
   end
 end
