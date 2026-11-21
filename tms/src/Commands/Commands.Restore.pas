@@ -149,14 +149,16 @@ begin
         //We could use Config.IsIncluded here but we would get no message that the component was excluded because it was in excluded components in the config file
         //If we add everything, we will still not include the excluded components in the file, but get a less confusing message.
         if Ignore(Product.Id, IncludeMasks, ExcludeMasks) then continue;
-        if (Product.Server = '') and (not IncludeLocalProducts) then continue;
 
+        var BackupIndex: integer;
+        var InBackup := Backup.ProductInBackupList(Product.Id, Product.Version, BackupIndex);
+        //Local products can't be downloaded, but if they are in the backup file we can restore them.
+        if (Product.Server = '') and (not InBackup) and (not IncludeLocalProducts) then continue;
 
         var Version := '';
         if not LatestVersions then Version := ':' + String(Product.Version);
 
-        var BackupIndex: integer;
-        if Backup.ProductInBackupList(Product.Id, Product.Version, BackupIndex)
+        if InBackup
           then ProductsToGetFromBackup.Add(TBackupSingleFile.Create(BackupIndex, Product.Id, Product.Version, Product.Server))
           else ProductsToFetch.Add(Product.Id + Version);
 
@@ -242,7 +244,7 @@ begin
     end);
   option.HasValue := False;
 
-  option := cmd.RegisterOption<boolean>('include-local', '', 'if you specify this parameter, restore will try to also install local projects in the snapshot, and probably fail.',
+  option := cmd.RegisterOption<boolean>('include-local', '', 'if you specify this parameter, restore will try to also install local projects in the snapshot, and probably fail. Local projects that are inside the backup file are always restored, even if you don''t specify this parameter.',
     procedure(const Value : boolean)
     begin
       OptionLocal := true;

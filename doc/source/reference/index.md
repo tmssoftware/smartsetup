@@ -28,7 +28,8 @@ If you are new to TMS Smart Setup, these are the commands you will use most ofte
 - [build](xref:SmartSetup.Command.Build): Builds, registers, and unregisters all locally available products.
 - [pin](xref:SmartSetup.Command.Pin): Keeps the specified products at their current installed versions.
 - [unpin](xref:SmartSetup.Command.Unpin): Removes the version pin from the specified products.
-- [restore](xref:SmartSetup.Command.Restore): Restores a set of products from a snapshot file.
+- [backup](xref:SmartSetup.Command.Backup): Saves products into a backup file that can be restored with `tms restore`.
+- [restore](xref:SmartSetup.Command.Restore): Restores a set of products from a snapshot file or a backup file.
 - [uncompress](xref:SmartSetup.Command.Uncompress): Extracts a Smart Setup bundle into a local folder.
 
 ### Informative
@@ -37,6 +38,7 @@ If you are new to TMS Smart Setup, these are the commands you will use most ofte
 - [list-remote](xref:SmartSetup.Command.ListRemote): Lists products available for installation in the configured remote repositories.
 - [versions-remote](xref:SmartSetup.Command.VersionsRemote): Lists all installable versions of a specific product from the configured remote repositories.
 - [info](xref:SmartSetup.Command.Info): Displays information about the current folder and the tms tool itself.
+- [backup-info](xref:SmartSetup.Command.BackupInfo): Shows the products and versions inside a backup file created with `tms backup`.
 - [snapshot](xref:SmartSetup.Command.Snapshot): Saves the list of currently installed products and their versions to a file.
 - [server-list](xref:SmartSetup.Command.ServerList): Lists the servers configured in Smart Setup.
 - [sbom-generate](xref:SmartSetup.Command.SbomGenerate): Generates a CycloneDX SBOM file for the specified products.

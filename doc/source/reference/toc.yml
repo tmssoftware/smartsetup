@@ -19,6 +19,8 @@ items:
         href: tms-pin.md
       - name: tms unpin
         href: tms-unpin.md
+      - name: tms backup
+        href: tms-backup.md
       - name: tms restore
         href: tms-restore.md
       - name: tms uncompress
@@ -33,6 +35,8 @@ items:
         href: tms-versions-remote.md
       - name: tms info
         href: tms-info.md
+      - name: tms backup-info
+        href: tms-backup-info.md
       - name: tms snapshot
         href: tms-snapshot.md
       - name: tms server-list
