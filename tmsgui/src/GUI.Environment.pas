@@ -224,6 +224,9 @@ type
     // Reads from the server the products you can download from it, and calls OnProduct for each.
     // If reading fails, the error goes to the log and it returns false.
     function GetRemoteProducts(const Server: string; const OnProduct: TProc<TProductInfo>): Boolean;
+    // Reads the products in a backup file (.snapshot.zip or .snapshot.yaml).
+    // If reading fails, the error goes to the log and it returns false.
+    function GetBackupProducts(const BackupFile: string; out Products: TArray<TBackupProductInfo>): Boolean;
     // The product with that id in the full list (not only the products shown after the search), or nil.
     function FindProduct(const ProductId: string): TGUIProduct;
     procedure RefreshProductList;
@@ -1309,6 +1312,22 @@ begin
         OnProduct(Product);
       Ok := True;
     end);
+  Result := Ok;
+end;
+
+function TGUIEnvironment.GetBackupProducts(const BackupFile: string; out Products: TArray<TBackupProductInfo>): Boolean;
+begin
+  // RunSync logs the exceptions and doesn't raise them, so we know it worked only if we got to the end.
+  var Ok := False;
+  var Collected: TArray<TBackupProductInfo> := nil;
+  RunSync<TTmsBackupInfoRunner>(
+    procedure(Runner: TTmsBackupInfoRunner)
+    begin
+      Runner.RunBackupInfo(BackupFile);
+      Collected := Copy(Runner.Products);
+      Ok := True;
+    end);
+  Products := Collected;
   Result := Ok;
 end;
 

@@ -485,12 +485,36 @@ end;
 
 procedure TMainForm.acRestoreExecute(Sender: TObject);
 begin
-  var SelectedIds := GUI.SelectedProductIds;
   var Options: TRestoreOptions;
-  if not TRestoreForm.Execute(Length(SelectedIds), Options) then exit;
+  if not TRestoreForm.Execute(
+    function(const FileName: string; out Products: TArray<TRestoreProduct>): Boolean
+    begin
+      var Infos: TArray<TBackupProductInfo>;
+      Result := GUI.GetBackupProducts(FileName, Infos);
+      Products := [];
+      if not Result then exit;
+      for var Info in Infos do
+      begin
+        var Product: TRestoreProduct;
+        Product.Id := Info.Id;
+        Product.Name := '';
+        Product.Version := Info.Version;
+        Product.InstalledVersion := '';
+        Product.Server := Info.Server;
+        Product.InFile := Info.InFile;
+        var Known := GUI.FindProduct(Info.Id);
+        if Known <> nil then
+        begin
+          Product.Name := Known.DisplayName;
+          if Known.Status <> TProductStatus.NotInstalled then
+            Product.InstalledVersion := Known.LocalVersion.ToString;
+        end;
+        Products := Products + [Product];
+      end;
+    end,
+    Options) then exit;
 
-  if not Options.OnlySelected then SelectedIds := nil;
-  GUI.ExecuteRestore(ProductProgressEvent, Options.FileName, Options.SkipRegister, SelectedIds);
+  GUI.ExecuteRestore(ProductProgressEvent, Options.FileName, Options.SkipRegister, Options.ProductIds);
 end;
 
 procedure TMainForm.acRestoreUpdate(Sender: TObject);
