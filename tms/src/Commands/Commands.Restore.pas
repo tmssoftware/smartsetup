@@ -10,22 +10,9 @@ uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, Status.Manager, Deget.CoreTypes,
   Deget.Version, Snapshot.Reader, Actions.Fetch, Actions.Build, Commands.Pin, Masks,
   UGenericDecompressor, System.Zip, Downloads.FileNameManager, IOUtils, UMultiLogger,
-  Fetching.ParallelDownloader, UTmsBuildSystemUtils, Fetching.FetchExtraction;
+  Fetching.ParallelDownloader, UTmsBuildSystemUtils, Fetching.FetchExtraction, Snapshot.Backup;
 
 type
-  TBackupData = class
-  public
-    HasSnapshot: boolean;
-    ZipFile: string;
-    Products: TObjectList<TProductStatus>;
-    NameToIndexMap: TDictionary<string, integer>;
-    NameToProductMap: TDictionary<string, TProductStatus>;
-    constructor Create;
-    destructor Destroy; override;
-
-    function ProductInBackupList(const ProductId: string; const ProductVersion: TLenientVersion; out BackupIndex: integer): boolean;
-  end;
-
   TBackupSingleFile = record
   public
     Index: integer;
@@ -126,102 +113,6 @@ begin
 
 end;
 
-procedure LoadSnapshotFromZip(const zip: TZipFile; const idx: integer; const Products: TList<TProductStatus>; const DisplayFileName: string);
-begin
-  var SnapshotBytes: TBytes;
-  zip.Read(idx, SnapshotBytes);
-  if SnapshotBytes <> nil then
-  begin
-    var SnapshotStream := TMemoryStream.Create;
-    try
-      SnapshotStream.WriteBuffer(SnapshotBytes[0], Length(SnapshotBytes));
-      SnapshotStream.Position := 0;
-      var SnapshotStreamReader := TStreamReader.Create(SnapshotStream, TEncoding.UTF8);
-      try
-        LoadSnapshot(SnapshotStreamReader, DisplayFileName, Products);
-      finally
-        SnapshotStreamReader.Free;
-      end;
-    finally
-      SnapshotStream.Free;
-    end;
-  end;
-
-end;
-
-procedure LoadProductsFromZip(const zip: TZipFile; const Backup: TBackupData);
-begin
-  for var i := 0 to zip.FileCount - 1 do
-  begin
-    var NameOnly: string;
-    if TDownloadFileName.TryGetFileNameWithoutExtension(TPath.GetFileName(zip.FileName[i]), NameOnly) then
-    begin
-      var ProductId: string;
-      var ProductVersion:TLenientVersion;
-      if TDownloadFileName.TryParse(NameOnly + '.zip', ProductId, ProductVersion) and not (ProductId.StartsWith('tms.smartsetup.', true)) then
-      begin
-        var BackupFileName := TDownloadFileName.GenerateFileName(ProductId, ProductVersion);
-        if (not Backup.NameToIndexMap.ContainsKey(BackupFileName)) then
-        begin
-          Backup.NameToIndexMap.Add(BackupFileName, i);
-        end;
-
-        if not Backup.HasSnapshot then //autocreate a snapshot from the filenames.
-        begin
-          var ExistingProduct: TProductStatus;
-          if not Backup.NameToProductMap.TryGetValue(ProductId, ExistingProduct) then
-          begin
-            Backup.Products.Add(TProductStatus.Create());
-            var NewProduct := Backup.Products.Last;
-            NewProduct.Id := ProductId;
-            NewProduct.Version := ProductVersion;
-            NewProduct.Server := '*backup*';
-            Backup.NameToProductMap.Add(ProductId, NewProduct);
-          end
-          else
-          begin
-            if ExistingProduct.Version < ProductVersion then  //if there are many versions in the same zip file, without a snapshot, get the latest.
-            begin
-              ExistingProduct.Version := ProductVersion;
-            end;
-          end;
-        end;
-      end;
-    end;
-  end;
-end;
-
-procedure LoadProducts(const FileName: string; const Backup: TBackupData);
-const
-  DefaultSnapshotFile = 'tms.snapshot.yaml';
-begin
-  if TBundleDecompressor.GetFileFormat(FileName) = TDownloadFormat.Zip then
-  begin
-    Backup.ZipFile := FileName;
-    var zip := TZipFile.Create;
-    try
-      zip.Open(FileName, TZipMode.zmRead);
-      var idx := zip.IndexOf(DefaultSnapshotFile);
-      if idx >= 0 then
-      begin
-        Backup.HasSnapshot := true;
-        LoadSnapshotFromZip(zip, idx, Backup.Products, FileName + ':' + DefaultSnapshotFile);
-      end else
-      begin
-        Backup.HasSnapshot := false;
-      end;
-      LoadProductsFromZip(zip, Backup);
-    finally
-      zip.Free;
-    end;
-  end
-  else
-  begin
-    LoadSnapshot(FileName, Backup.Products);
-  end;
-
-end;
-
 function GetDisplayInfo(const NoBuild, SkipRegister: boolean): string;
 begin
   Result := '';
@@ -239,7 +130,7 @@ begin
     if FileName.Trim = '' then raise Exception.Create('Please specify the filename of the snapshot to restore. You can only call "tms restore" without filename if a single "automatic snapshot filename" is provided.');
     FileName := TPath.GetFullPath(FileName);
 
-    LoadProducts(FileName, Backup);
+    LoadBackup(FileName, Backup);
 
     var ProductsToFetch: TList<string> := nil;
     var ProductsToGetFromBackup: TList<TBackupSingleFile> := nil;
@@ -382,31 +273,6 @@ begin
 
 
   AddCommand(cmd.Name, CommandGroups.Install, RunRestoreCommand);
-end;
-
-{ TBackup }
-
-constructor TBackupData.Create;
-begin
-  inherited;
-  Products := TObjectList<TProductStatus>.Create;
-  NameToIndexMap := TDictionary<string, integer>.Create;
-  NameToProductMap := TDictionary<string, TProductStatus>.Create;
-end;
-
-destructor TBackupData.Destroy;
-begin
-  NameToProductMap.Free;
-  NameToIndexMap.Free;
-  Products.Free;
-  inherited;
-end;
-
-function TBackupData.ProductInBackupList(const ProductId: string;
-  const ProductVersion: TLenientVersion; out BackupIndex: integer): boolean;
-begin
-  var BackupFileName := TDownloadFileName.GenerateFileName(ProductId, ProductVersion);
-  Result := NameToIndexMap.TryGetValue(BackupFileName, BackupIndex);
 end;
 
 { TBackupSingleFile }

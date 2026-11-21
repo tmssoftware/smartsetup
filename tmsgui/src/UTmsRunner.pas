@@ -22,7 +22,7 @@ type
   {$SCOPEDENUMS ON}
   TTmsCommand = (List, ListRemote, Info, Credentials, Configure, LogView, SelfUpdate,
     ConfigRead, ConfigWrite, ServerList, ServerAdd, ServerEnable, ServerRemove,
-    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, Restore, SBOM, Doctor);
+    VersionsRemote, Build, Install, Uninstall, Pin, Unpin, Backup, BackupInfo, Restore, SBOM, Doctor);
   {$SCOPEDENUMS OFF}
 
   TTmsRunner = class
@@ -246,10 +246,32 @@ type
     procedure RunUnpin(const ProductIds: TArray<string>);
   end;
 
-  TTmsBackupRunner = class(TTmsRunner)
+  // A build runner for the output parsing: the progress of the downloads comes as "[hh:nn:ss - NN%]" lines.
+  TTmsBackupRunner = class(TAbstractTmsBuildRunner)
   public
     class function Command: TTmsCommand; override;
-    procedure RunBackup(const TargetFile: string; const ProductIds: TArray<string>);
+    // ProductIds can be "id" for the latest version or "id:version" for a specific one.
+    // BundlesOnly: products from git or svn go only to the snapshot, not to the file.
+    procedure RunBackup(const TargetFile: string; const ProductIds: TArray<string>; const BundlesOnly: Boolean);
+  end;
+
+  TBackupProductInfo = record
+    Id: string;
+    Version: string;
+    Server: string;
+    InFile: Boolean; // false if the product is only in the snapshot, and restore gets it from its server.
+  end;
+
+  TTmsBackupInfoRunner = class(TTmsRunner)
+  strict private
+    FFileName: string;
+    FProducts: TArray<TBackupProductInfo>;
+  public
+    class function Command: TTmsCommand; override;
+    procedure RunBackupInfo(const BackupFile: string);
+    // Filled by RunBackupInfo: the full path of the backup, and what it contains.
+    property FileName: string read FFileName;
+    property Products: TArray<TBackupProductInfo> read FProducts;
   end;
 
   TTmsRestoreRunner = class(TAbstractTmsBuildRunner)
@@ -298,7 +320,7 @@ function TmsCommandName(const Command: TTmsCommand): string;
 const
   Names: array[TTmsCommand] of string = ('list', 'list-remote', 'info', 'credentials', 'config', 'log-view', 'self-update',
     'config-read', 'config-write', 'server-list', 'server-add', 'server-enable', 'server-remove',
-    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'restore', 'sbom-generate', 'doctor');
+    'versions-remote', 'build', 'install', 'uninstall', 'pin', 'unpin', 'backup', 'backup-info', 'restore', 'sbom-generate', 'doctor');
 begin
   Result := Names[Command];
 end;
@@ -1042,11 +1064,46 @@ begin
 end;
 
 procedure TTmsBackupRunner.RunBackup(const TargetFile: string;
-  const ProductIds: TArray<string>);
+  const ProductIds: TArray<string>; const BundlesOnly: Boolean);
 begin
   var Command := 'backup';
-  Command := Command + ' ' + String.Join(' ', ProductIds);
-  Run(Command);
+  Command := Command + ' ' + QuoteCmd(TargetFile);
+  for var Id in ProductIds do Command := Command + ' -include:' + Id;
+  if BundlesOnly then Command := Command + ' -bundles-only';
+  RunCommand(AddRepo(Command));
+end;
+
+{ TTmsBackupInfoRunner }
+
+class function TTmsBackupInfoRunner.Command: TTmsCommand;
+begin
+  Result := TTmsCommand.BackupInfo;
+end;
+
+procedure TTmsBackupInfoRunner.RunBackupInfo(const BackupFile: string);
+begin
+  Run('backup-info ' + QuoteCmd(BackupFile) + ' -json');
+
+  if not (JsonOutput is TJSONObject) then
+    raise ETmsRunner.Create('Invalid result for `tms backup-info -json` command. Cannot parse "' + OutputText + '" as JSON.');
+
+  var Json := TJSONObject(JsonOutput);
+  FFileName := Json.GetValue<string>('filename', BackupFile);
+  FProducts := nil;
+  var JsonProducts: TJSONObject;
+  if Json.TryGetValue('products', JsonProducts) then
+    for var Pair in JsonProducts do
+    begin
+      if not (Pair.JsonValue is TJSONObject) then
+        raise ETmsRunner.CreateFmt('Could not parse product "%s" as JSON object from backup-info command', [Pair.JsonString.Value]);
+      var JsonProduct := TJSONObject(Pair.JsonValue);
+      var Info: TBackupProductInfo;
+      Info.Id := Pair.JsonString.Value;
+      Info.Version := JsonProduct.GetValue<string>('version', '');
+      Info.Server := JsonProduct.GetValue<string>('server', '');
+      Info.InFile := JsonProduct.GetValue<Boolean>('in_file', False);
+      FProducts := FProducts + [Info];
+    end;
 end;
 
 { TTmsRestoreRunner }

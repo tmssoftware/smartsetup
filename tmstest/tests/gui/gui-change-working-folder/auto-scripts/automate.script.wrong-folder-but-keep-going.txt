@@ -9,6 +9,5 @@ wait self.Name = StartForm
 #exit
 click btCancel
 wait self.Name = MainForm
-log self.GetWorkingFolder
 assert self.GetWorkingFolder ~ gui-change-working-folder
 assert self.GetWorkingFolder !~ gui-change-working-folder\

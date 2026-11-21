@@ -196,6 +196,8 @@ type
     procedure BtnInfoSwitchClick(Sender: TObject);
     procedure acRestoreExecute(Sender: TObject);
     procedure acRestoreUpdate(Sender: TObject);
+    procedure acBackupExecute(Sender: TObject);
+    procedure acBackupUpdate(Sender: TObject);
     procedure lbServerTextClick(Sender: TObject);
     procedure lbServerClick(Sender: TObject);
   private
@@ -282,7 +284,8 @@ uses
   Winapi.ShellAPI, Winapi.CommCtrl, Winapi.ActiveX,
   Vcl.Themes, UTheming, IOUtils,
   GUI.Automation,
-  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults, Forms.DoctorWait, Forms.Restore;
+  Forms.VersionPicker, Forms.Dialogs, Forms.SBOMResults, Forms.DoctorWait, Forms.Restore,
+  Forms.Backup, Forms.BackupResults;
 
 {$R *.dfm}
 
@@ -493,6 +496,84 @@ end;
 procedure TMainForm.acRestoreUpdate(Sender: TObject);
 begin
   acRestore.Enabled := not GUI.IsRunning;
+end;
+
+function ToBackupProducts(const Products: TArray<TGUIProduct>): TArray<TBackupProduct>;
+begin
+  Result := [];
+  for var Product in Products do
+  begin
+    var BackupProduct: TBackupProduct;
+    BackupProduct.Id := Product.Id;
+    BackupProduct.Name := Product.DisplayName;
+    if Product.Status = TProductStatus.NotInstalled then
+      BackupProduct.InstalledVersion := ''
+    else
+      BackupProduct.InstalledVersion := Product.LocalVersion.ToString;
+    Result := Result + [BackupProduct];
+  end;
+end;
+
+procedure TMainForm.acBackupExecute(Sender: TObject);
+begin
+  var Servers := GUI.BackupServers;
+  var Options: TBackupOptions;
+  if not TBackupForm.Execute(
+    Servers,
+    ToBackupProducts(GUI.SelectedBackupCandidates),
+    function(out Products: TArray<TBackupProduct>): Boolean
+    begin
+      Result := True;
+      var Collected: TArray<TBackupProduct> := [];
+      for var Server in Servers do
+      begin
+        if not GUI.GetRemoteProducts(Server,
+          procedure(Info: TProductInfo)
+          begin
+            var BackupProduct: TBackupProduct;
+            BackupProduct.Id := Info.Id;
+            BackupProduct.Name := Info.Name;
+            BackupProduct.InstalledVersion := '';
+            var Known := GUI.FindProduct(Info.Id);
+            if Known <> nil then
+            begin
+              BackupProduct.Name := Known.DisplayName;
+              if Known.Status <> TProductStatus.NotInstalled then
+                BackupProduct.InstalledVersion := Known.LocalVersion.ToString;
+            end;
+            Collected := Collected + [BackupProduct];
+          end) then Result := False;
+      end;
+      Products := Collected;
+    end,
+    procedure(const ProductId: string; Versions: TVersionInfoList)
+    begin
+      GUI.GetProductVersions(ProductId, Versions);
+    end,
+    Options) then exit;
+
+  GUI.ExecuteBackup(Options.FileName, Options.ProductIds, Options.BundlesOnly, ProductProgressEvent,
+    procedure(const FileName: string; const Products: TArray<TBackupProductInfo>)
+    begin
+      var Results: TArray<TBackupResult> := [];
+      for var Product in Products do
+      begin
+        var R: TBackupResult;
+        R.ProductId := Product.Id;
+        var GUIProduct := GUI.FindProduct(Product.Id);
+        if GUIProduct <> nil then R.ProductName := GUIProduct.DisplayName else R.ProductName := '';
+        R.Version := Product.Version;
+        R.Server := Product.Server;
+        R.InFile := Product.InFile;
+        Results := Results + [R];
+      end;
+      TBackupResultsForm.Execute(FileName, Results);
+    end);
+end;
+
+procedure TMainForm.acBackupUpdate(Sender: TObject);
+begin
+  acBackup.Enabled := GUI.CanBackup;
 end;
 
 procedure TMainForm.ShowConfigForm(const TabName: string);

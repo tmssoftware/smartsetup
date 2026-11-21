@@ -18,6 +18,7 @@ type
   TTmsRunner = UTmsRunner.TTmsRunner;
   TTmsCommand = UTmsRunner.TTmsCommand;
   TSBOMInfo = UTmsRunner.TSBOMInfo;
+  TBackupProductInfo = UTmsRunner.TBackupProductInfo;
 
   TGUILogger = class(TLogger)
   strict private
@@ -123,6 +124,7 @@ type
   TLogItemEvent = reference to procedure(const LogItem: TGUILogItem);
   TRunnerProc = reference to procedure(Runner: TTmsRunner);
   TRunEventProc = reference to procedure(const Command: TTmsCommand);
+  TBackupFinishedProc = reference to procedure(const FileName: string; const Products: TArray<TBackupProductInfo>);
 
   TGUIEnvironment = class
   private
@@ -170,7 +172,9 @@ type
     procedure DoRunnerCreated(Runner: TTmsRunner);
     procedure RefreshFetchedProducts(Filter: TProductFilter; const Server: string);
     procedure RefreshFetchedProductsAfterJob;
-    function StartExclusive(const Command: TTmsCommand; const Proc: TProc): Boolean;
+    // AfterFinish, if assigned, runs in the worker thread once the job has finished (OnRunFinish already fired),
+    // and only if Proc didn't raise.
+    function StartExclusive(const Command: TTmsCommand; const Proc: TProc; const AfterFinish: TProc = nil): Boolean;
     procedure ReplaceFetchedProducts(NewProducts: TGUIProductList; Filter: TProductFilter);
     procedure ApplyProductFilters;
     procedure BeginRunning(const Command: TTmsCommand);
@@ -179,7 +183,7 @@ type
     procedure RemoveActiveRunner(Runner: TTmsRunner);
     procedure UpdateTMSServer(const Enable: boolean);
   protected
-    procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>);
+    procedure RunAsync<T: TTmsRunner, constructor>(Proc: TProc<T>; const AfterFinish: TProc = nil);
     procedure RunSync<T: TTmsRunner, constructor>(Proc: TProc<T>);
     procedure RunBackground(const Command: TTmsCommand; Proc: TProc);
   public
@@ -207,6 +211,21 @@ type
     procedure ExecuteUninstall(ProgressCallback: TProgressProc);
     // ProductIds: the products to restore from the backup. Empty restores all of them.
     procedure ExecuteRestore(ProgressCallback: TProductProgressProc; const BackupFile: string; const SkipRegister: boolean; const ProductIds: TArray<string>);
+    // ProductIds: "id" for the latest version, "id:version" for a specific one. OnFinished is called in the main
+    // thread with what the backup contains, only if the backup was created.
+    // BundlesOnly: products from git or svn go only to the snapshot, not to the file.
+    procedure ExecuteBackup(const TargetFile: string; const ProductIds: TArray<string>; const BundlesOnly: Boolean;
+      ProgressCallback: TProductProgressProc; const OnFinished: TBackupFinishedProc);
+    // The selected products a backup can take. Products that only exist locally are left out, as backup
+    // gets the products from their server.
+    function SelectedBackupCandidates: TArray<TGUIProduct>;
+    // The enabled api servers (like "tms"), where "back up all the products" gets the products from.
+    function BackupServers: TArray<string>;
+    // Reads from the server the products you can download from it, and calls OnProduct for each.
+    // If reading fails, the error goes to the log and it returns false.
+    function GetRemoteProducts(const Server: string; const OnProduct: TProc<TProductInfo>): Boolean;
+    // The product with that id in the full list (not only the products shown after the search), or nil.
+    function FindProduct(const ProductId: string): TGUIProduct;
     procedure RefreshProductList;
 
     // Execute install explicitly passing the product ids to be installed
@@ -252,6 +271,7 @@ type
     function CanUnpinSelected: Boolean;
     function CanRunSBOM: Boolean;
     function CanRunDoctor: Boolean;
+    function CanBackup: Boolean;
 
     // Functions to read/write configuration parameters
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
@@ -801,7 +821,7 @@ begin
     FOnRunStart(Command);
 end;
 
-function TGUIEnvironment.StartExclusive(const Command: TTmsCommand; const Proc: TProc): Boolean;
+function TGUIEnvironment.StartExclusive(const Command: TTmsCommand; const Proc: TProc; const AfterFinish: TProc): Boolean;
 begin
   // Claimed here, on the calling thread, so a second click can't start a second job before the thread runs.
   Result := TryBeginExclusive(Command);
@@ -821,6 +841,7 @@ begin
           finally
             EndRunning;
           end;
+          if Assigned(AfterFinish) then AfterFinish;
         finally
           // Last: once it reaches 0 the destructor can free this object.
           AtomicDecrement(FWorkerThreads);
@@ -834,13 +855,14 @@ begin
   end;
 end;
 
-procedure TGUIEnvironment.RunAsync<T>(Proc: TProc<T>);
+procedure TGUIEnvironment.RunAsync<T>(Proc: TProc<T>; const AfterFinish: TProc);
 begin
   StartExclusive(T.Command,
     procedure
     begin
       RunSync<T>(Proc);
-    end);
+    end,
+    AfterFinish);
 end;
 
 procedure TGUIEnvironment.RunBackground(const Command: TTmsCommand; Proc: TProc);
@@ -1177,6 +1199,127 @@ begin
         RefreshFetchedProductsAfterJob;
       end;
     end);
+end;
+
+procedure TGUIEnvironment.ExecuteBackup(const TargetFile: string; const ProductIds: TArray<string>; const BundlesOnly: Boolean;
+  ProgressCallback: TProductProgressProc; const OnFinished: TBackupFinishedProc);
+begin
+  // Filled only if the backup was created and we could read it. Copies, as the runners are freed when RunSync ends.
+  var Succeeded := False;
+  var FileName := '';
+  var Products: TArray<TBackupProductInfo> := nil;
+  RunAsync<TTmsBackupRunner>(
+    procedure(Runner: TTmsBackupRunner)
+    begin
+      if Assigned(ProgressCallback) then
+      begin
+        var ProgressInfo := Default(TProductProgressInfo);
+        ProgressCallback(ProgressInfo);
+      end;
+
+      Runner.OnOutputLine := RunnerOutputEvent;
+      // Only the downloads report progress. Zipping them is fast, as they are stored without compressing them again.
+      Runner.OnProgress :=
+        procedure(const Info: TProgressInfo)
+        begin
+          if Assigned(ProgressCallback) then
+          begin
+            var ProgressInfo := Default(TProductProgressInfo);
+            ProgressInfo.Percent := Info.Percent;
+            ProgressInfo.ProductId := Info.ProductId;
+            ProgressInfo.ProductPercent := Info.ProductPercent;
+            ProgressCallback(ProgressInfo);
+          end;
+        end;
+      Runner.RunBackup(TargetFile, ProductIds, BundlesOnly);
+
+      if Assigned(ProgressCallback) then
+      begin
+        var ProgressInfo := Default(TProductProgressInfo);
+        if Runner.IsCanceled then
+          ProgressInfo.Percent := 0
+        else
+          ProgressInfo.Percent := 100;
+        ProgressCallback(ProgressInfo);
+      end;
+      if Runner.IsCanceled then exit;
+
+      // What is really in the file, read from it. Part of the same job, so the backup shows as running until it ends.
+      // If it fails, the error is logged and we show no dialog: the backup itself was created.
+      RunSync<TTmsBackupInfoRunner>(
+        procedure(InfoRunner: TTmsBackupInfoRunner)
+        begin
+          InfoRunner.RunBackupInfo(TargetFile);
+          FileName := InfoRunner.FileName;
+          Products := Copy(InfoRunner.Products);
+          Succeeded := True;
+        end);
+    end,
+    procedure
+    begin
+      // After the job ended, so the dialog isn't shown while the backup still shows as running. ForceQueue puts it
+      // behind what OnRunFinish queued (stopping the animation, clearing the progress).
+      if not Succeeded or not Assigned(OnFinished) then exit;
+      TThread.ForceQueue(nil,
+        procedure
+        begin
+          if FDestroying then exit;
+          OnFinished(FileName, Products);
+        end);
+    end);
+end;
+
+function TGUIEnvironment.SelectedBackupCandidates: TArray<TGUIProduct>;
+begin
+  Result := [];
+  UpdateSelectedProducts;
+  for var Product in FSelected do
+  begin
+    // Installed, but not from a server (HasFetchInfo is only set for installed products).
+    if (Product.Status <> TProductStatus.NotInstalled) and not Product.HasFetchInfo then continue;
+    Result := Result + [Product];
+  end;
+end;
+
+function TGUIEnvironment.BackupServers: TArray<string>;
+begin
+  Result := [];
+  // Read now, FServers could be stale.
+  var Servers := TServerConfigItems.Create;
+  try
+    GetServerConfigItems(Servers);
+    for var Server in Servers do
+      if Server.Enabled and SameText(Server.ServerType, 'api') then
+        Result := Result + [Server.Name];
+  finally
+    Servers.Free;
+  end;
+end;
+
+function TGUIEnvironment.GetRemoteProducts(const Server: string; const OnProduct: TProc<TProductInfo>): Boolean;
+begin
+  // RunSync logs the exceptions and doesn't raise them, so we know it worked only if we got to the end.
+  var Ok := False;
+  RunSync<TTmsListRemoteRunner>(
+    procedure(Runner: TTmsListRemoteRunner)
+    begin
+      Runner.Server := Server;
+      Runner.RunListRemote;
+      for var Product in Runner.Products do
+        OnProduct(Product);
+      Ok := True;
+    end);
+  Result := Ok;
+end;
+
+function TGUIEnvironment.FindProduct(const ProductId: string): TGUIProduct;
+begin
+  Result := FFetchedProducts.Find(ProductId);
+end;
+
+function TGUIEnvironment.CanBackup: Boolean;
+begin
+  Result := not IsRunning;
 end;
 
 procedure TGUIEnvironment.ExecuteUnpinSelected;

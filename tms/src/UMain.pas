@@ -28,6 +28,7 @@ uses
   Commands.Uncompress,
   Commands.Pin,
   Commands.Backup,
+  Commands.BackupInfo,
   Commands.Snapshot,
   Commands.Restore,
   Commands.InternalTesting,
@@ -76,6 +77,7 @@ begin
   RegisterInfoCommand;
 
   RegisterBackupCommand;
+  RegisterBackupInfoCommand;
   RegisterSnapshotCommand;
   RegisterRestoreCommand;
 

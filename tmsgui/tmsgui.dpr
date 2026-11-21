@@ -31,6 +31,8 @@ uses
   Forms.SBOMResults in 'src\Forms.SBOMResults.pas' {SBOMResultsForm},
   Forms.DoctorWait in 'src\Forms.DoctorWait.pas' {DoctorWaitForm},
   Forms.Restore in 'src\Forms.Restore.pas' {RestoreForm},
+  Forms.Backup in 'src\Forms.Backup.pas' {BackupForm},
+  Forms.BackupResults in 'src\Forms.BackupResults.pas' {BackupResultsForm},
   Deget.IDETypes in '..\common\src\Deget\Deget.IDETypes.pas';
 
 {$R *.res}

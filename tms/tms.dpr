@@ -239,6 +239,8 @@ uses
   UConfigSources in 'src\Config\UConfigSources.pas',
   Commands.LocalConfig in 'src\Commands\Commands.LocalConfig.pas',
   Commands.Backup in 'src\Commands\Commands.Backup.pas',
+  Commands.BackupInfo in 'src\Commands\Commands.BackupInfo.pas',
+  Snapshot.Backup in 'src\Snapshot\Snapshot.Backup.pas',
   Fetching.FetchExtraction in 'src\Fetching\Fetching.FetchExtraction.pas';
 
 begin

@@ -1056,6 +1056,8 @@ object MainForm: TMainForm
       Category = 'Commands'
       Caption = 'B&ackup'
       ImageName = 'backup\backup'
+      OnExecute = acBackupExecute
+      OnUpdate = acBackupUpdate
     end
     object acSBOM: TAction
       Category = 'Commands'

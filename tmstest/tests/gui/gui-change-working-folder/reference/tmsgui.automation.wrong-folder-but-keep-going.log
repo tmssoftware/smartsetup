@@ -9,7 +9,6 @@ click: "DialogForm.btnYes"
 wait: condition self.Name = StartForm
 click: "StartForm.btCancel"
 wait: condition self.Name = MainForm
-log: property "MainForm.self.GetWorkingFolder" has the value 'E:\tms\smartsetup\tmstest\tmp-run\gui-change-working-folder'
 assert: "self.GetWorkingFolder ~ gui-change-working-folder" is true
 assert: "self.GetWorkingFolder !~ gui-change-working-folder\" is true
 Completed successfully

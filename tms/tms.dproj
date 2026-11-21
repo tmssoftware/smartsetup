@@ -460,6 +460,8 @@
         <DCCReference Include="src\Config\UConfigSources.pas"/>
         <DCCReference Include="src\Commands\Commands.LocalConfig.pas"/>
         <DCCReference Include="src\Commands\Commands.Backup.pas"/>
+        <DCCReference Include="src\Commands\Commands.BackupInfo.pas"/>
+        <DCCReference Include="src\Snapshot\Snapshot.Backup.pas"/>
         <DCCReference Include="src\Fetching\Fetching.FetchExtraction.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>

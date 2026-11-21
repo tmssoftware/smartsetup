@@ -185,6 +185,12 @@
         <DCCReference Include="src\Forms.Restore.pas">
             <Form>RestoreForm</Form>
         </DCCReference>
+        <DCCReference Include="src\Forms.Backup.pas">
+            <Form>BackupForm</Form>
+        </DCCReference>
+        <DCCReference Include="src\Forms.BackupResults.pas">
+            <Form>BackupResultsForm</Form>
+        </DCCReference>
         <DCCReference Include="..\common\src\Deget\Deget.IDETypes.pas"/>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
