@@ -482,15 +482,24 @@ end;
 function TApplicationSectionDef.ReadVersionFile(const FileName: string;
   const ErrorInfo: TErrorInfo): string;
 begin
-  if (FileName = '') or (ErrorInfo.IgnoreOtherFiles) then exit('');
-  var FullFileName := CombinePath(Project.RootFolder, FileName);
-  if not TFile.Exists(FullFileName) then raise Exception.Create('The version file "' + FullFileName + '" doesn''t exist. ' + ErrorInfo.ToString);
-  var Lines := TFile.ReadAllLines(FullFileName);
-  if Length(Lines) < 1 then raise Exception.Create('The version file "' + FullFileName + '" is empty. ' + ErrorInfo.ToString);
-  var colon := Lines[0].IndexOf(':');
-  if (colon < 0) or (colon = Lines[0].Length - 1) then raise Exception.Create('The version file "' + FullFileName + '" is invalid. It should have a ":" in line 1, and after that the version number. ' + ErrorInfo.ToString);
+  try
+    if (FileName = '') or (ErrorInfo.IgnoreOtherFiles) then exit('');
+    var FullFileName := CombinePath(Project.RootFolder, FileName);
+    if not TFile.Exists(FullFileName) then raise Exception.Create('The version file "' + FullFileName + '" doesn''t exist. ' + ErrorInfo.ToString);
+    var Lines := TFile.ReadAllLines(FullFileName);
+    if Length(Lines) < 1 then raise Exception.Create('The version file "' + FullFileName + '" is empty. ' + ErrorInfo.ToString);
+    var colon := Lines[0].IndexOf(':');
+    if (colon < 0) or (colon = Lines[0].Length - 1) then raise Exception.Create('The version file "' + FullFileName + '" is invalid. It should have a ":" in line 1, and after that the version number. ' + ErrorInfo.ToString);
 
-  Result := Lines[0].Substring(colon + 1).Trim;
+    Result := Lines[0].Substring(colon + 1).Trim;
+  except
+    on ex: exception do
+    begin
+      //an error reading version might come because we installed an old version, or many other things. We don't want to crash the full thing because of this.
+      Logger.Info('Error: ' + ex.Message);
+      exit('');
+    end;
+  end;
 end;
 
 class function TApplicationSectionDef.SectionNameStatic: string;

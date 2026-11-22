@@ -422,7 +422,14 @@ begin
 
   var Versions := TVersionInfoList.Create;
   try
-    GUI.GetProductVersions(Product.Id, Versions);
+    var OldCursor := Screen.Cursor;
+    Screen.Cursor := crHourGlass;
+    try
+      GUI.GetProductVersions(Product.Id, Versions);
+    finally
+      Screen.Cursor := OldCursor;
+    end;
+
     var VersionToInstall := TVersionPickerForm.Execute(Product.DisplayName, Versions);
     if VersionToInstall <> '' then
     begin
