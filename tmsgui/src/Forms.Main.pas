@@ -251,6 +251,7 @@ type
     function GetListItemIds: TDictionary<string, TListItem>;
     procedure ShowConfigForm(const TabName: string);
     procedure ShowLastError(const RevIndex: integer; const ExtraMsg: string);
+    function GetProductUrl(Product: TGUIProduct): string;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -1088,6 +1089,12 @@ begin
     end;
 end;
 
+function TMainForm.GetProductUrl(Product: TGUIProduct): string;
+begin
+  if Product.HomePage <> '' then exit(Product.HomePage);
+  Result := Product.Url;
+end;
+
 function TMainForm.GetVersionHistoryUrl(Product: TGUIProduct): string;
 const
   // Let's just hard code specific version history pages for now, until when (if) Smart Setup has a more
@@ -1112,6 +1119,8 @@ const
   );
 begin
   if Product = nil then Exit('');
+  if Product.VersionHistoryUrl <> '' then exit(Product.VersionHistoryUrl);
+
 
   var I := 0;
   while I < Length(Urls) - 1 do
@@ -1347,7 +1356,7 @@ begin
     OneProdProductName.Caption := Product.DisplayName;
     OneProdDescription.Caption := Product.Description;
     OneProdUrl.Caption := 'Website';
-    OneProdUrl.Hint := Product.Url;
+    OneProdUrl.Hint := GetProductUrl(Product);
     OneProdVersionHistory.Caption := 'Version History';
     OneProdVersionHistory.Hint := GetVersionHistoryUrl(Product);
     OneProdVersionHistory.Enabled := OneProdVersionHistory.Hint <> '';

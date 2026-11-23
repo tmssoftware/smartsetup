@@ -710,6 +710,8 @@ begin
     Product.Server := JsonProduct.GetValue<string>('server', '');
     Product.Description := JsonProduct.GetValue<string>('description', '');
     Product.Url := JsonProduct.GetValue<string>('url', '');
+    Product.HomePage := JsonProduct.GetValue<string>('homepage', '');
+    Product.VersionHistoryUrl := JsonProduct.GetValue<string>('version_history_url', '');
     Product.LicenseStatus := JsonProduct.GetValue<string>('license_status', '');
   end;
 end;

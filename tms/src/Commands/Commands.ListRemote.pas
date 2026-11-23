@@ -73,6 +73,8 @@ begin
       Item.AddPair('server', Product.Product.Server);
       Item.AddPair('description', Product.Product.Description);
       Item.AddPair('url', Product.Product.Url);
+      Item.AddPair('homepage', Product.Product.HomePage);
+      Item.AddPair('version_history_url', Product.Product.VersionHistoryUrl);
     end;
 
     OutputJson(Root);

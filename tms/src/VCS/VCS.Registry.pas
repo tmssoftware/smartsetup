@@ -27,6 +27,8 @@ type
     FProductId: string;
     FName: string;
     FDescription: string;
+    FHomePage: string;
+    FVersionHistoryUrl: string;
     FServer: string;
     FPredefinedData: TPredefinedData;
     FSkipSubModules: boolean;
@@ -38,6 +40,8 @@ type
     property ProductId: string read FProductId;
     property Name: string read FName;
     property Description: string read FDescription;
+    property HomePage: string read FHomePage;
+    property VersionHistoryUrl: string read FVersionHistoryUrl;
     property Server: string read FServer write FServer;
     property PredefinedData: TPredefinedData read FPredefinedData;
     property SkipSubModules: boolean read FSkipSubModules;
@@ -45,7 +49,7 @@ type
     class function GetProtocolFromString(const aProtocol: string; const DefaultIsGit: boolean): TVCSProtocol; static;
     class function GetStringFromProtocol(const aProtocol: TVCSProtocol): string; static;
 
-    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aServer: string; const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
+    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl, aServer: string; const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
     function Equals(ProductB: TObject): boolean; override;
   end;
 
@@ -97,7 +101,7 @@ uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJ
 { TRegisteredProduct }
 
 constructor TRegisteredProduct.Create(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription: string; const aServer: string;
+  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl: string; const aServer: string;
   const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
 begin
   FProductId := aProductId;
@@ -105,6 +109,8 @@ begin
   FUrl := aUrl;
   FName := aName;
   FDescription := aDescription;
+  FHomePage := aHomePage;
+  FVersionHistoryUrl := aVersionHistoryUrl;
   FServer := aServer;
   FPredefinedData := aPredefinedData;
   FSkipSubModules := aSkipSubModules;
@@ -119,6 +125,8 @@ begin
   if b.FProductId <> FProductId then exit(false);
   if b.FName <> FName then exit(false);
   if b.FDescription <> FDescription then exit(false);
+  if b.FHomePage <> FHomePage then exit(false);
+  if b.FVersionHistoryUrl <> FVersionHistoryUrl then exit(false);
   if b.Server <> FServer then exit(false);
 
   if not b.PredefinedData.Equals(FPredefinedData) then exit(false);
@@ -224,6 +232,8 @@ begin
                 Project.Application.Url,
                 Project.Application.Name,
                 Project.Application.Description,
+                Project.Application.HomePage,
+                Project.Application.VersionHistoryUrl,
                 Server,
                 TPredefinedData.Create(PredefinedText, ZipFileName, YamlFileName),
                 Project.FetchOptions.SkipSubModules);

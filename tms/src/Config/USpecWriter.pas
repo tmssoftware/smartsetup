@@ -594,6 +594,7 @@ begin
   if FullName = 'application:company name:' then exit(Nullable(FProduct.Application.CompanyName));
   if FullName = 'application:copyright:' then exit(Nullable(FProduct.Application.Copyright));
   if FullName = 'application:homepage:' then exit(Nullable(FProduct.Application.HomePage));
+  if FullName = 'application:version history url:' then exit(Nullable(FProduct.Application.VersionHistoryUrl));
   if FullName = 'application:license:' then exit(Nullable(FProduct.Application.License));
   if FullName = 'application:license url:' then exit(Nullable(FProduct.Application.LicenseUrl));
   if FullName = 'application:url:' then exit(Nullable(FProduct.Application.Url));

@@ -116,6 +116,10 @@
           "type": "string",
           "description": "The home page URL of the product. If left empty, we will use the property 'url' as the home page."
         },
+        "version history url": {
+          "type": "string",
+          "description": "The URL of a page with the version history of the product. If ommited, we will try to guess the url"
+        },
         "copyright": {
           "type": "string",
           "description": "The copyright holder of the product."

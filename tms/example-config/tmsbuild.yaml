@@ -13,6 +13,7 @@ application:
   description: An example of a component that doesn't exist, but it would be quite nice if it did. The world needs more examples!.
   company name: TMS Software
   homepage: https://www.tmssoftware.com/site/example.asp #if empty, the home page will be the same as the url below.
+  version history url: https://www.tmssoftware.com/site/example.asp?s=history #a page with the version history of the product. If ommited, we will try to guess it
   copyright: tmssoftware
   license: MIT
   license url: https://opensource.org/licenses/MIT

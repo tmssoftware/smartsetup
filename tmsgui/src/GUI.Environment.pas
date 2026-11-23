@@ -60,6 +60,8 @@ type
     FChannel: string;
     FDescription: string;
     FUrl: string;
+    FHomePage: string;
+    FVersionHistoryUrl: string;
     FLicenseStatus: string;
     FInstallations: TArray<TGUIProductInstallation>;
   public
@@ -77,6 +79,8 @@ type
     property Channel: string read FChannel write FChannel;
     property Description: string read FDescription write FDescription;
     property Url: string read FUrl write FUrl;
+    property HomePage: string read FHomePage write FHomePage;
+    property VersionHistoryUrl: string read FVersionHistoryUrl write FVersionHistoryUrl;
     property LicenseStatus: string read FLicenseStatus write FLicenseStatus;
     // IDEs and platforms where the product is built and/or registered
     property Installations: TArray<TGUIProductInstallation> read FInstallations write FInstallations;
@@ -724,9 +728,11 @@ begin
     // Update VendorId. For now, only remote products have vendor id, so we are setting here regardless.
     GUIProduct.VendorId := Product.VendorId;
 
-    // Same for description, url and license status: only remote products have them.
+    // Same for description, urls and license status: only remote products have them.
     GUIProduct.Description := Product.Description;
     GUIProduct.Url := Product.Url;
+    GUIProduct.HomePage := Product.HomePage;
+    GUIProduct.VersionHistoryUrl := Product.VersionHistoryUrl;
     GUIProduct.LicenseStatus := Product.LicenseStatus;
   end;
 end;

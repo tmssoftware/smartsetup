@@ -38,6 +38,8 @@ type
     FPinned: Boolean;
     FDescription: string;
     FUrl: string;
+    FHomePage: string;
+    FVersionHistoryUrl: string;
     FLicenseStatus: string;
   public
     constructor Create;
@@ -54,6 +56,8 @@ type
     property Pinned: Boolean read FPinned write FPinned;
     property Description: string read FDescription write FDescription;
     property Url: string read FUrl write FUrl;
+    property HomePage: string read FHomePage write FHomePage;
+    property VersionHistoryUrl: string read FVersionHistoryUrl write FVersionHistoryUrl;
     property LicenseStatus: string read FLicenseStatus write FLicenseStatus;
     property IDEs: TDictionary<TIDEName, TProductIDEInfo> read FIDEInfoMap;
   end;
