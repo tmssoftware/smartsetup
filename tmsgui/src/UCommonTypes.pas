@@ -11,6 +11,7 @@ type
     ServerType: string;
     Url: string;
     Enabled: Boolean;
+    AllowInsecureConnections: Boolean;
     function IsReserved: Boolean;
   end;
 
@@ -19,15 +20,6 @@ type
     function Find(const Name: string): TServerConfigItem;
     function IsEnabled(const Name: string): Boolean;
     function RemotesEnabled: Boolean;
-  end;
-
-  TConfigInfo = class
-  private
-    FServers: TServerConfigItems;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    property Servers: TServerConfigItems read FServers;
   end;
 
   TVersionInfo = class
@@ -42,20 +34,8 @@ type
   TVersionInfoList = class(TObjectList<TVersionInfo>)
   end;
 
+
 implementation
-
-{ TConfigInfo }
-
-constructor TConfigInfo.Create;
-begin
-  FServers := TServerConfigItems.Create;
-end;
-
-destructor TConfigInfo.Destroy;
-begin
-  FServers.Free;
-  inherited;
-end;
 
 { TServerConfigItems }
 
@@ -86,7 +66,7 @@ end;
 function TServerConfigItem.IsReserved: Boolean;
 begin
   var TestName := Name.ToLower;
-  Result := (TestName = 'tms') or (TestName = 'local') or (TestName = 'community');
+  Result := (TestName = 'tms') or (TestName = 'community');
 end;
 
 end.

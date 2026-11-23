@@ -468,3 +468,16 @@ function Set-ExeFixedFileVersion {
     }
     [System.IO.File]::WriteAllBytes($fullName, $bytes)
 }
+
+function DiffText {
+    param(
+        [Parameter(Mandatory, Position=0)] [string[]] $ReferenceObject,
+        [Parameter(Mandatory, Position=1)] [string[]] $DifferenceObject
+    )
+    $diff = Compare-Object -ReferenceObject $ReferenceObject -DifferenceObject $DifferenceObject
+    if ($diff) {
+        $missing = ($diff | Where-Object SideIndicator -eq "<=" | ForEach-Object InputObject) -join ", "
+        $extra = ($diff | Where-Object SideIndicator -eq "=>" | ForEach-Object InputObject) -join ", "
+        throw "Strings are not the same. Missing: [$missing]. Unexpected: [$extra]."
+    }
+}

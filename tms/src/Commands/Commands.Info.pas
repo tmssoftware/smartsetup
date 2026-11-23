@@ -11,7 +11,26 @@ implementation
 
 uses
   System.JSON, Commands.CommonOptions, Commands.GlobalConfig,
-  UConfigDefinition, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter, UMultiLogger;
+  UConfigDefinition, UConfigFolders, UCredentials, Commands.Logging, UJsonPrinter, UMultiLogger,
+  Deget.CoreTypes, UConfigKeys, UIDEUtils;
+
+// The IDEs we can build for in this machine, using the same check as the build: the IDE is in the registry
+// (or the alternate registry key), or there is a compiler path in the config. Paths set only for one product
+// don't count. Returns nil if the config can't be loaded, so info still works with a broken config.
+function InstalledIDEs: TJSONArray;
+begin
+  try
+    var Cfg := ConfigNoCheck;
+    Result := TJSONArray.Create;
+    for var dv := Low(TIDEName) to High(TIDEName) do
+    begin
+      var ErrorMessage: string;
+      if IsProductInstalled(dv, GlobalProductId, Cfg, ErrorMessage) then Result.Add(IDEId[dv]);
+    end;
+  except
+    Result := nil;
+  end;
+end;
 
 
 function HasCredentials: Boolean;
@@ -57,12 +76,23 @@ begin
     Json.AddPair('has credentials', HasCredentials);
     if TFile.Exists(ConfigFileName) then
       Json.AddPair('config file', ConfigFileName);
+    var IDEs := InstalledIDEs;
+    if IDEs <> nil then Json.AddPair('installed ides', IDEs);
 
     if Logger.JsonMode then
       OutputJson(Json)
     else
       for var Pair in Json do
-        WriteLn(Format('%s: %s', [Pair.JsonString.Value, Pair.JsonValue.Value]));
+      begin
+        var Value := Pair.JsonValue.Value;
+        if Pair.JsonValue is TJSONArray then
+        begin
+          var Items: TArray<string> := nil;
+          for var Item in TJSONArray(Pair.JsonValue) do Items := Items + [Item.Value];
+          Value := string.Join(', ', Items);
+        end;
+        WriteLn(Format('%s: %s', [Pair.JsonString.Value, Value]));
+      end;
   finally
     Json.Free;
   end;

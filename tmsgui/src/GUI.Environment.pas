@@ -7,7 +7,7 @@ interface
 uses
   System.Generics.Collections, System.SysUtils, System.Classes, System.StrUtils,
   Deget.Version, Deget.CoreTypes, UTmsRunner, UProductInfo, ULogger, UMultiLogger, UCommonTypes,
-  Deget.IDETypes;
+  Deget.IDETypes, UConfigModel;
 
 type
   TProductStatus = (NotInstalled, Available, Installed);
@@ -280,11 +280,13 @@ type
     function ConfigRead(const ParamName: string; var Values: TArray<string>): Boolean;
     function ConfigWrite(const ParamName: string; const Values: TArray<string>): Boolean;
 
+    // Reads and writes all of tms.config.yaml, for the settings form. Only that file: the local and global
+    // ones are edited by hand. Return false if it failed; the error goes to the log.
+    function ReadConfig(Config: TTmsConfig): Boolean;
+    function WriteConfig(Config: TTmsConfig): Boolean;
+
     // Functions to manipulate server config options
     procedure GetServerConfigItems(Items: TServerConfigItems);
-    procedure UpdateServerConfigItems(Items: TServerConfigItems);
-    procedure RemoveServerConfigItem(const Name: string);
-    procedure AddServerConfigItem(Item: TServerConfigItem);
     procedure EnableServerConfigItem(const Name: string; Enabled: Boolean);
 
     // functions to manipulate version information about products
@@ -431,15 +433,6 @@ begin
 end;
 
 { TGUIEnvironment }
-
-procedure TGUIEnvironment.AddServerConfigItem(Item: TServerConfigItem);
-begin
-  RunSync<TTmsServerAddRunner>(
-    procedure(Runner: TTmsServerAddRunner)
-    begin
-      Runner.RunServerAdd(Item);
-    end);
-end;
 
 procedure TGUIEnvironment.BeginRunning(const Command: TTmsCommand);
 begin
@@ -753,15 +746,6 @@ begin
   var GUILogger := TGUILogger.Create;
   Logger := TMultiLogger.Create([GUILogger]);
   GUILogger.OnLogMessage := LogMessageReceived;
-end;
-
-procedure TGUIEnvironment.RemoveServerConfigItem(const Name: string);
-begin
-  RunSync<TTmsServerRemoveRunner>(
-    procedure(Runner: TTmsServerRemoveRunner)
-    begin
-      Runner.RunServerRemove(Name);
-    end);
 end;
 
 destructor TGUIEnvironment.Destroy;
@@ -1857,29 +1841,28 @@ begin
   FSelectedValid := False;
 end;
 
-procedure TGUIEnvironment.UpdateServerConfigItems(Items: TServerConfigItems);
+function TGUIEnvironment.ReadConfig(Config: TTmsConfig): Boolean;
 begin
-  var OldItems := TServerConfigItems.Create;
-  try
-    GetServerConfigItems(OldItems);
+  var Success := False;
+  RunSync<TTmsConfigReadRunner>(
+    procedure(Runner: TTmsConfigReadRunner)
+    begin
+      Config.LoadFromJson(Runner.RunConfigReadJson);
+      Success := True;
+    end);
+  Result := Success;
+end;
 
-    // Delete all but reserved
-    for var OldItem in OldItems do
-      if not OldItem.IsReserved then
-        RemoveServerConfigItem(OldItem.Name);
-
-    // Re-add all but reserved
-    for var Item in Items do
-      if not Item.IsReserved then
-        AddServerConfigItem(Item);
-
-    // Change enable status of reserved items
-    for var Item in Items do
-      if Item.IsReserved then
-        EnableServerConfigItem(Item.Name, Item.Enabled);
-  finally
-    OldItems.Free;
-  end;
+function TGUIEnvironment.WriteConfig(Config: TTmsConfig): Boolean;
+begin
+  var Success := False;
+  RunSync<TTmsConfigWriteRunner>(
+    procedure(Runner: TTmsConfigWriteRunner)
+    begin
+      Runner.RunConfigWriteAll(Config.ToParams);
+      Success := True;
+    end);
+  Result := Success;
 end;
 
 function TGUIEnvironment.GetProductInstallInfo(const Source: TGUIProduct): string;

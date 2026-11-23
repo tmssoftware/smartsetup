@@ -142,6 +142,8 @@ type
     FIsValidTMSSetupFolder: Boolean;
     FHasCredentials: Boolean;
     FConfigFile: string;
+    FInstalledIDEs: TArray<string>;
+    FInstalledIDEsKnown: Boolean;
     function GetWorkingFolder: string;
   public
     property Initialized: boolean read FInitialized write FInitialized;
@@ -151,6 +153,10 @@ type
     property IsValidTMSSetupFolder: Boolean read FIsValidTMSSetupFolder write FIsValidTMSSetupFolder;
     property HasCredentials: Boolean read FHasCredentials write FHasCredentials;
     property ConfigFile: string read FConfigFile write FConfigFile;
+    // The IDEs installed in this machine, as ids like "delphi12". InstalledIDEsKnown is false if tms didn't
+    // report them ("installed ides" in `tms info -json`).
+    property InstalledIDEs: TArray<string> read FInstalledIDEs write FInstalledIDEs;
+    property InstalledIDEsKnown: Boolean read FInstalledIDEsKnown write FInstalledIDEsKnown;
   end;
 
   TTmsInfoRunner = class(TTmsRunner)
@@ -196,12 +202,17 @@ type
   public
     class function Command: TTmsCommand; override;
     function RunConfigRead(const ParamName: string): string;
+    // The whole tms.config.yaml (only that file, not the merged local and global ones) as JSON.
+    function RunConfigReadJson: string;
   end;
 
   TTmsConfigWriteRunner = class(TTmsRunner)
   public
     class function Command: TTmsCommand; override;
     procedure RunConfigWrite(const ParamName, ParamValue: string);
+    // Replaces all of tms.config.yaml with Params: -clear wipes it first.
+    // Params are already in the -p:"key = value" form.
+    procedure RunConfigWriteAll(const Params: TArray<string>);
   end;
 
   TTmsServerListRunner = class(TTmsRunner)
@@ -725,6 +736,13 @@ begin
   Info.IsValidTMSSetupFolder := Json.GetValue('folder initialized', False);
   Info.HasCredentials := Json.GetValue('has credentials', False);
   Info.ConfigFile := Json.GetValue('config file', '');
+
+  var InstalledIDEs: TArray<string> := nil;
+  var JsonIDEs: TJSONArray;
+  Info.InstalledIDEsKnown := Json.TryGetValue<TJSONArray>('installed ides', JsonIDEs);
+  if Info.InstalledIDEsKnown then
+    for var IDE in JsonIDEs do InstalledIDEs := InstalledIDEs + [IDE.Value];
+  Info.InstalledIDEs := InstalledIDEs;
   Info.Initialized := true;
 end;
 
@@ -878,6 +896,12 @@ begin
   Result := FValue;
 end;
 
+function TTmsConfigReadRunner.RunConfigReadJson: string;
+begin
+  Run('config-read -json -config-source:main');
+  Result := OutputText;
+end;
+
 { TTmsConfigWriteRunner }
 
 class function TTmsConfigWriteRunner.Command: TTmsCommand;
@@ -890,6 +914,11 @@ begin
   var Command := 'config-write';
   Command := Command + ' -p:' + (ParamName + '=' + ParamValue).QuotedString('"');
   Run(Command);
+end;
+
+procedure TTmsConfigWriteRunner.RunConfigWriteAll(const Params: TArray<string>);
+begin
+  Run('config-write -clear -config-source:main ' + string.Join(' ', Params));
 end;
 
 { TTmsServerListRunner }

@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
-  Forms.Config, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
+  Forms.Config, UConfigModel, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
   Vcl.VirtualImage, Util.Animator, Winapi.ShlObj, System.ImageList, Vcl.ImgList,
   Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
   Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels, Clipbrd, Generics.Defaults;
@@ -250,6 +250,7 @@ type
     procedure PopupOptions(const Control: TControl; const Menu: TPopupMenu);
     function GetListItemIds: TDictionary<string, TListItem>;
     procedure ShowConfigForm(const TabName: string);
+    procedure ShowLastError(const RevIndex: integer; const ExtraMsg: string);
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -447,12 +448,24 @@ begin
   TAction(Sender).Enabled := (Product <> nil) and GUI.CanInstallSelected;
 end;
 
+procedure TMainForm.ShowLastError(const RevIndex: integer; const ExtraMsg: string);
+begin
+  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then
+  begin
+    if ExtraMsg <> '' then TDialogForm.ShowMessage(ExtraMsg);
+    exit;
+  end;
+  var Extra := ExtraMsg;
+  if Extra = '' then Extra := GUI.LogItems[RevIndex].Text;
+
+  LogDetailsForm.SetLogText(Extra, GUI.LogItems[RevIndex].Output);
+  LogDetailsForm.ShowModal;
+end;
+
 procedure TMainForm.acLogDetailsExecute(Sender: TObject);
 begin
   var RevIndex := GUI.LogItems.Count - 1 - lbLog.ItemIndex;
-  if (RevIndex < 0) or (RevIndex >= GUI.LogItems.Count) then exit;
-  LogDetailsForm.SetLogText(GUI.LogItems[RevIndex].Text, GUI.LogItems[RevIndex].Output);
-  LogDetailsForm.ShowModal;
+  ShowLastError(RevIndex, '');
 end;
 
 procedure TMainForm.acOpenConfigFileExecute(Sender: TObject);
@@ -609,25 +622,41 @@ end;
 
 procedure TMainForm.ShowConfigForm(const TabName: string);
 begin
-  var ConfigInfo := TConfigInfo.Create;
+  var Form := TConfigForm.Create(Application);
   try
-    GUI.GetServerConfigItems(ConfigInfo.Servers);
+    var Ids: TArray<string> := nil;
+    for var Product in GUI.Products do Ids := Ids + [Product.Id];
+    Form.ProductIds := Ids;
+    var Info := GUI.Info;
+    Form.InstalledIDEs := Info.InstalledIDEs;
+    Form.InstalledIDEsKnown := Info.InstalledIDEsKnown;
 
-    var Form := TConfigForm.Create(Application);
-    try
-      Form.OnUpdateServers := procedure
-        begin
-          GUI.UpdateServerConfigItems(ConfigInfo.Servers);
-          GUI.RefreshServers;
-        end;
-      Form.Execute(ConfigInfo);
-    finally
-      Form.Free;
-    end;
+    Form.OnLoad := function(Config: TTmsConfig): Boolean
+      begin
+        Result := GUI.ReadConfig(Config);
+      end;
+    Form.OnSave := function(Config: TTmsConfig): Boolean
+      begin
+        Result := GUI.WriteConfig(Config);
+      end;
+    // The registry key, Delphi versions and platforms change what shows as installed.
+    Form.OnSaved := procedure
+      begin
+        GUI.RefreshServers;
+        GUI.RefreshProductList;
+      end;
+    Form.OnOpenConfigFile := procedure
+      begin
+        GUI.ExecuteConfigure();
+      end;
+    Form.OnShowLastError := Procedure(msg: string)
+      begin
+        ShowLastError(GUI.LogItems.Count - 1, msg);
+      end;
+    Form.Execute(TabName);
   finally
-    ConfigInfo.Free;
+    Form.Free;
   end;
-
 end;
 
 procedure TMainForm.acSettingsExecute(Sender: TObject);

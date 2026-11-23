@@ -78,6 +78,7 @@ public
 
 strict protected
   ClearArrayValues: TProc;  //allows to clear an array before adding new values.
+  LastCleared: string;
 
 public
   SectionValueTypes: TSectionValueTypes; //Only needed to set in data sections.
@@ -302,6 +303,9 @@ end;
 
 procedure TSection.ClearValues;
 begin
+  if Root.CreatedBy = LastCleared then exit;
+  LastCleared := Root.CreatedBy;
+
   if Assigned(ClearArrayValues) then ClearArrayValues;
   if Actions <> nil then Actions.ResetDuplicates;
 end;

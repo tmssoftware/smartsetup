@@ -213,6 +213,7 @@ The following functions are defined in util.modules.psm1:
   * **CheckTextHasString(variable, message)**: Checks the variable contains message, and throws if it doesn't. 
   * **Test-tmsgui**: runs a tmsgui automation script and check it against a reference file.
   * **New-AutoUpdateBundle**: Creates an auto-update bundle with a "newer" version of smartsetup to try autoupdates.
+  * **DiffText**: compares 2 arrays of strings
 
 A starting tms.config.yaml is provided automatically to all `tms` calls, so you don't need to specify what is already specified there.
 

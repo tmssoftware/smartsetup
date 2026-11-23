@@ -27,6 +27,8 @@ TBBCmdReader = class
     class procedure ProcessOneParameter(const Parameter, SectionSeparator: string; const MainSection: TSection; const OnlyValidate: boolean);
     class function IsSeparator(const Parameter: string; const Position: integer;
       const SectionSeparator: string): boolean; static;
+    class procedure ProcessObject(const ObjStr: string; const Section: TSection;
+      const ErrorInfo: TErrorInfo); static;
   public
     class procedure ProcessCommandLine(const Parameters: array of string; const MainSection: TSection; const SectionSeparator: string; const OnlyValidate: boolean);
     class function AdaptForCmd(const s, SectionSeparator: string): string; static;
@@ -61,6 +63,12 @@ class procedure TBBCmdReader.ProcessArray(const ArrayStr: string;
   const Section: TSection; const ErrorInfo: TErrorInfo);
 begin
   TBBFlowParser.GetFlowArray(ArrayStr.Trim, Section, ErrorInfo);
+end;
+
+class procedure TBBCmdReader.ProcessObject(const ObjStr: string;
+  const Section: TSection; const ErrorInfo: TErrorInfo);
+begin
+  TBBFlowParser.GetFlowObject(ObjStr.Trim, Section, ErrorInfo);
 end;
 
 class function TBBCmdReader.IsSeparator(const Parameter: string; const Position: integer; const SectionSeparator: string): boolean;
@@ -207,7 +215,10 @@ begin
         end;
       end
 
-      else if not OnlyValidate then raise Exception.Create('Can''t access section: ' + ActionStr + ' from the command line. ' + ErrorInfo.ToString);
+      else if not OnlyValidate then
+      begin
+        ProcessObject(Value, Section, ErrorInfo);
+      end;
     end;
 
   finally

@@ -19,8 +19,10 @@ uses
   UCommonTypes in 'src\UCommonTypes.pas',
   Forms.VersionPicker in 'src\Forms.VersionPicker.pas' {VersionPickerForm},
   Forms.Start in 'src\Forms.Start.pas' {StartForm},
-  Forms.Config.Servers in 'src\Forms.Config.Servers.pas' {ServerConfigForm},
   Forms.Config in 'src\Forms.Config.pas' {ConfigForm},
+  UConfigModel in 'src\UConfigModel.pas',
+  BBError in '..\common\src\BBYaml\BBError.pas',
+  BBStrings in '..\common\src\BBYaml\BBStrings.pas',
   Vcl.Themes,
   Vcl.Styles,
   UTheming in 'src\UTheming.pas',
@@ -33,7 +35,9 @@ uses
   Forms.Restore in 'src\Forms.Restore.pas' {RestoreForm},
   Forms.Backup in 'src\Forms.Backup.pas' {BackupForm},
   Forms.BackupResults in 'src\Forms.BackupResults.pas' {BackupResultsForm},
-  Deget.IDETypes in '..\common\src\Deget\Deget.IDETypes.pas';
+  Deget.IDETypes in '..\common\src\Deget\Deget.IDETypes.pas',
+  UVCLUtils in 'src\UVCLUtils.pas',
+  Forms.AddProduct in 'src\Forms.AddProduct.pas' {AddProductForm};
 
 {$R *.res}
 

@@ -10,10 +10,13 @@ implementation
 uses UCommandLine, Commands.CommonOptions, Commands.Logging,
      UConfigWriter, Types, Commands.LocalConfig, UConfigSources;
 
+var
+  OptionClear: boolean;
+
 procedure RunConfigWriteCommand;
 begin
   InitFolderBasedCommand(false);
-  var Cfg := TSourcedConfig.Create([TConfigSource.Main]);
+  var Cfg := TSourcedConfig.Create([TConfigSource.Main], OptionClear);
   try
     var ConfigWriter := TConfigWriter.Create(Cfg.Instance, false);
     try
@@ -38,6 +41,16 @@ begin
   cmd.Examples.Add('config-write -p:tms-smart-setup-options:git:git-location=c:\git.exe');
 
   RegisterConfigSourceOption(cmd);
+
+  var option := cmd.RegisterOption<boolean>('clear', '', 'deletes any previous configuration. Useful if you want to completely replace it with a new one.',
+    procedure(const Value: boolean)
+    begin
+      OptionClear := value;
+    end);
+  option.HasValue := false;
+  option.AllowMultiple := false;
+
+
   AddCommand(cmd.Name, CommandGroups.Config, RunConfigWriteCommand);
 end;
 

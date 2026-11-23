@@ -780,6 +780,7 @@ begin
   inherited Create(aParent, aConfig, aProductConfig);
 
   ClearArrayValues := procedure begin aConfig.ServerConfig.ClearServers;end;
+
   for var i := Low(TServerConfig.BuiltinServers) to High(TServerConfig.BuiltinServers) do
   begin
     var server := TServerConfig.BuiltinServers[i];
@@ -791,10 +792,10 @@ begin
     begin
       if ChildSections.TryGetValue(Name, Result, ErrorInfo) then
       begin
-        if (Result.CreatedBy <> Root.CreatedBy) then
+        if (Result.CreatedBy <> Root.CreatedBy) or (Root.CreatedBy = 'Command line') then
         begin
           Result.CreatedBy := Root.CreatedBy;
-          exit; //Allow you to define the same server in different files. Not twice in the same file.
+          exit; //Allow you to define the same server in different files. Not twice in the same file. But yes twice in the command line, so you can set the url of an existing server and other properties in the same command.
         end;
 
         raise Exception.Create('The server "' + Name

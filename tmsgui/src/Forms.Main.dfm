@@ -343,7 +343,7 @@ object MainForm: TMainForm
                         AlignWithMargins = True
                         Left = 3
                         Top = 3
-                        Width = 238
+                        Width = 3
                         Height = 15
                         Align = alTop
                         Constraints.MaxHeight = 200
@@ -355,7 +355,6 @@ object MainForm: TMainForm
                         ParentFont = False
                         ShowAccelChar = False
                         WordWrap = True
-                        ExplicitWidth = 3
                       end
                       object OneProdUrl: TLabel
                         AlignWithMargins = True

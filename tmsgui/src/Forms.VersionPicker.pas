@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.StdCtrls,
-  Forms.Config.Servers, UCommonTypes;
+  UCommonTypes;
 
 type
   TVersionPickerForm = class(TForm)
@@ -25,6 +25,7 @@ type
   end;
 
 implementation
+uses UVCLUtils;
 
 {$R *.dfm}
 
@@ -35,7 +36,7 @@ end;
 
 procedure TVersionPickerForm.cbVersionChange(Sender: TObject);
 begin
-  btOk.Enabled := cbVersion.Text <> '';
+  btOk.Enabled := CaptionToString(cbVersion.Text).Trim <> '';
 end;
 
 function TVersionPickerForm.DoExecute(const ProductName: string; Versions: TVersionInfoList): string;

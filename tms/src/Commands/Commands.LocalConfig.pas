@@ -14,7 +14,7 @@ TSourcedConfig = class
     function ConfigSources: TConfigSourceSet;
 
   public
-    constructor Create(const aDefaultConfigSources: TConfigSourceSet);
+    constructor Create(const aDefaultConfigSources: TConfigSourceSet; const Clear: boolean = false);
     destructor Destroy; override;
 
     property Instance: TConfigDefinition read FInstance;
@@ -29,11 +29,11 @@ end;
 implementation
 uses Commands.GlobalConfig;
 
-constructor TSourcedConfig.Create(const aDefaultConfigSources: TConfigSourceSet);
+constructor TSourcedConfig.Create(const aDefaultConfigSources: TConfigSourceSet; const Clear: boolean);
 begin
   inherited Create;
   DefaultConfigSources := aDefaultConfigSources;
-  FInstance := NewConfig(ConfigSources);
+  if Clear then FInstance := NewConfig([]) else FInstance := NewConfig(ConfigSources);
 end;
 
 destructor TSourcedConfig.Destroy;

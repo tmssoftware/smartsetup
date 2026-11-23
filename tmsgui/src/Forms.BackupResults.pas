@@ -35,7 +35,7 @@ type
 implementation
 
 uses
-  Winapi.ShellAPI, System.Generics.Collections, System.Generics.Defaults;
+  Winapi.ShellAPI, System.Generics.Collections, System.Generics.Defaults, UVCLUtils;
 
 {$R *.dfm}
 
@@ -98,7 +98,7 @@ begin
   else
     lbProducts.Caption := Format('It contains %d products:', [Length(Sorted)]);
   if NotInFile > 0 then
-    lbProducts.Caption :=  String(lbProducts.Caption).Replace(':', '') +
+    lbProducts.Caption :=  CaptionToString(lbProducts.Caption).Replace(':', '') +
       Format(' (%d of them only in the snapshot, not in the file):', [NotInFile]);
 end;
 

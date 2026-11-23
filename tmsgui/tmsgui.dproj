@@ -157,14 +157,13 @@
             <Form>StartForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="src\Forms.Config.Servers.pas">
-            <Form>ServerConfigForm</Form>
-            <FormType>dfm</FormType>
-        </DCCReference>
         <DCCReference Include="src\Forms.Config.pas">
             <Form>ConfigForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="src\UConfigModel.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBError.pas"/>
+        <DCCReference Include="..\common\src\BBYaml\BBStrings.pas"/>
         <DCCReference Include="src\UTheming.pas"/>
         <DCCReference Include="src\Forms.LogDetails.pas">
             <Form>LogDetailsForm</Form>
@@ -192,6 +191,11 @@
             <Form>BackupResultsForm</Form>
         </DCCReference>
         <DCCReference Include="..\common\src\Deget\Deget.IDETypes.pas"/>
+        <DCCReference Include="src\UVCLUtils.pas"/>
+        <DCCReference Include="src\Forms.AddProduct.pas">
+            <Form>AddProductForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>
