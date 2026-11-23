@@ -1,0 +1,24 @@
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+click acSettings 
+wait self.Name = ConfigForm
+wait self.IsReady = true
+
+assert edAltRegKey.Text = patata
+
+assert lbServerList.Count = 3
+set lbServerList.ItemIndex 2
+call self.UpdateSelectedServer
+wait self.IsReady = true
+wait btServerRemove.Enabled = true
+click btServerRemove
+
+assert lbServerList.Count = 2
+
+click btOk
+
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+
+
+

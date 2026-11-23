@@ -125,7 +125,6 @@ type
 
     // Servers
     procedure UpdateServerList;
-    procedure UpdateSelectedServer;
     procedure SelectServer(Index: Integer; FocusControl: TWinControl = nil);
     function SelectedServer: TServerConfigItem;
     procedure ValidateServers;
@@ -146,6 +145,9 @@ type
   public
     // Returns false if the configuration couldn't be read. TabName can be '' or 'servers'.
     function Execute(const TabName: string): Boolean;
+    function IsReady: boolean;
+    procedure UpdateSelectedServer;
+
 
     // Read and write the configuration. They return false if it failed.
     property OnLoad: TFunc<TTmsConfig, Boolean> read FOnLoad write FOnLoad;
@@ -220,6 +222,11 @@ procedure TConfigForm.FormDestroy(Sender: TObject);
 begin
   FServers.Free;
   FConfig.Free;
+end;
+
+function TConfigForm.IsReady: boolean;
+begin
+  Result := FLoading = 0;
 end;
 
 function TConfigForm.Execute(const TabName: string): Boolean;
@@ -299,24 +306,32 @@ end;
 
 function TConfigForm.ApplyChanges: Boolean;
 begin
-  ValidateServers;
-  FConfig.SetServers(FServers);
-  FConfig.ToParams; // raises on values we can't send, before we run tms.
+  try
+    ValidateServers;
+    FConfig.SetServers(FServers);
+    FConfig.ToParams; // raises on values we can't send, before we run tms.
 
-  if not Assigned(FOnSave) or not FOnSave(FConfig) then
+    if not Assigned(FOnSave) or not FOnSave(FConfig) then
+    begin
+      if Assigned(OnShowLastError) then OnShowLastError('Saving the configuration failed.')
+      else TDialogForm.ShowMessage('Saving the configuration failed. See the log for details.');
+      Exit(False);
+    end;
+    btApply.Enabled := False;
+    if Assigned(FOnSaved) then FOnSaved();
+
+    // Show what tms actually saved. A product with nothing set isn't saved, so its tab goes away.
+    var ProductId := '';
+    if CurrentProduct <> nil then ProductId := CurrentProduct.Id;
+    if Assigned(FOnLoad) and FOnLoad(FConfig) then LoadControls(ProductId);
+    Result := True;
+  except on ex:Exception do
   begin
-    if Assigned(OnShowLastError) then OnShowLastError('Saving the configuration failed.')
-    else TDialogForm.ShowMessage('Saving the configuration failed. See the log for details.');
-    Exit(False);
+    TDialogForm.ShowMessage('ERROR: ' + ex.Message);
+    Result := false;
   end;
-  btApply.Enabled := False;
-  if Assigned(FOnSaved) then FOnSaved();
 
-  // Show what tms actually saved. A product with nothing set isn't saved, so its tab goes away.
-  var ProductId := '';
-  if CurrentProduct <> nil then ProductId := CurrentProduct.Id;
-  if Assigned(FOnLoad) and FOnLoad(FConfig) then LoadControls(ProductId);
-  Result := True;
+  end;
 end;
 
 procedure TConfigForm.btApplyClick(Sender: TObject);

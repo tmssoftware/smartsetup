@@ -1,0 +1,33 @@
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+click acSettings 
+wait self.Name = ConfigForm
+wait self.IsReady = true
+
+assert edAltRegKey.Text = 
+set-text edAltRegKey patata
+
+assert lbServerList.Count = 2
+
+click btServerAdd
+
+assert lbServerList.Count = 3
+set-text edServerName tomate
+set cbServerType.ItemIndex 0
+call self.UpdateSelectedServer
+wait self.IsReady = true
+
+click btApply
+
+wait self.Name = DialogForm
+assert MemoMessage.Text ~ Url cannot be empty
+click btnOk
+
+set-text edServerUrl http://tmssoftware.com
+set cbAllowInsecure.Checked true
+click btOk
+wait self.Name = MainForm
+wait Self.IsGuiRunning = false
+
+
+

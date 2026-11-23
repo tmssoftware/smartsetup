@@ -686,7 +686,7 @@ procedure TGUIAutomator.DoSetText(const Action: TAutomationData);
 begin
   var Edit := GetComponent<TCustomEdit>(Action.Target, 'edit box/memo');
 
-  if IsAvailable(Edit, 'set-text: Cannot set text of ' + GetName(Action) + ' to "' + Redact(Action.Data)) then
+  if IsAvailable(Edit, 'set-text: Cannot set text of ' + GetName(Action) + ' to "' + Redact(Action.Data) + '"') then
   begin
     var Value := ReplaceVar(Action.Data);
     Edit.Text := Value;
@@ -698,7 +698,7 @@ procedure TGUIAutomator.DoSet(const Action: TAutomationData);
 begin
   var Control := GetComponent<TControl>(Action.Target, 'control');
 
-  if IsAvailable(Control, 'set: Cannot set property ' + GetName(Action) + ' to "' + Redact(Action.Data)) then
+  if IsAvailable(Control, 'set: Cannot set property ' + GetName(Action) + ' to "' + Redact(Action.Data) + '"') then
   begin
     SetDynamicPropValue(Control, GetProp(Action.Target), Action.Data);
     Log('set: ' + GetName(Action) + ' to "' + Redact(Action.Data) +'"');

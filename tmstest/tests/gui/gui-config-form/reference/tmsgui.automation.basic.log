@@ -1,0 +1,25 @@
+Starting Automation
+wait: condition self.Name = MainForm
+wait: condition Self.IsGuiRunning = false
+click: "MainForm.acSettings"
+wait: condition self.Name = ConfigForm
+wait: condition self.IsReady = true
+assert: "edAltRegKey.Text =" is true
+set-text: "ConfigForm.edAltRegKey" to "patata"
+assert: "lbServerList.Count = 2" is true
+click: "ConfigForm.btServerAdd"
+assert: "lbServerList.Count = 3" is true
+set-text: "ConfigForm.edServerName" to "tomate"
+set: "ConfigForm.cbServerType.ItemIndex" to "0"
+call: "ConfigForm.self.UpdateSelectedServer"
+wait: condition self.IsReady = true
+click: "ConfigForm.btApply"
+wait: condition self.Name = DialogForm
+assert: "MemoMessage.Text ~ Url cannot be empty" is true
+click: "DialogForm.btnOk"
+set-text: "ConfigForm.edServerUrl" to "http://tmssoftware.com"
+set: "ConfigForm.cbAllowInsecure.Checked" to "true"
+click: "ConfigForm.btOk"
+wait: condition self.Name = MainForm
+wait: condition Self.IsGuiRunning = false
+Completed successfully

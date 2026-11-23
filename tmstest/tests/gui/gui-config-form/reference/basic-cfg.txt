@@ -1,0 +1,50 @@
+tms smart setup options:
+  build cores: 0
+  alternate registry key: patata
+  working folder:
+  prevent sleep: true
+  versions to keep: -1
+  error if skipped: true
+  excluded products: []
+  included products: []
+  additional products folders: []
+  auto snapshot filenames: []
+  servers:
+    tms:
+      enabled: true
+    community:
+      enabled: false
+    tomate:
+      type: zipfile
+      url: http://tmssoftware.com
+      enabled: true
+      allow insecure connections: true
+  git:
+    git location:
+    clone command:
+    pull command:
+  svn:
+    svn location:
+    checkout command:
+    update command:
+  dcu megafolders: []
+configuration for all products:
+  options:
+    verbosity: info
+    skip register: true
+    dry run: false
+  delphi versions: [delphi12,delphi13]
+  platforms: [win32intel]
+  compilation options:
+    debug dcus: false
+    run build events: false
+    defines: []
+  advanced options:
+    use symlinks: false
+    keep parallel folders: true
+    modify sources: false
+    partial builds: false
+    add source code to library path: false
+  compiler paths:
+    lazarus:
+    delphi13:
