@@ -15,12 +15,13 @@ uses
   Deget.CoreTypes, UConfigKeys, UIDEUtils;
 
 // The IDEs we can build for in this machine, using the same check as the build: the IDE is in the registry
-// (or the alternate registry key), or there is a compiler path in the config. Paths set only for one product
+// (not the alternate registry key), or there is a compiler path in the config. Paths set only for one product
 // don't count. Returns nil if the config can't be loaded, so info still works with a broken config.
 function InstalledIDEs: TJSONArray;
 begin
   try
     var Cfg := ConfigNoCheck;
+    Cfg.AlternateRegistryKey := '';  //we won't search for installs in registry keys, just the "real" ones.
     Result := TJSONArray.Create;
     for var dv := Low(TIDEName) to High(TIDEName) do
     begin
