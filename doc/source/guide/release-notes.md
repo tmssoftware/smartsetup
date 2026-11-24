@@ -31,6 +31,12 @@ uid: SmartSetup.ReleaseNotes
 
 - **New**: [tms info](xref:SmartSetup.Command.Info) now shows the IDEs installed in the machine.
 
+- **New**: `-skip-extraction` parameter in [tms fetch](xref:SmartSetup.Command.Fetch), to download products without installing them.
+
+- **New**: `-json` parameter in [tms sbom-generate](xref:SmartSetup.Command.SbomGenerate), and `homepage`, `version_history_url` and `available_defines` fields in the JSON output of [tms list-remote](xref:SmartSetup.Command.ListRemote).
+
+- **New**: `-fully-interactive` parameter in [tms doctor](xref:SmartSetup.Command.Doctor), which asks how to run before starting the checks.
+
 - **Improved**: **Configuration files are no longer merged when writing.** Before, `tms config-write` and the `tms server-*` commands wrote the merged configuration back into `tms.config.yaml`, so values from `tms.config.local.yaml`, `tms.config.global.yaml` or `-p` parameters could end up in the file you commit. Now these commands load and write only one file.
 
 - **Improved**: Better compatibility with YAML 1.2. Comments work like in standard YAML, and flow arrays are parsed properly: elements can be quoted, arrays can contain other arrays, and trailing commas are ignored. The [-p syntax](xref:SmartSetup.ContinuousIntegration#-p-command-to-pass-a-configuration-to-tms) supports the same features, so you can for example define packages from the command line in [tms spec](xref:SmartSetup.Command.Spec) with `-s:"packages=[Example_Core:[runtime,vcl]]"`.

@@ -27,6 +27,24 @@ Use `-server` to limit results to a single server. Use `-json` to produce machin
 | `-json`             | Outputs the product list in JSON format instead of plain text.      |
 | `-server:<server>`  | Limits results to the specified server name.                        |
 
+## JSON Output
+
+With `-json`, the output is an object with one entry per product, keyed by product ID. Each entry has these fields:
+
+| Field                 | Description                                                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `version`             | The latest version. Empty for products from Git or SVN servers, like `community`.                                |
+| `version_type`        | How the version is compared, for example semantic versioning for API servers, or free form for Git or SVN servers. |
+| `name`                | The product name.                                                                                                |
+| `license_status`      | Only for API servers, when the server returns a license status for the product.                                  |
+| `vendor_id`           | Only for API servers, when the server returns a vendor for the product.                                          |
+| `server`              | The server the product comes from.                                                                               |
+| `description`         | The product description.                                                                                         |
+| `url`                 | The product URL. For Git or SVN servers, this is the URL of the repository.                                      |
+| `homepage`            | Only for Git or SVN servers. The `homepage` in the `application` section of the product's tmsbuild.yaml.         |
+| `version_history_url` | Only for Git or SVN servers. The `version history url` in the `application` section of the product's tmsbuild.yaml. |
+| `available_defines`   | An array with the defines the product accepts, each one with a `name` and a `description`. Always empty for API servers, which don't return the available defines yet. |
+
 ## Global Options
 
 See [Global Options](xref:SmartSetup.Command.GlobalOptions) for options available to all commands.

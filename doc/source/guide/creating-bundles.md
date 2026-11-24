@@ -91,6 +91,16 @@ If you follow standard naming for your folders and libsuffixes, the `tmsbuild.ya
 
 Here, you just need to provide basic information about the package. It is recommended that you have a file “version.txt” at the root of your bundle, where SmartSetup can read the version number. This version number will be used in many places, so you should have tools to update it automatically.
 
+Besides the `url` (which for products hosted in Git or SVN is the URL of the repository), you can provide a `homepage` with the web page of the product, and a `version history url` with a page that lists the changes in each version. [tms list-remote](xref:SmartSetup.Command.ListRemote) returns them in its JSON output, and [tmsgui](xref:SmartSetup.GUIToolUsage) shows them as links in the details panel of the product.
+
+```yaml
+application:
+  homepage: https://www.tmssoftware.com/site/example.asp
+  version history url: https://www.tmssoftware.com/site/example.asp?s=history
+```
+
+Starting with SmartSetup 4.0, unknown properties in this section are ignored, so a tmsbuild.yaml that uses a property added in a later SmartSetup version can still be loaded.
+
 ### **supported frameworks** section
 
 In this section, you will define “Frameworks” that will later be used by the packages. A framework definition in SmartSetup is just a group of supported **IDEs** and **Platforms**. You might define multiple frameworks for your packages, and each package can support multiple frameworks.
@@ -187,6 +197,20 @@ Currently, SmartSetup supports generating packages for Delphi XE or newer. It wi
 
 By default, SmartSetup will automatically add all needed paths to Delphi when installing. But you might need to specify additional paths to be added to the library/browsing path that SmartSetup can’t figure out by itself. You can use this section to add those additional paths.
 
+The paths in `extra library paths` are added to both the Delphi and the C++ Builder library paths. If a path is needed only by one of them, use `extra delphi library paths` or `extra cpp library paths` instead. You can also add paths to the C++ Builder include path with `extra cpp include paths`.
+
+```yaml
+paths:
+  extra library paths:
+    - source\common
+  extra delphi library paths:
+    - source\delphi
+  extra cpp library paths:
+    - source\cpp
+  extra cpp include paths:
+    - include
+```
+
 {{#Note}}
 
 Try to add as little as possible here. The more stuff you add, the more crowded the library path for Delphi will be. Also, try not to add source files to the library path unless really necessary. SmartSetup can work with a lot of libraries, and if they all add their sources to the library path, compilation of projects from the IDE will become really slow.
@@ -236,7 +260,16 @@ By default, SmartSetup has disabled the “modify sources” parameter in `tms.c
 
 {{/Important}}
 
-Besides the `defines filename`, here you can specify which defines your user might specify when compiling your application. Currently, this isn’t used anywhere, but a GUI could read those values and present a list to the users so they can click in a checkbox “RTTI” for your library. It also works as a documentation: users who know might read your `tmsbuild.yaml` file and get a list of available defines they can use from here.
+Besides the `defines filename`, here you can specify in `available defines` which defines your users might specify when compiling your product. Each define can optionally have a description after the name:
+
+```yaml
+defines:
+  available defines:
+    - RTTI
+    - USE_UNICODE: Use unicode strings in the components.
+```
+
+[tmsgui](xref:SmartSetup.GUIToolUsage) shows these defines and their descriptions when users add a define for your product in the settings, and [tms list-remote](xref:SmartSetup.Command.ListRemote) returns them in its JSON output. The list also works as documentation: users can read your `tmsbuild.yaml` file to see which defines they can use.
 
 ### **registry keys** section
 

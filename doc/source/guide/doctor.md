@@ -50,6 +50,8 @@ tms doctor [options]
   tms doctor -fix -do-not-confirm
   ```
 
+You can also run doctor from [tmsgui](xref:SmartSetup.GUIToolUsage) with the **Doctor** button. It opens a console window that asks whether you want to only diagnose, confirm each fix, or apply all fixes automatically. See [tms doctor](xref:SmartSetup.Command.Doctor) for all the options.
+
 ## Checks Performed
 
 The `doctor` command runs multiple independent checks. Below is a list of checks and what they diagnose and fix.

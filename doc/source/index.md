@@ -17,9 +17,11 @@ You can use TMS Smart Setup from command-line, or use a GUI tool. Command-line i
 It provides command-line and GUI tools that work together to provide a modern install experience for TMS products. Some of key features are:
 
 * Easy. A single command can download or install the full suite of TMS products at once.
-* Fully scriptable. While there are planned GUI tools to allow the user easily choose options and products to install, all the work is done by command-line tools. You can call those tools from a bat file in a CI server and automate the installs. We can call those tools from others like TMS subscription manager or TMS Dashboard.
+* Fast. SmartSetup tries to do as much work in parallel as possible. It doesn't need to wait until you installed Product A to start installing Product B, and the differences in speed are very noticeable.
+* Fully scriptable. While there are GUI tools to allow the user easily choose options and products to install, all the work is done by command-line tools. You can call those tools from a bat file in a CI server and automate the installs. We can call those tools from others like TMSGui or TMS Dashboard.
 * Multi-platform. The tools will work in Windows, Mac and Linux, allowing people using Lazarus (under work) to install in other platforms than Windows without running an exe.
 * No admin permissions needed. So it can install everything as a normal user.
+* Installs products from TMS or from git/svn repositories. You can also install your own private products with it.
 
 ### Smart download
 
@@ -38,7 +40,8 @@ TMS Smart Setup builds the source code of products and install them in the suppo
 * Parallel package build for faster installation
 * Smart and fast rebuild by only rebuilding packages that have been modified
 * Supports since Delphi 7 up to latest version
-* Registers design-time packages and in Delphi IDE and properly modify paths (library path, debug DCU path, browsing path, etc.)
+* Registers design-time packages and in Delphi IDE and properly modify paths (library path, debug DCU path, browsing path, etc.). Or not. If you prefer, you can just build the packages and register nothing
 * Smart uninstall, removing all IDE registration and generated binary files
 * Dependency checker: you can define projects depending on others and build/registration process will work accordingly
+* Can build packages or executables
 

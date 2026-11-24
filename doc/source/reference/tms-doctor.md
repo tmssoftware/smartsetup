@@ -28,6 +28,7 @@ Fixes that require selecting among multiple options cannot be applied automatica
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `-fix`            | Applies fixes for the issues found. Prompts for confirmation before each change unless `-do-not-confirm` is also set. |
 | `-do-not-confirm` | Skips confirmation prompts when used together with `-fix`. Applies yes/no fixes automatically.                        |
+| `-fully-interactive` | Before running the checks, asks whether to only diagnose, confirm each fix, or apply all fixes automatically. The values of `-fix` and `-do-not-confirm` are ignored. [tmsgui](xref:SmartSetup.GUIToolUsage) uses it when you press the Doctor button. |
 
 ## Global Options
 
@@ -51,6 +52,12 @@ Runs all checks and applies yes/no fixes automatically without prompting:
 
 ```shell
 tms doctor -fix -do-not-confirm
+```
+
+Asks how to run before starting, and keeps the console window open at the end:
+
+```shell
+tms doctor -fully-interactive -pause
 ```
 
 ## See Also

@@ -9,7 +9,7 @@ Downloads newer versions of currently installed products.
 ## Synopsis
 
 ```shell
-tms fetch [<product-ids>] [<global-options>]
+tms fetch [<product-ids>] [-skip-extraction] [<global-options>]
 ```
 
 ## Description
@@ -24,11 +24,19 @@ For licensed products from a TMS API server, fetch contacts the server using sto
 
 For public products from a community server, fetch runs a `git clone` if the product is new, or a `git pull` if a working copy already exists. The full product contents are available in the products folder after fetch completes.
 
+With `-skip-extraction`, the bundles are downloaded to the downloads folder, but they are not extracted into the products folder, so the installed products don't change. Dependencies are read from the downloaded bundles. Products from Git or SVN are fetched into a temporary folder instead of the products folder. As with every download, old versions in the downloads folder are removed according to the `versions to keep` setting.
+
 ## Arguments
 
 | Argument        | Description                                                                                                      |
 | --------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `<product-ids>` | One or more product IDs to download. Multiple IDs can be separated by commas or provided as separate arguments. Supports wildcard patterns such as `tms.biz.*`. Optional — if omitted, all installed products are updated. |
+
+## Options
+
+| Option             | Description                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `-skip-extraction` | Only downloads the products. They are not extracted to the products folder, so nothing is installed or updated. |
 
 ## Global Options
 
@@ -52,6 +60,12 @@ Downloads newer versions of all products in two product families using wildcards
 
 ```shell
 tms fetch tms.biz.* tms.vcl.*
+```
+
+Downloads the latest bundle of `tms.biz.aurelius` and its dependencies without installing them:
+
+```shell
+tms fetch tms.biz.aurelius -skip-extraction
 ```
 
 ## See Also
