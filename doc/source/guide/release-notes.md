@@ -4,6 +4,85 @@ uid: SmartSetup.ReleaseNotes
 
 # Release Notes
 
+## Version 4.0 (November, 2026)
+
+- **New**: **Backups.** The new [tms backup](xref:SmartSetup.Command.Backup) command saves products into a `.zip` file together with a snapshot. It can back up the official releases of the products you specify, with their dependencies, or the products exactly as they are installed on your disk with `-as-installed`. [tms restore](xref:SmartSetup.Command.Restore) can now restore from those backup files, installing the products stored in the file without downloading anything. The new [tms backup-info](xref:SmartSetup.Command.BackupInfo) command shows what a backup file contains.
+
+- **New**: **Redesigned tmsgui.** The GUI has a new details panel with information about the selected product, including the Delphi versions it is installed in. There are new buttons to create backups, restore from a snapshot or backup (choosing which products inside the backup to restore), generate SBOMs and run `tms doctor`. There is also a new configuration form to edit the settings in `tms.config.yaml`, which shows the available defines and their descriptions when you add a define. Other GUI improvements:
+   - A clearer error list, where double-clicking an error shows its details.
+   - A spinning indicator while actions run, and progress shown in the taskbar button.
+   - You can change the working folder by clicking the folder in the status bar.
+   - You can cancel an automatic update, and close the app from the welcome screen. You can also disable all servers to work offline.
+   - Ctrl+A selects all products, and the selection is kept when the list is refreshed or filtered.
+
+- **New**: **Credentials from environment variables.** You can now provide the credentials for the `tms` server with the `SMARTSETUP_EMAIL` and `SMARTSETUP_CODE` environment variables. This is needed in sessions where the Windows Credential Manager is not available, like SSH, Windows services or CI agents. See [Environment Variables in tms credentials](xref:SmartSetup.Command.Credentials#environment-variables).
+
+- **New**: **`-config-source` parameter** in [tms config-read](xref:SmartSetup.Command.ConfigRead), [tms config-write](xref:SmartSetup.Command.ConfigWrite), [tms server-add](xref:SmartSetup.Command.ServerAdd), [tms server-enable](xref:SmartSetup.Command.ServerEnable), [tms server-remove](xref:SmartSetup.Command.ServerRemove) and [tms server-list](xref:SmartSetup.Command.ServerList). It lets you read or modify `tms.config.local.yaml` or `tms.config.global.yaml` instead of `tms.config.yaml`.
+
+- **New**: `homepage` and `version history url` fields in the `application` section of tmsbuild.yaml.
+
+- **New**: `extra delphi library paths`, `extra cpp library paths` and `extra cpp include paths` in the `paths` section of tmsbuild.yaml, to add paths only to Delphi or only to C++ Builder. The existing `extra library paths` are now added to both the Delphi and the C++ Builder library paths.
+
+- **New**: Defines in `available defines` in tmsbuild.yaml can now have a description, for example `- USE_UNICODE: Use unicode strings in the components.`
+
+- **New**: Global `-pause` option, which waits for Enter before tms exits, so the output stays visible when tms runs in its own console window.
+
+- **New**: [tms log-view](xref:SmartSetup.Command.LogView) accepts a session id to open the log of an older session. HTML logs now keep the last 10 sessions like the text logs, and support dark mode.
+
+- **New**: [tms info](xref:SmartSetup.Command.Info) now shows the IDEs installed in the machine.
+
+- **Improved**: **Configuration files are no longer merged when writing.** Before, `tms config-write` and the `tms server-*` commands wrote the merged configuration back into `tms.config.yaml`, so values from `tms.config.local.yaml`, `tms.config.global.yaml` or `-p` parameters could end up in the file you commit. Now these commands load and write only one file.
+
+- **Improved**: Better compatibility with YAML 1.2. Comments work like in standard YAML, and flow arrays are parsed properly: elements can be quoted, arrays can contain other arrays, and trailing commas are ignored. The [-p syntax](xref:SmartSetup.ContinuousIntegration#-p-command-to-pass-a-configuration-to-tms) supports the same features, so you can for example define packages from the command line in [tms spec](xref:SmartSetup.Command.Spec) with `-s:"packages=[Example_Core:[runtime,vcl]]"`.
+
+- **Improved**: Rewritten package generator, with better support for `generate from` and for adding .rc files with masks.
+
+- **Improved**: Unknown properties in the `application` section of tmsbuild.yaml are now ignored instead of raising an error.
+
+- **Improved**: Running more than one tms.exe in the same folder at the same time is now safer. For example, a `tms list` started while `tms install` is running won't delete the temporary files that the install is using.
+
+- **Improved**: Configuration, spec, fetch info and uninstall files are now written atomically, so an error or a crash while saving won't leave a corrupted file.
+
+- **Improved**: The self-update process is more robust. It is all-or-nothing, it works even if the `tms` server is disabled, and if the TMS server can't be reached it downloads the latest release from the [Smart Setup GitHub repository](https://github.com/tmssoftware/smartsetup/releases).
+
+- **Improved**: When an exe is compiled for more than one Delphi version, the dcus for every version go to a different `$(ProductVersion)` folder.
+
+- **Improved**: Folder macros like `$(ProductVersion)` are now passed to the compiler as environment variables, so `/p` parameters that use them don't fail.
+
+- **Improved**: `tms spec` lets you retry or choose another file if it can't save tmsbuild.yaml, so you don't lose your answers.
+
+- **Improved**: Pressing Ctrl+C while a download is running deletes the partial file.
+
+- **Security**: Smart Setup now protects against malicious symlinks in downloaded git repositories.
+
+- **Security**: Before running a downloaded update, SmartSetup checks that it is signed by the same publisher as the running `tms.exe`.
+
+- **Security**: User information in URLs (like `https://user:password@server`) is now redacted in the logs, and product ids and versions are url-encoded when sent to the server.
+
+- **Fixed**: Installing in localized Delphi Community Edition versions (for example, German) failed, because SmartSetup didn't recognize the localized success message.
+
+- **Fixed**: In Delphi 7, SmartSetup could modify an empty environment registry key, causing problems in the IDE.
+
+- **Fixed**: The `alternate registry key` setting in tms.config.yaml was ignored when building.
+
+- **Fixed**: When compiling C++ Builder exes, the exe wasn't created where the cbproj expected it.
+
+- **Fixed**: A build could hang using 100% of the CPU when a dependency had nothing to build.
+
+- **Fixed**: A full build could wipe the dcu megafolder when some products were excluded.
+
+- **Fixed**: `HKEY_LOCAL_MACHINE` entries in `other registry keys` weren't parsed correctly.
+
+- **Fixed**: Special characters weren't escaped correctly in the XML of generated packages.
+
+- **Fixed**: Trace messages could leak into the `-json` output, making it invalid. Also, non-ASCII characters in `-json` output are now escaped, so the output is valid in any code page.
+
+- **Fixed**: `tms list -detailed` wasn't showing the Delphi IDEs correctly.
+
+- **Fixed**: `tms build -unregister` ignored `-p` parameters.
+
+- **Fixed**: Very large version numbers raised an exception, and a missing `version.txt` file could make SmartSetup crash.
+
 ## Version 3.5 (June, 2026)
 
 - **New**: New `resources` section in the tmsbuild.yaml definition file. It allows you to copy resources to the output folder preserving their relative path, so directives like `{$R source\test.res}` find the resource in `output\source` instead of just the output folder.
