@@ -25,6 +25,12 @@ type
     property Platforms: TDictionary<TPlatform, TProductPlatformInfo> read FPlatformInfoMap;
   end;
 
+  // A define the user can set for a product, as returned by `tms list-remote -json`.
+  TAvailableDefine = record
+    Name: string;
+    Description: string;
+  end;
+
   TProductInfo = class
   private
     FId: string;
@@ -40,6 +46,7 @@ type
     FUrl: string;
     FHomePage: string;
     FVersionHistoryUrl: string;
+    FAvailableDefines: TArray<TAvailableDefine>;
     FLicenseStatus: string;
   public
     constructor Create;
@@ -58,6 +65,7 @@ type
     property Url: string read FUrl write FUrl;
     property HomePage: string read FHomePage write FHomePage;
     property VersionHistoryUrl: string read FVersionHistoryUrl write FVersionHistoryUrl;
+    property AvailableDefines: TArray<TAvailableDefine> read FAvailableDefines write FAvailableDefines;
     property LicenseStatus: string read FLicenseStatus write FLicenseStatus;
     property IDEs: TDictionary<TIDEName, TProductIDEInfo> read FIDEInfoMap;
   end;

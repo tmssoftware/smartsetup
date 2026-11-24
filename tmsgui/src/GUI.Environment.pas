@@ -62,6 +62,7 @@ type
     FUrl: string;
     FHomePage: string;
     FVersionHistoryUrl: string;
+    FAvailableDefines: TArray<TAvailableDefine>;
     FLicenseStatus: string;
     FInstallations: TArray<TGUIProductInstallation>;
   public
@@ -81,6 +82,7 @@ type
     property Url: string read FUrl write FUrl;
     property HomePage: string read FHomePage write FHomePage;
     property VersionHistoryUrl: string read FVersionHistoryUrl write FVersionHistoryUrl;
+    property AvailableDefines: TArray<TAvailableDefine> read FAvailableDefines write FAvailableDefines;
     property LicenseStatus: string read FLicenseStatus write FLicenseStatus;
     // IDEs and platforms where the product is built and/or registered
     property Installations: TArray<TGUIProductInstallation> read FInstallations write FInstallations;
@@ -733,6 +735,7 @@ begin
     GUIProduct.Url := Product.Url;
     GUIProduct.HomePage := Product.HomePage;
     GUIProduct.VersionHistoryUrl := Product.VersionHistoryUrl;
+    GUIProduct.AvailableDefines := Product.AvailableDefines;
     GUIProduct.LicenseStatus := Product.LicenseStatus;
   end;
 end;

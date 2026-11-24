@@ -37,7 +37,8 @@ uses
   Forms.BackupResults in 'src\Forms.BackupResults.pas' {BackupResultsForm},
   Deget.IDETypes in '..\common\src\Deget\Deget.IDETypes.pas',
   UVCLUtils in 'src\UVCLUtils.pas',
-  Forms.AddProduct in 'src\Forms.AddProduct.pas' {AddProductForm};
+  Forms.AddProduct in 'src\Forms.AddProduct.pas' {AddProductForm},
+  Forms.AddDefine in 'src\Forms.AddDefine.pas' {AddDefineForm};
 
 {$R *.res}
 

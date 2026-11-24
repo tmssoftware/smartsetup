@@ -10,7 +10,7 @@ procedure RegisterListRemoteCommand;
 implementation
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
-  UJsonPrinter, UConfigDefinition, VCS.Registry, Fetching.ProductVersion, UMultiLogger;
+  UJsonPrinter, UConfigDefinition, VCS.Registry, UProjectDefinition, Fetching.ProductVersion, UMultiLogger;
 
 var
   EnableLog: Boolean = False;
@@ -38,6 +38,18 @@ type
         const aURL: string);
   end;
 
+function DefinesToJson(const Defines: TArray<TAvailableDefine>): TJSONArray;
+begin
+  Result := TJSONArray.Create;
+  for var Define in Defines do
+  begin
+    var Item := TJSONObject.Create;
+    Result.AddElement(Item);
+    Item.AddPair('name', Define.Name);
+    Item.AddPair('description', Define.Description);
+  end;
+end;
+
 procedure OutputAsJson(APIProducts: TList<TApiProduct>; const RepoProducts: TObjectList<TRegisteredVersionedProduct>);
 const
   LicenseStatusStr: array[TLicenseStatus] of string = ('none', 'licensed');
@@ -59,6 +71,7 @@ begin
       Item.AddPair('server', Product.Server);
       Item.AddPair('description', Product.Description);
       Item.AddPair('url', Product.URL);
+      Item.AddPair('available_defines', DefinesToJson(nil)); //The server doesn't return the available defines yet.
     end;
 
     for var Product in RepoProducts do
@@ -75,6 +88,7 @@ begin
       Item.AddPair('url', Product.Product.Url);
       Item.AddPair('homepage', Product.Product.HomePage);
       Item.AddPair('version_history_url', Product.Product.VersionHistoryUrl);
+      Item.AddPair('available_defines', DefinesToJson(Product.Product.AvailableDefines));
     end;
 
     OutputJson(Root);

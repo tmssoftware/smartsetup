@@ -685,9 +685,23 @@
         },
         "available defines": {
           "type": ["array", "null"],
-          "description": "A list with the defines the user can write in the \"defines\" section of tmsbuild.config.yaml. that will affect this product.",
+          "description": "A list with the defines the user can write in the \"defines\" section of tmsbuild.config.yaml. that will affect this product.
+Each item can be just the name of the define, or \"name: description\".",
           "items": {
-            "type": "string"
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "object",
+                "patternProperties": {
+                  "^.*$": {
+                    "type": "string",
+                    "description": "The name of the define and a description of what it does."
+                  }
+                },
+                "minProperties": 1,
+                "maxProperties": 1
+              }
+            ]
           },
           "uniqueItems": true
         }

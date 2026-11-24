@@ -5,6 +5,13 @@ interface
 uses Generics.Defaults, Generics.Collections, SysUtils, UCoreTypes, Deget.CoreTypes, Deget.Nullable;
 
 type
+  // A define the user can set for a product, as listed in "available defines" in tmsbuild.yaml.
+  TAvailableDefine = record
+    Name: string;
+    Description: string;
+    constructor Create(const aName, aDescription: string);
+  end;
+
   TApplicationDefinition = class
   private
     FName: string;
@@ -338,7 +345,7 @@ type
     FApplication: TApplicationDefinition;
     FNotSupportedIDEs: TIDENameSet;
     FPackages: TListOfPackages;
-    FAllowedDefines: TOrderedDictionary<string, boolean>;
+    FAllowedDefines: TOrderedDictionary<string, string>; //name -> description
     FRegistryEntries: TObjectList<TRegistryEntry>;
     FHelpFile: string;
     FDependencies: TObjectList<TDependency>;
@@ -376,7 +383,7 @@ type
     property NotSupportedIDEs: TIDENameSet read FNotSupportedIDEs write FNotSupportedIDEs;
     property Packages: TListOfPackages read FPackages;
     property DefinesFilename: string read FDefinesFilename write FDefinesFilename;
-    property AllowedDefines: TOrderedDictionary<string, boolean> read FAllowedDefines;
+    property AllowedDefines: TOrderedDictionary<string, string> read FAllowedDefines;
     property RegistryEntries: TObjectList<TRegistryEntry> read FRegistryEntries;
     property HelpFile: string read FHelpFile write FHelpFile;
     property Dependencies: TObjectList<TDependency> read FDependencies;
@@ -402,6 +409,7 @@ type
 
     function RootFolder: string;
     function ListAllowedDefines: string;
+    function GetAvailableDefines: TArray<TAvailableDefine>;
 
     property NeedsCompiling: TPlatsCompiled read FNeedsCompiling write FNeedsCompiling;
     property IncludeInBuild: boolean read FIncludeInBuild write FIncludeInBuild;
@@ -480,7 +488,7 @@ begin
   FPackages := TListOfPackages.Create;
   FDependencies := TObjectList<TDependency>.Create;
   FWeakDependencies := TObjectList<TDependency>.Create;
-  FAllowedDefines := TOrderedDictionary<string, boolean>.Create;
+  FAllowedDefines := TOrderedDictionary<string, string>.Create;
   FRegistryEntries := TObjectList<TRegistryEntry>.Create;
   FRegisteredFrameworks := TObjectDictionary<string, TFrameworkDefinition>.Create([doOwnsValues]);
   FExtraPaths := TCompilerPaths.Create;
@@ -586,6 +594,14 @@ begin
   var Defs := AllowedDefines.Keys.ToArray;
   TArray.Sort<string>(Defs);
   Result := String.Join(', ', Defs);
+end;
+
+function TProjectDefinition.GetAvailableDefines: TArray<TAvailableDefine>;
+begin
+  var Names := AllowedDefines.Keys.ToArray;
+  SetLength(Result, Length(Names));
+  for var i := 0 to High(Names) do
+    Result[i] := TAvailableDefine.Create(Names[i], AllowedDefines[Names[i]]);
 end;
 
 procedure TProjectDefinition.RegisterFramework(const Name: string; const ErrorInfo: string);
@@ -900,6 +916,14 @@ begin
   end;
 end;
 
+
+{ TAvailableDefine }
+
+constructor TAvailableDefine.Create(const aName, aDescription: string);
+begin
+  Name := aName;
+  Description := aDescription;
+end;
 
 { TApplicationDefinition }
 

@@ -29,6 +29,7 @@ type
     FDescription: string;
     FHomePage: string;
     FVersionHistoryUrl: string;
+    FAvailableDefines: TArray<TAvailableDefine>;
     FServer: string;
     FPredefinedData: TPredefinedData;
     FSkipSubModules: boolean;
@@ -42,6 +43,7 @@ type
     property Description: string read FDescription;
     property HomePage: string read FHomePage;
     property VersionHistoryUrl: string read FVersionHistoryUrl;
+    property AvailableDefines: TArray<TAvailableDefine> read FAvailableDefines;
     property Server: string read FServer write FServer;
     property PredefinedData: TPredefinedData read FPredefinedData;
     property SkipSubModules: boolean read FSkipSubModules;
@@ -49,7 +51,7 @@ type
     class function GetProtocolFromString(const aProtocol: string; const DefaultIsGit: boolean): TVCSProtocol; static;
     class function GetStringFromProtocol(const aProtocol: TVCSProtocol): string; static;
 
-    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl, aServer: string; const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
+    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl: string; const aAvailableDefines: TArray<TAvailableDefine>; const aServer: string; const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
     function Equals(ProductB: TObject): boolean; override;
   end;
 
@@ -101,7 +103,7 @@ uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJ
 { TRegisteredProduct }
 
 constructor TRegisteredProduct.Create(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl: string; const aServer: string;
+  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl: string; const aAvailableDefines: TArray<TAvailableDefine>; const aServer: string;
   const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
 begin
   FProductId := aProductId;
@@ -111,6 +113,7 @@ begin
   FDescription := aDescription;
   FHomePage := aHomePage;
   FVersionHistoryUrl := aVersionHistoryUrl;
+  FAvailableDefines := aAvailableDefines;
   FServer := aServer;
   FPredefinedData := aPredefinedData;
   FSkipSubModules := aSkipSubModules;
@@ -127,6 +130,12 @@ begin
   if b.FDescription <> FDescription then exit(false);
   if b.FHomePage <> FHomePage then exit(false);
   if b.FVersionHistoryUrl <> FVersionHistoryUrl then exit(false);
+  if Length(b.FAvailableDefines) <> Length(FAvailableDefines) then exit(false);
+  for var i := 0 to High(FAvailableDefines) do
+  begin
+    if b.FAvailableDefines[i].Name <> FAvailableDefines[i].Name then exit(false);
+    if b.FAvailableDefines[i].Description <> FAvailableDefines[i].Description then exit(false);
+  end;
   if b.Server <> FServer then exit(false);
 
   if not b.PredefinedData.Equals(FPredefinedData) then exit(false);
@@ -234,6 +243,7 @@ begin
                 Project.Application.Description,
                 Project.Application.HomePage,
                 Project.Application.VersionHistoryUrl,
+                Project.GetAvailableDefines,
                 Server,
                 TPredefinedData.Create(PredefinedText, ZipFileName, YamlFileName),
                 Project.FetchOptions.SkipSubModules);

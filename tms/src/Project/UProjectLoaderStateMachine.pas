@@ -799,12 +799,13 @@ constructor TSupportedDefinesSectionDef.Create(const aParent: TSection;
   const aProject: TProjectDefinition);
 begin
   inherited Create(aParent, aProject);
-  SectionValueTypes := TSectionValueTypes.NoValues;
+  //Items can be "- define" or "- define: description".
+  SectionValueTypes := TSectionValueTypes.Both;
   ClearArrayValues := procedure begin Project.AllowedDefines.Clear;end;
 
   ContainsArrays := true;
   Actions := TListOfActions.Create(SectionName, procedure (name, value: string; ErrorInfo: TErrorInfo) begin
-    Project.AllowedDefines.AddOrSetValue(name, true);
+    Project.AllowedDefines.AddOrSetValue(name, value);
   end, false);
 end;
 

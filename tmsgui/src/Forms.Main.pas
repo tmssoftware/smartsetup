@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, System.UITypes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, UProductInfo, Deget.Version,
   GUI.Environment, Forms.Credentials, System.Actions, Vcl.ActnList, Vcl.Buttons, Vcl.Menus, System.Types,
-  Forms.Config, UConfigModel, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
+  Forms.Config, Forms.AddDefine, UConfigModel, UCommonTypes, Forms.Start, Vcl.ControlList, Generics.Collections, Forms.LogDetails,
   Vcl.VirtualImage, Util.Animator, Winapi.ShlObj, System.ImageList, Vcl.ImgList,
   Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
   Vcl.ToolWin, Vcl.WinXCtrls, Vcl.WinXPanels, Clipbrd, Generics.Defaults;
@@ -628,6 +628,17 @@ begin
     var Ids: TArray<string> := nil;
     for var Product in GUI.Products do Ids := Ids + [Product.Id];
     Form.ProductIds := Ids;
+    var Defines: TArray<TProductDefine> := nil;
+    for var Product in GUI.Products do
+      for var Define in Product.AvailableDefines do
+      begin
+        var ProductDefine: TProductDefine;
+        ProductDefine.ProductId := Product.Id;
+        ProductDefine.Name := Define.Name;
+        ProductDefine.Description := Define.Description;
+        Defines := Defines + [ProductDefine];
+      end;
+    Form.AvailableDefines := Defines;
     var Info := GUI.Info;
     Form.InstalledIDEs := Info.InstalledIDEs;
     Form.InstalledIDEsKnown := Info.InstalledIDEsKnown;

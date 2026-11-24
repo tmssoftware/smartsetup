@@ -20,6 +20,8 @@ type
     function GetPlatforms(const Platforms: TPlatformSet): TArray<string>;
     function GetPackages: TArray<TYamlValue>;
     function GetDependencies(const Dependencies: TObjectList<TDependency>; const IncludeDescription: boolean): TYamlValue;
+    function GetAvailableDefines: TYamlValue;
+    function GetAvailableDefineDescription(const ArrayIndex: integer; const DefineName: string): TYamlValue;
     function GetFrameworksForPackage(const ArrayIndex: integer;
       const PackageName: string): TYamlValue;
     function GetDepencenciesForPackage(const Dependencies: TObjectList<TDependency>; const ArrayIndex: integer;
@@ -260,6 +262,28 @@ begin
   end;
 
   Result := TYamlValue.MakeArray(Items, false);
+end;
+
+function TSpecWriter.GetAvailableDefines: TYamlValue;
+begin
+  var Defines := FProduct.GetAvailableDefines;
+  var Items: TArray<TYamlValue> := nil;
+  SetLength(Items, Length(Defines));
+  for var i := Low(Items) to High(Items) do
+  begin
+    //Defines without a description are written as plain strings, as they were before descriptions existed.
+    if Defines[i].Description <> '' then Items[i] := TYamlValue.MakeObject([Defines[i].Name])
+    else Items[i] := Defines[i].Name;
+  end;
+
+  Result := TYamlValue.MakeArray(Items, false);
+end;
+
+function TSpecWriter.GetAvailableDefineDescription(const ArrayIndex: integer; const DefineName: string): TYamlValue;
+begin
+  var D := FProduct.GetAvailableDefines[ArrayIndex];
+  if D.Name + ':' <> DefineName then raise Exception.Create('Internal error: Define name was "' + DefineName + '" and we expected "' + D.Name + '"');
+  Result := D.Description;
 end;
 
 function TSpecWriter.GetDepencenciesForPackage(const Dependencies: TObjectList<TDependency>; const ArrayIndex: integer; const DependencyName: string): TYamlValue;
@@ -655,7 +679,8 @@ begin
   //defines:
   if FullName = 'defines:' then exit(TYamlValue.MakeObject);
   if FullName = 'defines:defines filename:' then exit(FProduct.DefinesFilename);
-  if FullName = 'defines:available defines:' then exit(TYamlValue.MakeArray(FProduct.AllowedDefines.Keys.ToArray, false));
+  if FullName = 'defines:available defines:' then exit(GetAvailableDefines);
+  if FullName.StartsWith('defines:available defines:') then exit(GetAvailableDefineDescription(ArrayIndex, FullName.Substring(Length('defines:available defines:'))));
 
   //registry keys:
   if FullName = 'registry keys:' then exit(TYamlValue.MakeArray(GetRegistryKeys, false));

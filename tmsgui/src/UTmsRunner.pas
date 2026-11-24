@@ -712,6 +712,21 @@ begin
     Product.Url := JsonProduct.GetValue<string>('url', '');
     Product.HomePage := JsonProduct.GetValue<string>('homepage', '');
     Product.VersionHistoryUrl := JsonProduct.GetValue<string>('version_history_url', '');
+    var JsonDefines: TJSONArray;
+    if JsonProduct.TryGetValue<TJSONArray>('available_defines', JsonDefines) then
+    begin
+      var Defines: TArray<TAvailableDefine>;
+      SetLength(Defines, JsonDefines.Count);
+      for var i := 0 to JsonDefines.Count - 1 do
+      begin
+        if not (JsonDefines.Items[i] is TJSONObject) then
+          raise ETmsRunner.CreateFmt('Could not parse available define %d of product "%s" as JSON object from list-remote command', [i, Product.Id]);
+        var JsonDefine := TJSONObject(JsonDefines.Items[i]);
+        Defines[i].Name := JsonDefine.GetValue<string>('name');
+        Defines[i].Description := JsonDefine.GetValue<string>('description', '');
+      end;
+      Product.AvailableDefines := Defines;
+    end;
     Product.LicenseStatus := JsonProduct.GetValue<string>('license_status', '');
   end;
 end;

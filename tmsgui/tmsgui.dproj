@@ -196,6 +196,10 @@
             <Form>AddProductForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="src\Forms.AddDefine.pas">
+            <Form>AddDefineForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <RcItem Include="tmsgui.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>Icon_1</ResourceId>

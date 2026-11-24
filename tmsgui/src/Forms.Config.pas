@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.StdCtrls, Vcl.CheckLst,
   Vcl.WinXPanels,
-  UCommonTypes, UConfigModel;
+  UCommonTypes, UConfigModel, Forms.AddDefine;
 
 type
   TConfigForm = class(TForm)
@@ -105,6 +105,7 @@ type
     FServers: TServerConfigItems;
     FLoading: Integer;
     FProductIds: TArray<string>;
+    FAvailableDefines: TArray<TProductDefine>;
     FInstalledIDEs: TArray<string>;
     FInstalledIDEsKnown: Boolean;
     // The ids for the items in clbDelphiVersions and clbPlatforms, as the Delphi items show names.
@@ -158,6 +159,8 @@ type
     property OnShowLastError: TProc<string> read FOnShowLastError write FOnShowLastError;
     // Suggestions for the product id when adding a product configuration.
     property ProductIds: TArray<string> read FProductIds write FProductIds;
+    // The defines the products declare in their tmsbuild.yaml, offered when adding a define.
+    property AvailableDefines: TArray<TProductDefine> read FAvailableDefines write FAvailableDefines;
     // The Delphi versions installed in this machine, as ids like "delphi12". Only those are shown, plus any
     // version already in the configuration. If InstalledIDEsKnown is false (tms didn't report them), all are shown.
     property InstalledIDEs: TArray<string> read FInstalledIDEs write FInstalledIDEs;
@@ -777,14 +780,12 @@ end;
 
 procedure TConfigForm.btDefineAddClick(Sender: TObject);
 begin
-  var Name := '';
-  if not InputQuery('Add define', 'Define name:', Name) then Exit;
-  Name := Name.Trim;
-  if Name = '' then Exit;
-  if not IsValidIdent(Name) then
-    raise Exception.CreateFmt('"%s" is not a valid define name.', [Name]);
-  if clbDefines.Items.IndexOf(Name) >= 0 then
-    raise Exception.CreateFmt('The define "%s" is already in the list.', [Name]);
+  var Existing: TArray<string> := nil;
+  for var i := 0 to clbDefines.Count - 1 do Existing := Existing + [clbDefines.Items[i]];
+
+  // The form checks the name is a valid identifier and not already in the list.
+  var Name: string;
+  if not TAddDefineForm.AskDefine(FAvailableDefines, Existing, Name) then Exit;
 
   clbDefines.Items.Add(Name);
   clbDefines.Checked[clbDefines.Count - 1] := True;
