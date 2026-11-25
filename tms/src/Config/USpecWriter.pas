@@ -148,6 +148,13 @@ begin
 
 end;
 
+function NullableTrue(const s: boolean): TYamlValue; overload;
+begin
+  if s then exit(TYamlValue.MakeNull);
+  exit(s);
+
+end;
+
 function Nullable(const s: TExeCompileWith): TYamlValue; overload;
 begin
   case s of
@@ -625,6 +632,7 @@ begin
   if FullName = 'application:vcs protocol:' then exit(Nullable(FProduct.Application.VCSProtocol));
   if FullName = 'application:docs:' then exit(Nullable(FProduct.Application.Docs));
   if FullName = 'application:version file:' then exit(Nullable(FProduct.Application.VersionFile));
+  if FullName = 'application:can add source code to library path:' then exit(NullableTrue(FProduct.Application.CanAddSourceCodeToLibraryPath));
 
   //fetch options
   if FullName = 'fetch options:' then exit(TYamlValue.MakeObject);
