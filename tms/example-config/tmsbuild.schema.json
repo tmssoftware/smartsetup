@@ -112,14 +112,6 @@
           "type": "string",
           "description": "The name of the company that produces the product."
         },
-        "homepage": {
-          "type": "string",
-          "description": "The home page URL of the product. If left empty, we will use the property 'url' as the home page."
-        },
-        "version history url": {
-          "type": "string",
-          "description": "The URL of a page with the version history of the product. If ommited, we will try to guess the url"
-        },
         "copyright": {
           "type": "string",
           "description": "The copyright holder of the product."
@@ -136,11 +128,13 @@
           "type": "string",
           "description": "The URL where the product can be downloaded. IMPORTANT: For products not in an API server, this url is the git/svn url. For specifying the homepage, use the 'homepage' property."
         },
-        "vcs protocol": {
+        "homepage": {
           "type": "string",
-          "description": "The protocol used for to download the product. By default it is git",
-          "enum": ["git", "svn", "zipfile"],
-          "default": "git"
+          "description": "The home page URL of the product. If left empty, we will use the property 'url' as the home page."
+        },
+        "version history url": {
+          "type": "string",
+          "description": "The URL of a page with the version history of the product. If omitted, we will try to guess the url"
         },
         "docs": {
           "type": "string",
@@ -150,6 +144,17 @@
           "type": "string",
           "description": "if this line is present, then version.txt must exist, it must have at least one line,\nand the line must be \"something: version\". like for example \"tms.example: 1.0.3\".\nThe text after \":\" will be used as version number to display along the name.",
           "default": "version.txt"
+        },
+        "vcs protocol": {
+          "type": "string",
+          "description": "The protocol used for to download the product. By default it is git",
+          "enum": ["git", "svn", "zipfile"],
+          "default": "git"
+        },
+        "can add source code to library path": {
+          "type": "boolean",
+          "description": "If true, the user will be able to configure smartsetup to include the source code. If false, this will not be possible.",
+          "default": true
         }
       },
       "additionalProperties": false
