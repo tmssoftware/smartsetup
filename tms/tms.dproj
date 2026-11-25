@@ -463,6 +463,7 @@
         <DCCReference Include="src\Commands\Commands.BackupInfo.pas"/>
         <DCCReference Include="src\Snapshot\Snapshot.Backup.pas"/>
         <DCCReference Include="src\Fetching\Fetching.FetchExtraction.pas"/>
+        <DCCReference Include="src\Repository\URepositoryClasses.pas"/>
         <None Include="..\Version.inc"/>
         <None Include="..\common\src\tmscommon.inc"/>
         <BuildConfiguration Include="Base">

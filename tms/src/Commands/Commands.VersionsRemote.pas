@@ -11,7 +11,7 @@ implementation
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
   UJsonPrinter, UConfigDefinition, VCS.Manager, VCS.Registry, VCS.CoreTypes, VCS.Engine.Factory,
-  Fetching.ProductVersion, IOUtils, UTmsBuildSystemUtils, UMultiLogger;
+  Fetching.ProductVersion, IOUtils, UTmsBuildSystemUtils, UMultiLogger, URepositoryClasses;
 
 var
   EnableLog: Boolean = False;

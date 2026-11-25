@@ -10,7 +10,7 @@ procedure RegisterListRemoteCommand;
 implementation
 uses
   Commands.CommonOptions, Commands.Logging, Commands.GlobalConfig, URepositoryManager, Deget.Version, System.JSON,
-  UJsonPrinter, UConfigDefinition, VCS.Registry, UProjectDefinition, Fetching.ProductVersion, UMultiLogger;
+  UJsonPrinter, UConfigDefinition, VCS.Registry, UProjectDefinition, Fetching.ProductVersion, UMultiLogger, URepositoryClasses;
 
 var
   EnableLog: Boolean = False;
