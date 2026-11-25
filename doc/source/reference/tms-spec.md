@@ -31,6 +31,7 @@ The `-s` parameters are applied after loading the template (if any), and before 
 | `-spec:<key=value>` / `-s:<key=value>` | Sets a specific property in the output `tmsbuild.yaml`. Can be specified multiple times. Uses the same key syntax as `-p` but targets the product spec instead of the configuration. |
 | `-json`                   | Saves the output in JSON format. The resulting file cannot be read by Smart Setup, but is useful for querying values with a JSON parser. |
 | `-cmd`                    | Saves the output as a command file listing the `-s` parameters needed to regenerate it. Useful for scripting.                    |
+| `-output-file:<file>`     | Sets the file to create. Relative paths are resolved against the current folder, and missing folders are created. The name is used as given: `-json` and `-cmd` don't change its extension. In interactive mode, this is the default answer to the "File to be created" question. If omitted, the file is `tmsbuild.yaml` in the current folder (`tmsbuild.json` with `-json`, `tmsbuild.cmd` with `-cmd`). |
 
 ## Global Options
 
@@ -60,6 +61,12 @@ Creates a file without a template, setting the product ID and the packages from 
 
 ```shell
 tms spec -non-interactive -s:application:id=myorg.myproduct -s:"packages=[Example_Core:[runtime,vcl],Example_Design:[design,vcl]]"
+```
+
+Creates a default file non-interactively and saves it in a different folder:
+
+```shell
+tms spec -non-interactive -output-file:build\tmsbuild.yaml
 ```
 
 ## See Also

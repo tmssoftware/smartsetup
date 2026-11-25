@@ -343,7 +343,7 @@ object MainForm: TMainForm
                         AlignWithMargins = True
                         Left = 3
                         Top = 3
-                        Width = 3
+                        Width = 238
                         Height = 15
                         Align = alTop
                         Constraints.MaxHeight = 200
@@ -355,6 +355,7 @@ object MainForm: TMainForm
                         ParentFont = False
                         ShowAccelChar = False
                         WordWrap = True
+                        ExplicitWidth = 3
                       end
                       object OneProdUrl: TLabel
                         AlignWithMargins = True
@@ -391,6 +392,7 @@ object MainForm: TMainForm
                         Height = 15
                         Cursor = crHandPoint
                         Margins.Top = 0
+                        Margins.Bottom = 0
                         Align = alTop
                         AutoSize = False
                         Caption = 'Version History'
@@ -409,6 +411,33 @@ object MainForm: TMainForm
                         OnClick = LinkClick
                         ExplicitTop = 75
                         ExplicitWidth = 258
+                      end
+                      object OneProdDocs: TLabel
+                        AlignWithMargins = True
+                        Left = 3
+                        Top = 54
+                        Width = 238
+                        Height = 15
+                        Cursor = crHandPoint
+                        Margins.Top = 0
+                        Margins.Bottom = 0
+                        Align = alTop
+                        AutoSize = False
+                        Caption = 'Documentation'
+                        EllipsisPosition = epPathEllipsis
+                        Font.Charset = DEFAULT_CHARSET
+                        Font.Color = clHighlight
+                        Font.Height = -12
+                        Font.Name = 'Segoe UI'
+                        Font.Style = []
+                        ParentFont = False
+                        ParentShowHint = False
+                        PopupMenu = ProdDocsMenu
+                        ShowAccelChar = False
+                        ShowHint = True
+                        StyleElements = [seClient, seBorder]
+                        OnClick = LinkClick
+                        ExplicitTop = 63
                       end
                     end
                   end
@@ -6178,6 +6207,14 @@ object MainForm: TMainForm
     object CopyVersionHistoryMenu: TMenuItem
       Caption = 'Copy URL'
       OnClick = CopyVersionHistoryMenuClick
+    end
+  end
+  object ProdDocsMenu: TPopupMenu
+    Left = 936
+    Top = 208
+    object CopyDocsMenu: TMenuItem
+      Caption = 'Copy URL'
+      OnClick = CopyDocsMenuClick
     end
   end
 end

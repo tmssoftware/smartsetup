@@ -39,11 +39,12 @@ With `-json`, the output is an object with one entry per product, keyed by produ
 | `license_status`      | Only for API servers, when the server returns a license status for the product.                                  |
 | `vendor_id`           | Only for API servers, when the server returns a vendor for the product.                                          |
 | `server`              | The server the product comes from.                                                                               |
-| `description`         | The product description.                                                                                         |
-| `url`                 | The product URL. For Git or SVN servers, this is the URL of the repository.                                      |
-| `homepage`            | Only for Git or SVN servers. The `homepage` in the `application` section of the product's tmsbuild.yaml.         |
-| `version_history_url` | Only for Git or SVN servers. The `version history url` in the `application` section of the product's tmsbuild.yaml. |
-| `available_defines`   | An array with the defines the product accepts, each one with a `name` and a `description`. Always empty for API servers, which don't return the available defines yet. |
+| `description`         | The product description. For API servers, it comes from the metadata of the latest version.                     |
+| `url`                 | The product URL. For Git or SVN servers, this is the URL of the repository. For API servers, it comes from the metadata of the latest version. |
+| `docs`                | The URL of the product documentation. For Git or SVN servers, the `docs` in the `application` section of the product's tmsbuild.yaml. For API servers, it comes from the metadata of the latest version. |
+| `homepage`            | The product homepage. For Git or SVN servers, the `homepage` in the `application` section of the product's tmsbuild.yaml. For API servers, it comes from the metadata of the latest version. |
+| `version_history_url` | The URL of the version history. For Git or SVN servers, the `version history url` in the `application` section of the product's tmsbuild.yaml. For API servers, it comes from the metadata of the latest version. |
+| `available_defines`   | An array with the defines the product accepts, each one with a `name` and a `description`. For API servers, it comes from the metadata of the latest version. |
 
 ## Global Options
 

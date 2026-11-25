@@ -61,6 +61,7 @@ type
     FDescription: string;
     FUrl: string;
     FHomePage: string;
+    FDocsUrl: string;
     FVersionHistoryUrl: string;
     FAvailableDefines: TArray<TAvailableDefine>;
     FLicenseStatus: string;
@@ -80,6 +81,7 @@ type
     property Channel: string read FChannel write FChannel;
     property Description: string read FDescription write FDescription;
     property Url: string read FUrl write FUrl;
+    property DocsUrl: string read FDocsUrl write FDocsUrl;
     property HomePage: string read FHomePage write FHomePage;
     property VersionHistoryUrl: string read FVersionHistoryUrl write FVersionHistoryUrl;
     property AvailableDefines: TArray<TAvailableDefine> read FAvailableDefines write FAvailableDefines;
@@ -734,6 +736,7 @@ begin
     GUIProduct.Description := Product.Description;
     GUIProduct.Url := Product.Url;
     GUIProduct.HomePage := Product.HomePage;
+    GUIProduct.DocsUrl := Product.DocsUrl;
     GUIProduct.VersionHistoryUrl := Product.VersionHistoryUrl;
     GUIProduct.AvailableDefines := Product.AvailableDefines;
     GUIProduct.LicenseStatus := Product.LicenseStatus;

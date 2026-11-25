@@ -11,6 +11,40 @@ uses
 type
   TLicenseStatus = (none, licensed);
 
+  TRepositoryAvailableDefine = record
+  public
+    [JsonName('name')]
+    Name: string;
+    [JsonName('description')]
+    Description: string;
+  end;
+
+  TRepositoryVersionMetaData = class
+  private
+    [JsonName('description')]
+    FDescription: string;
+    [JsonName('url')]
+    FUrl: string;
+    [JsonName('docs')]
+    FDocsUrl: string;
+    [JsonName('homepage')]
+    FHomePage: string;
+    [JsonName('version_history_url')]
+    FVersionHistoryUrl: string;
+
+    [JsonName('available_defines')]
+    FAvailableDefines: TArray<TRepositoryAvailableDefine>;
+
+  public
+    property Description: string read FDescription;
+    property Url: string read FUrl;
+    property DocsUrl: string read FDocsUrl;
+    property HomePage: string read FHomePage;
+    property VersionHistoryUrl: string read FVersionHistoryUrl;
+    property AvailableDefines: TArray<TRepositoryAvailableDefine> read FAvailableDefines;
+  end;
+
+
   TRepositoryVersion = class
   private
     [JsonName('version')]
@@ -19,10 +53,18 @@ type
     FReleaseDate: TDateTime;
     [JsonName('file_hash')]
     FFileHash: string;
+    [JsonName('metadata')]
+    FMetadataString: string;
+  private
+    [JsonIgnore]
+    FMetadata: TRepositoryVersionMetadata;
+    function GetMetadata: TRepositoryVersionMetadata;
   public
     property Version: string read FVersion write FVersion;
     property ReleaseDate: TDateTime read FReleaseDate write FReleaseDate;
     property FileHash: string read FFileHash write FFileHash;
+    property Metadata: TRepositoryVersionMetadata read GetMetadata;
+    destructor Destroy; override;
   end;
 
   TRepositoryUserVersion = class(TRepositoryVersion)
@@ -85,15 +127,16 @@ type
     FServer: string;
     FProducts: TObjectList<TRepositoryProduct>;
     FProductsLoaded: Boolean;
-    function GetJSON(const Data: string): TJSONObject;
     function CreateRequest(const Method, Url: string): IHTTPRequest;
     function GetEndpoint(const Path: string): string;
     procedure CheckResponse(Req: IHTTPRequest; Resp: IHTTPResponse);
     procedure CheckProductsLoaded;
     function FindProductInList(const ProductId: string): TRepositoryProduct;
+    class function GetJSON(const Data: string): TJSONObject; static;
   public
     constructor Create;
     destructor Destroy; override;
+
 
     function Products: TEnumerable<TRepositoryProduct>;
     function GetDownloadInfo(const ProductId, Version: string): TDownloadInfo;
@@ -284,7 +327,7 @@ begin
   Result := Url.TrimRight(['/']) + '/' + Path.TrimLeft(['/']);
 end;
 
-function TRepositoryManager.GetJSON(const Data: string): TJSONObject;
+class function TRepositoryManager.GetJSON(const Data: string): TJSONObject;
 begin
   var Value := TJSONObject.ParseJSONValue(Data);
   if Value is TJSONObject then Exit(TJSONObject(Value));
@@ -347,6 +390,43 @@ begin
     FLatestVersion.Free;
     FLatestVersion := Value;
   end;
+end;
+
+{ TRepositoryVersion }
+
+destructor TRepositoryVersion.Destroy;
+begin
+  FMetadata.Free;
+  inherited;
+end;
+
+function TRepositoryVersion.GetMetadata: TRepositoryVersionMetadata;
+begin
+  if FMetadata <> nil then exit(FMetadata);
+  if FMetadataString.Trim = '' then
+  begin
+    FMetadata := TRepositoryVersionMetaData.Create;
+    exit(FMetadata);
+  end;
+
+  var Serializer := TJsonSerializer.Create;
+  try
+    try
+      FMetadata := Serializer.Deserialize<TRepositoryVersionMetadata>(FMetadataString);
+    except
+      on ex: Exception do
+      begin
+        // Bad metadata in one product must not break listing all the others.
+        Logger.Info('Invalid metadata for version ' + FVersion + ': ' + ex.Message);
+        Logger.Trace('Metadata: ' + FMetadataString);
+        FMetadata := nil;
+      end;
+    end;
+  finally
+    Serializer.Free;
+  end;
+  if FMetadata = nil then FMetadata := TRepositoryVersionMetaData.Create;
+  Result := FMetadata;
 end;
 
 end.

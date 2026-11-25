@@ -65,6 +65,7 @@ var
   Specs: TArray<string>;
   UseJSON: boolean;
   CmdSyntax: boolean;
+  OutputFileName: string;
 
 function Question(const Ask, Description: string; const DefaultAnswer: string = ''): string;
 begin
@@ -570,9 +571,11 @@ begin
     Product := TProjectLoader.LoadProjectDefinitionFromFile(Template, '', true, Specs);
 
     var TmsBuildFileName := TPath.Combine(TDirectory.GetCurrentDirectory, ChangeExtension('tmsbuild.yaml'));
+    if OutputFileName <> '' then TmsBuildFileName := OutputFileName;
 
-    TmsBuildFileName := Question('File to be created: ',
-      '', TmsBuildFileName);
+
+    TmsBuildFileName := TPath.GetFullPath(Question('File to be created: ',
+      '', TmsBuildFileName)); //A bare file name would give an empty folder, and CreateDirectory('') fails.
 
     if Interactive then VerifyWeCanSave(TmsBuildFileName); //We don't want to ask all the questions and at the end crash because the folder is invalid.
 
@@ -606,7 +609,7 @@ begin
             Logger.Error('Error saving "' + TmsBuildFileName + '": ' + ex.Message);
             var Answer := QuestionChoose('Retry, save to a different file, or cancel? [r/f/c]', '', 'r', ['r', 'f', 'c']);
             if Answer = 'c' then raise Exception.Create('Spec file was not saved: ' + ex.Message);
-            if Answer = 'f' then TmsBuildFileName := Question('File to be created: ', '', TmsBuildFileName);
+            if Answer = 'f' then TmsBuildFileName := TPath.GetFullPath(Question('File to be created: ', '', TmsBuildFileName));
           end;
         end;
       end;
@@ -663,6 +666,12 @@ begin
       CmdSyntax := Value;
     end);
   optionCmd.HasValue := False;
+
+  var optionOutputFileName := cmd.RegisterOption<string>('output-file', '', 'Name where to save the output file.',
+    procedure(const Value : String)
+    begin
+      OutputFileName := Value;
+    end);
 
 
   AddCommand(cmd.Name, CommandGroups.Config, RunSpecCommand);

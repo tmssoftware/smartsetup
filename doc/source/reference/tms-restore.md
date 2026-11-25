@@ -77,7 +77,7 @@ tms restore c:\backups\tms.snapshot.yaml -skip-register -latest
 Restores all products from a backup file created with `tms backup`, registering them in the IDE:
 
 ```shell
-tms restore c:ackupsackup.zip -auto-register
+tms restore c:\backups\backup.zip -auto-register
 ```
 
 Restores all products except those in the `tms.biz` family:

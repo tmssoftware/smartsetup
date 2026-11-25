@@ -45,6 +45,7 @@ type
     FDescription: string;
     FUrl: string;
     FHomePage: string;
+    FDocsUrl: string;
     FVersionHistoryUrl: string;
     FAvailableDefines: TArray<TAvailableDefine>;
     FLicenseStatus: string;
@@ -63,6 +64,7 @@ type
     property Pinned: Boolean read FPinned write FPinned;
     property Description: string read FDescription write FDescription;
     property Url: string read FUrl write FUrl;
+    property DocsUrl: string read FDocsUrl write FDocsUrl;
     property HomePage: string read FHomePage write FHomePage;
     property VersionHistoryUrl: string read FVersionHistoryUrl write FVersionHistoryUrl;
     property AvailableDefines: TArray<TAvailableDefine> read FAvailableDefines write FAvailableDefines;

@@ -27,6 +27,10 @@ type
 
     Description: string;
     URL: string;
+    DocsUrl: string;
+    HomePage: string;
+    VersionHistoryUrl: string;
+    AvailableDefines: TArray<TAvailableDefine>;
 
     constructor Create(const aId: string;
         const aName: string;
@@ -35,7 +39,11 @@ type
         const aVendorId: string;
         const aServer: string;
         const aDescription: string;
-        const aURL: string);
+        const aURL: string;
+        const aDocsUrl: string;
+        const aHomePage: string;
+        const aVersionHistoryUrl: string;
+        const aAvailableDefines: TArray<TAvailableDefine>);
   end;
 
 function DefinesToJson(const Defines: TArray<TAvailableDefine>): TJSONArray;
@@ -71,7 +79,10 @@ begin
       Item.AddPair('server', Product.Server);
       Item.AddPair('description', Product.Description);
       Item.AddPair('url', Product.URL);
-      Item.AddPair('available_defines', DefinesToJson(nil)); //The server doesn't return the available defines yet.
+      Item.AddPair('docs', Product.DocsUrl);
+      Item.AddPair('homepage', Product.HomePage);
+      Item.AddPair('version_history_url', Product.VersionHistoryUrl);
+      Item.AddPair('available_defines', DefinesToJson(Product.AvailableDefines));
     end;
 
     for var Product in RepoProducts do
@@ -86,6 +97,7 @@ begin
       Item.AddPair('server', Product.Product.Server);
       Item.AddPair('description', Product.Product.Description);
       Item.AddPair('url', Product.Product.Url);
+      Item.AddPair('docs', Product.Product.DocsUrl);
       Item.AddPair('homepage', Product.Product.HomePage);
       Item.AddPair('version_history_url', Product.Product.VersionHistoryUrl);
       Item.AddPair('available_defines', DefinesToJson(Product.Product.AvailableDefines));
@@ -105,6 +117,13 @@ begin
     WriteLn(Format('%s (%s) -> %s', [Product.Product.ProductId, '', Product.Product.Server]));
 end;
 
+function GetProductDefines(const List: TArray<TRepositoryAvailableDefine>): TArray<TAvailableDefine>;
+begin
+  Result := nil;
+  SetLength(Result, Length(List));
+  for var i := Low(List) to High(List) do Result[i] := TAvailableDefine.Create(List[i].Name, List[i].Description);    
+end;
+
 procedure AddApiProducts(const Server: TServerConfig; const ListedProducts: TList<TAPIProduct>);
 begin
   var Repo := CreateRepositoryManager(Config.Folders.CredentialsFile(Server.Name), FetchOptions, Server.Url, Server.Name, Server.AllowInsecureConnections, true);
@@ -119,8 +138,12 @@ begin
               Product.LicenseStatus,
               Product.VendorId,
               Server.Name,
-              '',
-              '');
+              Product.LatestVersion.Metadata.Description,
+              Product.LatestVersion.Metadata.Url,
+              Product.LatestVersion.Metadata.DocsUrl,
+              Product.LatestVersion.Metadata.HomePage,
+              Product.LatestVersion.Metadata.VersionHistoryUrl,
+              GetProductDefines(Product.LatestVersion.Metadata.AvailableDefines));
 
           ListedProducts.Add(APIProduct);
 
@@ -201,7 +224,8 @@ end;
 { TAPIProduct }
 
 constructor TAPIProduct.Create(const aId, aName, aVersion: string;
-  const aLicenseStatus: TLicenseStatus; const aVendorId, aServer, aDescription, aURL: string);
+  const aLicenseStatus: TLicenseStatus; const aVendorId, aServer, aDescription, aURL, aDocsUrl,
+  aHomePage, aVersionHistoryUrl: string; const aAvailableDefines: TArray<TAvailableDefine>);
 begin
   Id := aId;
   Name := aName;
@@ -211,6 +235,10 @@ begin
   Server := aServer;
   Description := aDescription;
   Url := aUrl;
+  DocsUrl := aDocsUrl;
+  HomePage := aHomePage;
+  VersionHistoryUrl := aVersionHistoryUrl;
+  AvailableDefines := aAvailableDefines;
 end;
 
 end.

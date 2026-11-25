@@ -28,6 +28,7 @@ type
     FName: string;
     FDescription: string;
     FHomePage: string;
+    FDocsUrl: string;
     FVersionHistoryUrl: string;
     FAvailableDefines: TArray<TAvailableDefine>;
     FServer: string;
@@ -42,6 +43,7 @@ type
     property Name: string read FName;
     property Description: string read FDescription;
     property HomePage: string read FHomePage;
+    property DocsUrl: string read FDocsUrl;
     property VersionHistoryUrl: string read FVersionHistoryUrl;
     property AvailableDefines: TArray<TAvailableDefine> read FAvailableDefines;
     property Server: string read FServer write FServer;
@@ -51,7 +53,7 @@ type
     class function GetProtocolFromString(const aProtocol: string; const DefaultIsGit: boolean): TVCSProtocol; static;
     class function GetStringFromProtocol(const aProtocol: TVCSProtocol): string; static;
 
-    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl: string; const aAvailableDefines: TArray<TAvailableDefine>; const aServer: string; const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
+    constructor Create(const aProductId: string; const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aDocsUrl, aVersionHistoryUrl: string; const aAvailableDefines: TArray<TAvailableDefine>; const aServer: string; const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
     function Equals(ProductB: TObject): boolean; override;
   end;
 
@@ -103,7 +105,7 @@ uses IOUtils, UTmsBuildSystemUtils, Masks, Commands.GlobalConfig, JSON, USimpleJ
 { TRegisteredProduct }
 
 constructor TRegisteredProduct.Create(const aProductId: string;
-  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aVersionHistoryUrl: string; const aAvailableDefines: TArray<TAvailableDefine>; const aServer: string;
+  const aProtocol: TVCSProtocol; const aUrl, aName, aDescription, aHomePage, aDocsUrl, aVersionHistoryUrl: string; const aAvailableDefines: TArray<TAvailableDefine>; const aServer: string;
   const aPredefinedData: TPredefinedData; const aSkipSubModules: boolean);
 begin
   FProductId := aProductId;
@@ -112,6 +114,7 @@ begin
   FName := aName;
   FDescription := aDescription;
   FHomePage := aHomePage;
+  FDocsUrl := aDocsUrl;
   FVersionHistoryUrl := aVersionHistoryUrl;
   FAvailableDefines := aAvailableDefines;
   FServer := aServer;
@@ -129,6 +132,7 @@ begin
   if b.FName <> FName then exit(false);
   if b.FDescription <> FDescription then exit(false);
   if b.FHomePage <> FHomePage then exit(false);
+  if b.DocsUrl <> FDocsUrl then exit(false);
   if b.FVersionHistoryUrl <> FVersionHistoryUrl then exit(false);
   if Length(b.FAvailableDefines) <> Length(FAvailableDefines) then exit(false);
   for var i := 0 to High(FAvailableDefines) do
@@ -242,6 +246,7 @@ begin
                 Project.Application.Name,
                 Project.Application.Description,
                 Project.Application.HomePage,
+                Project.Application.Docs,
                 Project.Application.VersionHistoryUrl,
                 Project.GetAvailableDefines,
                 Server,

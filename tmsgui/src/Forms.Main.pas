@@ -130,6 +130,9 @@ type
     OneProdInstalledCaption: TLabel;
     BtnInfoSwitch: TButton;
     lbServerText: TLabel;
+    OneProdDocs: TLabel;
+    ProdDocsMenu: TPopupMenu;
+    CopyDocsMenu: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -191,6 +194,7 @@ type
     procedure CopyURL1Click(Sender: TObject);
     procedure LinkClick(Sender: TObject);
     procedure CopyVersionHistoryMenuClick(Sender: TObject);
+    procedure CopyDocsMenuClick(Sender: TObject);
     procedure acSBOMUpdate(Sender: TObject);
     procedure acSBOMExecute(Sender: TObject);
     procedure BtnInfoSwitchClick(Sender: TObject);
@@ -252,6 +256,7 @@ type
     procedure ShowConfigForm(const TabName: string);
     procedure ShowLastError(const RevIndex: integer; const ExtraMsg: string);
     function GetProductUrl(Product: TGUIProduct): string;
+    function GetDocumentationUrl(Product: TGUIProduct): string;
   public
     procedure InitiateAction; override;
     procedure ProductsUpdatedEvent(Products: TGUIProductList);
@@ -874,6 +879,11 @@ begin
   Clipboard.AsText := OneProdVersionHistory.Hint;
 end;
 
+procedure TMainForm.CopyDocsMenuClick(Sender: TObject);
+begin
+  Clipboard.AsText := OneProdDocs.Hint;
+end;
+
 procedure TMainForm.edSearchChange(Sender: TObject);
 begin
   GUI.SetSearchFilter(edSearch.Text);
@@ -1104,6 +1114,11 @@ function TMainForm.GetProductUrl(Product: TGUIProduct): string;
 begin
   if Product.HomePage <> '' then exit(Product.HomePage);
   Result := Product.Url;
+end;
+
+function TMainForm.GetDocumentationUrl(Product: TGUIProduct): string;
+begin
+  Result := Product.DocsUrl;
 end;
 
 function TMainForm.GetVersionHistoryUrl(Product: TGUIProduct): string;
@@ -1371,6 +1386,9 @@ begin
     OneProdVersionHistory.Caption := 'Version History';
     OneProdVersionHistory.Hint := GetVersionHistoryUrl(Product);
     OneProdVersionHistory.Enabled := OneProdVersionHistory.Hint <> '';
+    OneProdDocs.Caption := 'Documentation';
+    OneProdDocs.Hint := GetDocumentationUrl(Product);
+    OneProdDocs.Enabled := OneProdDocs.Hint <> '';
     var InstalledString := GUI.GetProductInstallInfo(Product);
     OneProdInstalledPlats.Text := InstalledString;
     if InstalledString = ''
