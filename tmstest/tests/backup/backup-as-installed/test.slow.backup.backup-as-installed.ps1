@@ -24,6 +24,7 @@ New-Item -ItemType Directory -Path "Products\tms.webcore\Packages\d13\test" -For
 tms backup ./all.snapshot.zip -as-installed
 
 uninstall_and_check(3)
+Remove-Item -Path "Products" -Recurse -Force
 
 
 tms restore ./all.snapshot.zip -test-offline -skip-register

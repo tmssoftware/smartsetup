@@ -83,6 +83,7 @@ type
     procedure ModifyConfig(const ProjectFile: string;
       const Settings: TBdsCompilationSettings);
     function GetEnvVariablesForCE(const Settings: TBdsCompilationSettings): TArray<string>;
+    procedure PickIDEPackages(const IDEName: TIDEName; const RegEntry: string);
   public
     function BuildBdsParameters(Settings: TBdsCompilationSettings; const ErrFile: string; const RegEntry: string): string;
     procedure DoCompile(const ProjectFile: string; Settings: TBdsCompilationSettings);
@@ -1092,6 +1093,148 @@ begin
   Result := false;
 end;
 
+const
+  //Packages in "Known IDE Packages" (and its Delphi/CBuilder subkeys) that we don't want in a headless build.
+  //We use a blocklist and not an allowlist, because IDE packages depend on each other in undocumented ways
+  //and those dependencies change between versions. (e.g. without themeloader, bds raises exceptions on load)
+  //Entries are masks for the package file name without the version suffix and extension.
+  //For example "$(BDS)\Bin\ParnassusIDE370.bpl" is "ParnassusIDE".
+  //Matching packages are copied, but disabled with a "_" prefix in their description, so bds -b doesn't load them.
+  NotNeededIDEPackages: array[0..14] of string = (
+    //Known to crash in batch mode
+    'ParnassusIDE',
+
+    //Network access, downloads or telemetry
+    'GetIt', 'getitide', 'TrackingSystem', 'MirrorHub', 'LivePreview', 'DeviceManager',
+
+    //Welcome screen / tours
+    'WelcomePage*', 'startpageide', 'GuidedTour',
+
+    //AI plugins
+    'AIEngine', '*AIPlugin',
+
+    //Starts external DelphiLSP processes
+    'IDELSP',
+
+    //Designers/tools not needed to compile
+    'MultidevicePreview', 'DataExplorerIDE'
+  );
+
+procedure CheckReg(const ErrorCode: LongInt; const What, Key: string);
+begin
+  if ErrorCode <> ERROR_SUCCESS then raise Exception.Create('Error ' + What + ' "' + Key + '": ' + SysErrorMessage(ErrorCode));
+end;
+
+function IsNotNeededIDEPackage(const PackageFile: string; const IDEName: TIDEName): boolean;
+begin
+  var Name := TPath.GetFileNameWithoutExtension(PackageFile);
+  var Suffix := PackageSuffixes[IDEName];
+  if Name.EndsWith(Suffix, true) then Name := Name.Substring(0, Name.Length - Suffix.Length);
+  for var Mask in NotNeededIDEPackages do
+  begin
+    if MatchesMask(Name, Mask) then exit(true);
+  end;
+  Result := false;
+end;
+
+function IsKnownIDEPackagesKey(const RelKey: string): boolean;
+begin
+  //"Known IDE Packages", "Known IDE Packages x64" and their subkeys (Delphi, CBuilder)
+  Result := RelKey.StartsWith('Known IDE Packages', true);
+end;
+
+// Copies all values and subkeys from Src into Dst. RelKey is the path of Src relative to the root we are copying,
+// and it is used to decide which values to filter.
+procedure CopyRegTree(const Src, Dst: HKEY; const RelKey: string; const IDEName: TIDEName);
+var
+  SubKeyCount, MaxSubKeyLen, ValueCount, MaxValueNameLen, MaxValueLen: DWORD;
+  NameLen, DataLen, ValueType: DWORD;
+  Name: string;
+  Data: TBytes;
+  SrcSub, DstSub: HKEY;
+begin
+  CheckReg(RegQueryInfoKey(Src, nil, nil, nil, @SubKeyCount, @MaxSubKeyLen, nil,
+    @ValueCount, @MaxValueNameLen, @MaxValueLen, nil, nil), 'reading registry key', RelKey);
+
+  var FilterValues := IsKnownIDEPackagesKey(RelKey);
+  SetLength(Data, MaxValueLen + 1);
+  for var i := 0 to Integer(ValueCount) - 1 do
+  begin
+    NameLen := MaxValueNameLen + 1;
+    SetLength(Name, NameLen);
+    DataLen := Length(Data);
+    CheckReg(RegEnumValue(Src, i, PChar(Name), NameLen, nil, @ValueType, PByte(Data), @DataLen), 'reading registry values in', RelKey);
+    SetLength(Name, NameLen);
+
+    if FilterValues and IsNotNeededIDEPackage(Name, IDEName) and ((ValueType = REG_SZ) or (ValueType = REG_EXPAND_SZ)) then
+    begin
+      //We can't just remove the entry, because bds will restore the missing ones from HKLM.
+      //Instead, we disable it: the IDE doesn't load packages whose description starts with "_".
+      var Description := '';
+      if DataLen >= SizeOf(Char) then SetString(Description, PChar(Data), DataLen div SizeOf(Char));
+      Description := Description.TrimRight([#0]);
+      if not Description.StartsWith('_') then Description := '_' + Description;
+      CheckReg(RegSetValueEx(Dst, PChar(Name), 0, ValueType, PChar(Description), (Length(Description) + 1) * SizeOf(Char)),
+        'writing registry value ' + Name + ' in', RelKey);
+      continue;
+    end;
+
+    CheckReg(RegSetValueEx(Dst, PChar(Name), 0, ValueType, PByte(Data), DataLen), 'writing registry value ' + Name + ' in', RelKey);
+  end;
+
+  for var i := 0 to Integer(SubKeyCount) - 1 do
+  begin
+    NameLen := MaxSubKeyLen + 1;
+    SetLength(Name, NameLen);
+    CheckReg(RegEnumKeyEx(Src, i, PChar(Name), NameLen, nil, nil, nil, nil), 'reading registry subkeys in', RelKey);
+    SetLength(Name, NameLen);
+
+    var SubRelKey := Name;
+    if RelKey <> '' then SubRelKey := RelKey + '\' + Name;
+
+    CheckReg(RegOpenKeyEx(Src, PChar(Name), 0, KEY_READ, SrcSub), 'opening registry key', SubRelKey);
+    try
+      CheckReg(RegCreateKeyEx(Dst, PChar(Name), 0, nil, REG_OPTION_NON_VOLATILE, KEY_WRITE, nil, DstSub, nil), 'creating registry key', SubRelKey);
+      try
+        CopyRegTree(SrcSub, DstSub, SubRelKey, IDEName);
+      finally
+        RegCloseKey(DstSub);
+      end;
+    finally
+      RegCloseKey(SrcSub);
+    end;
+  end;
+end;
+
+procedure TBdsCompiler.PickIDEPackages(const IDEName: TIDEName; const RegEntry: string);
+begin
+  //some ide packages, like parnassus, can cause crashes when running in batch mode.
+  //some others like the welcome screen and getit, will just slow down the loading.
+  //When bds is called with -r and the key doesn't exist in HKCU, it copies it from HKLM.
+  //So we do that copy ourselves before calling bds, but disabling the non essential "Known IDE Packages".
+
+  var SrcKey := DelphiRegistryRoot[IDEName]; //e.g. Software\Embarcadero\BDS\37.0
+  var DstKey := TPath.GetDirectoryName(TPath.GetDirectoryName(SrcKey)) + '\' + RegEntry + '\' + TPath.GetFileName(SrcKey);
+
+  //Remove leftovers from failed compilations.
+  RegDeleteKey(HKEY_CURRENT_USER, DstKey);
+
+  var Src: HKEY;
+  //bds is a 32-bit app, so its HKLM keys are in the 32-bit view (WOW6432Node).
+  CheckReg(RegOpenKeyEx(HKEY_LOCAL_MACHINE, PChar(SrcKey), 0, KEY_READ or KEY_WOW64_32KEY, Src), 'opening registry key', 'HKLM\' + SrcKey);
+  try
+    var Dst: HKEY;
+    CheckReg(RegCreateKeyEx(HKEY_CURRENT_USER, PChar(DstKey), 0, nil, REG_OPTION_NON_VOLATILE, KEY_WRITE, nil, Dst, nil), 'creating registry key', 'HKCU\' + DstKey);
+    try
+      CopyRegTree(Src, Dst, '', IDEName);
+    finally
+      RegCloseKey(Dst);
+    end;
+  finally
+    RegCloseKey(Src);
+  end;
+end;
+
 procedure TBdsCompiler.DoCompile(const ProjectFile: string;
   Settings: TBdsCompilationSettings);
 const
@@ -1108,8 +1251,10 @@ begin
       ModifyConfig(ProjectFile, Settings); //This will modify the file in Parallel folder, so it doesn't matter.
       var DummyOutput := '';
       var Env := GetEnvVariablesForCE(Settings);
-      var RegEntry := RegEntryRoot + '\' + GuidToStringN(TGUID.NewGuid);
+      //var RegEntry := RegEntryRoot + '\' + GuidToStringN(TGUID.NewGuid);
+      var RegEntry := RegEntryRoot;   //adding a GUI will generate always a different folder in AppData
       try
+        PickIDEPackages(Settings.TargetPlatform.IDEInfo.IDEName, RegEntry);
         if not ExecuteCommand(
            QuoteCmd(BdsBuild) + ' ' + BuildBdsParameters(Settings, ErrFile, RegEntry) + ' "' + ProjectFile + '"',
            '', DummyOutput, Env) then HasErrors :=true;
